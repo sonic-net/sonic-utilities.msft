@@ -1,0 +1,165 @@
+#! /usr/bin/python
+
+#############################################################################
+#
+# This is the main script that handles eeprom encoding and decoding
+#
+try:
+    import exceptions
+    import binascii
+    import time
+    import optparse
+    import warnings
+    import os
+    import subprocess
+    import sys
+    from array import array
+    import imp
+    import eeprom_dts
+    import glob
+except ImportError, e:
+    raise ImportError (str(e) + "- required module not found")
+
+
+platform_detect = '/usr/bin/platform-detect'
+platform_root = '/etc/ssw'
+cache_root = '/var/cache/ssw/decode-syseeprom'
+
+def main():
+
+    if not os.geteuid() == 0:
+        raise RuntimeError("must be root to run")
+
+    #
+    # determine the platform
+    #
+    try:
+        ph = subprocess.Popen((platform_detect), stdout=subprocess.PIPE,
+                              shell=False, stderr=subprocess.STDOUT)
+        cmdout = ph.communicate()[0]
+        ph.wait()
+    except OSError, e:
+        raise OSError("cannot detect platform")
+
+    platform = cmdout.rstrip('\n')
+    platform_path = '/'.join([platform_root, platform])
+
+    #
+    # Currently we only support board eeprom decode.
+    #
+    (opts, args) = get_cmdline_opts()
+
+    #
+    # load the target class file and instantiate the object
+    #
+    try:
+        m = imp.load_source('eeprom','/'.join([platform_path, 'bin/eeprom.py']))
+    except IOError:
+        raise IOError("cannot load module: " + '/'.join([platform_path, 'bin/eeprom.py']))
+
+    class_ = getattr(m, 'board')
+    t = class_('board', '','','')
+
+    #
+    # execute the command
+    #
+    run(t, opts, args)
+
+#-------------------------------------------------------------------------------
+#
+# sets global variable "optcfg"
+#
+def get_cmdline_opts():
+    optcfg = optparse.OptionParser(usage="usage: %s [-s][-m]" % sys.argv[0])
+    optcfg.add_option("-s", dest="serial", action="store_true",
+                      default=False, help="print device serial number/service tag")
+    optcfg.add_option("-m", dest="mgmtmac", action="store_true", default=False,
+                      help="print the base mac address for management interfaces")
+    optcfg.add_option("--init", dest="init", action="store_true", default=False,
+                      help="clear and initialize board eeprom cache")
+    return optcfg.parse_args()
+
+#-------------------------------------------------------------------------------
+#
+# Run
+#
+def run(target, opts, args):
+    status = target.check_status()
+    if status <> 'ok':
+        sys.stderr.write("Device is not ready: " + status + "\n")
+        exit(0)
+
+    if not os.path.exists(cache_root):
+        try:
+            os.makedirs(cache_root)
+        except:
+            pass
+    if opts.init:
+        for file in glob.glob(os.path.join(cache_root, '*')):
+            os.remove(file)
+
+    #
+    # only the eeprom classes that inherit from eeprom_base
+    # support caching. Others will work normally
+    #
+    try:
+        target.set_cache_name(os.path.join(cache_root, opts.target))
+    except:
+        pass
+
+    e = target.read_eeprom()
+    if e is None :
+        return 0
+
+    try:
+        target.update_cache(e)
+    except:
+        pass
+
+    if opts.init:
+        return 0
+
+    elif opts.mgmtmac:
+        mm = target.mgmtaddrstr(e)
+        if mm <> None:
+            print mm
+    elif opts.serial:
+        try:
+            serial = target.serial_number_str(e)
+        except NotImplemented, e:
+          print e
+        else:
+          print serial or "Undefined."
+    else:
+        target.decode_eeprom(e)
+        (is_valid, valid_crc) = target.is_checksum_valid(e)
+        if is_valid:
+            print '(checksum valid)'
+        else:
+            print '(*** checksum invalid)'
+            # + ', should be 0x' + binascii.b2a_hex(array('I', [valid_crc])).upper() + ')'
+    return 0
+
+
+#
+# formats warnings
+#
+def mywarn(message, category, filename, lineno, line=None):
+    return '%s:%s : %s : %s\n' % (filename, lineno, category.__name__, message)
+
+#--------------------
+#
+# execution check
+#
+if __name__ == "__main__":
+    try:
+        warnings.simplefilter("always")
+        warnings.formatwarning = mywarn
+        exit(main())
+    except KeyboardInterrupt:
+        sys.stderr.write("\nInterrupted\n")
+        exit(1)
+    except (RuntimeError, OSError, IOError), errstr:
+        sys.stderr.write("%s : ERROR : %s\n" % (sys.argv[0], str(errstr)))
+        exit(1)
+

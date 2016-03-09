@@ -1,0 +1,12 @@
+Source: acs-utilities
+Maintainer: Shuotian Cheng <shuche@microsoft.com>
+Section: misc
+Priority: optional
+Standards-Version: 0.1
+Build-Depends: debhelper (>=9), python (>=2.7.9)
+
+Package: acs-utilities
+Architecture: amd64
+Depends: ${misc:Depends}, python-tabulate, psmisc, grub2-common
+Description: collection of utilities
+ Including: sfputil, decode-syseeprom
