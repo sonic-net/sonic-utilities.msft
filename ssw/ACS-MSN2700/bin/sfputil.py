@@ -21,7 +21,7 @@ class sfputil(sfputilbase):
 
     def __init__(self, port_num):
         # Override port_to_eeprom_mapping for class initialization
-        eeprom_path = '/sys/class/i2c-adapter/i2c-2/2-0048/qsfp{0}_eeprom'
+        eeprom_path = '/bsp/qsfp/qsfp{0}'
         for x in range(0, self.port_end + 1):
             self.port_to_eeprom_mapping[x] = eeprom_path.format(x + self.eeprom_offset)
         sfputilbase.__init__(self, port_num)
