@@ -9,4 +9,4 @@ Package: sonic-utilities
 Architecture: amd64
 Depends: ${misc:Depends}, python-tabulate, psmisc, grub2-common
 Description: collection of utilities
- Including: sfputil, decode-syseeprom
+ Including: sfputil, decode-syseeprom, generate_dump
