@@ -5,22 +5,22 @@
 #
 #--------------------------------------------------------------------------
 try:
-	import fcntl
-	import struct
-	import sys
-	import time
-	import binascii
-	import os
-	import getopt
-	import re
-	import bcmshell
-	import pprint
-	import eeprom_dts
-	from math import log10
-	from sff8472 import sff8472InterfaceId
-	from sff8472 import sff8472Dom
-	from sff8436 import sff8436InterfaceId
-	from sff8436 import sff8436Dom
+    import fcntl
+    import struct
+    import sys
+    import time
+    import binascii
+    import os
+    import getopt
+    import re
+    import bcmshell
+    import pprint
+    from math import log10
+    from sonic_eeprom import eeprom_dts
+    from sff8472 import sff8472InterfaceId
+    from sff8472 import sff8472Dom
+    from sff8436 import sff8436InterfaceId
+    from sff8436 import sff8436Dom
 
 except ImportError, e:
     raise ImportError (str(e) + "- required module not found")
@@ -338,7 +338,8 @@ class sfputilbase(object):
 			line.strip()
 			if re.search('^#', line) != None:
 				continue
-			(logical_port, bcm_port) = line.split('=')[1].split(',')[:2]
+			logical_port = line.split()[0]
+			bcm_port = line.split()[1].split(',')[0]
 
 			physical_port = logical_port.split('Ethernet').pop()
 			physical_port = int(physical_port.split('s').pop(0))/4

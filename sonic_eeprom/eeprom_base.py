@@ -23,7 +23,7 @@ except ImportError, e:
     raise ImportError (str(e) + "- required module not found")
 
 
-class eepromDecoder(object):
+class EepromDecoder(object):
     def __init__(self, path, format, start, status, readonly):
         self.p = path
         self.f = format

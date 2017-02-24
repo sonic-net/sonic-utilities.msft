@@ -25,7 +25,7 @@ except ImportError, e:
 # and can be found here:
 #
 #
-class TlvInfoDecoder(eeprom_base.eepromDecoder):
+class TlvInfoDecoder(eeprom_base.EepromDecoder):
 
     # Header Field Constants
     _TLV_INFO_ID_STRING         = "TlvInfo\x00"

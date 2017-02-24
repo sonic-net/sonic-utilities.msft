@@ -19,6 +19,10 @@ import sys
 from collections import namedtuple, OrderedDict
 from tabulate import tabulate
 
+BCMCMD_PATH = "/usr/bin/bcmcmd"
+NETSTAT_PATH = "/bin/netstat"
+CAT_PATH = "/bin/cat"
+
 PORT_RATE = 40
 
 NStats = namedtuple("NStats", "rx_ok, rx_err, rx_drop, rx_ovr, tx_ok,\
@@ -66,7 +70,6 @@ filter_bucket_dict = {
     'RFCR': 1,
     'RJBR': 1,
     'RDBGC0': 2,
-    'RDBGC2': 2,
     'DROP_PKT_ING': 2,
     'ROVR': 3,
     'TPKT': 4,
@@ -310,7 +313,7 @@ Examples:
             sys.exit(0)
 
     try:
-        bcmcmd_output = subprocess.Popen((['/usr/sbin/bcmcmd',
+        bcmcmd_output = subprocess.Popen(([BCMCMD_PATH,
                                            'show counters changed same nz']),
                                          stdout=subprocess.PIPE,
                                          shell=False).communicate()[0]
@@ -321,7 +324,7 @@ Examples:
     bcm_dict = parse_bcmcmd_output(bcmcmd_output)
 
     try:
-        netstat_out = subprocess.Popen((['/bin/netstat', '-i']),
+        netstat_out = subprocess.Popen(([NETSTAT_PATH, '-i']),
                                        stdout=subprocess.PIPE,
                                        shell=False).communicate()[0]
     except EnvironmentError as e:
@@ -333,7 +336,7 @@ Examples:
     # Since netstat -i returns some stats as 32-bits, get full 64-bit
     # stats from /prov/net/dev and display only the 64-bit stats.
     try:
-        proc_out = subprocess.Popen((['/bin/cat', '/proc/net/dev']),
+        proc_out = subprocess.Popen(([CAT_PATH, '/proc/net/dev']),
                                     stdout=subprocess.PIPE,
                                     shell=False).communicate()[0]
     except EnvironmentError as e:
@@ -365,9 +368,10 @@ Examples:
     for i in range(2, len(netstat_lines) - 1):
         netstats = netstat_lines[i].split()
         if ":" in netstats[0]:
-            continue    # skip aliased interfaces
-        if "eth" in netstats[0] or "lo" in netstats[0] or "docker" in netstats[0]:
-            continue
+            continue    # Skip aliased interfaces
+        if ("eth" in netstats[0] or "lo" in netstats[0] or "docker" in netstats[0] or
+                "Vlan" in netstats[0] or "PortChannel" in netstats[0]):
+            continue    # Skip these types of interfaces
         else:
             cnstat_dict.update(cnstat_create_bcm_element(i, netstats, bcm_dict[netstats[0]]))
 

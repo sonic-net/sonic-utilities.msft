@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/env python
 
 #############################################################################
 #
@@ -15,34 +15,43 @@ try:
     import sys
     from array import array
     import imp
-    import eeprom_dts
+    from sonic_eeprom import eeprom_dts
     import glob
 except ImportError, e:
     raise ImportError (str(e) + "- required module not found")
 
 
-platform_detect = '/usr/bin/platform-detect'
-platform_root = '/etc/ssw'
+SONIC_CFGGEN = '/usr/bin/sonic-cfggen'
+PLATFORM_KEY = 'platform'
+
+PLATFORM_ROOT = '/usr/share/sonic/device'
+
 cache_root = '/var/cache/ssw/decode-syseeprom'
+
+# Returns platform and HW SKU
+def get_platform():
+    try:
+        proc = subprocess.Popen([SONIC_CFGGEN, '-v', PLATFORM_KEY],
+                                stdout=subprocess.PIPE,
+                                shell=False,
+                                stderr=subprocess.STDOUT)
+        stdout = proc.communicate()[0]
+        proc.wait()
+        platform = stdout.rstrip('\n')
+    except OSError, e:
+        raise OSError("Cannot detect platform")
+
+    return platform
 
 def main():
 
     if not os.geteuid() == 0:
         raise RuntimeError("must be root to run")
 
-    #
-    # determine the platform
-    #
-    try:
-        ph = subprocess.Popen((platform_detect), stdout=subprocess.PIPE,
-                              shell=False, stderr=subprocess.STDOUT)
-        cmdout = ph.communicate()[0]
-        ph.wait()
-    except OSError, e:
-        raise OSError("cannot detect platform")
+    # Get platform name
+    platform = get_platform()
 
-    platform = cmdout.rstrip('\n')
-    platform_path = '/'.join([platform_root, platform])
+    platform_path = '/'.join([PLATFORM_ROOT, platform])
 
     #
     # Currently we only support board eeprom decode.
@@ -53,9 +62,9 @@ def main():
     # load the target class file and instantiate the object
     #
     try:
-        m = imp.load_source('eeprom','/'.join([platform_path, 'bin/eeprom.py']))
+        m = imp.load_source('eeprom','/'.join([platform_path, 'plugins', 'eeprom.py']))
     except IOError:
-        raise IOError("cannot load module: " + '/'.join([platform_path, 'bin/eeprom.py']))
+        raise IOError("cannot load module: " + '/'.join([platform_path, 'plugins', 'eeprom.py']))
 
     class_ = getattr(m, 'board')
     t = class_('board', '','','')
@@ -121,15 +130,15 @@ def run(target, opts, args):
 
     elif opts.mgmtmac:
         mm = target.mgmtaddrstr(e)
-        if mm <> None:
+        if mm != None:
             print mm
     elif opts.serial:
         try:
             serial = target.serial_number_str(e)
         except NotImplemented, e:
-          print e
+            print e
         else:
-          print serial or "Undefined."
+            print serial or "Undefined."
     else:
         target.decode_eeprom(e)
         (is_valid, valid_crc) = target.is_checksum_valid(e)

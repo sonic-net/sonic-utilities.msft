@@ -4,13 +4,13 @@ This Microsoft Open Source project incorporates material from the project(s) lis
 (Third Party Code).  Microsoft is not the original author of the Third Party Code.  Microsoft 
 reserves all other rights not expressly granted, whether by implication, estoppel or otherwise.
 
-1.   bin/sfputil             https://cumulusnetworks.com
-2.   bcmshell.py             https://cumulusnetworks.com
-3.   eeprom_base.py          https://cumulusnetworks.com
-4.   eeprom_fts.py           https://cumulusnetworks.com
-5.   eeprom_tlvinfo.py       https://cumulusnetworks.com
-6.   sff8472.py              https://cumulusnetworks.com
-7.   sfputilbase.py          https://cumulusnetworks.com
+1.   scripts/sfputil                   https://cumulusnetworks.com
+2.   sonic_eeprom/eeprom_base.py       https://cumulusnetworks.com
+3.   sonic_eeprom/eeprom_fts.py        https://cumulusnetworks.com
+4.   sonic_eepromeeprom_tlvinfo.py     https://cumulusnetworks.com
+5.   sonic_sfp/bcmshell.py             https://cumulusnetworks.com
+6.   sonic_sfp/sff8472.py              https://cumulusnetworks.com
+7.   sonic_sfp/sfputilbase.py          https://cumulusnetworks.com
 
 
 + * Copyright (C) 2014 Cumulus Networks, LLC
