@@ -27,6 +27,11 @@ setup(
             'show = sonic_cli.main:cli',
         ]
     },
+    install_requires=[
+        'click',
+        'click-default-group',
+        'tabulate'
+    ],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Console',
