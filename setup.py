@@ -22,6 +22,9 @@ setup(
         'scripts/portstat',
         'scripts/sfputil',
     ],
+    data_files=[
+        ('/etc/bash_completion.d', ['data/etc/bash_completion.d/show'])
+    ],
     entry_points={
         'console_scripts': [
             'show = sonic_cli.main:cli',
