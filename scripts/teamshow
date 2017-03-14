@@ -1,0 +1,107 @@
+#!/usr/bin/python
+
+"""
+    Script to show LAG and LAG member status in a summary view
+    Example of the output:
+    acsadmin@sonic:~$ teamshow
+    Flags: A - active, I - inactive, N/A - Not Available, S - selected, D - deselected
+     No.  Team Dev       Protocol    Ports
+    -----  -------------  ----------  ---------------------------
+       24  PortChannel24  LACP(A)     Ethernet28(S) Ethernet24(S)
+       48  PortChannel48  LACP(A)     Ethernet52(S) Ethernet48(S)
+       16  PortChannel16  LACP(A)     Ethernet20(S) Ethernet16(S)
+       32  PortChannel32  LACP(A)     Ethernet32(S) Ethernet36(S)
+       56  PortChannel56  LACP(A)     Ethernet60(S) Ethernet56(S)
+       40  PortChannel40  LACP(A)     Ethernet44(S) Ethernet40(S)
+        0  PortChannel0   LACP(A)     Ethernet0(S) Ethernet4(S)
+        8  PortChannel8   LACP(A)     Ethernet8(S) Ethernet12(S)
+"""
+
+import json
+import re
+import subprocess
+import sys
+from tabulate import tabulate
+from minigraph import parse_xml
+
+class Teamshow(object):
+    def __init__(self):
+        self.teams = []
+        self.teamsraw = {}
+        self.summary = {}
+        self.err = None
+
+    def get_portchannel_names(self):
+        """
+            Get the portchannel names from minigraph.
+        """
+        minigraph_path = '/etc/sonic/minigraph.xml'
+        self.teams = parse_xml(minigraph_path)['minigraph_portchannel_interfaces'].keys();        
+
+    def get_team_id(self, team):
+        """
+            Skip the 'PortChannel' prefix and extract the team id.
+        """
+        return team[11:]
+
+    def get_teamdctl(self):
+        """
+            Get teams raw data from teamdctl.
+            Command: 'teamdctl <teamdevname> state dump'.
+        """
+        for team in self.teams:
+            teamdctl_cmd = 'teamdctl ' + team + ' state dump'
+            p = subprocess.Popen(teamdctl_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+            (output, err) = p.communicate()
+            rc = p.wait()
+	    if rc == 0:
+                self.teamsraw[self.get_team_id(team)] = output
+            else:
+                self.err = err
+
+    def parse_teamdctl(self):
+        """
+             Parse the output of teamdctl.
+        """
+        for team in self.teams:
+            info = {}
+            team_id = self.get_team_id(team)
+            if team_id not in self.teamsraw:
+                info['protocol'] = 'N/A'
+                self.summary[team_id] = info
+                self.summary[team_id]['ports'] = ''
+                continue
+            json_info = json.loads(self.teamsraw[team_id])
+            info['protocol'] = json_info['setup']['runner_name'].upper()
+            info['protocol'] += '(A)' if json_info['runner']['active'] else '(I)'
+            info['ports'] = ""
+            for port in json_info['ports']:
+                info['ports'] += port
+                info['ports'] += '(S)' if json_info['ports'][port]['runner']['selected'] else '(D)'
+                info['ports'] += ' '
+            self.summary[team_id] = info
+
+    def display_summary(self):
+        """
+            Display the portchannel (team) summary.
+        """
+        print "Flags: A - active, I - inactive, N/A - Not Available, S - selected, D - deselected"
+        header = ['No.', 'Team Dev', 'Protocol', 'Ports']
+        output = []
+        for team_id in self.summary:
+            output.append([team_id, 'PortChannel'+team_id, self.summary[team_id]['protocol'], self.summary[team_id]['ports']])
+        print tabulate(output, header)
+
+def main():
+    try:
+        team = Teamshow()
+        team.get_portchannel_names()
+        team.get_teamdctl()
+        team.parse_teamdctl()
+        team.display_summary()
+    except Exception as e:
+        print e.message
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
