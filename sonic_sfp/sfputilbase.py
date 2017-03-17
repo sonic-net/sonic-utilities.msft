@@ -204,7 +204,7 @@ class sfputilbase(object):
 			i2c_adapter_id = self._get_port_i2c_adapter_id(port_num)
 			if i2c_adapter_id == None:
 				print 'Error getting i2c bus num'
-				return Non
+				return None
 
 			# Get i2c virtual bus path for the sfp
 			sysfs_sfp_i2c_adapter_path = sysfs_i2c_adapter_base_path + \
@@ -323,11 +323,15 @@ class sfputilbase(object):
 		last_physical_port = 0
 		last_logical_port = ''
 		first = 1
+		port_pos_in_file = 0
+		parse_fmt_port_config_ini = False
 
 		try:
 			f = open(porttabfile)
 		except:
 			raise
+
+		parse_fmt_port_config_ini = (os.path.basename(porttabfile) == 'port_config.ini')
 
 		# Read the porttab file and generate dicts
 		# with mapping for future reference.
@@ -338,11 +342,23 @@ class sfputilbase(object):
 			line.strip()
 			if re.search('^#', line) != None:
 				continue
-			logical_port = line.split()[0]
-			bcm_port = line.split()[1].split(',')[0]
 
-			physical_port = logical_port.split('Ethernet').pop()
-			physical_port = int(physical_port.split('s').pop(0))/4
+			# Parsing logic for 'port_config.ini' file
+			if (parse_fmt_port_config_ini):
+				# bcm_port is not explicitly listed in port_config.ini format
+				# Currently we assume ports are listed in numerical order according to bcm_port
+				# so we use the port's position in the file (zero-based) as bcm_port
+				logical_port = line.split()[0]
+
+				bcm_port = str(port_pos_in_file);
+
+				physical_port = logical_port.split('Ethernet').pop()
+				physical_port = int(physical_port.split('s').pop(0))/4
+			else: # Parsing logic for older 'portmap.ini' file
+				(logical_port, bcm_port) = line.split('=')[1].split(',')[:2]
+
+				physical_port = logical_port.split('Ethernet').pop()
+				physical_port = int(physical_port.split('s').pop(0))/4
 
 			if ((len(cls.sfp_ports) > 0) and
 				(physical_port not in cls.sfp_ports)):
@@ -378,6 +394,8 @@ class sfputilbase(object):
 
 			last_physical_port = physical_port
 			last_logical_port  = logical_port
+
+			port_pos_in_file += 1
 
 		sfputilbase.logical = logical
 		sfputilbase.logical_to_bcm = logical_to_bcm

@@ -30,7 +30,7 @@ class bcmshell (object):
     #---------------
     #
     def __init__(self, keepopen=False, timeout=10, opennow=False, logfileobj=None,
-                 socketname="/var/run/sswsyncd.socket", prompt='^drivshell>\s*$'):
+                 socketname="/var/run/docker-syncd/sswsyncd.socket", prompt='^drivshell>\s*$'):
         """Constructor:
 
         keepopen - indicates that switchd socket should be kept open between
@@ -54,7 +54,7 @@ class bcmshell (object):
             raise SyntaxError("bcmshell constructor prompt expects an re string")
         else:
             self.re_prompt = re.compile(prompt, re.MULTILINE)
-            self.re_connectprompt = re.compile("bcmshell\r\n\r\r\n" + prompt, re.MULTILINE)
+            self.re_connectprompt = re.compile("bcmshell\r\n" + prompt, re.MULTILINE)
 
         if timeout <= 0:
             raise ValueError("bcmshell.timeout must be > 0")
