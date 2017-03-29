@@ -34,6 +34,7 @@ setup(
     install_requires=[
         'click',
         'click-default-group',
+        'natsort',
         'tabulate'
     ],
     classifiers=[
