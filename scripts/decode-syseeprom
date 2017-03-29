@@ -21,7 +21,7 @@ except ImportError, e:
     raise ImportError (str(e) + "- required module not found")
 
 
-SONIC_CFGGEN = '/usr/bin/sonic-cfggen'
+SONIC_CFGGEN = '/usr/local/bin/sonic-cfggen'
 PLATFORM_KEY = 'platform'
 
 PLATFORM_ROOT = '/usr/share/sonic/device'

@@ -34,7 +34,7 @@ OPTIONS
 """
 
 
-SONIC_CFGGEN = '/usr/bin/sonic-cfggen'
+SONIC_CFGGEN = '/usr/local/bin/sonic-cfggen'
 MINIGRAPH_FILE = '/etc/sonic/minigraph.xml'
 HWSKU_KEY = 'minigraph_hwsku'
 PLATFORM_KEY = 'platform'
