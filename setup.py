@@ -18,6 +18,7 @@ setup(
         'scripts/boot_part',
         'scripts/coredump-compress',
         'scripts/decode-syseeprom',
+        'scripts/fast-reboot',
         'scripts/generate_dump',
         'scripts/portstat',
         'scripts/sfputil',
