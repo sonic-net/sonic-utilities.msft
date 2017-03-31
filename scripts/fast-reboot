@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Check root privileges
+if [ "$EUID" -ne 0 ]
+then
+  echo "Please run as root"
+  exit
+fi
+
+# Unload previous kernel if any loaded
+if [ $(cat /sys/kernel/kexec_loaded) -eq 1 ]
+then
+  /sbin/kexec -u
+fi
+
+# Kernel and initrd image
+KERNEL_IMAGE="/vmlinuz"
+INITRD="/initrd.img"
+BOOT_OPTIONS=$(cat /proc/cmdline)
+
+case "$BOOT_OPTIONS" in
+  *fast-reboot*)
+    # it's already there
+    ;;
+  *)
+    BOOT_OPTIONS="$BOOT_OPTIONS fast-reboot"
+    ;;
+esac
+
+# Load kernel into memory
+/sbin/kexec -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
+
+# Stop docker container engine. Otherwise will have broken docker storage
+systemctl stop docker.service
+
+# Wait until all buffers synced with disk
+sync
+sleep 3
+sync
+
+# Reboot
+reboot
