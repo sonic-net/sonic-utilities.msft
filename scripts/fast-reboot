@@ -8,7 +8,7 @@ then
 fi
 
 # Unload previous kernel if any loaded
-if [ "x`cat /sys/kernel/kexec_loaded`y" = "x1y" ]
+if [ $(cat /sys/kernel/kexec_loaded) -eq 1 ]
 then
   /sbin/kexec -u
 fi
@@ -16,7 +16,7 @@ fi
 # Kernel and initrd image
 KERNEL_IMAGE="/vmlinuz"
 INITRD="/initrd.img"
-BOOT_OPTIONS="`cat /proc/cmdline`"
+BOOT_OPTIONS=$(cat /proc/cmdline)
 
 case "$BOOT_OPTIONS" in
   *fast-reboot*)
@@ -35,11 +35,8 @@ systemctl stop docker.service
 
 # Wait until all buffers synced with disk
 sync
-sleep 1
+sleep 3
 sync
-sleep 1
-sync
-sleep 1
 
 # Reboot
 reboot
