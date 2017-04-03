@@ -33,6 +33,13 @@ esac
 # Stop docker container engine. Otherwise will have broken docker storage
 systemctl stop docker.service
 
+# Stop opennsl modules for Broadcom platform
+sonic_asic_type=$(cat /etc/sonic/sonic_version.yml | sed -n 's/^asic_type: //p')
+if [ $sonic_asic_type = 'broadcom' ];
+then
+ systemctl stop opennsl-modules-3.16.0-4-amd64.service
+fi
+
 # Wait until all buffers synced with disk
 sync
 sleep 3
