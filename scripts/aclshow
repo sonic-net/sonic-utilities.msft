@@ -1,0 +1,316 @@
+#!/usr/bin/python
+"""
+using aclshow to display SONiC switch acl rules and counters
+
+usage: aclshow [-h] [-v] [-c] [-d] [-vv] [-p PORTS] [-t TABLES] [-r RULES]
+
+Display SONiC switch ACL Counters/status
+
+optional arguments:
+  -h,  --help                 show this help message and exit
+  -v,  --version              show program's version number and exit
+  -vv, --verbose              verbose output (progress, etc)
+  -c,  --clear                clear ACL counters statistics
+  -p PORTS,  --ports PORTS    action by specific port list: Ethernet0,Ethernet12
+  -r RULES,  --rules RULES    action by specific rules list: Rule_1,Rule_2
+  -t TABLES, --tables TABLES  action by specific tables list: Table_1,Table_2
+  -d,  --details              display detailed ACL info
+"""
+
+from __future__ import print_function
+import subprocess
+import re
+import sys
+import os
+from tabulate import tabulate
+import argparse
+import json
+import swsssdk
+
+### temp file to save counter positions when doing clear counter action.
+### if we could have a SAI command to clear counters will be better, so no need to maintain
+### counters in temp loaction for clear conter action
+COUNTER_POSITION = '/tmp/.counters_acl.p'
+
+### acl display header
+ACL_HEADER = ["RULE NAME", "TABLE NAME", "TYPE", "PRIO", "ACTION", "PACKETS COUNT", "BYTES COUNT"]
+
+# some constants for rule properties
+PACKETS_COUNTER = "packets counter"
+BYTES_COUNTER = "bytes counter"
+
+class AclStat(object):
+    """
+    Process aclstat
+    """
+    def __init__(self, ports, rules, tables):
+        self.port_map = {}
+        self.acl_tables = {}
+        self.acl_rules = {}
+        self.acl_counters = {}
+        self.saved_acl_counters = {}
+        self.ports = ports
+        self.port_list = []
+        self.rule_list = []
+        self.table_list = []
+
+        if rules:
+            self.rule_list = rules.split(",")
+
+        if tables:
+            self.table_list = tables.split(",")
+
+        # Set up db connections
+        self.db = swsssdk.SonicV2Connector()
+        self.db.connect(self.db.APPL_DB)
+        self.db.connect(self.db.COUNTERS_DB)
+
+        self.read_port_map()
+        self.validate_ports()
+
+    def read_port_map(self):
+        """
+        Redis database interface mapping for SAI interface index and interface name
+        """
+        self.port_map = self.db.get_all(self.db.COUNTERS_DB, "COUNTERS_PORT_NAME_MAP")
+
+    def validate_ports(self):
+        """
+        if user give -p port option, make sure the port names are valid
+        """
+        if self.ports is not None:
+            p_list = self.ports.split(',')
+            for p in p_list:
+                pname = p.strip().title()
+                if pname not in self.port_map:
+                    raise Exception("Wrong ports interface name")
+                else:
+                    self.port_list.append(pname)
+        else:
+            self.port_list = self.port_map.keys()
+
+    def previous_counters(self):
+        """
+        if user ever did a clear counter action, then read the saved counter reading when clear statistics
+        """
+        def remap_keys(list):
+            res = {}
+            for e in list:
+                res[e['key'][0], e['key'][1]] = e['value']
+            return res
+
+        if os.path.isfile(COUNTER_POSITION):
+            try:
+                with open(COUNTER_POSITION) as fp:
+                    self.saved_acl_counters = remap_keys(json.load(fp))
+            except Exception:
+                pass
+
+    def intersect(self, a, b):
+        return list(set(a) & set(b))
+
+    def redis_acl_read(self, verboseflag):
+        """
+        read redis database for acl counters
+        """
+
+        def qstrip(string):
+            return string.strip().strip(" \"").rstrip("\"")
+
+        def lowercase_keys(dictionary):
+            return dict((k.lower(), v) for k,v in dictionary.iteritems())
+
+        def fetch_acl_tables():
+            """
+            Get ACL tables from the DB
+            """
+            tables = self.db.keys(self.db.APPL_DB, "ACL_TABLE:*")
+
+            if verboseflag:
+                print("ACL Tables found:", len(tables))
+
+            for table in tables:
+                table_name = table.split(":")[1]
+                if self.table_list and not table_name in self.table_list:
+                        continue
+
+                table_props = self.db.get_all(self.db.APPL_DB, table)
+
+                if self.port_list:
+                    table_port_list = table_props['ports'].split(",")
+                    if not self.intersect(self.port_list, table_port_list):
+                        continue
+                self.acl_tables[table_name] = table_props
+
+            if verboseflag:
+                print("ACL Tables to show:", len(self.acl_tables))
+
+        def fetch_acl_rules():
+            """
+            Get ACL rules from the DB
+            """
+            for table_name in self.acl_tables.keys():
+                rules = self.db.keys(self.db.APPL_DB, "ACL_RULE_TABLE:%s:*" % table_name)
+                if not rules and verboseflag:
+                    print("No ACL rules found")
+                    continue
+                if verboseflag:
+                    rules_cnt = len(rules)
+                    print("ACL Rules found in %s:" % table_name, rules_cnt)
+
+                for rule in rules:
+                    rule_name = rule.split(":")[2]
+                    if self.rule_list and not rule_name in self.rule_list:
+                            continue
+                    rule_props = lowercase_keys(self.db.get_all(self.db.APPL_DB, rule))
+                    rule_props["table"] = table_name
+                    self.acl_rules[table_name, rule_name] = rule_props
+
+            if verboseflag:
+                print("ACL Rules to show:", len(self.acl_rules))
+
+        def fetch_acl_counters():
+            """
+            Get ACL counters from the DB
+            """
+            acl_counters_cmd = "docker exec -it database redis-cli --csv -n 2 hgetall COUNTERS:"
+            counters_cnt = len(self.acl_rules) # num of counters should be the same as rules
+            if verboseflag:
+                print("ACL Counters found:", counters_cnt)
+
+            for table, rule in self.acl_rules.keys():
+                cnt_props = lowercase_keys(self.db.get_all(self.db.COUNTERS_DB, "COUNTERS:%s:%s" % (table, rule)))
+                self.acl_counters[table, rule] = cnt_props
+
+            if verboseflag:
+                print()
+
+        print("Reading ACL info...")
+        fetch_acl_tables()
+        fetch_acl_rules()
+        fetch_acl_counters()
+
+    def get_counter_value(self, key, type):
+        """
+        returns the counter value or the difference comparing to the base
+        """
+        if key in self.saved_acl_counters:
+            new_value = int(self.acl_counters[key][type]) - int(self.saved_acl_counters[key][type])
+            if new_value > 0:
+                return new_value
+
+        return self.acl_counters[key][type]
+
+    def display_acl_stat(self):
+        """
+        print out acl rules and counters
+        """
+        def get_action(rule):
+            for action in ['packet_action', 'mirror_action']:
+                if action in rule:
+                    return rule[action]
+            return "(no action found)"
+
+        header = ACL_HEADER
+        aclstat = []
+        for rule_key in self.acl_rules.keys():
+            rule = self.acl_rules[rule_key]
+            ports = self.acl_tables[rule_key[0]]['ports']
+            line = [rule_key[1], rule['table'],
+                    self.acl_tables[rule['table']]['type'],
+                    rule['priority'],
+                    get_action(rule),
+                    self.get_counter_value(rule_key, 'packets'),
+                    self.get_counter_value(rule_key, 'bytes')]
+            aclstat.append(line)
+
+        print(tabulate(aclstat, header))
+
+    def display_acl_details(self):
+        """
+        print out acl details
+        """
+        def adj_len(text, mlen):
+            return text + "." * (mlen - len(text))
+
+        # determine max len of the table and rule properties
+        onetable = self.acl_tables.itervalues().next()
+        tlen = len(onetable.keys()[0])
+        for property in onetable.keys():
+            if len(property) > tlen:
+                tlen = len(property)
+
+        onerule = self.acl_rules.itervalues().next()
+        rlen = len(onerule.keys()[0])
+        for property in onerule.keys() + [PACKETS_COUNTER, BYTES_COUNTER]:
+            if len(property) > rlen:
+                rlen = len(property)
+
+        mlen = max(rlen, tlen) + 1
+
+        for table_name in self.acl_tables.keys():
+            ports = self.acl_tables[table_name]['ports']
+            header = "ACL Table: " + table_name
+            print(header)
+            print("=" * len(header))
+            table_props = []
+            table = self.acl_tables[table_name]
+            for tk in table.keys():
+                line = [adj_len(tk, mlen), table[tk]]
+                table_props.append(line)
+            print(tabulate(table_props, headers=['Property', 'Value']), "\n")
+
+        for table_name, rule_name in self.acl_rules.keys():
+            rule_props = []
+            rule = self.acl_rules[table_name, rule_name]
+            header = "ACL Rule: " + rule_name
+            print(header)
+            print("="*len(header))
+            for rk in rule.keys():
+                line = [adj_len(rk, mlen), rule[rk]]
+                rule_props.append(line)
+            rule_props.append([adj_len(PACKETS_COUNTER, mlen), self.get_counter_value((table_name, rule_name), 'packets')])
+            rule_props.append([adj_len(BYTES_COUNTER, mlen), self.get_counter_value((table_name, rule_name), 'bytes')])
+            rule_props.append([adj_len('ports', mlen), ports])
+            print(tabulate(rule_props, headers=['Property', 'Value']), "\n")
+
+    def clear_counters(self):
+        """
+        clear counters -- write current counters to file in /tmp
+        """
+        def remap_keys(dict):
+            return [{'key':k, 'value': v} for k, v in dict.iteritems()]
+
+        with open(COUNTER_POSITION, 'wb') as fp:
+            json.dump(remap_keys(self.acl_counters), fp)
+
+def main():
+    parser = argparse.ArgumentParser(description='Display SONiC switch Acl Rules and Counters',
+                                     version='1.0.0',
+                                     formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-c', '--clear', action='store_true', help='Clear ACL counters statistics')
+    parser.add_argument('-p', '--ports', type=str, help='action by specific port list: Ethernet0,Ethernet12', default=None)
+    parser.add_argument('-r', '--rules', type=str, help='action by specific rules list: Rule1_Name,Rule2_Name', default=None)
+    parser.add_argument('-t', '--tables', type=str, help='action by specific tables list: Table1_Name,Table2_Name', default=None)
+    parser.add_argument('-d', '--details', action='store_true', help='Display detailed ACL info', default=False)
+    parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
+    args = parser.parse_args()
+
+    try:
+        acls = AclStat(args.ports, args.rules, args.tables)
+        acls.redis_acl_read(args.verbose)
+        if args.clear:
+            acls.clear_counters()
+            return
+        acls.previous_counters()
+        if args.details:
+            acls.display_acl_details()
+        else:
+            acls.display_acl_stat()
+    except Exception as e:
+        print(e.message, file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+
