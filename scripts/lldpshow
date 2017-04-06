@@ -1,0 +1,124 @@
+#!/usr/bin/env python
+
+""" Script to list LLDP neighbors in a summary view instead of default detailed view
+
+    Example output:
+
+    admin@sonic:~$ lldpshow
+    Capability codes: (R) Router, (B) Bridge, (O) Other
+    LocalPort    RemoteDevice           RemotePortID     Capability  RemotePortDescr
+    ------------ ---------------------  ---------------- ----------- ----------------------------------------
+    Ethernet0    <neighbor0_hostname>    Ethernet1/51    BR          <my_hostname>:fortyGigE0/0
+    Ethernet4    <neighbor1_hostname>    Ethernet1/51    BR          <my_hostname>:fortyGigE0/4
+    Ethernet8    <neighbor2_hostname>    Ethernet1/51    BR          <my_hostname>:fortyGigE0/8
+    Ethernet12   <neighbor3_hostname>    Ethernet1/51    BR          <my_hostname>:fortyGigE0/12
+    ...          ...                     ...             ...         ...
+    Ethernet124  <neighborN_hostname>    Ethernet4/20/1  BR          <my_hostname>:fortyGigE0/124
+    eth0         <mgmt_neighbor_name>    Ethernet1/25    BR          Ethernet1/25
+    -----------------------------------------------------
+    Total entries displayed:  33
+"""
+
+from __future__ import print_function
+import subprocess
+import re
+import sys
+import xml.etree.ElementTree as ET
+from tabulate import tabulate
+
+class Lldpshow(object):
+    def __init__(self):
+        self.lldpraw = None
+        self.lldpsum = {}
+        self.err = None
+        ### So far only find Router and Bridge two capabilities in lldpctl, so any other capacility types will be read as Other
+        ### if further capability type is supported like WLAN, can just add the tag definition here
+        self.ctags = {'Router': 'R', 'Bridge': 'B'}
+
+    def get_info(self):
+        """
+        use 'lldpctl -f xml' command to gather local lldp detailed information
+        """
+        lldp_cmd = 'lldpctl -f xml'
+        p = subprocess.Popen(lldp_cmd, stdout=subprocess.PIPE, shell=True)
+        (output, err) = p.communicate()
+        ## Wait for end of command. Get return returncode ##
+        returncode = p.wait()
+        ### if no error, get the lldpctl result
+        if returncode == 0:
+            self.lldpraw = output
+        else:
+            self.err = err
+
+    def parse_cap(self, capabs):
+        """
+        capabilities that are turned on for each interface
+        """
+        capability = ""
+        for cap in capabs:
+            if cap.attrib['enabled'] == 'on':
+                captype = cap.attrib['type']
+                if captype in self.ctags.keys():
+                    capability += self.ctags[captype]
+                else:
+                    capability += 'O'
+        return capability
+
+    def parse_info(self):
+        """
+        Parse the lldp detailed infomation into dict
+        """
+        if self.lldpraw is not None:
+            neis = ET.fromstring(self.lldpraw)
+            intfs = neis.findall('interface')
+            for intf in intfs:
+                l_intf = intf.attrib['name']
+                self.lldpsum[l_intf] = {}
+                chassis = intf.find('chassis')
+                capabs = chassis.findall('capability')
+                capab = self.parse_cap(capabs)
+                self.lldpsum[l_intf]['r_name'] = chassis.find('name').text
+                remote_port = intf.find('port')
+                self.lldpsum[l_intf]['r_portid'] = remote_port.find('id').text
+                rmt_desc = remote_port.find('descr')
+                if rmt_desc is not None:
+                    self.lldpsum[l_intf]['r_portname'] = rmt_desc.text
+                else:
+                    self.lldpsum[l_intf]['r_portname'] = ''
+                self.lldpsum[l_intf]['capability'] = capab
+
+    def sort_sum(self, summary):
+        """ Sort the summary information in the way that is expected(natural string)."""
+        alphanum_key = lambda key: [re.findall('[A-Za-z]+',key) + [int(port_num) for port_num in re.findall('\d+',key)]]
+        return sorted(summary, key=alphanum_key)
+
+
+    def display_sum(self):
+        """
+        print out summary result of lldp neighbors
+        """
+        if self.lldpraw is not None:
+            lldpstatus = []
+            print ('Capability codes: (R) Router, (B) Bridge, (O) Other')
+            header = ['LocalPort', 'RemoteDevice', 'RemotePortID', 'Capability', 'RemotePortDescr']
+            sortedsum = self.sort_sum(self.lldpsum)
+            for key in sortedsum:
+                lldpstatus.append([ key, self.lldpsum[key]['r_name'], self.lldpsum[key]['r_portid'], self.lldpsum[key]['capability'], self.lldpsum[key]['r_portname']])
+            print (tabulate(lldpstatus, header))
+            print ('-'.rjust(50, '-'))
+            print ('Total entries displayed: ', len(self.lldpsum))
+        elif self.err is not None:
+            print ('Error:',self.err)
+
+def main():
+    try:
+        lldp = Lldpshow()
+        lldp.get_info()
+        lldp.parse_info()
+        lldp.display_sum()
+    except Exception as e:
+        print(e.message, file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

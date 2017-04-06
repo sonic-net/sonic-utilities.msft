@@ -353,7 +353,7 @@ usage() {
     cat <<EOF
 $0 [-xnvh]
 
-Create a sonic_suport dump for debugging. Requires root privileges.
+Create a SONiC system dump for support/debugging. Requires root privileges.
 
 OPTIONS
     -x

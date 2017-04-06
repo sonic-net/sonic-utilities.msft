@@ -15,15 +15,16 @@ setup(
         'sonic_cli': ['aliases.ini']
     },
     scripts=[
+        'scripts/aclshow',
         'scripts/boot_part',
         'scripts/coredump-compress',
         'scripts/decode-syseeprom',
         'scripts/fast-reboot',
         'scripts/generate_dump',
+        'scripts/lldpshow',
         'scripts/portstat',
         'scripts/sfputil',
         'scripts/teamshow', 
-        'scripts/aclshow',
     ],
     data_files=[
         ('/etc/bash_completion.d', ['data/etc/bash_completion.d/show'])
