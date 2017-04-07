@@ -61,10 +61,14 @@ class Portstat(object):
             """
                 Get the counters from specific table.
             """
-            fields = [0,0,0,0,0,0,0,0,0,0]
+            fields = ["0","0","0","0","0","0","0","0","0","0"]
             for counter_name, pos in counter_bucket_dict.iteritems():
                 full_table_id = COUNTER_TABLE_PREFIX + table_id
-                fields[pos] += int(self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name))
+                counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name)
+                if counter_data is None:
+                    fields[pos] = "N/A"
+                elif fields[pos] != "N/A":
+                    fields[pos] = str(int(fields[pos]) + int(self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name)))
             cntr = NStats._make(fields)
             return cntr
 
@@ -118,7 +122,7 @@ class Portstat(object):
                           data.rx_ok, "N/A", "N/A", data.rx_err,
                           data.rx_drop, data.rx_ovr,
                           data.tx_ok, "N/A", "N/A", data.tx_err,
-                          data.tx_drop, data.tx_err))
+                          data.tx_drop, data.tx_ovr))
 
         if use_json:
             print self.table_as_json(table)
@@ -134,29 +138,38 @@ class Portstat(object):
             """
                 Calculate the diff.
             """
-            new, old = int(newstr), int(oldstr)
-            return '{:,}'.format(new - old)
+            if newstr == "N/A" or oldstr == "N/A":
+                return "N/A"
+            else:
+                new, old = int(newstr), int(oldstr)
+                return '{:,}'.format(new - old)
 
         def ns_rate(newstr, oldstr, delta):
             """
                 Calculate the rate.
             """
-            rate = int(ns_diff(newstr, oldstr).replace(',',''))/delta
-            if rate > 1024*1024*10:
-                rate = "{:.2f}".format(rate/1024/1024)+' MB'
-            elif rate > 1024*10:
-                rate = "{:.2f}".format(rate/1024)+' KB'
+            if newstr == "N/A" or oldstr == "N/A":
+                return "N/A"
             else:
-                rate = "{:.2f}".format(rate)+' B'
-            return rate+'/s'
+                rate = int(ns_diff(newstr, oldstr).replace(',',''))/delta
+                if rate > 1024*1024*10:
+                    rate = "{:.2f}".format(rate/1024/1024)+' MB'
+                elif rate > 1024*10:
+                    rate = "{:.2f}".format(rate/1024)+' KB'
+                else:
+                    rate = "{:.2f}".format(rate)+' B'
+                return rate+'/s'
 
         def ns_util(newstr, oldstr, delta):
             """
                 Calculate the util.
             """
-            rate = int(ns_diff(newstr, oldstr).replace(',',''))/delta
-            util = rate/(PORT_RATE*1024*1024*1024/8.0)*100
-            return "{:.2f}%".format(util)
+            if newstr == "N/A" or oldstr == "N/A":
+                return "N/A"
+            else:
+                rate = int(ns_diff(newstr, oldstr).replace(',',''))/delta
+                util = rate/(PORT_RATE*1024*1024*1024/8.0)*100
+                return "{:.2f}%".format(util)
 
         table = []
 
