@@ -23,6 +23,8 @@ import subprocess
 import sys
 from tabulate import tabulate
 from minigraph import parse_xml
+from sonic_platform import get_machine_info
+from sonic_platform import get_platform_info
 
 class Teamshow(object):
     def __init__(self):
@@ -36,7 +38,10 @@ class Teamshow(object):
             Get the portchannel names from minigraph.
         """
         minigraph_path = '/etc/sonic/minigraph.xml'
-        self.teams = parse_xml(minigraph_path)['minigraph_portchannels'].keys();
+        machine_info = get_machine_info()
+        platform_info = get_platform_info(machine_info)
+
+        self.teams = parse_xml(minigraph_path, platform = platform_info)['minigraph_portchannels'].keys();
 
     def get_team_id(self, team):
         """
