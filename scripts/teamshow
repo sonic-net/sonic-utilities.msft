@@ -4,27 +4,33 @@
     Script to show LAG and LAG member status in a summary view
     Example of the output:
     acsadmin@sonic:~$ teamshow
-    Flags: A - active, I - inactive, N/A - Not Available, S - selected, D - deselected
+    Flags: A - active, I - inactive, Up - up, Dw - down, N/A - Not Available, S - selected, D - deselected
      No.  Team Dev       Protocol    Ports
     -----  -------------  ----------  ---------------------------
-       24  PortChannel24  LACP(A)     Ethernet28(S) Ethernet24(S)
-       48  PortChannel48  LACP(A)     Ethernet52(S) Ethernet48(S)
-       16  PortChannel16  LACP(A)     Ethernet20(S) Ethernet16(S)
-       32  PortChannel32  LACP(A)     Ethernet32(S) Ethernet36(S)
-       56  PortChannel56  LACP(A)     Ethernet60(S) Ethernet56(S)
-       40  PortChannel40  LACP(A)     Ethernet44(S) Ethernet40(S)
-        0  PortChannel0   LACP(A)     Ethernet0(S) Ethernet4(S)
-        8  PortChannel8   LACP(A)     Ethernet8(S) Ethernet12(S)
+        0  PortChannel0   LACP(A)(Up)     Ethernet0(D) Ethernet4(S)
+        8  PortChannel8   LACP(A)(Up)     Ethernet8(S) Ethernet12(S)
+       16  PortChannel16  LACP(A)(Up)     Ethernet20(S) Ethernet16(S)
+       24  PortChannel24  LACP(A)(Dw)     Ethernet28(S) Ethernet24(S)
+       32  PortChannel32  LACP(A)(Up)     Ethernet32(S) Ethernet36(S)
+       40  PortChannel40  LACP(A)(Dw)     Ethernet44(S) Ethernet40(S)
+       48  PortChannel48  LACP(A)(Up)     Ethernet52(S) Ethernet48(S)
+       56  PortChannel56  LACP(A)(Dw)     Ethernet60(S) Ethernet56(S)
+
 """
 
 import json
 import re
+import swsssdk
 import subprocess
 import sys
 from tabulate import tabulate
 from minigraph import parse_xml
+from natsort import natsorted
 from sonic_platform import get_machine_info
 from sonic_platform import get_platform_info
+
+PORT_CHANNEL_TABLE_PREFIX = "LAG_TABLE:"
+PORT_CHANNEL_STATUS_FIELD = "oper_status"
 
 class Teamshow(object):
     def __init__(self):
@@ -32,6 +38,9 @@ class Teamshow(object):
         self.teamsraw = {}
         self.summary = {}
         self.err = None
+        # setup db connection
+        self.db = swsssdk.SonicV2Connector()
+        self.db.connect(self.db.APPL_DB)
 
     def get_portchannel_names(self):
         """
@@ -40,8 +49,14 @@ class Teamshow(object):
         minigraph_path = '/etc/sonic/minigraph.xml'
         machine_info = get_machine_info()
         platform_info = get_platform_info(machine_info)
-
         self.teams = parse_xml(minigraph_path, platform = platform_info)['minigraph_portchannels'].keys();
+
+    def get_portchannel_status(self, port_channel_name):
+        """
+            Get port channel status from database.
+        """
+        full_table_id = PORT_CHANNEL_TABLE_PREFIX + port_channel_name
+        return self.db.get(self.db.APPL_DB, full_table_id, PORT_CHANNEL_STATUS_FIELD)
 
     def get_team_id(self, team):
         """
@@ -64,9 +79,9 @@ class Teamshow(object):
             else:
                 self.err = err
 
-    def parse_teamdctl(self):
+    def get_teamshow_result(self):
         """
-             Parse the output of teamdctl.
+             Get teamshow results by parsing the output of teamdctl and combining port channel status.
         """
         for team in self.teams:
             info = {}
@@ -79,6 +94,16 @@ class Teamshow(object):
             json_info = json.loads(self.teamsraw[team_id])
             info['protocol'] = json_info['setup']['runner_name'].upper()
             info['protocol'] += '(A)' if json_info['runner']['active'] else '(I)'
+            portchannel_status = self.get_portchannel_status(team)
+            if portchannel_status is None:
+                info['protocol'] += '(N/A)'
+            elif portchannel_status.lower() == 'up':
+                info['protocol'] += '(Up)'
+            elif portchannel_status.lower() == 'down':
+                info['protocol'] += '(Dw)'
+            else:
+                info['protocol'] += '(N/A)'
+
             info['ports'] = ""
             for port in json_info['ports']:
                 info['ports'] += port
@@ -90,10 +115,10 @@ class Teamshow(object):
         """
             Display the portchannel (team) summary.
         """
-        print "Flags: A - active, I - inactive, N/A - not available, S - selected, D - deselected"
+        print "Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available, S - selected, D - deselected"
         header = ['No.', 'Team Dev', 'Protocol', 'Ports']
         output = []
-        for team_id in self.summary:
+        for team_id in natsorted(self.summary):
             output.append([team_id, 'PortChannel'+team_id, self.summary[team_id]['protocol'], self.summary[team_id]['ports']])
         print tabulate(output, header)
 
@@ -102,7 +127,7 @@ def main():
         team = Teamshow()
         team.get_portchannel_names()
         team.get_teamdctl()
-        team.parse_teamdctl()
+        team.get_teamshow_result()
         team.display_summary()
     except Exception as e:
         print e.message
