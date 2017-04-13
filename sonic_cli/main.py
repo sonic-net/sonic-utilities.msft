@@ -297,7 +297,9 @@ def version():
     VERSION_TEMPLATE_FILE = "/tmp/cli_version.j2"
     VERSION_TEMPLATE_CONTENTS = "SONiC Software Version: SONiC.{{ build_version }}\n" \
                                 "Distribution: Debian {{ debian_version }}\n" \
-                                "Kernel: {{ kernel_version }}"
+                                "Kernel: {{ kernel_version }}\n" \
+                                "Build date: {{ build_date }}\n" \
+                                "Built by: {{ built_by }}"
 
     # Create a temporary Jinja2 template file to use with sonic-cfggen
     f = open(VERSION_TEMPLATE_FILE, 'w')
