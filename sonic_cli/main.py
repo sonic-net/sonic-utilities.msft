@@ -298,6 +298,7 @@ def version():
     VERSION_TEMPLATE_CONTENTS = "SONiC Software Version: SONiC.{{ build_version }}\n" \
                                 "Distribution: Debian {{ debian_version }}\n" \
                                 "Kernel: {{ kernel_version }}\n" \
+                                "Build commit: {{ commit_id }}\n" \
                                 "Build date: {{ build_date }}\n" \
                                 "Built by: {{ built_by }}"
 
