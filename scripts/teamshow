@@ -105,10 +105,13 @@ class Teamshow(object):
                 info['protocol'] += '(N/A)'
 
             info['ports'] = ""
-            for port in json_info['ports']:
-                info['ports'] += port
-                info['ports'] += '(S)' if json_info['ports'][port]['runner']['selected'] else '(D)'
-                info['ports'] += ' '
+            if 'ports' not in json_info:
+                info['ports'] = 'N/A'
+            else:
+                for port in json_info['ports']:
+                    info['ports'] += port
+                    info['ports'] += '(S)' if json_info['ports'][port]['runner']['selected'] else '(D)'
+                    info['ports'] += ' '
             self.summary[team_id] = info
 
     def display_summary(self):
