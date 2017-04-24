@@ -22,7 +22,6 @@ DUMPDIR=/var/dump
 TARDIR=$DUMPDIR/$BASE
 TARFILE=$DUMPDIR/$BASE.tar
 LOGDIR=$DUMPDIR/$BASE/dump
-COREDIR=$DUMPDIR/$BASE/core
 
 ###############################################################################
 # Runs a comamnd and saves its output to the incrementally built tar.
@@ -126,7 +125,7 @@ save_bgp_neighbor() {
     neighbor_list=`vtysh -c "show ip bgp neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}'`
     for word in $neighbor_list; do
         save_vtysh "show ip bgp neighbors $word advertised-routes" "ip.bgp.neighbor.$word.adv"
-        save_vtysh "show ip bgp neighbors $word received-routes" "ip.bgp.neighbor.$word.rcv"
+        save_vtysh "show ip bgp neighbors $word routes" "ip.bgp.neighbor.$word.rcv"
     done
 }
 
@@ -166,7 +165,7 @@ save_proc() {
 save_redis() {
     local db=$1
     local db_name=$2
-    save_cmd "docker exec -i database redis-cli -n $db keys \* | docker exec -i database xargs --verbose -n 1 redis-cli -n $db hgetall" "$db_name"
+    save_cmd "redis-dump -d $db -s /var/run/redis/redis.sock -y" "$db_name.json"
 }
 
 ###############################################################################
@@ -308,6 +307,17 @@ main() {
             save_file $file log true
         fi
     done
+
+    # archive core dump files
+    for file in $(find -L /var/core -type f); do
+        # don't gzip already-gzipped log files :)
+        if [ -z "${file##*.gz}" ]; then
+            save_file $file core false
+        else
+            save_file $file core true
+        fi
+    done
+
     # clean up working tar dir before compressing
     $RM $V -rf $TARDIR
 
