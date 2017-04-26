@@ -158,7 +158,7 @@ def default(interfacename, sfp):
 @interfaces.command()
 def counters():
     """Show interface counters"""
-    run_command("portstat", pager=True)
+    run_command("portstat -a -p 30", pager=True)
 
 # 'portchannel' subcommand
 @interfaces.command()
