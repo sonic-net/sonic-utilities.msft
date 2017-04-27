@@ -10,7 +10,7 @@ setup(
     url='https://github.com/Azure/sonic-utilities',
     maintainer='Joe LeVeque',
     maintainer_email='jolevequ@microsoft.com',
-    packages=['sonic_cli', 'sonic_eeprom', 'sonic_sfp'],
+    packages=['sonic_cli', 'sonic_eeprom', 'sonic_sfp', "sonic_installer"],
     package_data={
         'sonic_cli': ['aliases.ini']
     },
@@ -27,11 +27,13 @@ setup(
         'scripts/teamshow', 
     ],
     data_files=[
-        ('/etc/bash_completion.d', ['data/etc/bash_completion.d/show'])
+        ('/etc/bash_completion.d', ['data/etc/bash_completion.d/show']),
+        ('/etc/bash_completion.d', ['data/etc/bash_completion.d/sonic_installer']),
     ],
     entry_points={
         'console_scripts': [
             'show = sonic_cli.main:cli',
+            'sonic_installer = sonic_installer.main:cli'
         ]
     },
     install_requires=[
