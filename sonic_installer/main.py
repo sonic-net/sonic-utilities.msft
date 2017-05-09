@@ -20,17 +20,25 @@ IMAGE_TYPE_ONIE = 'onie'
 ABOOT_BOOT_CONFIG = '/boot-config'
 
 def reporthook(count, block_size, total_size):
-    global start_time
+    global start_time, last_time
+    cur_time = int(time.time())
     if count == 0:
-        start_time = time.time()
+        start_time = cur_time
+        last_time = cur_time
         return
 
-    duration = time.time() - start_time
+    if cur_time == last_time:
+        return
+
+    last_time = cur_time
+
+    duration = cur_time - start_time
     progress_size = int(count * block_size)
     speed = int(progress_size / (1024 * duration))
     percent = int(count * block_size * 100 / total_size)
-    sys.stdout.write("\r...%d%%, %d MB, %d KB/s, %d seconds passed" %
-                                  (percent, progress_size / (1024 * 1024), speed, duration))
+    time_left = (total_size - progress_size) / speed / 1024
+    sys.stdout.write("\r...%d%%, %d MB, %d KB/s, %d seconds left...   " %
+                                  (percent, progress_size / (1024 * 1024), speed, time_left))
     sys.stdout.flush()
 
 def get_image_type():
