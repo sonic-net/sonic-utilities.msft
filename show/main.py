@@ -252,6 +252,9 @@ def summary():
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     click.echo(p.stdout.read())
 
+    # Clean up
+    os.remove(PLATFORM_TEMPLATE_FILE)
+
 # 'syseeprom' subcommand ####
 @platform.command()
 def syseeprom():
@@ -316,6 +319,8 @@ def version():
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     click.echo(p.stdout.read())
 
+    # Clean up
+    os.remove(VERSION_TEMPLATE_FILE)
 
 #
 # 'environment' command ###
