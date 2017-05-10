@@ -39,7 +39,7 @@ class Teamshow(object):
         self.summary = {}
         self.err = None
         # setup db connection
-        self.db = swsssdk.SonicV2Connector()
+        self.db = swsssdk.SonicV2Connector(host="127.0.0.1")
         self.db.connect(self.db.APPL_DB)
 
     def get_portchannel_names(self):

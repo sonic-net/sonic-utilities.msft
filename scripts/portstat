@@ -55,7 +55,7 @@ PORT_STATUS_FIELD = "oper_status"
 
 class Portstat(object):
     def __init__(self):
-        self.db = swsssdk.SonicV2Connector()
+        self.db = swsssdk.SonicV2Connector(host='127.0.0.1')
         self.db.connect(self.db.COUNTERS_DB)
         self.db.connect(self.db.APPL_DB)
 
@@ -345,9 +345,6 @@ Examples:
     uid = str(os.getuid())
     wait_time_in_seconds = args.period
     print_all = args.all
-
-    if not os.geteuid() == 0:
-        raise RuntimeError("must be root to run")
 
     if tag_name is not None:
         cnstat_file = uid + "-" + tag_name

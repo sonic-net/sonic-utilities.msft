@@ -61,7 +61,7 @@ class AclStat(object):
             self.table_list = tables.split(",")
 
         # Set up db connections
-        self.db = swsssdk.SonicV2Connector()
+        self.db = swsssdk.SonicV2Connector(host="127.0.0.1")
         self.db.connect(self.db.APPL_DB)
         self.db.connect(self.db.COUNTERS_DB)
 
