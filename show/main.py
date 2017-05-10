@@ -259,7 +259,7 @@ def summary():
 @platform.command()
 def syseeprom():
     """Show system EEPROM information"""
-    run_command("decode-syseeprom")
+    run_command("sudo decode-syseeprom")
 
 
 #
@@ -270,22 +270,25 @@ def syseeprom():
 def logging():
     pass
 
-# Default 'lldp' command (called if no subcommands or their aliases were passed)
+# Default 'logging' command (called if no subcommands or their aliases were passed)
 @logging.command(default=True)
 @click.argument('process', required=False)
-@click.option('--tail', required=False, default=10)
-@click.option('--follow', required=False)
-def default(process, tail, follow):
+@click.option('-l', '--lines')
+@click.option('-f', '--follow', is_flag=True)
+def default(process, lines, follow):
     """Show system log"""
-    if process is not None:
-        command = "grep {} /var/log/syslog".format(process)
-        if tail is not None:
-            command += "| tail -{}".format(tail)
-        elif follow is not None:
-            command += "| tail -f"
-        run_command(command)
+    if follow:
+        run_command("sudo tail -f /var/log/syslog")
     else:
-        run_command("cat /var/log/syslog", pager=True)
+        command = "sudo cat /var/log/syslog"
+
+        if process is not None:
+            command += " | grep '{}'".format(process)
+
+        if lines is not None:
+            command += " | tail -{}".format(lines)
+
+        run_command(command, pager=True)
 
 
 #
