@@ -162,11 +162,20 @@ class Portstat(object):
         for key, data in cnstat_dict.iteritems():
             if key == 'time':
                 continue
-            table.append((key, self.get_port_status(key),
-                          data.rx_ok, "N/A", "N/A", "N/A", data.rx_err,
-                          data.rx_drop, data.rx_ovr,
-                          data.tx_ok, "N/A", "N/A", "N/A", data.tx_err,
-                          data.tx_drop, data.tx_ovr))
+
+            if print_all:
+                table.append((key, self.get_port_status(key),
+                              data.rx_ok, "N/A", "N/A", "N/A", data.rx_err,
+                              data.rx_drop, data.rx_ovr,
+                              data.tx_ok, "N/A", "N/A", "N/A", data.tx_err,
+                              data.tx_drop, data.tx_ovr))
+            else:
+                table.append((key, self.get_port_status(key),
+                              data.rx_ok, "N/A", "N/A", data.rx_err,
+                              data.rx_drop, data.rx_ovr,
+                              data.tx_ok, "N/A", "N/A", data.tx_err,
+                              data.tx_drop, data.tx_ovr))
+
 
         if use_json:
             print self.table_as_json(table, print_all)
