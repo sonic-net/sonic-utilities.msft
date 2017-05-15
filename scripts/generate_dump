@@ -252,33 +252,39 @@ main() {
         /proc/zoneinfo \
         || abort 6 "Proc saving operation failed. Aborting for safety."
 
-    save_cmd 'sysctl -a' "sysctl"
-    save_ip 'link' 'link'
-    save_ip 'addr' 'addr'
-    save_ip 'rule' 'rule'
-    save_ip 'route show table all' 'route'
-    save_ip 'neigh' 'neigh'
+    save_cmd "show version" "version"
+    save_cmd "show platform summary" "platform.summary"
+    save_cmd "show platform syseeprom" "platform.syseeprom"
+
+    save_cmd "sensors" "sensors"
+
+    save_cmd "sysctl -a" "sysctl"
+    save_ip "link" "link"
+    save_ip "addr" "addr"
+    save_ip "rule" "rule"
+    save_ip "route show table all" "route"
+    save_ip "neigh" "neigh"
 
     save_vtysh "show ip bgp summary" "bgp.summary"
     save_vtysh "show ip bgp neighbors" "bgp.neighbors"
     save_vtysh "show ip bgp" "bgp.table" true
     save_bgp_neighbor
 
-    save_cmd 'lldpctl' "lldpctl"
+    save_cmd "lldpctl" "lldpctl"
 
-    save_cmd 'ps aux' "ps.aux"
-    save_cmd 'free' "free"
-    save_cmd 'vmstat 1 5' "vmstat"
-    save_cmd 'vmstat -m' "vmstat.m"
-    save_cmd 'vmstat -s' "vmstat.s"
-    save_cmd 'mount' "mount"
-    save_cmd 'df' "df"
+    save_cmd "ps aux" "ps.aux"
+    save_cmd "free" "free"
+    save_cmd "vmstat 1 5" "vmstat"
+    save_cmd "vmstat -m" "vmstat.m"
+    save_cmd "vmstat -s" "vmstat.s"
+    save_cmd "mount" "mount"
+    save_cmd "df" "df"
 
-    save_redis '0' "APP_DB"
-    save_redis '1' "ASIC_DB"
-    save_redis '2' "COUNTERS_DB"
+    save_redis "0" "APP_DB"
+    save_redis "1" "ASIC_DB"
+    save_redis "2" "COUNTERS_DB"
 
-    save_cmd 'docker exec -it syncd saidump' "saidump"
+    save_cmd "docker exec -it syncd saidump" "saidump"
 
     $RM $V -rf $TARDIR
     $MKDIR $V -p $TARDIR
@@ -286,14 +292,14 @@ main() {
     $LN $V -s /etc $TARDIR/etc
 
     ($TAR $V -rhf $TARFILE -C $DUMPDIR --mode=+r \
-        --exclude='etc/alternatives' \
-        --exclude='*/etc/passwd*' \
-        --exclude='*/etc/shadow*' \
-        --exclude='*/etc/group*' \
-        --exclude='*/etc/gshadow*' \
-        --exclude='*/etc/ssh*' \
-        --exclude='*get_creds*' \
-        --exclude='*snmpd.conf*' \
+        --exclude="etc/alternatives" \
+        --exclude="*/etc/passwd*" \
+        --exclude="*/etc/shadow*" \
+        --exclude="*/etc/group*" \
+        --exclude="*/etc/gshadow*" \
+        --exclude="*/etc/ssh*" \
+        --exclude="*get_creds*" \
+        --exclude="*snmpd.conf*" \
         $BASE/etc \
         || abort 5 "Tar append operation failed. Aborting for safety.") \
         && $RM $V -rf $TARDIR
@@ -384,7 +390,7 @@ while getopts ":xnvhz" opt; do
     case $opt in
         x)
             # enable bash debugging
-            PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+            PS4="+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }"
             set -x
             ;;
         h)
@@ -394,17 +400,17 @@ while getopts ":xnvhz" opt; do
         v)
             # echo commands about to be run to stderr
             set -v
-            V='-v'
+            V="-v"
             ;;
         n)
-            TAR='echo tar'
-            MKDIR='echo mkdir'
-            RM='echo rm'
-            LN='echo ln'
-            GZIP='echo gzip'
-            CMD_PREFIX='echo '
-            MV='echo mv'
-            CP='echo cp'
+            TAR="echo tar"
+            MKDIR="echo mkdir"
+            RM="echo rm"
+            LN="echo ln"
+            GZIP="echo gzip"
+            CMD_PREFIX="echo "
+            MV="echo mv"
+            CP="echo cp"
             NOOP=true
             ;;
         z)

@@ -364,7 +364,7 @@ def users():
 @cli.command()
 def techsupport():
     """Gather information for troubleshooting"""
-    run_command('generate_dump -v')
+    run_command('sudo generate_dump -v')
 
 
 #
