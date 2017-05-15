@@ -124,7 +124,7 @@ def ip():
 
 # We use the "click.group()" decorator because we want to add this group
 # to more than one group, which we do using the "add_command() methods below.
-@click.group(cls=AliasedGroup, default_if_no_args=True)
+@click.group(cls=AliasedGroup, default_if_no_args=False)
 def interfaces():
     pass
 
@@ -132,11 +132,11 @@ def interfaces():
 cli.add_command(interfaces)
 ip.add_command(interfaces)
 
-# Default 'interfaces' command (called if no subcommands or their aliases were passed)
-@interfaces.command(default=True)
+# 'summary' subcommand
+@interfaces.command()
 @click.argument('interfacename', required=False)
 @click.argument('sfp', required=False)
-def default(interfacename, sfp):
+def summary(interfacename, sfp):
     """Show interface status and information"""
 
     cmd_ifconfig = "/sbin/ifconfig"
@@ -263,19 +263,14 @@ def syseeprom():
 
 
 #
-# 'logging' group ####
+# 'logging' command ####
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=True)
-def logging():
-    pass
-
-# Default 'logging' command (called if no subcommands or their aliases were passed)
-@logging.command(default=True)
+@cli.command()
 @click.argument('process', required=False)
 @click.option('-l', '--lines')
 @click.option('-f', '--follow', is_flag=True)
-def default(process, lines, follow):
+def logging(process, lines, follow):
     """Show system log"""
     if follow:
         run_command("sudo tail -f /var/log/syslog")
