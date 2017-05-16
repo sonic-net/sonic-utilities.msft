@@ -126,6 +126,7 @@ def ip():
 # to more than one group, which we do using the "add_command() methods below.
 @click.group(cls=AliasedGroup, default_if_no_args=False)
 def interfaces():
+    """Show details of the network interfaces"""
     pass
 
 # Add 'interfaces' group to both the root 'cli' group and the 'ip' subgroup
@@ -135,19 +136,12 @@ ip.add_command(interfaces)
 # 'summary' subcommand
 @interfaces.command()
 @click.argument('interfacename', required=False)
-@click.argument('sfp', required=False)
-def summary(interfacename, sfp):
+def summary(interfacename):
     """Show interface status and information"""
 
     cmd_ifconfig = "/sbin/ifconfig"
 
-    if interfacename is not None and sfp is not None:
-        command = "sfputil -p {}".format(interfacename)
-        run_command(command, pager=True)
-    # FIXME: show sfp without an interface is bugged and doesn't work right.
-    elif sfp is not None:
-        run_command("sfputil")
-    elif interfacename is not None:
+    if interfacename is not None:
         command = "{} {}".format(cmd_ifconfig, interfacename)
         run_command(command)
     else:
@@ -156,9 +150,23 @@ def summary(interfacename, sfp):
 
 # 'counters' subcommand
 @interfaces.command()
-def counters():
+@click.option('-p', '--period')
+@click.option('-a', '--printall', is_flag=True)
+@click.option('-c', '--clear', is_flag=True)
+def counters(period, printall, clear):
     """Show interface counters"""
-    run_command("portstat -a -p 30", pager=True)
+
+    cmd = "portstat"
+
+    if clear:
+        cmd += " -c"
+    else:
+        if printall:
+            cmd += " -a"
+        if period is not None:
+            cmd += " -p {}".format(period)
+
+    run_command(cmd, pager=True)
 
 # 'portchannel' subcommand
 @interfaces.command()
@@ -166,6 +174,18 @@ def portchannel():
     """Show PortChannel information"""
     run_command("teamshow", pager=True)
 
+# 'sfp' subcommand
+@interfaces.command()
+@click.argument('interfacename', required=False)
+def sfp(interfacename):
+    """Show SFP Transceiver information"""
+
+    cmd = "sudo sfputil"
+
+    if interfacename is not None:
+        cmd += " -p {}".format(interfacename)
+
+    run_command(cmd, pager=True)
 
 #
 # 'lldp' group ####
@@ -173,6 +193,7 @@ def portchannel():
 
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
 def lldp():
+    """LLDP (Link Layer Discovery Protocol) information"""
     pass
 
 # Default 'lldp' command (called if no subcommands or their aliases were passed)
@@ -181,16 +202,16 @@ def lldp():
 def neighbors(interfacename):
     """Show LLDP neighbors"""
     if interfacename is not None:
-        command = "lldpctl {}".format(interfacename)
+        command = "sudo lldpctl {}".format(interfacename)
         run_command(command)
     else:
-        run_command("lldpctl", pager=True)
+        run_command("sudo lldpctl", pager=True)
 
 # 'tables' subcommand ####
 @lldp.command()
 def table():
     """Show LLDP neighbors in tabular format"""
-    run_command("lldpshow", pager=True)
+    run_command("sudo lldpshow", pager=True)
 
 #
 # 'bgp' group ####
@@ -213,16 +234,16 @@ ip.add_command(bgp)
 def neighbor(ipaddress):
     """Show BGP neighbors"""
     if ipaddress is not None:
-        command = 'vtysh -c "show ip bgp neighbor {} "'.format(ipaddress)
+        command = 'sudo vtysh -c "show ip bgp neighbor {} "'.format(ipaddress)
         run_command(command)
     else:
-        run_command('vtysh -c "show ip bgp neighbor"', pager=True)
+        run_command('sudo vtysh -c "show ip bgp neighbor"', pager=True)
 
 # 'summary' subcommand ####
 @bgp.command()
 def summary():
     """Show summarized information of BGP state"""
-    run_command('vtysh -c "show ip bgp summary"')
+    run_command('sudo vtysh -c "show ip bgp summary"')
 
 
 #
@@ -231,6 +252,7 @@ def summary():
 
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
 def platform():
+    """Show platform-specific hardware info"""
     pass
 
 @platform.command()
@@ -313,7 +335,7 @@ def version():
     click.echo(p.stdout.read())
 
     click.echo("Docker images:")
-    command = 'docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
+    command = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     click.echo(p.stdout.read())
 
@@ -327,7 +349,7 @@ def version():
 @cli.command()
 def environment():
     """Show environmentals (voltages, fans, temps)"""
-    run_command('sensors', pager=True)
+    run_command('sudo sensors', pager=True)
 
 
 #
@@ -381,7 +403,7 @@ def runningconfiguration():
 @runningconfiguration.command()
 def bgp():
     """Show BGP running configuration"""
-    run_command('vtysh -c "show running-config"', pager=True)
+    run_command('sudo vtysh -c "show running-config"', pager=True)
 
 
 # 'interfaces' subcommand
@@ -400,7 +422,7 @@ def interfaces(interfacename):
 @runningconfiguration.command()
 def snmp():
     """Show SNMP running configuration"""
-    command = 'docker exec -it snmp cat /etc/snmp/snmpd.conf'
+    command = 'sudo docker exec -it snmp cat /etc/snmp/snmpd.conf'
     run_command(command, pager=True)
 
 
@@ -424,7 +446,7 @@ def startupconfiguration():
 @startupconfiguration.command()
 def bgp():
     """Show BGP startup configuration"""
-    run_command('docker exec -it bgp cat /etc/quagga/bgpd.conf')
+    run_command('sudo docker exec -it bgp cat /etc/quagga/bgpd.conf')
 
 
 #
@@ -434,7 +456,7 @@ def bgp():
 @click.command()
 @click.argument('ipaddress', required=False)
 def arp(ipaddress):
-    """Show ip arp table"""
+    """Show IP ARP table"""
     cmd = "/usr/sbin/arp"
     if ipaddress is not None:
         command = '{} {}'.format(cmd, ipaddress)
@@ -456,10 +478,10 @@ ip.add_command(arp)
 def route(ipaddress):
     """Show ip routing table"""
     if ipaddress is not None:
-        command = 'vtysh -c "show ip route {}"'.format(ipaddress)
+        command = 'sudo vtysh -c "show ip route {}"'.format(ipaddress)
         run_command(command)
     else:
-        run_command('vtysh -c "show ip route"', pager=True)
+        run_command('sudo vtysh -c "show ip route"', pager=True)
 
 # Add 'route' command to both the root 'cli' group and the 'ip' subgroup
 cli.add_command(route)
@@ -488,3 +510,4 @@ def uptime():
 
 if __name__ == '__main__':
     cli()
+
