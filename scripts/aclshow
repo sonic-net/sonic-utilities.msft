@@ -129,6 +129,9 @@ class AclStat(object):
             if verboseflag:
                 print("ACL Tables found:", len(tables))
 
+            if not tables:
+                return
+
             for table in tables:
                 table_name = table.split(":")[1]
                 if self.table_list and not table_name in self.table_list:
