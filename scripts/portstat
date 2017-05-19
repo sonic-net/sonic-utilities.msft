@@ -27,10 +27,10 @@ PORT_RATE = 40
 
 NStats = namedtuple("NStats", "rx_ok, rx_err, rx_drop, rx_ovr, tx_ok,\
                     tx_err, tx_drop, tx_ovr, rx_byt, tx_byt")
-header_all = ['Iface', 'STATE', 'RX_OK', 'RX_BPS', 'RX_PPS', 'RX_UTIL', 'RX_ERR', 'RX_DRP', 'RX_OVR',
+header_all = ['Iface', 'ADMIN', 'OPER', 'RX_OK', 'RX_BPS', 'RX_PPS', 'RX_UTIL', 'RX_ERR', 'RX_DRP', 'RX_OVR',
           'TX_OK', 'TX_BPS', 'Tx_PPS', 'TX_UTIL', 'TX_ERR', 'TX_DRP', 'TX_OVR']
 
-header = ['Iface', 'STATE', 'RX_OK', 'RX_BPS', 'RX_UTIL', 'RX_ERR', 'RX_DRP', 'RX_OVR',
+header = ['Iface', 'ADMIN', 'OPER', 'RX_OK', 'RX_BPS', 'RX_UTIL', 'RX_ERR', 'RX_DRP', 'RX_OVR',
           'TX_OK', 'TX_BPS', 'TX_UTIL', 'TX_ERR', 'TX_DRP', 'TX_OVR']
 
 counter_bucket_dict = {
@@ -51,7 +51,8 @@ counter_bucket_dict = {
 COUNTER_TABLE_PREFIX = "COUNTERS:"
 COUNTERS_PORT_NAME_MAP = "COUNTERS_PORT_NAME_MAP"
 PORT_STATUS_TABLE_PREFIX = "PORT_TABLE:"
-PORT_STATUS_FIELD = "oper_status"
+PORT_OPER_STATUS_FIELD = "oper_status"
+PORT_ADMIN_STATUS_FIELD = "admin_status"
 
 class Portstat(object):
     def __init__(self):
@@ -83,24 +84,22 @@ class Portstat(object):
         # Build a dictionary of the stats
         cnstat_dict = OrderedDict()
         cnstat_dict['time'] = datetime.datetime.now()
+        if counter_port_name_map is None:
+            return cnstat_dict
         for port in natsorted(counter_port_name_map):
             cnstat_dict[port] = get_counters(counter_port_name_map[port]) 
         return cnstat_dict
 
-    def get_port_status(self, port_name):
+    def get_port_status(self, port_name, status_type):
         """
             Get the port status
         """
         full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
-        status = self.db.get(self.db.APPL_DB, full_table_id, PORT_STATUS_FIELD)
+        status = self.db.get(self.db.APPL_DB, full_table_id, status_type)
         if status is None:
              return "N/A"
-        elif status.lower() == 'up':
-             return "U"
-        elif status.lower() == 'down':
-             return "D"
         else:
-             return "N/A"
+            return status
 
     def table_as_json(self, table, print_all):
         """
@@ -128,8 +127,9 @@ class Portstat(object):
                     header_all[11] : line[11],
                     header_all[12] : line[12],
                     header_all[13] : line[13],
-                    header_all[14] : line[14]
-                }
+                    header_all[14] : line[14],
+                    header_all[15] : line[15]
+               }
         else:
             for line in table:
                 if_name = line[0]
@@ -149,7 +149,8 @@ class Portstat(object):
                     header[10] : line[10],
                     header[11] : line[11],
                     header[12] : line[12],
-                }
+                    header[13] : line[13]
+               }
      
         return json.dumps(output, indent=4, sort_keys=True)
 
@@ -164,13 +165,13 @@ class Portstat(object):
                 continue
 
             if print_all:
-                table.append((key, self.get_port_status(key),
+                table.append((key, self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_status(key, PORT_OPER_STATUS_FIELD),
                               data.rx_ok, "N/A", "N/A", "N/A", data.rx_err,
                               data.rx_drop, data.rx_ovr,
                               data.tx_ok, "N/A", "N/A", "N/A", data.tx_err,
                               data.tx_drop, data.tx_ovr))
             else:
-                table.append((key, self.get_port_status(key),
+                table.append((key, self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_status(key, PORT_OPER_STATUS_FIELD),
                               data.rx_ok, "N/A", "N/A", data.rx_err,
                               data.rx_drop, data.rx_ovr,
                               data.tx_ok, "N/A", "N/A", data.tx_err,
@@ -250,7 +251,7 @@ class Portstat(object):
 
             if print_all:
                 if old_cntr is not None:
-                    table.append((key, self.get_port_status(key),
+                    table.append((key, self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_status(key, PORT_OPER_STATUS_FIELD),
                                   ns_diff(cntr.rx_ok, old_cntr.rx_ok),
                                   ns_brate(cntr.rx_byt, old_cntr.rx_byt, time_gap),
                                   ns_prate(cntr.rx_ok, old_cntr.rx_ok, time_gap),
@@ -266,7 +267,7 @@ class Portstat(object):
                                   ns_diff(cntr.tx_drop, old_cntr.tx_drop),
                                   ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
                 else:
-                    table.append((key, self.get_port_status(key),
+                    table.append((key, self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_oper_status(key, PORT_OPER_STATUS_FIELD),
                                   cntr.rx_ok,
                                   "N/A",
                                   "N/A",
@@ -283,7 +284,7 @@ class Portstat(object):
                                   cntr.tx_err))
             else:
                 if old_cntr is not None:
-                    table.append((key, self.get_port_status(key),
+                    table.append((key, self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_status(key, PORT_OPER_STATUS_FIELD),
                                       ns_diff(cntr.rx_ok, old_cntr.rx_ok),
                                       ns_brate(cntr.rx_byt, old_cntr.rx_byt, time_gap),
                                       ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap),
@@ -297,7 +298,7 @@ class Portstat(object):
                                       ns_diff(cntr.tx_drop, old_cntr.tx_drop),
                                       ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
                 else:
-                    table.append((key, self.get_port_status(key),
+                    table.append((key, self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_oper_status(key, PORT_OPER_STATUS_FIELD),
                                   cntr.rx_ok,
                                   "N/A",
                                   "N/A",
