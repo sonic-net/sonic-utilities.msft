@@ -20,6 +20,7 @@ setup(
         'scripts/coredump-compress',
         'scripts/decode-syseeprom',
         'scripts/fast-reboot',
+        'scripts/fast-reboot-dump.py',
         'scripts/generate_dump',
         'scripts/lldpshow',
         'scripts/portstat',

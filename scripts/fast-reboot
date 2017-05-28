@@ -30,6 +30,16 @@ esac
 # Load kernel into memory
 /sbin/kexec -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
 
+# Save ARP and FDB table to files
+/usr/bin/fast-reboot-dump.py
+docker cp /tmp/fdb.json swss:/
+docker cp /tmp/arp.json swss:/
+
+# Kill bgpd to enable graceful restart of BGP
+docker exec -ti bgp killall -9 watchquagga
+docker exec -ti bgp killall -9 zebra
+docker exec -ti bgp killall -9 bgpd
+
 # Stop docker container engine. Otherwise will have broken docker storage
 systemctl stop docker.service
 
