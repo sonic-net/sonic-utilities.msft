@@ -267,7 +267,7 @@ class Portstat(object):
                                   ns_diff(cntr.tx_drop, old_cntr.tx_drop),
                                   ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
                 else:
-                    table.append((key, self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_oper_status(key, PORT_OPER_STATUS_FIELD),
+                    table.append((key, self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_status(key, PORT_OPER_STATUS_FIELD),
                                   cntr.rx_ok,
                                   "N/A",
                                   "N/A",
@@ -298,7 +298,7 @@ class Portstat(object):
                                       ns_diff(cntr.tx_drop, old_cntr.tx_drop),
                                       ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
                 else:
-                    table.append((key, self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_oper_status(key, PORT_OPER_STATUS_FIELD),
+                    table.append((key, self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_status(key, PORT_OPER_STATUS_FIELD),
                                   cntr.rx_ok,
                                   "N/A",
                                   "N/A",
