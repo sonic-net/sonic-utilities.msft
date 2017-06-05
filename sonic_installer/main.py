@@ -2,8 +2,9 @@
 
 import os
 import re
-import sys
+import signal
 import stat
+import sys
 import time
 import click
 import urllib
@@ -18,6 +19,15 @@ ABOOT_DEFAULT_IMAGE_PATH = '/tmp/sonic_image.swi'
 IMAGE_TYPE_ABOOT = 'aboot'
 IMAGE_TYPE_ONIE = 'onie'
 ABOOT_BOOT_CONFIG = '/boot-config'
+
+#
+# Helper functions
+#
+
+# Needed to prevent "broken pipe" error messages when piping
+# output of multiple commands using subprocess.Popen()
+def default_sigpipe():
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 def reporthook(count, block_size, total_size):
     global start_time, last_time
@@ -75,7 +85,6 @@ def get_installed_images():
                     images.append(image)
         config.close()
     return images
-
 
 # Returns name of current image
 def get_current_image():
@@ -244,6 +253,42 @@ def remove(image):
 
         run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
         click.echo('Image removed')
+
+# Retrieve version from binary image file and print to screen
+@cli.command()
+@click.argument('binary_image_path')
+def binary_version(binary_image_path):
+    """ Get version from local binary image file """
+    if not os.path.isfile(binary_image_path):
+        click.echo('Image file does not exist')
+        sys.exit(1)
+
+    # Attempt to determine whether this is an ONIE or Aboot image
+    is_aboot = False
+
+    with open(binary_image_path) as f:
+        # Aboot file is a zip archive; check the start of the file for the zip magic number
+        if f.read(4) == "\x50\x4b\x03\x04":
+            is_aboot = True
+
+    if is_aboot:
+        p1 = subprocess.Popen(["unzip", "-p", binary_image_path, "boot0"], stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+        p2 = subprocess.Popen(["grep", "-m 1", "^image_path"], stdin=p1.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+        p3 = subprocess.Popen(["sed", "-n", r"s/^image_path=\"\$target_path\/image-\(.*\)\"$/\1/p"], stdin=p2.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+    else:
+        p1 = subprocess.Popen(["cat", "-v", binary_image_path], stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+        p2 = subprocess.Popen(["grep", "-m 1", "^image_version"], stdin=p1.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+        p3 = subprocess.Popen(["sed", "-n", r"s/^image_version=\"\(.*\)\"$/\1/p"], stdin=p2.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+
+    stdout = p3.communicate()[0]
+    p3.wait()
+    version_num = stdout.rstrip('\n')
+
+    if len(version_num) == 0:
+        click.echo("File does not appear to be a vaild SONiC image file")
+        sys.exit(1)
+
+    click.echo(IMAGE_PREFIX + version_num)
 
 if __name__ == '__main__':
     cli()
