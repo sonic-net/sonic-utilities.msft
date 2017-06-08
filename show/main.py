@@ -1,8 +1,10 @@
 #! /usr/bin/python -u
 
 import click
+import errno
 import os
 import subprocess
+import sys
 from click_default_group import DefaultGroup
 
 try:
@@ -81,14 +83,23 @@ class AliasedGroup(DefaultGroup):
 
 
 def run_command(command, pager=False):
-    if pager is True:
-        click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
-        p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-        click.echo_via_pager(p.stdout.read())
-    else:
-        click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
-        p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-        click.echo(p.stdout.read())
+    click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
+    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+
+    try:
+        if pager is True and sys.stdout.isatty():
+            click.echo_via_pager(p.stdout.read())
+        else:
+            click.echo(p.stdout.read())
+    except IOError as e:
+        # In our version of Click, click.echo() and click.echo_via_pager() do not properly handle
+        # SIGPIPE, and if a pipe is broken before all output is processed (e.g., pipe output to 'head'),
+        # it will result in a stack trace. This is apparently fixed upstream, but for now, we silently
+        # ignore SIGPIPE here.
+        if e.errno == errno.EPIPE:
+            sys.exit(0)
+        else:
+            raise
 
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '?'])
