@@ -19,6 +19,7 @@ setup(
         'scripts/boot_part',
         'scripts/coredump-compress',
         'scripts/decode-syseeprom',
+        'scripts/dropcheck',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
         'scripts/generate_dump',
