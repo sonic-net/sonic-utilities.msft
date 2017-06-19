@@ -118,7 +118,7 @@ class AclStat(object):
             return string.strip().strip(" \"").rstrip("\"")
 
         def lowercase_keys(dictionary):
-            return dict((k.lower(), v) for k,v in dictionary.iteritems())
+            return dict((k.lower(), v) for k,v in dictionary.iteritems()) if dictionary else None
 
         def fetch_acl_tables():
             """
@@ -195,8 +195,11 @@ class AclStat(object):
 
     def get_counter_value(self, key, type):
         """
-        returns the counter value or the difference comparing to the base
+        return the counter value or the difference comparing with the saved value
         """
+        if not self.acl_counters[key]:
+            return 'N/A'
+
         if key in self.saved_acl_counters:
             new_value = int(self.acl_counters[key][type]) - int(self.saved_acl_counters[key][type])
             if new_value > 0:
