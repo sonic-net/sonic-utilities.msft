@@ -154,7 +154,7 @@ def install(url):
     else:
         os.chmod(image_path, stat.S_IXUSR)
         run_command(image_path)
-        run_command("cp /etc/sonic/minigraph.xml /host/")
+        run_command("cp -r /etc/sonic /host/old_config")
         run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
     click.echo('Done')
 
