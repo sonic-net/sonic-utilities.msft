@@ -77,8 +77,8 @@ def run_command(command, pager=False):
 @click.group()
 def cli():
     """SONiC command line - 'config' command"""
-    pass
-
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
 
 #
 # 'bgp' group
