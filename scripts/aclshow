@@ -190,7 +190,8 @@ class AclStat(object):
             if verboseflag:
                 print()
 
-        print("Reading ACL info...")
+        if verboseflag:
+            print("Reading ACL info...")
         fetch_acl_tables()
         fetch_acl_rules()
         fetch_acl_counters()
