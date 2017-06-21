@@ -154,9 +154,11 @@ class AclStat(object):
             """
             for table_name in self.acl_tables.keys():
                 rules = self.db.keys(self.db.APPL_DB, "ACL_RULE_TABLE:%s:*" % table_name)
-                if not rules and verboseflag:
-                    print("No ACL rules found")
+                if not rules:
+                    if verboseflag:
+                        print("No ACL rules found in %s" % table_name)
                     continue
+
                 if verboseflag:
                     rules_cnt = len(rules)
                     print("ACL Rules found in %s:" % table_name, rules_cnt)
