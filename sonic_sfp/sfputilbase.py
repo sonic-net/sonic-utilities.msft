@@ -320,8 +320,8 @@ class sfputilbase(object):
 		logical_to_bcm = {}
 		logical_to_physical = {}
 		physical_to_logical = {}
-		last_physical_port = 0
-		last_logical_port = ''
+		last_fp_port_index = 0
+		last_portname = ''
 		first = 1
 		port_pos_in_file = 0
 		parse_fmt_port_config_ini = False
@@ -348,52 +348,55 @@ class sfputilbase(object):
 				# bcm_port is not explicitly listed in port_config.ini format
 				# Currently we assume ports are listed in numerical order according to bcm_port
 				# so we use the port's position in the file (zero-based) as bcm_port
-				logical_port = line.split()[0]
+				portname = line.split()[0]
 
 				bcm_port = str(port_pos_in_file);
 
-				physical_port = logical_port.split('Ethernet').pop()
-				physical_port = int(physical_port.split('s').pop(0))/4
+				if len(line.split()) == 4:
+					fp_port_index = int(line.split()[3])
+				else:
+					fp_port_index = portname.split('Ethernet').pop()
+					fp_port_index = int(fp_port_index.split('s').pop(0))/4
 			else: # Parsing logic for older 'portmap.ini' file
-				(logical_port, bcm_port) = line.split('=')[1].split(',')[:2]
+				(portname, bcm_port) = line.split('=')[1].split(',')[:2]
 
-				physical_port = logical_port.split('Ethernet').pop()
-				physical_port = int(physical_port.split('s').pop(0))/4
+				fp_port_index = portname.split('Ethernet').pop()
+				fp_port_index = int(fp_port_index.split('s').pop(0))/4
 
 			if ((len(cls.sfp_ports) > 0) and
-				(physical_port not in cls.sfp_ports)):
+				(fp_port_index not in cls.sfp_ports)):
 				continue
 
 			if first == 1:
 				# Initialize last_[physical|logical]_port
 				# to the first valid port
-				last_physical_port = physical_port
-				last_logical_port = logical_port
+				last_fp_port_index = fp_port_index
+				last_portname = portname
 				first = 0
 
-			logical.append(logical_port)
+			logical.append(portname)
 
-			logical_to_bcm[logical_port] = 'xe' + bcm_port
-			logical_to_physical[logical_port] = [physical_port]
-			if physical_to_logical.get(physical_port) == None:
-				physical_to_logical[physical_port] = [logical_port]
+			logical_to_bcm[portname] = 'xe' + bcm_port
+			logical_to_physical[portname] = [fp_port_index]
+			if physical_to_logical.get(fp_port_index) == None:
+				physical_to_logical[fp_port_index] = [portname]
 			else:
-				physical_to_logical[physical_port].append(
-					logical_port)
+				physical_to_logical[fp_port_index].append(
+					portname)
 
-			if (physical_port - last_physical_port) > 1:
+			if (fp_port_index - last_fp_port_index) > 1:
 				# last port was a gang port
-				for p in range (last_physical_port+1,
-						physical_port):
-					logical_to_physical[last_logical_port].append(p)
+				for p in range (last_fp_port_index+1,
+						fp_port_index):
+					logical_to_physical[last_portname].append(p)
 					if physical_to_logical.get(p) == None:
-						physical_to_logical[p] = [last_logical_port]
+						physical_to_logical[p] = [last_portname]
 					else:
 						physical_to_logical[p].append(
-							last_logical_port)
+							last_portname)
 
-			last_physical_port = physical_port
-			last_logical_port  = logical_port
+			last_fp_port_index = fp_port_index
+			last_portname  = portname
 
 			port_pos_in_file += 1
 
