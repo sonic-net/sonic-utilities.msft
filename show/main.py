@@ -468,7 +468,7 @@ def bgp():
 @click.argument('ipaddress', required=False)
 def arp(ipaddress):
     """Show IP ARP table"""
-    cmd = "/usr/sbin/arp"
+    cmd = "/usr/sbin/arp -n"
     if ipaddress is not None:
         command = '{} {}'.format(cmd, ipaddress)
         run_command(command)
