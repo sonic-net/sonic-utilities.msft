@@ -171,4 +171,3 @@ if __name__ == "__main__":
     except (RuntimeError, OSError, IOError), errstr:
         sys.stderr.write("%s : ERROR : %s\n" % (sys.argv[0], str(errstr)))
         exit(1)
-

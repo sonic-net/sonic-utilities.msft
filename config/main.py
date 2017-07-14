@@ -232,4 +232,3 @@ def neighbor(ipaddr_or_hostname, verbose):
 
 if __name__ == '__main__':
     cli()
-
