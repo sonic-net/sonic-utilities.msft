@@ -11,6 +11,7 @@ optional arguments:
   -v,  --version              show program's version number and exit
   -vv, --verbose              verbose output (progress, etc)
   -c,  --clear                clear ACL counters statistics
+  -a,  --all                  show all ACL counters
   -p PORTS,  --ports PORTS    action by specific port list: Ethernet0,Ethernet12
   -r RULES,  --rules RULES    action by specific rules list: Rule_1,Rule_2
   -t TABLES, --tables TABLES  action by specific tables list: Table_1,Table_2
@@ -212,7 +213,7 @@ class AclStat(object):
 
         return str(self.acl_counters[key][type])
 
-    def display_acl_stat(self):
+    def display_acl_stat(self, display_all):
         """
         print out ACL rules and counters
         """
@@ -225,8 +226,8 @@ class AclStat(object):
         header = ACL_HEADER
         aclstat = []
         for rule_key in self.acl_rules.keys():
-            if self.get_counter_value(rule_key, 'packets') == '0' or \
-                    self.get_counter_value(rule_key, 'packets') == 'N/A':
+            if not display_all and (self.get_counter_value(rule_key, 'packets') == '0' or \
+                    self.get_counter_value(rule_key, 'packets') == 'N/A'):
                 continue
             rule = self.acl_rules[rule_key]
             ports = self.acl_tables[rule_key[0]]['ports']
@@ -304,6 +305,7 @@ def main():
     parser = argparse.ArgumentParser(description='Display SONiC switch Acl Rules and Counters',
                                      version='1.0.0',
                                      formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-a', '--all', action='store_true', help='Show all ACL counters')
     parser.add_argument('-c', '--clear', action='store_true', help='Clear ACL counters statistics')
     parser.add_argument('-p', '--ports', type=str, help='action by specific port list: Ethernet0,Ethernet12', default=None)
     parser.add_argument('-r', '--rules', type=str, help='action by specific rules list: Rule1_Name,Rule2_Name', default=None)
@@ -322,7 +324,7 @@ def main():
         if args.details:
             acls.display_acl_details()
         else:
-            acls.display_acl_stat()
+            acls.display_acl_stat(args.all)
     except Exception as e:
         print(e.message, file=sys.stderr)
         sys.exit(1)
