@@ -229,6 +229,39 @@ def neighbor(ipaddr_or_hostname, verbose):
 
     _bgp_session_startup(bgp_asn, ipaddress, verbose)
 
+#
+# 'interface' group
+#
+
+@cli.group()
+def interface():
+    """Interface-related configuration tasks"""
+    pass
+
+#
+# 'shutdown' subcommand
+#
+
+@interface.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def shutdown(interface_name, verbose):
+    """Shut down interface"""
+    command = "ip link set {} down".format(interface_name)
+    run_command(command, display_cmd=verbose)
+
+#
+# 'startup' subcommand
+#
+
+@interface.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def startup(interface_name, verbose):
+    """Start up interface"""
+    command = "ip link set {} up".format(interface_name)
+    run_command(command, display_cmd=verbose)
+
 
 if __name__ == '__main__':
     cli()
