@@ -2,6 +2,7 @@
 
 import click
 import errno
+import getpass
 import os
 import subprocess
 import sys
@@ -269,9 +270,9 @@ def platform():
 @platform.command()
 def summary():
     """Show hardware platform information"""
-    click.echo("")
+    username = getpass.getuser()
 
-    PLATFORM_TEMPLATE_FILE = "/tmp/cli_platform.j2"
+    PLATFORM_TEMPLATE_FILE = "/tmp/cli_platform_{0}.j2".format(username)
     PLATFORM_TEMPLATE_CONTENTS = "Platform: {{ platform }}\n" \
                                  "HwSKU: {{ minigraph_hwsku }}\n" \
                                  "ASIC: {{ asic_type }}"
@@ -326,9 +327,9 @@ def logging(process, lines, follow):
 @cli.command()
 def version():
     """Show version information"""
-    click.echo("")
+    username = getpass.getuser()
 
-    VERSION_TEMPLATE_FILE = "/tmp/cli_version.j2"
+    VERSION_TEMPLATE_FILE = "/tmp/cli_version_{0}.j2".format(username)
     VERSION_TEMPLATE_CONTENTS = "SONiC Software Version: SONiC.{{ build_version }}\n" \
                                 "Distribution: Debian {{ debian_version }}\n" \
                                 "Kernel: {{ kernel_version }}\n" \
