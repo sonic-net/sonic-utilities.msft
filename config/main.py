@@ -5,20 +5,19 @@ import os
 import click
 import json
 import subprocess
+from swsssdk import ConfigDBConnector
 
-SONIC_CFGGEN_PATH = "/usr/local/bin/sonic-cfggen"
+SONIC_CFGGEN_PATH = "sonic-cfggen"
 MINIGRAPH_PATH = "/etc/sonic/minigraph.xml"
-MINIGRAPH_BGP_ASN_KEY = "minigraph_bgp_asn"
 MINIGRAPH_BGP_SESSIONS = "minigraph_bgp"
-
-BGP_ADMIN_STATE_YML_PATH = "/etc/sonic/bgp_admin.yml"
 
 #
 # Helper functions
 #
 
-# Run bash command and print output to stdout
 def run_command(command, pager=False, display_cmd=False):
+    """Run bash command and print output to stdout
+    """
     if display_cmd == True:
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
 
@@ -35,10 +34,10 @@ def run_command(command, pager=False, display_cmd=False):
     if p.returncode != 0:
         sys.exit(p.returncode)
 
-# Returns BGP ASN as a string
-def _get_bgp_asn_from_minigraph():
-    # Get BGP ASN from minigraph
-    proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-m', MINIGRAPH_PATH, '--var-json', MINIGRAPH_BGP_ASN_KEY],
+def _get_bgp_neighbors():
+    """Returns BGP neighbor dict from minigraph
+    """
+    proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-m', MINIGRAPH_PATH, '--var-json', MINIGRAPH_BGP_SESSIONS],
                             stdout=subprocess.PIPE,
                             shell=False,
                             stderr=subprocess.STDOUT)
@@ -46,94 +45,51 @@ def _get_bgp_asn_from_minigraph():
     proc.wait()
     return json.loads(stdout.rstrip('\n'))
 
-# Returns True if a neighbor has the IP address <ipaddress>, False if not
 def _is_neighbor_ipaddress(ipaddress):
-    # Get BGP sessions from minigraph
-    proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-m', MINIGRAPH_PATH, '--var-json', MINIGRAPH_BGP_SESSIONS],
-                            stdout=subprocess.PIPE,
-                            shell=False,
-                            stderr=subprocess.STDOUT)
-    stdout = proc.communicate()[0]
-    proc.wait()
-    bgp_session_list = json.loads(stdout.rstrip('\n'))
-
+    """Returns True if a neighbor has the IP address <ipaddress>, False if not
+    """
+    bgp_session_list = _get_bgp_neighbors()
     for session in bgp_session_list:
         if session['addr'] == ipaddress:
             return True
-
     return False
 
-# Returns list of strings containing IP addresses of all BGP neighbors
 def _get_all_neighbor_ipaddresses():
-    # Get BGP sessions from minigraph
-    proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-m', MINIGRAPH_PATH, '--var-json', MINIGRAPH_BGP_SESSIONS],
-                            stdout=subprocess.PIPE,
-                            shell=False,
-                            stderr=subprocess.STDOUT)
-    stdout = proc.communicate()[0]
-    proc.wait()
-    bgp_session_list = json.loads(stdout.rstrip('\n'))
+    """Returns list of strings containing IP addresses of all BGP neighbors
+    """
+    bgp_session_list = _get_bgp_neighbors()
+    return [item['addr'] for item in bgp_session_list]
 
-    bgp_neighbor_ip_list =[]
-
-    for session in bgp_session_list:
-        bgp_neighbor_ip_list.append(session['addr'])
-
-    return bgp_neighbor_ip_list
-
-
-
-# Returns string containing IP address of neighbor with hostname <hostname> or None if <hostname> not a neighbor
 def _get_neighbor_ipaddress_by_hostname(hostname):
-    # Get BGP sessions from minigraph
-    proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-m', MINIGRAPH_PATH, '--var-json', MINIGRAPH_BGP_SESSIONS],
-                            stdout=subprocess.PIPE,
-                            shell=False,
-                            stderr=subprocess.STDOUT)
-    stdout = proc.communicate()[0]
-    proc.wait()
-    bgp_session_list = json.loads(stdout.rstrip('\n'))
-
+    """Returns string containing IP address of neighbor with hostname <hostname> or None if <hostname> not a neighbor
+    """
+    bgp_session_list = _get_bgp_neighbors()
     for session in bgp_session_list:
         if session['name'] == hostname:
             return session['addr']
-
     return None
 
-# Shut down BGP session by IP address and modify bgp_admin.yml accordingly
-def _bgp_session_shutdown(bgp_asn, ipaddress, verbose):
-    click.echo("Shutting down BGP session with neighbor {}...".format(ipaddress))
+def _switch_bgp_session_status_by_addr(ipaddress, status, verbose):
+    """Start up or shut down BGP session by IP address 
+    """
+    verb = 'Starting' if status == 'up' else 'Shutting'
+    click.echo("{} {} BGP session with neighbor {}...".format(verb, status, ipaddress))
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    config_db.set_entry('bgp_neighbor', ipaddress, {'admin_status': status})
 
-    # Shut down the BGP session
-    command = "vtysh -c 'configure terminal' -c 'router bgp {}' -c 'neighbor {} shutdown'".format(bgp_asn, ipaddress)
-    run_command(command, display_cmd=verbose)
-
-    if os.path.isfile(BGP_ADMIN_STATE_YML_PATH):
-        # Remove existing item in bgp_admin.yml about the admin state of this neighbor
-        command = "sed -i \"/^\s*{}:/d\" {}".format(ipaddress, BGP_ADMIN_STATE_YML_PATH)
-        run_command(command, display_cmd=verbose)
-
-        # and add a new line mark it as off
-        command = "echo \"  {}: off\" >> {}".format(ipaddress, BGP_ADMIN_STATE_YML_PATH)
-        run_command(command, display_cmd=verbose)
-
-# Start up BGP session by IP address and modify bgp_admin.yml accordingly
-def _bgp_session_startup(bgp_asn, ipaddress, verbose):
-    click.echo("Starting up BGP session with neighbor {}...".format(ipaddress))
-
-    # Start up the BGP session
-    command = "vtysh -c 'configure terminal' -c 'router bgp {}' -c 'no neighbor {} shutdown'".format(bgp_asn, ipaddress)
-    run_command(command, display_cmd=verbose)
-
-    if os.path.isfile(BGP_ADMIN_STATE_YML_PATH):
-        # Remove existing item in bgp_admin.yml about the admin state of this neighbor
-        command = "sed -i \"/^\s*{}:/d\" {}".format(ipaddress, BGP_ADMIN_STATE_YML_PATH)
-        run_command(command, display_cmd=verbose)
-
-        # and add a new line mark it as on
-        command = "echo \"  {}: on\" >> {}".format(ipaddress, BGP_ADMIN_STATE_YML_PATH)
-        run_command(command, display_cmd=verbose)
-
+def _switch_bgp_session_status(ipaddr_or_hostname, status, verbose):
+    """Start up or shut down BGP session by IP address or hostname
+    """
+    if _is_neighbor_ipaddress(ipaddr_or_hostname):
+        ipaddress = ipaddr_or_hostname
+    else:
+        # If <ipaddr_or_hostname> is not the IP address of a neighbor, check to see if it's a hostname
+        ipaddress = _get_neighbor_ipaddress_by_hostname(ipaddr_or_hostname)
+    if ipaddress == None:
+        print "Error: could not locate neighbor '{}'".format(ipaddr_or_hostname)
+        raise click.Abort
+    _switch_bgp_session_status_by_addr(ipaddress, status, verbose)
 
 # This is our main entrypoint - the main 'config' command
 @click.group()
@@ -165,12 +121,9 @@ def shutdown():
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def all(verbose):
     """Shut down all BGP sessions"""
-
-    bgp_asn = _get_bgp_asn_from_minigraph()
     bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses()
-
     for ipaddress in bgp_neighbor_ip_list:
-        _bgp_session_shutdown(bgp_asn, ipaddress, verbose)
+        _switch_bgp_session_status_by_addr(ipaddress, 'down', verbose)
 
 # 'neighbor' subcommand
 @shutdown.command()
@@ -178,20 +131,7 @@ def all(verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def neighbor(ipaddr_or_hostname, verbose):
     """Shut down BGP session by neighbor IP address or hostname"""
-    bgp_asn = _get_bgp_asn_from_minigraph()
-
-    if _is_neighbor_ipaddress(ipaddr_or_hostname):
-        ipaddress = ipaddr_or_hostname
-    else:
-        # If <ipaddr_or_hostname> is not the IP address of a neighbor, check to see if it's a hostname
-        ipaddress = _get_neighbor_ipaddress_by_hostname(ipaddr_or_hostname)
-
-    if ipaddress == None:
-        print "Error: could not locate neighbor '{}'".format(ipaddr_or_hostname)
-        raise click.Abort
-
-    _bgp_session_shutdown(bgp_asn, ipaddress, verbose)
-
+    _switch_bgp_session_status(ipaddr_or_hostname, 'down', verbose)
 
 @bgp.group()
 def startup():
@@ -203,11 +143,9 @@ def startup():
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def all(verbose):
     """Start up all BGP sessions"""
-    bgp_asn = _get_bgp_asn_from_minigraph()
     bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses()
-
     for ipaddress in bgp_neighbor_ip_list:
-        _bgp_session_startup(bgp_asn, ipaddress, verbose)
+        _switch_bgp_session_status(ipaddress, 'up', verbose)
 
 # 'neighbor' subcommand
 @startup.command()
@@ -215,19 +153,7 @@ def all(verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def neighbor(ipaddr_or_hostname, verbose):
     """Start up BGP session by neighbor IP address or hostname"""
-    bgp_asn = _get_bgp_asn_from_minigraph()
-
-    if _is_neighbor_ipaddress(ipaddr_or_hostname):
-        ipaddress = ipaddr_or_hostname
-    else:
-        # If <ipaddr_or_hostname> is not the IP address of a neighbor, check to see if it's a hostname
-        ipaddress = _get_neighbor_ipaddress_by_hostname(ipaddr_or_hostname)
-
-    if ipaddress == None:
-        print "Error: could not locate neighbor '{}'".format(ipaddr_or_hostname)
-        raise click.Abort
-
-    _bgp_session_startup(bgp_asn, ipaddress, verbose)
+    _switch_bgp_session_status(ipaddr_or_hostname, 'up', verbose)
 
 #
 # 'interface' group
