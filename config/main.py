@@ -91,12 +91,35 @@ def _switch_bgp_session_status(ipaddr_or_hostname, status, verbose):
         raise click.Abort
     _switch_bgp_session_status_by_addr(ipaddress, status, verbose)
 
+# Callback for confirmation prompt. Aborts if user enters "n"
+def _abort_if_false(ctx, param, value):
+    if not value:
+        ctx.abort()
+
 # This is our main entrypoint - the main 'config' command
 @click.group()
 def cli():
     """SONiC command line - 'config' command"""
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
+
+@cli.command()
+@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
+                expose_value=False, prompt='Existing file will be overwritten, continue?')
+@click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path())
+def save(filename):
+    """Export current config DB to a file on disk."""
+    command = "{} -d --print-data > {}".format(SONIC_CFGGEN_PATH, filename)
+    run_command(command, display_cmd=True)
+
+@cli.command()
+@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
+                expose_value=False, prompt='Reload all config?')
+@click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
+def load(filename):
+    """Import a previous saved config DB dump file."""
+    command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
+    run_command(command, display_cmd=True)
 
 #
 # 'bgp' group
