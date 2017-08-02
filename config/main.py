@@ -34,39 +34,30 @@ def run_command(command, pager=False, display_cmd=False):
     if p.returncode != 0:
         sys.exit(p.returncode)
 
-def _get_bgp_neighbors():
-    """Returns BGP neighbor dict from minigraph
-    """
-    proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-m', MINIGRAPH_PATH, '--var-json', MINIGRAPH_BGP_SESSIONS],
-                            stdout=subprocess.PIPE,
-                            shell=False,
-                            stderr=subprocess.STDOUT)
-    stdout = proc.communicate()[0]
-    proc.wait()
-    return json.loads(stdout.rstrip('\n'))
-
 def _is_neighbor_ipaddress(ipaddress):
     """Returns True if a neighbor has the IP address <ipaddress>, False if not
     """
-    bgp_session_list = _get_bgp_neighbors()
-    for session in bgp_session_list:
-        if session['addr'] == ipaddress:
-            return True
-    return False
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    entry = config_db.get_entry('BGP_NEIGHBOR', ipaddress)
+    return True if entry else False
 
 def _get_all_neighbor_ipaddresses():
     """Returns list of strings containing IP addresses of all BGP neighbors
     """
-    bgp_session_list = _get_bgp_neighbors()
-    return [item['addr'] for item in bgp_session_list]
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    return config_db.get_table('BGP_NEIGHBOR').keys()
 
 def _get_neighbor_ipaddress_by_hostname(hostname):
     """Returns string containing IP address of neighbor with hostname <hostname> or None if <hostname> not a neighbor
     """
-    bgp_session_list = _get_bgp_neighbors()
-    for session in bgp_session_list:
-        if session['name'] == hostname:
-            return session['addr']
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    bgp_sessions = config_db.get_table('BGP_NEIGHBOR')
+    for addr, session in bgp_sessions.iteritems():
+        if session.has_key('name') and session['name'] == hostname:
+            return addr
     return None
 
 def _switch_bgp_session_status_by_addr(ipaddress, status, verbose):
