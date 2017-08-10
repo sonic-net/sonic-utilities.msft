@@ -10,7 +10,7 @@ setup(
     url='https://github.com/Azure/sonic-utilities',
     maintainer='Joe LeVeque',
     maintainer_email='jolevequ@microsoft.com',
-    packages=['config', 'show', 'sonic_eeprom', 'sonic_sfp', "sonic_installer"],
+    packages=['config', 'sfputil', 'show', 'sonic_eeprom', 'sonic_sfp', "sonic_installer"],
     package_data={
         'show': ['aliases.ini']
     },
@@ -25,17 +25,18 @@ setup(
         'scripts/generate_dump',
         'scripts/lldpshow',
         'scripts/portstat',
-        'scripts/sfputil',
         'scripts/teamshow', 
     ],
     data_files=[
         ('/etc/bash_completion.d', ['data/etc/bash_completion.d/config']),
+        ('/etc/bash_completion.d', ['data/etc/bash_completion.d/sfputil']),
         ('/etc/bash_completion.d', ['data/etc/bash_completion.d/show']),
         ('/etc/bash_completion.d', ['data/etc/bash_completion.d/sonic_installer']),
     ],
     entry_points={
         'console_scripts': [
             'config = config.main:cli',
+            'sfputil = sfputil.main:cli',
             'show = show.main:cli',
             'sonic_installer = sonic_installer.main:cli'
         ]

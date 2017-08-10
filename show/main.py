@@ -192,7 +192,7 @@ def portchannel():
 def sfp(interfacename):
     """Show SFP Transceiver information"""
 
-    cmd = "sudo sfputil"
+    cmd = "sudo sfputil show eeprom"
 
     if interfacename is not None:
         cmd += " -p {}".format(interfacename)
