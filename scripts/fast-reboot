@@ -7,8 +7,9 @@ then
   exit
 fi
 
-# Unload previous kernel if any loaded
-if [ $(cat /sys/kernel/kexec_loaded) -eq 1 ]
+
+# Unload the previously loaded kernel if any loaded
+if [ "$(cat /sys/kernel/kexec_loaded)" -eq 1 ]
 then
   /sbin/kexec -u
 fi
@@ -27,10 +28,12 @@ case "$BOOT_OPTIONS" in
     ;;
 esac
 
-# Load kernel into memory
+sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
+
+# Load kernel into the memory
 /sbin/kexec -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
 
-# Save ARP and FDB table to files
+# Dump the ARP and FDB tables to files
 /usr/bin/fast-reboot-dump.py
 docker cp /tmp/fdb.json swss:/
 docker cp /tmp/arp.json swss:/
@@ -40,19 +43,27 @@ docker exec -ti bgp killall -9 watchquagga
 docker exec -ti bgp killall -9 zebra
 docker exec -ti bgp killall -9 bgpd
 
-# Stop docker container engine. Otherwise will have broken docker storage
+# Kill lldp, otherwise it sends informotion about reboot
+docker kill lldp
+
+# Kill teamd, otherwise it gets down all LAGs
+docker kill teamd
+
+# Kill other containers to make reboot faster
+docker ps -qa | xargs docker kill
+
+# Stop the docker container engine. Otherwise we will have a broken docker storage
 systemctl stop docker.service
 
 # Stop opennsl modules for Broadcom platform
-sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
-if [ $sonic_asic_type = 'broadcom' ];
+if [ "$sonic_asic_type" = 'broadcom' ];
 then
  systemctl stop opennsl-modules-3.16.0-4-amd64.service
 fi
 
 # Wait until all buffers synced with disk
 sync
-sleep 3
+sleep 1
 sync
 
 # Reboot
