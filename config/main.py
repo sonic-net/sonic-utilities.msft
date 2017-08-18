@@ -16,24 +16,20 @@ MINIGRAPH_BGP_SESSIONS = "minigraph_bgp"
 # Helper functions
 #
 
-def run_command(command, pager=False, display_cmd=False):
+def run_command(command, display_cmd=False):
     """Run bash command and print output to stdout
     """
     if display_cmd == True:
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
 
-    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    stdout = p.communicate()[0]
-    p.wait()
+    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    (out, err) = proc.communicate()
 
-    if len(stdout) > 0:
-        if pager is True:
-            click.echo_via_pager(p.stdout.read())
-        else:
-            click.echo(p.stdout.read())
+    if len(out) > 0:
+        click.echo(out)
 
-    if p.returncode != 0:
-        sys.exit(p.returncode)
+    if proc.returncode != 0:
+        sys.exit(proc.returncode)
 
 def _is_neighbor_ipaddress(ipaddress):
     """Returns True if a neighbor has the IP address <ipaddress>, False if not

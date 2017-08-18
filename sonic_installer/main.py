@@ -58,16 +58,16 @@ def get_image_type():
     return IMAGE_TYPE_ONIE
 
 # Run bash command and print output to stdout
-def run_command(command, pager=False):
+def run_command(command):
     click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
-    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    if pager is True:
-        click.echo_via_pager(p.stdout.read())
-    else:
-        click.echo(p.stdout.read())
-    p.wait()
-    if p.returncode != 0:
-        sys.exit(p.returncode)
+
+    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    (out, err) = proc.communicate()
+
+    click.echo(out)
+
+    if proc.returncode != 0:
+        sys.exit(proc.returncode)
 
 # Returns list of installed images
 def get_installed_images():

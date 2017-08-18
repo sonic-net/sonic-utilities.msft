@@ -39,7 +39,7 @@ _config = None
 
 
 # This aliased group has been modified from click examples to inherit from DefaultGroup instead of click.Group.
-# DefaultFroup is a superclass of click.Group which calls a default subcommand instead of showing
+# DefaultGroup is a superclass of click.Group which calls a default subcommand instead of showing
 # a help message if no subcommand is passed
 class AliasedGroup(DefaultGroup):
     """This subclass of a DefaultGroup supports looking up aliases in a config
@@ -83,17 +83,16 @@ class AliasedGroup(DefaultGroup):
         ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
 
 
-def run_command(command, pager=False):
+def run_command(command):
     click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
-    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+
+    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    (out, err) = proc.communicate()
 
     try:
-        if pager is True and sys.stdout.isatty():
-            click.echo_via_pager(p.stdout.read())
-        else:
-            click.echo(p.stdout.read())
+        click.echo(out)
     except IOError as e:
-        # In our version of Click, click.echo() and click.echo_via_pager() do not properly handle
+        # In our version of Click (v6.6), click.echo() and click.echo_via_pager() do not properly handle
         # SIGPIPE, and if a pipe is broken before all output is processed (e.g., pipe output to 'head'),
         # it will result in a stack trace. This is apparently fixed upstream, but for now, we silently
         # ignore SIGPIPE here.
@@ -102,6 +101,8 @@ def run_command(command, pager=False):
         else:
             raise
 
+    if proc.returncode != 0:
+        sys.exit(proc.returncode)
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '?'])
 
@@ -158,7 +159,7 @@ def summary(interfacename):
         run_command(command)
     else:
         command = cmd_ifconfig
-        run_command(command, pager=True)
+        run_command(command)
 
 # 'counters' subcommand
 @interfaces.command()
@@ -178,13 +179,13 @@ def counters(period, printall, clear):
         if period is not None:
             cmd += " -p {}".format(period)
 
-    run_command(cmd, pager=True)
+    run_command(cmd)
 
 # 'portchannel' subcommand
 @interfaces.command()
 def portchannel():
     """Show PortChannel information"""
-    run_command("teamshow", pager=True)
+    run_command("teamshow")
 
 # 'sfp' subcommand
 @interfaces.command()
@@ -197,7 +198,7 @@ def sfp(interfacename):
     if interfacename is not None:
         cmd += " -p {}".format(interfacename)
 
-    run_command(cmd, pager=True)
+    run_command(cmd)
 
 #
 # 'lldp' group ####
@@ -217,13 +218,13 @@ def neighbors(interfacename):
         command = "sudo lldpctl {}".format(interfacename)
         run_command(command)
     else:
-        run_command("sudo lldpctl", pager=True)
+        run_command("sudo lldpctl")
 
 # 'tables' subcommand ####
 @lldp.command()
 def table():
     """Show LLDP neighbors in tabular format"""
-    run_command("sudo lldpshow", pager=True)
+    run_command("sudo lldpshow")
 
 #
 # 'bgp' group ####
@@ -249,7 +250,7 @@ def neighbor(ipaddress):
         command = 'sudo vtysh -c "show ip bgp neighbor {} "'.format(ipaddress)
         run_command(command)
     else:
-        run_command('sudo vtysh -c "show ip bgp neighbor"', pager=True)
+        run_command('sudo vtysh -c "show ip bgp neighbor"')
 
 # 'summary' subcommand ####
 @bgp.command()
@@ -317,7 +318,7 @@ def logging(process, lines, follow):
         if lines is not None:
             command += " | tail -{}".format(lines)
 
-        run_command(command, pager=True)
+        run_command(command)
 
 
 #
@@ -361,7 +362,7 @@ def version():
 @cli.command()
 def environment():
     """Show environmentals (voltages, fans, temps)"""
-    run_command('sudo sensors', pager=True)
+    run_command('sudo sensors')
 
 
 #
@@ -378,7 +379,7 @@ def processes():
 def cpu():
     """Show processes CPU info"""
     # Run top batch mode to prevent unexpected newline after each newline
-    run_command('top -bn 1', pager=True)
+    run_command('top -bn 1')
 
 
 #
@@ -415,7 +416,7 @@ def runningconfiguration():
 @runningconfiguration.command()
 def bgp():
     """Show BGP running configuration"""
-    run_command('sudo vtysh -c "show running-config"', pager=True)
+    run_command('sudo vtysh -c "show running-config"')
 
 
 # 'interfaces' subcommand
@@ -427,7 +428,7 @@ def interfaces(interfacename):
         command = "cat /etc/network/interfaces | grep {} -A 4".format(interfacename)
         run_command(command)
     else:
-        run_command('cat /etc/network/interfaces', pager=True)
+        run_command('cat /etc/network/interfaces')
 
 
 # 'snmp' subcommand
@@ -435,14 +436,14 @@ def interfaces(interfacename):
 def snmp():
     """Show SNMP running configuration"""
     command = 'sudo docker exec -it snmp cat /etc/snmp/snmpd.conf'
-    run_command(command, pager=True)
+    run_command(command)
 
 
 # 'ntp' subcommand
 @runningconfiguration.command()
 def ntp():
     """Show NTP running configuration"""
-    run_command('cat /etc/ntp.conf', pager=True)
+    run_command('cat /etc/ntp.conf')
 
 
 # 'startupconfiguration' group ###
@@ -474,7 +475,7 @@ def arp(ipaddress):
         command = '{} {}'.format(cmd, ipaddress)
         run_command(command)
     else:
-        run_command(cmd, pager=True)
+        run_command(cmd)
 
 # Add 'arp' command to both the root 'cli' group and the 'ip' subgroup
 cli.add_command(arp)
@@ -493,7 +494,7 @@ def route(ipaddress):
         command = 'sudo vtysh -c "show ip route {}"'.format(ipaddress)
         run_command(command)
     else:
-        run_command('sudo vtysh -c "show ip route"', pager=True)
+        run_command('sudo vtysh -c "show ip route"')
 
 # Add 'route' command to both the root 'cli' group and the 'ip' subgroup
 cli.add_command(route)
