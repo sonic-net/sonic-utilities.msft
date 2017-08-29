@@ -1,3 +1,10 @@
-#!/bin/sh
+#!/bin/bash
 
-/bin/gzip -1 - > /var/core/$1.$2.core.gz
+# Collect all parameters in order and build a file name prefix
+PREFIX=""
+while [[ $# > 0 ]]; do
+    PREFIX=${PREFIX}$1.
+    shift
+done
+
+/bin/gzip -1 - > /var/core/${PREFIX}core.gz
