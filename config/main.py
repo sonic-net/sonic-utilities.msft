@@ -5,6 +5,7 @@ import os
 import click
 import json
 import subprocess
+import netaddr
 from swsssdk import ConfigDBConnector
 from minigraph import parse_device_desc_xml
 
@@ -127,10 +128,10 @@ def load_mgmt_config(filename):
     run_command(command, display_cmd=True)
     #FIXME: After config DB daemon for hostname and mgmt interface is implemented, we'll no longer need to do manual configuration here
     config_data = parse_device_desc_xml(filename)
-    hostname = config_data['minigraph_hostname']
+    hostname = config_data['DEVICE_METADATA']['localhost']['hostname']
     _change_hostname(hostname)
-    mgmt_conf = config_data['minigraph_mgmt_interface']
-    command = "ifconfig eth0 {} netmask {}".format(str(mgmt_conf['addr']), str(mgmt_conf['mask']))
+    mgmt_conf = netaddr.IPNetwork(config_data['MGMT_INTERFACE'].keys()[0][1])
+    command = "ifconfig eth0 {} netmask {}".format(str(mgmt_conf.ip), str(mgmt_conf.netmask))
     run_command(command, display_cmd=True)
     command = "[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid"
     run_command(command, display_cmd=True)
@@ -142,7 +143,7 @@ def load_minigraph():
     """Reconfigure based on minigraph."""
     command = "{} -m --write-to-db".format(SONIC_CFGGEN_PATH)
     run_command(command, display_cmd=True)
-    command = "{} -m -v minigraph_hostname".format(SONIC_CFGGEN_PATH)
+    command = "{} -m -v \"DEVICE_METADATA['localhost']['hostname']\"".format(SONIC_CFGGEN_PATH)
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     p.wait()
     hostname = p.communicate()[0].strip()

@@ -28,7 +28,7 @@ PLATFORM_SPECIFIC_CLASS_NAME = "SfpUtil"
 PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 MINIGRAPH_PATH = '/etc/sonic/minigraph.xml'
-HWSKU_KEY = 'minigraph_hwsku'
+HWSKU_KEY = "DEVICE_METADATA['localhost']['hwsku']"
 PLATFORM_KEY = 'platform'
 
 # Global platform-specific sfputil class instance

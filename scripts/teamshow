@@ -49,7 +49,7 @@ class Teamshow(object):
         minigraph_path = '/etc/sonic/minigraph.xml'
         machine_info = get_machine_info()
         platform_info = get_platform_info(machine_info)
-        self.teams = parse_xml(minigraph_path, platform = platform_info)['minigraph_portchannels'].keys();
+        self.teams = parse_xml(minigraph_path, platform = platform_info)['PORTCHANNEL'].keys();
 
     def get_portchannel_status(self, port_channel_name):
         """

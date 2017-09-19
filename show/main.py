@@ -275,7 +275,7 @@ def summary():
 
     PLATFORM_TEMPLATE_FILE = "/tmp/cli_platform_{0}.j2".format(username)
     PLATFORM_TEMPLATE_CONTENTS = "Platform: {{ platform }}\n" \
-                                 "HwSKU: {{ minigraph_hwsku }}\n" \
+                                 "HwSKU: {{ DEVICE_METADATA['localhost']['hwsku'] }}\n" \
                                  "ASIC: {{ asic_type }}"
 
     # Create a temporary Jinja2 template file to use with sonic-cfggen
@@ -283,7 +283,7 @@ def summary():
     f.write(PLATFORM_TEMPLATE_CONTENTS)
     f.close()
 
-    command = "sonic-cfggen -m /etc/sonic/minigraph.xml -y /etc/sonic/sonic_version.yml -t {0}".format(PLATFORM_TEMPLATE_FILE)
+    command = "sonic-cfggen -d -y /etc/sonic/sonic_version.yml -t {0}".format(PLATFORM_TEMPLATE_FILE)
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     click.echo(p.stdout.read())
 
