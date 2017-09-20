@@ -108,10 +108,10 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '?'])
 
 
 #
-# 'cli' group (root group) ###
+# 'cli' group (root group)
 #
 
-# THis is our entrypoint - the main "show" command
+# This is our entrypoint - the main "show" command
 # TODO: Consider changing function name to 'show' for better understandability
 @click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
 def cli():
@@ -120,33 +120,31 @@ def cli():
 
 
 #
-# 'ip' group ###
+# 'arp' command ("show arp")
 #
 
-# This allows us to add commands to both cli and ip groups, allowing for
-# "show <command>" and "show ip <command>" to function the same
-@cli.group()
-def ip():
-    """Show IP commands"""
-    pass
+@cli.command()
+@click.argument('ipaddress', required=False)
+def arp(ipaddress):
+    """Show IP ARP table"""
+    cmd = "/usr/sbin/arp -n"
+    if ipaddress is not None:
+        command = '{} {}'.format(cmd, ipaddress)
+        run_command(command)
+    else:
+        run_command(cmd)
 
 
 #
-# 'interfaces' group ####
+# 'interfaces' group ("show interfaces ...")
 #
 
-# We use the "click.group()" decorator because we want to add this group
-# to more than one group, which we do using the "add_command() methods below.
-@click.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
 def interfaces():
     """Show details of the network interfaces"""
     pass
 
-# Add 'interfaces' group to both the root 'cli' group and the 'ip' subgroup
-cli.add_command(interfaces)
-ip.add_command(interfaces)
-
-# 'summary' subcommand
+# 'summary' subcommand ("show interfaces summary")
 @interfaces.command()
 @click.argument('interfacename', required=False)
 def summary(interfacename):
@@ -161,7 +159,7 @@ def summary(interfacename):
         command = cmd_ifconfig
         run_command(command)
 
-# 'counters' subcommand
+# 'counters' subcommand ("show interfaces counters")
 @interfaces.command()
 @click.option('-p', '--period')
 @click.option('-a', '--printall', is_flag=True)
@@ -181,13 +179,13 @@ def counters(period, printall, clear):
 
     run_command(cmd)
 
-# 'portchannel' subcommand
+# 'portchannel' subcommand ("show interfaces portchannel")
 @interfaces.command()
 def portchannel():
     """Show PortChannel information"""
     run_command("teamshow")
 
-# 'sfp' subcommand
+# 'sfp' subcommand ("show interfaces sfp")
 @interfaces.command()
 @click.argument('interfacename', required=False)
 def sfp(interfacename):
@@ -200,8 +198,108 @@ def sfp(interfacename):
 
     run_command(cmd)
 
+
 #
-# 'lldp' group ####
+# 'ip' group ("show ip ...")
+#
+
+# This group houses IP (i.e., IPv4) commands and subgroups
+@cli.group()
+def ip():
+    """Show IP (IPv4) commands"""
+    pass
+
+#
+# 'bgp' group ("show ip bgp ...")
+#
+
+@ip.group(cls=AliasedGroup, default_if_no_args=False)
+def bgp():
+    """Show IPv4 BGP (Border Gateway Protocol) information"""
+    pass
+
+# 'neighbors' subcommand ("show ip bgp neighbors")
+@bgp.command()
+@click.argument('ipaddress', required=False)
+def neighbors(ipaddress):
+    """Show IP (IPv4) BGP neighbors"""
+    if ipaddress is not None:
+        command = 'sudo vtysh -c "show ip bgp neighbor {} "'.format(ipaddress)
+        run_command(command)
+    else:
+        run_command('sudo vtysh -c "show ip bgp neighbor"')
+
+# 'summary' subcommand ("show ip bgp summary")
+@bgp.command()
+def summary():
+    """Show summarized information of IPv4 BGP state"""
+    run_command('sudo vtysh -c "show ip bgp summary"')
+
+#
+# 'route' subcommand ("show ip route")
+#
+
+@ip.command()
+@click.argument('ipaddress', required=False)
+def route(ipaddress):
+    """Show IP (IPv4) routing table"""
+    if ipaddress is not None:
+        command = 'sudo vtysh -c "show ip route {}"'.format(ipaddress)
+        run_command(command)
+    else:
+        run_command('sudo vtysh -c "show ip route"')
+
+
+#
+# 'ipv6' group ("show ipv6 ...")
+#
+
+# This group houses IPv6-related commands and subgroups
+@cli.group()
+def ipv6():
+    """Show IPv6 commands"""
+    pass
+
+#
+# 'bgp' group ("show ipv6 bgp ...")
+#
+
+@ipv6.group(cls=AliasedGroup, default_if_no_args=False)
+def bgp():
+    """Show IPv6 BGP (Border Gateway Protocol) information"""
+    pass
+
+# 'neighbors' subcommand ("show ip bgp neighbors")
+@bgp.command()
+@click.argument('ipaddress', required=True)
+def neighbors(ipaddress):
+    """Show IPv6 BGP neighbors"""
+    command = 'sudo vtysh -c "show ipv6 bgp neighbor {} "'.format(ipaddress)
+    run_command(command)
+
+# 'summary' subcommand ("show ip bgp summary")
+@bgp.command()
+def summary():
+    """Show summarized information of IPv6 BGP state"""
+    run_command('sudo vtysh -c "show ipv6 bgp summary"')
+
+#
+# 'route' subcommand ("show ipv6 route")
+#
+
+@ip.command()
+@click.argument('ipaddress', required=False)
+def route(ipaddress):
+    """Show IPv6 routing table"""
+    if ipaddress is not None:
+        command = 'sudo vtysh -c "show ipv6 route {}"'.format(ipaddress)
+        run_command(command)
+    else:
+        run_command('sudo vtysh -c "show ipv6 route"')
+
+
+#
+# 'lldp' group ("show lldp ...")
 #
 
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
@@ -220,47 +318,14 @@ def neighbors(interfacename):
     else:
         run_command("sudo lldpctl")
 
-# 'tables' subcommand ####
+# 'table' subcommand ("show lldp table")
 @lldp.command()
 def table():
     """Show LLDP neighbors in tabular format"""
     run_command("sudo lldpshow")
 
 #
-# 'bgp' group ####
-#
-
-# We use the "click.group()" decorator because we want to add this group
-# to more than one group, which we do using the "add_command() methods below.
-@click.group(cls=AliasedGroup, default_if_no_args=False)
-def bgp():
-    """Show BGP (Border Gateway Protocol) information"""
-    pass
-
-# Add 'bgp' group to both the root 'cli' group and the 'ip' subgroup
-cli.add_command(bgp)
-ip.add_command(bgp)
-
-# 'neighbors' subcommand ####
-@bgp.command()
-@click.argument('ipaddress', required=False)
-def neighbor(ipaddress):
-    """Show BGP neighbors"""
-    if ipaddress is not None:
-        command = 'sudo vtysh -c "show ip bgp neighbor {} "'.format(ipaddress)
-        run_command(command)
-    else:
-        run_command('sudo vtysh -c "show ip bgp neighbor"')
-
-# 'summary' subcommand ####
-@bgp.command()
-def summary():
-    """Show summarized information of BGP state"""
-    run_command('sudo vtysh -c "show ip bgp summary"')
-
-
-#
-# 'platform' group ####
+# 'platform' group ("show platform ...")
 #
 
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
@@ -268,6 +333,7 @@ def platform():
     """Show platform-specific hardware info"""
     pass
 
+# 'summary' subcommand ("show platform summary")
 @platform.command()
 def summary():
     """Show hardware platform information"""
@@ -290,7 +356,7 @@ def summary():
     # Clean up
     os.remove(PLATFORM_TEMPLATE_FILE)
 
-# 'syseeprom' subcommand ####
+# 'syseeprom' subcommand ("show platform syseeprom")
 @platform.command()
 def syseeprom():
     """Show system EEPROM information"""
@@ -298,7 +364,7 @@ def syseeprom():
 
 
 #
-# 'logging' command ####
+# 'logging' command ("show logging")
 #
 
 @cli.command()
@@ -322,7 +388,7 @@ def logging(process, lines, follow):
 
 
 #
-# 'version' command ###
+# 'version' command ("show version")
 #
 
 @cli.command()
@@ -356,7 +422,7 @@ def version():
     os.remove(VERSION_TEMPLATE_FILE)
 
 #
-# 'environment' command ###
+# 'environment' command ("show environment")
 #
 
 @cli.command()
@@ -366,7 +432,7 @@ def environment():
 
 
 #
-# 'processes' group ###
+# 'processes' group ("show processes ...")
 #
 
 @cli.group()
@@ -374,16 +440,16 @@ def processes():
     """Display process information"""
     pass
 
-# 'cpu' subcommand
+# 'cpu' subcommand ("show processes cpu")
 @processes.command()
 def cpu():
     """Show processes CPU info"""
-    # Run top batch mode to prevent unexpected newline after each newline
+    # Run top in batch mode to prevent unexpected newline after each newline
     run_command('top -bn 1')
 
 
 #
-# 'users' command ###
+# 'users' command ("show users")
 #
 
 @cli.command()
@@ -393,7 +459,7 @@ def users():
 
 
 #
-# 'techsupport' command ###
+# 'techsupport' command ("show techsupport")
 #
 
 @cli.command()
@@ -403,7 +469,7 @@ def techsupport():
 
 
 #
-# 'runningconfiguration' group ###
+# 'runningconfiguration' group ("show runningconfiguration")
 #
 
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
@@ -412,14 +478,14 @@ def runningconfiguration():
     pass
 
 
-# 'bgp' subcommand
+# 'bgp' subcommand ("show runningconfiguration bgp")
 @runningconfiguration.command()
 def bgp():
     """Show BGP running configuration"""
     run_command('sudo vtysh -c "show running-config"')
 
 
-# 'interfaces' subcommand
+# 'interfaces' subcommand ("show runningconfiguration interfaces")
 @runningconfiguration.command()
 @click.argument('interfacename', required=False)
 def interfaces(interfacename):
@@ -431,7 +497,7 @@ def interfaces(interfacename):
         run_command('cat /etc/network/interfaces')
 
 
-# 'snmp' subcommand
+# 'snmp' subcommand ("show runningconfiguration snmp")
 @runningconfiguration.command()
 def snmp():
     """Show SNMP running configuration"""
@@ -439,14 +505,15 @@ def snmp():
     run_command(command)
 
 
-# 'ntp' subcommand
+# 'ntp' subcommand ("show runningconfiguration ntp")
 @runningconfiguration.command()
 def ntp():
     """Show NTP running configuration"""
     run_command('cat /etc/ntp.conf')
 
 
-# 'startupconfiguration' group ###
+#
+# 'startupconfiguration' group ("show startupconfiguration ...")
 #
 
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
@@ -455,7 +522,7 @@ def startupconfiguration():
     pass
 
 
-# 'bgp' subcommand
+# 'bgp' subcommand  ("show startupconfiguration bgp")
 @startupconfiguration.command()
 def bgp():
     """Show BGP startup configuration"""
@@ -463,46 +530,7 @@ def bgp():
 
 
 #
-# 'arp' command ####
-#
-
-@click.command()
-@click.argument('ipaddress', required=False)
-def arp(ipaddress):
-    """Show IP ARP table"""
-    cmd = "/usr/sbin/arp -n"
-    if ipaddress is not None:
-        command = '{} {}'.format(cmd, ipaddress)
-        run_command(command)
-    else:
-        run_command(cmd)
-
-# Add 'arp' command to both the root 'cli' group and the 'ip' subgroup
-cli.add_command(arp)
-ip.add_command(arp)
-
-
-#
-# 'route' command ####
-#
-
-@click.command()
-@click.argument('ipaddress', required=False)
-def route(ipaddress):
-    """Show ip routing table"""
-    if ipaddress is not None:
-        command = 'sudo vtysh -c "show ip route {}"'.format(ipaddress)
-        run_command(command)
-    else:
-        run_command('sudo vtysh -c "show ip route"')
-
-# Add 'route' command to both the root 'cli' group and the 'ip' subgroup
-cli.add_command(route)
-ip.add_command(route)
-
-
-#
-# 'ntp' command ####
+# 'ntp' command ("show ntp")
 #
 
 @cli.command()
@@ -512,7 +540,7 @@ def ntp():
 
 
 #
-# 'uptime' command ####
+# 'uptime' command ("show uptime")
 #
 
 @cli.command()
