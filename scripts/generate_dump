@@ -314,6 +314,10 @@ main() {
 
     # gzip up all log files individually before placing them in the incremental tarball
     for file in $(find -L /var/log -type f); do
+        # ignore the sparse file lastlog
+        if [ "$file" = "/var/log/lastlog" ]; then
+            continue
+        fi
         # don't gzip already-gzipped log files :)
         if [ -z "${file##*.gz}" ]; then
             save_file $file log false
