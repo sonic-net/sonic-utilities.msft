@@ -226,6 +226,25 @@ def sfp(interfacename):
 
     run_command(cmd)
 
+#
+# 'mac' command ("show mac ...")
+#
+
+@cli.command()
+@click.option('-v', '--vlan')
+@click.option('-p', '--port')
+def mac(vlan, port):
+    """Show MAC (FDB) entries"""
+
+    command = "fdbshow"
+
+    if vlan is not None:
+        command += " -v {}".format(vlan)
+
+    if port is not None:
+        command += " -p {}".format(port)
+
+    run_command(command)
 
 #
 # 'ip' group ("show ip ...")

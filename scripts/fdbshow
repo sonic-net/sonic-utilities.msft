@@ -1,0 +1,138 @@
+#!/usr/bin/python
+"""
+    Script to show MAC/FDB entries learnt in Hardware
+    
+    usage: fdbshow [-p PORT] [-v VLAN]
+    optional arguments:
+      -p,  --port              FDB learned on specific port: Ethernet0
+      -v,  --vlan              FDB learned on specific Vlan: 1000
+  
+    Example of the output:
+    admin@str~$ fdbshow
+      No.    Vlan  MacAddress         Port
+    -----  ------  -----------------  ----------
+        1    1000  7C:FE:90:80:9F:05  Ethernet20
+        2    1000  7C:FE:90:80:9F:10  Ethernet40
+        3    1000  7C:FE:90:80:9F:01  Ethernet4
+        4    1000  7C:FE:90:80:9F:02  Ethernet8
+    Total number of entries 4
+    admin@str:~$ fdbshow -p Ethernet4
+      No.    Vlan  MacAddress         Port
+    -----  ------  -----------------  ---------
+        1    1000  7C:FE:90:80:9F:01  Ethernet4
+    Total number of entries 1
+    admin@str:~$ fdbshow -v 1001
+    1001 is not in list
+
+"""
+import argparse
+import json
+import sys
+
+from natsort import natsorted
+from swsssdk import SonicV2Connector, port_util
+from tabulate import tabulate
+
+class FdbShow(object):
+
+    HEADER = ['No.', 'Vlan', 'MacAddress', 'Port']
+    FDB_COUNT = 0
+
+    def __init__(self):
+        super(FdbShow,self).__init__()
+        self.db = SonicV2Connector(host="127.0.0.1")
+        self.if_name_map, \
+        self.if_oid_map = port_util.get_interface_oid_map(self.db)
+        self.if_br_oid_map = port_util.get_bridge_port_map(self.db)
+        self.fetch_fdb_data()
+        return
+
+    def fetch_fdb_data(self):
+        """
+            Fetch FDB entries from ASIC DB. 
+            FDB entries are sorted on "VlanID" and stored as a list of tuples
+        """
+        self.db.connect(self.db.ASIC_DB)
+        self.bridge_mac_list = []
+        
+        fdb_str = self.db.keys('ASIC_DB', "ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:*")
+        if not fdb_str:
+            return
+
+        if self.if_br_oid_map is None:
+            return
+
+        oid_pfx = len("oid:0x")
+        for s in fdb_str:
+            fdb_entry = s.decode()
+            fdb = json.loads(fdb_entry .split(":", 2)[-1])
+            if not fdb:
+                continue
+
+            ent = self.db.get_all('ASIC_DB', s, blocking=True)
+            br_port_id = ent[b"SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
+            port_id = self.if_br_oid_map[br_port_id]
+            if_name = self.if_oid_map[port_id]
+
+            self.bridge_mac_list.append((int(fdb["vlan"]),) + (fdb["mac"],) + (if_name,))
+
+        self.bridge_mac_list.sort(key = lambda x: x[0])
+        return
+    
+    
+    def get_iter_index(self, key_value=0, pos=0):
+        """
+            Get the starting index of matched entry
+        """
+        if pos != 0:
+            self.bridge_mac_list = natsorted(self.bridge_mac_list, key = lambda x: x[pos])
+
+        if key_value == 0:
+            return 0
+
+        keys = [r[pos] for r in self.bridge_mac_list]
+        return keys.index(key_value)
+
+
+    def display(self, vlan, port):
+        """
+            Display the FDB entries for specified vlan/port.
+            @todo: - PortChannel support
+        """
+        output = []
+
+        if vlan is not None:
+            vlan = int(vlan)
+            s_index = self.get_iter_index(vlan)
+            self.bridge_mac_list = [fdb for fdb in self.bridge_mac_list[s_index:]
+                                    if fdb[0] == vlan]
+        if port is not None:
+            s_index = self.get_iter_index(port, 2)
+            self.bridge_mac_list = [fdb for fdb in self.bridge_mac_list[s_index:]
+                                    if fdb[2] == port]
+
+        for fdb in self.bridge_mac_list:
+            self.FDB_COUNT += 1
+            output.append([self.FDB_COUNT, fdb[0], fdb[1], fdb[2]])
+
+        print tabulate(output, self.HEADER)
+        print "Total number of entries {0} ".format(self.FDB_COUNT)
+
+
+def main():
+    
+    parser = argparse.ArgumentParser(description='Display ASIC FDB entries',
+                                     formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-p', '--port', type=str, help='FDB learned on specific port: Ethernet0', default=None)
+    parser.add_argument('-v', '--vlan', type=str, help='FDB learned on specific Vlan: 1001', default=None)
+    args = parser.parse_args()
+
+    try:
+        fdb = FdbShow()
+        fdb.display(args.vlan, args.port)
+    except Exception as e:
+        print e.message
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
