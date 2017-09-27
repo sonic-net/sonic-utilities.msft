@@ -3,10 +3,13 @@
 import click
 import errno
 import getpass
+import json
 import os
 import subprocess
 import sys
 from click_default_group import DefaultGroup
+from natsort import natsorted
+from tabulate import tabulate
 
 try:
     # noinspection PyPep8Naming
@@ -143,6 +146,31 @@ def arp(ipaddress):
 def interfaces():
     """Show details of the network interfaces"""
     pass
+
+# 'alias' subcommand ("show interfaces alias")
+@interfaces.command()
+@click.argument('interfacename', required=False)
+def alias(interfacename):
+    """Show Interface Name/Alias Mapping"""
+    command = 'sonic-cfggen -d --var-json "PORT"'
+    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+
+    port_dict = json.loads(p.stdout.read())
+
+    header = ['Name', 'Alias']
+    body = []
+
+    if interfacename is not None:
+        if interfacename in port_dict:
+            body.append([interfacename, port_dict[interfacename]['alias']])
+        else:
+            click.echo("Invalid interface name, '{0}'".format(interfacename))
+            return
+    else:
+        for port_name in natsorted(port_dict.keys()):
+            body.append([port_name, port_dict[port_name]['alias']])
+
+    click.echo(tabulate(body, header))
 
 # 'summary' subcommand ("show interfaces summary")
 @interfaces.command()
