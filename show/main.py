@@ -107,8 +107,7 @@ def run_command(command):
     if proc.returncode != 0:
         sys.exit(proc.returncode)
 
-CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '?'])
-
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
 #
 # 'cli' group (root group)
@@ -187,6 +186,46 @@ def summary(interfacename):
         command = cmd_ifconfig
         run_command(command)
 
+
+@interfaces.group(cls=AliasedGroup, default_if_no_args=True)
+def transceiver():
+    pass
+
+
+@transceiver.command(default=True)
+@click.argument('interfacename', required=False)
+def default(interfacename):
+    """Show interface transceiver information"""
+
+    command = "sudo sfputil show eeprom"
+
+    if interfacename is not None:
+        command += " -p {}".format(interfacename)
+
+    run_command(command)
+
+@transceiver.command()
+@click.argument('interfacename', required=True)
+def details(interfacename):
+    """Show interface transceiver details (Digital Optical Monitoring)"""
+    command = "sudo sfputil show eeprom --dom"
+
+    if interfacename is not None:
+        command += " -p {}".format(interfacename)
+
+    run_command(command)
+
+@interfaces.command()
+@click.argument('interfacename', required=False)
+def description(interfacename):
+     if interfacename is not None:
+        command = "sudo vtysh -c 'show interface {}'".format(interfacename)
+     else:
+        command = "sudo vtysh -c 'show interface description'"
+
+    run_command(command)
+
+
 # 'counters' subcommand ("show interfaces counters")
 @interfaces.command()
 @click.option('-p', '--period')
@@ -213,18 +252,10 @@ def portchannel():
     """Show PortChannel information"""
     run_command("teamshow")
 
-# 'sfp' subcommand ("show interfaces sfp")
 @interfaces.command()
-@click.argument('interfacename', required=False)
-def sfp(interfacename):
-    """Show SFP Transceiver information"""
-
-    cmd = "sudo sfputil show eeprom"
-
-    if interfacename is not None:
-        cmd += " -p {}".format(interfacename)
-
-    run_command(cmd)
+def status():
+    """Show Interface status information"""
+    run_command("interface_stat")
 
 #
 # 'mac' command ("show mac ...")
@@ -403,6 +434,7 @@ def summary():
     # Clean up
     os.remove(PLATFORM_TEMPLATE_FILE)
 
+
 # 'syseeprom' subcommand ("show platform syseeprom")
 @platform.command()
 def syseeprom():
@@ -482,18 +514,31 @@ def environment():
 # 'processes' group ("show processes ...")
 #
 
-@cli.group()
+@cli.group(cls=AliasedGroup, default_if_no_args=True)
 def processes():
     """Display process information"""
     pass
+
+@processes.command(default=True)
+def default():
+    """Show processes info"""
+    # Run top batch mode to prevent unexpected newline after each newline
+    run_command('ps -eo pid,ppid,cmd,%mem,%cpu ')
+
 
 # 'cpu' subcommand ("show processes cpu")
 @processes.command()
 def cpu():
     """Show processes CPU info"""
     # Run top in batch mode to prevent unexpected newline after each newline
-    run_command('top -bn 1')
-
+    run_command('top -bn 1 -o %CPU')
+ 
+# 'memory' subcommand
+@processes.command()
+def memory():
+    """Show processes memory info"""
+    # Run top batch mode to prevent unexpected newline after each newline
+    run_command('top -bn 1 -o %MEM')
 
 #
 # 'users' command ("show users")
@@ -546,11 +591,15 @@ def interfaces(interfacename):
 
 # 'snmp' subcommand ("show runningconfiguration snmp")
 @runningconfiguration.command()
-def snmp():
-    """Show SNMP running configuration"""
-    command = 'sudo docker exec -it snmp cat /etc/snmp/snmpd.conf'
-    run_command(command)
-
+@click.argument('server', required=False)
+def snmp(server):
+    """Show SNMP information"""
+    if server is not None:
+        command = 'sudo docker exec -it snmp cat /etc/snmp/snmpd.conf | grep -i agentAddress'
+        run_command(command)
+    else:
+        command = 'sudo docker exec -it snmp cat /etc/snmp/snmpd.conf'
+        run_command(command)
 
 # 'ntp' subcommand ("show runningconfiguration ntp")
 @runningconfiguration.command()
@@ -573,8 +622,18 @@ def startupconfiguration():
 @startupconfiguration.command()
 def bgp():
     """Show BGP startup configuration"""
-    run_command('sudo docker exec -it bgp cat /etc/quagga/bgpd.conf')
-
+    command = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1"
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+    result = proc.stdout.read().rstrip()
+    click.echo("Routing-Stack is: {}".format(result))
+    if result == "quagga":
+        run_command('sudo docker exec -it bgp cat /etc/quagga/bgpd.conf')
+    elif result == "frr":
+        run_command('sudo docker exec -it bgp cat /etc/frr/bgpd.conf')
+    elif result == "gobgp":
+        run_command('sudo docker exec -it bgp cat /etc/gpbgp/bgpd.conf')
+    else:
+        click.echo("unidentified routing-stack")
 
 #
 # 'ntp' command ("show ntp")
@@ -595,6 +654,50 @@ def uptime():
     """Show system uptime"""
     run_command('uptime -p')
 
+@cli.command()
+def clock():
+    """Show date and time"""
+    run_command('date')
+
+@cli.command('system-memory')
+def system_memory():
+    """Show memory information"""
+    command="free -m"
+    run_command(command)
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def vlan():
+    """Show VLAN information"""
+    pass
+
+@vlan.command()
+def brief():
+    """Show all bridge information"""
+    command="sudo brctl show"
+    run_command(command)
+
+@vlan.command()
+@click.argument('bridge_name', required=True)
+def id(bridge_name):
+    """Show list of learned MAC addresses for particular bridge"""
+    command="sudo brctl showmacs {}".format(bridge_name)
+    run_command(command)
+
+@cli.command('services')
+def services():
+    """Show all daemon services"""
+    command = "sudo docker ps --format '{{.Names}}'"
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+    while True:
+        line = proc.stdout.readline()
+        if line != '':
+                print(line.rstrip()+'\t'+"docker")
+                print("---------------------------")
+                command = "sudo docker exec -it {} ps -ef | sed '$d'".format(line.rstrip())
+                proc1 = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+                print proc1.stdout.read()
+        else:
+                break
 
 if __name__ == '__main__':
     cli()

@@ -1,0 +1,54 @@
+#!/usr/bin/env python
+import swsssdk
+import sys
+import re
+from tabulate import tabulate
+header = ['Iface', 'LANES', 'ALIAS', 'OPER', 'ADMIN', 'MTU']
+
+
+PORT_STATUS_TABLE_PREFIX = "PORT_TABLE:"
+PORT_LANES_STATUS_FIELD = "lanes"
+PORT_ALIAS_STATUS_FIELD = "alias"
+PORT_OPER_STATUS_FIELD = "oper_status"
+PORT_ADMIN_STATUS_FIELD = "admin_status"
+PORT_MTU_STATUS_FIELD = "mtu"
+
+class Intstat(object):
+    table = []
+
+    def get_port_status(self, port_name, status_type):
+        """
+            Get the port status
+        """
+        full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
+        status = self.db.get(self.db.APPL_DB, full_table_id, status_type)
+        if status is None:
+             return "N/A"
+        else:
+            return status
+
+    def __init__(self):
+        self.db = swsssdk.SonicV2Connector(host='127.0.0.1')
+        self.db.connect(self.db.APPL_DB)
+        a = self.db.keys(self.db.APPL_DB)
+        #print(a)
+        tables = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
+        i = {}
+        table = []
+        key = []
+        #print tabulate(header, tablefmt='simple', stralign='right')
+        for i in tables:
+            key = re.split(':', i, maxsplit=1)[-1].strip()
+            if key:
+                table.append((key, self.get_port_status(key, PORT_LANES_STATUS_FIELD), self.get_port_status(key, PORT_ALIAS_STATUS_FIELD), self.get_port_status(key, PORT_OPER_STATUS_FIELD), self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_status(key, PORT_MTU_STATUS_FIELD)))
+        print tabulate(table, header, tablefmt="simple", stralign='right')
+
+
+def main():
+    interface_stat = Intstat()
+
+    # Now decide what information to display
+    sys.exit(0)
+
+if __name__ == "__main__":
+    main()
