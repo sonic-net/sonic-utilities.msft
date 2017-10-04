@@ -43,8 +43,8 @@ setup(
         ]
     },
     install_requires=[
-        'click',
         'click-default-group',
+        'click',
         'natsort',
         'tabulate',
         'swsssdk'
