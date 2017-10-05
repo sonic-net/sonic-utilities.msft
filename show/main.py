@@ -218,9 +218,9 @@ def details(interfacename):
 @interfaces.command()
 @click.argument('interfacename', required=False)
 def description(interfacename):
-     if interfacename is not None:
+    if interfacename is not None:
         command = "sudo vtysh -c 'show interface {}'".format(interfacename)
-     else:
+    else:
         command = "sudo vtysh -c 'show interface description'"
 
     run_command(command)
