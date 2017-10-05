@@ -1,3 +1,4 @@
+import glob
 from setuptools import setup
 
 setup(
@@ -29,10 +30,7 @@ setup(
         'scripts/teamshow', 
     ],
     data_files=[
-        ('/etc/bash_completion.d', ['data/etc/bash_completion.d/config']),
-        ('/etc/bash_completion.d', ['data/etc/bash_completion.d/sfputil']),
-        ('/etc/bash_completion.d', ['data/etc/bash_completion.d/show']),
-        ('/etc/bash_completion.d', ['data/etc/bash_completion.d/sonic_installer']),
+        ('/etc/bash_completion.d', glob.glob('data/etc/bash_completion.d/*')),
     ],
     entry_points={
         'console_scripts': [

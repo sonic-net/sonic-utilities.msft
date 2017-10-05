@@ -151,6 +151,7 @@ def interfaces():
 @click.argument('interfacename', required=False)
 def alias(interfacename):
     """Show Interface Name/Alias Mapping"""
+
     command = 'sonic-cfggen -d --var-json "PORT"'
     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
 
@@ -187,15 +188,16 @@ def summary(interfacename):
         run_command(command)
 
 
-@interfaces.group(cls=AliasedGroup, default_if_no_args=True)
+@interfaces.group(cls=AliasedGroup, default_if_no_args=False)
 def transceiver():
+    """Show SFP Transceiver information"""
     pass
 
 
-@transceiver.command(default=True)
+@transceiver.command()
 @click.argument('interfacename', required=False)
-def default(interfacename):
-    """Show interface transceiver information"""
+def basic(interfacename):
+    """Show basic interface transceiver information"""
 
     command = "sudo sfputil show eeprom"
 
@@ -205,9 +207,10 @@ def default(interfacename):
     run_command(command)
 
 @transceiver.command()
-@click.argument('interfacename', required=True)
+@click.argument('interfacename', required=False)
 def details(interfacename):
     """Show interface transceiver details (Digital Optical Monitoring)"""
+
     command = "sudo sfputil show eeprom --dom"
 
     if interfacename is not None:
@@ -218,6 +221,8 @@ def details(interfacename):
 @interfaces.command()
 @click.argument('interfacename', required=False)
 def description(interfacename):
+    """Show interface status, protocol and description"""
+
     if interfacename is not None:
         command = "sudo vtysh -c 'show interface {}'".format(interfacename)
     else:
@@ -514,13 +519,13 @@ def environment():
 # 'processes' group ("show processes ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=True)
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
 def processes():
     """Display process information"""
     pass
 
-@processes.command(default=True)
-def default():
+@processes.command()
+def summary():
     """Show processes info"""
     # Run top batch mode to prevent unexpected newline after each newline
     run_command('ps -eo pid,ppid,cmd,%mem,%cpu ')
