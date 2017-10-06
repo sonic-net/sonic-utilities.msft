@@ -145,7 +145,12 @@ def load_mgmt_config(filename):
     hostname = config_data['DEVICE_METADATA']['localhost']['hostname']
     _change_hostname(hostname)
     mgmt_conf = netaddr.IPNetwork(config_data['MGMT_INTERFACE'].keys()[0][1])
+    gw_addr = config_data['MGMT_INTERFACE'].values()[0]['gwaddr']
     command = "ifconfig eth0 {} netmask {}".format(str(mgmt_conf.ip), str(mgmt_conf.netmask))
+    run_command(command, display_cmd=True)
+    command = "ip route add default via {} dev eth0 table default".format(gw_addr)
+    run_command(command, display_cmd=True)
+    command = "ip rule add from {} table default".format(str(mgmt_conf.ip))
     run_command(command, display_cmd=True)
     command = "[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid"
     run_command(command, display_cmd=True)
