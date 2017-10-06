@@ -161,14 +161,22 @@ def alias(interfacename):
     body = []
 
     if interfacename is not None:
+        # If we're given an interface name, output name and alias for that interface only
         if interfacename in port_dict:
-            body.append([interfacename, port_dict[interfacename]['alias']])
+            if 'alias' in port_dict[interfacename]:
+                body.append([interfacename, port_dict[interfacename]['alias']])
+            else:
+                body.append([interfacename, interfacename])
         else:
             click.echo("Invalid interface name, '{0}'".format(interfacename))
             return
     else:
+        # Output name and alias for all interfaces
         for port_name in natsorted(port_dict.keys()):
-            body.append([port_name, port_dict[port_name]['alias']])
+            if 'alias' in port_dict[port_name]:
+                body.append([port_name, port_dict[port_name]['alias']])
+            else:
+                body.append([port_name, port_name])
 
     click.echo(tabulate(body, header))
 
