@@ -17,7 +17,7 @@ MINIGRAPH_BGP_SESSIONS = "minigraph_bgp"
 # Helper functions
 #
 
-def run_command(command, display_cmd=False):
+def run_command(command, display_cmd=False, ignore_error=False):
     """Run bash command and print output to stdout
     """
     if display_cmd == True:
@@ -29,7 +29,7 @@ def run_command(command, display_cmd=False):
     if len(out) > 0:
         click.echo(out)
 
-    if proc.returncode != 0:
+    if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
 
 def _is_neighbor_ipaddress(ipaddress):
@@ -149,11 +149,11 @@ def load_mgmt_config(filename):
     command = "ifconfig eth0 {} netmask {}".format(str(mgmt_conf.ip), str(mgmt_conf.netmask))
     run_command(command, display_cmd=True)
     command = "ip route add default via {} dev eth0 table default".format(gw_addr)
-    run_command(command, display_cmd=True)
+    run_command(command, display_cmd=True, ignore_error=True)
     command = "ip rule add from {} table default".format(str(mgmt_conf.ip))
-    run_command(command, display_cmd=True)
+    run_command(command, display_cmd=True, ignore_error=True)
     command = "[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid"
-    run_command(command, display_cmd=True)
+    run_command(command, display_cmd=True, ignore_error=True)
     print "Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`."
 
 @cli.command()
