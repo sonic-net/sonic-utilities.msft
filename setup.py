@@ -44,8 +44,7 @@ setup(
         'click-default-group',
         'click',
         'natsort',
-        'tabulate',
-        'swsssdk'
+        'tabulate'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
