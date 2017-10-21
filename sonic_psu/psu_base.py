@@ -15,6 +15,15 @@ class PsuBase(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
+    def get_num_psus(self):
+        """
+        Retrieves the number of PSUs available on the device
+
+        :return: An integer, the number of PSUs available on the device
+        """
+        return 0
+
+    @abc.abstractmethod
     def get_psu_status(self, index):
         """
         Retrieves the oprational status of power supply unit (PSU) defined
