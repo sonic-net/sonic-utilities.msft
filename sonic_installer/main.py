@@ -114,6 +114,40 @@ def get_next_image():
         next_image = images[next_image_index]
     return next_image
 
+def remove_image(image):
+    if get_image_type() == IMAGE_TYPE_ABOOT:
+        nextimage = get_next_image()
+        current = get_current_image()
+        if image == nextimage:
+            image_dir = current.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
+            command = "echo \"SWI=flash:%s/.sonic-boot.swi\" > %s/%s" % (image_dir, HOST_PATH, ABOOT_BOOT_CONFIG)
+            run_command(command)
+            click.echo("Set next boot to current image %s" % current)
+
+        image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
+        click.echo('Removing image root filesystem...')
+        shutil.rmtree(HOST_PATH + '/' + image_dir)
+        click.echo('Image removed')
+    else:
+        click.echo('Updating GRUB...')
+        config = open(HOST_PATH + '/grub/grub.cfg', 'r')
+        old_config = config.read()
+        menuentry = re.search("menuentry '" + image + "[^}]*}", old_config).group()
+        config.close()
+        config = open(HOST_PATH + '/grub/grub.cfg', 'w')
+        # remove menuentry of the image in grub.cfg
+        config.write(old_config.replace(menuentry, ""))
+        config.close()
+        click.echo('Done')
+
+        image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
+        click.echo('Removing image root filesystem...')
+        shutil.rmtree(HOST_PATH + '/' + image_dir)
+        click.echo('Done')
+
+        run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
+        click.echo('Image removed')
+
 # Callback for confirmation prompt. Aborts if user enters "n"
 def abort_if_false(ctx, param, value):
     if not value:
@@ -216,7 +250,6 @@ def remove(image):
     """ Uninstall image """
     images = get_installed_images()
     current = get_current_image()
-    nextimage = get_next_image()
     if image not in images:
         click.echo('Image does not exist')
         sys.exit(1)
@@ -224,36 +257,7 @@ def remove(image):
         click.echo('Cannot remove current image')
         sys.exit(1)
 
-    if get_image_type() == IMAGE_TYPE_ABOOT:
-        if image == nextimage:
-            image_dir = current.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
-            command = "echo \"SWI=flash:%s/.sonic-boot.swi\" > %s/%s" % (image_dir, HOST_PATH, ABOOT_BOOT_CONFIG)
-            run_command(command)
-            click.echo("Set next boot to current image %s" % current)
-
-        image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
-        click.echo('Removing image root filesystem...')
-        shutil.rmtree(HOST_PATH + '/' + image_dir)
-        click.echo('Image removed')
-    else:
-        click.echo('Updating GRUB...')
-        config = open(HOST_PATH + '/grub/grub.cfg', 'r')
-        old_config = config.read()
-        menuentry = re.search("menuentry '" + image + "[^}]*}", old_config).group()
-        config.close()
-        config = open(HOST_PATH + '/grub/grub.cfg', 'w')
-        # remove menuentry of the image in grub.cfg
-        config.write(old_config.replace(menuentry, ""))
-        config.close()
-        click.echo('Done')
-
-        image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
-        click.echo('Removing image root filesystem...')
-        shutil.rmtree(HOST_PATH + '/' + image_dir)
-        click.echo('Done')
-
-        run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
-        click.echo('Image removed')
+    remove_image(image)
 
 # Retrieve version from binary image file and print to screen
 @cli.command()
@@ -290,6 +294,25 @@ def binary_version(binary_image_path):
         sys.exit(1)
 
     click.echo(IMAGE_PREFIX + version_num)
+
+# Remove installed images which are not current and next
+@cli.command()
+@click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
+        expose_value=False, prompt='Remove images which are not current and next, continue?')
+def cleanup():
+    """ Remove installed images which are not current and next """
+    images = get_installed_images()
+    curimage = get_current_image()
+    nextimage = get_next_image()
+    image_removed = 0
+    for image in get_installed_images():
+        if image != curimage and image != nextimage:
+            click.echo("Removing image %s" % image)
+            remove_image(image)
+            image_removed += 1
+
+    if image_removed == 0:
+        click.echo("No image(s) to remove")
 
 if __name__ == '__main__':
     cli()
