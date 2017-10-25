@@ -71,6 +71,8 @@ class FdbShow(object):
 
             ent = self.db.get_all('ASIC_DB', s, blocking=True)
             br_port_id = ent[b"SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
+            if br_port_id not in self.if_br_oid_map:
+                continue
             port_id = self.if_br_oid_map[br_port_id]
             if_name = self.if_oid_map[port_id]
 
