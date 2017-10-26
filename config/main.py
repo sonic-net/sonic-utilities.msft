@@ -165,7 +165,10 @@ def load_minigraph():
     config_db.connect()
     client = config_db.redis_clients[config_db.CONFIG_DB]
     client.flushdb()
-    command = "{} -m --write-to-db".format(SONIC_CFGGEN_PATH)
+    if os.path.isfile('/etc/sonic/init_cfg.json'):
+        command = "{} -m -j /etc/sonic/init_cfg.json --write-to-db".format(SONIC_CFGGEN_PATH)
+    else:
+        command = "{} -m --write-to-db".format(SONIC_CFGGEN_PATH)
     run_command(command, display_cmd=True)
     client.set(config_db.INIT_INDICATOR, True)
     command = "{} -m -v \"DEVICE_METADATA['localhost']['hostname']\"".format(SONIC_CFGGEN_PATH)
