@@ -26,7 +26,8 @@ PLATFORM_KEY = 'platform'
 
 PLATFORM_ROOT = '/usr/share/sonic/device'
 
-cache_root = '/var/cache/ssw/decode-syseeprom'
+CACHE_ROOT = '/var/cache/sonic/decode-syseeprom'
+CACHE_FILE = 'syseeprom_cache'
 
 # Returns platform and HW SKU
 def get_platform():
@@ -98,13 +99,13 @@ def run(target, opts, args):
         sys.stderr.write("Device is not ready: " + status + "\n")
         exit(0)
 
-    if not os.path.exists(cache_root):
+    if not os.path.exists(CACHE_ROOT):
         try:
-            os.makedirs(cache_root)
+            os.makedirs(CACHE_ROOT)
         except:
             pass
     if opts.init:
-        for file in glob.glob(os.path.join(cache_root, '*')):
+        for file in glob.glob(os.path.join(CACHE_ROOT, '*')):
             os.remove(file)
 
     #
@@ -112,7 +113,7 @@ def run(target, opts, args):
     # support caching. Others will work normally
     #
     try:
-        target.set_cache_name(os.path.join(cache_root, opts.target))
+        target.set_cache_name(os.path.join(CACHE_ROOT, CACHE_FILE))
     except:
         pass
 
