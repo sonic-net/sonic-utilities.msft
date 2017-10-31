@@ -1,9 +1,12 @@
-#!/usr/bin/env python
+#! /usr/bin/python
+
 import swsssdk
 import sys
 import re
 from tabulate import tabulate
-header = ['Iface', 'LANES', 'ALIAS', 'OPER', 'ADMIN', 'MTU']
+from natsort import natsorted
+
+header = ['Iface', 'Lanes', 'Alias', 'Oper', 'Admin', 'MTU']
 
 
 PORT_STATUS_TABLE_PREFIX = "PORT_TABLE:"
@@ -31,23 +34,24 @@ class Intstat(object):
         self.db = swsssdk.SonicV2Connector(host='127.0.0.1')
         self.db.connect(self.db.APPL_DB)
         a = self.db.keys(self.db.APPL_DB)
-        #print(a)
+
         tables = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
         i = {}
         table = []
         key = []
-        #print tabulate(header, tablefmt='simple', stralign='right')
+
         for i in tables:
             key = re.split(':', i, maxsplit=1)[-1].strip()
-            if key:
+            if key and key.startswith('Ethernet'):
                 table.append((key, self.get_port_status(key, PORT_LANES_STATUS_FIELD), self.get_port_status(key, PORT_ALIAS_STATUS_FIELD), self.get_port_status(key, PORT_OPER_STATUS_FIELD), self.get_port_status(key, PORT_ADMIN_STATUS_FIELD), self.get_port_status(key, PORT_MTU_STATUS_FIELD)))
-        print tabulate(table, header, tablefmt="simple", stralign='right')
+
+        sorted_table = natsorted(table)
+        print tabulate(sorted_table, header, tablefmt="simple", stralign='right')
 
 
 def main():
     interface_stat = Intstat()
 
-    # Now decide what information to display
     sys.exit(0)
 
 if __name__ == "__main__":

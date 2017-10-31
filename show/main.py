@@ -86,6 +86,31 @@ class AliasedGroup(DefaultGroup):
         ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
 
 
+# To be enhanced. Routing-stack information should be collected from a global
+# location (configdb?), so that we prevent the continous execution of this
+# bash oneliner. To be revisited once routing-stack info is tracked somewhere.
+def get_routing_stack():
+    command = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1"
+
+    try:
+        proc = subprocess.Popen(command,
+                                stdout=subprocess.PIPE,
+                                shell=True,
+                                stderr=subprocess.STDOUT)
+        stdout = proc.communicate()[0]
+        proc.wait()
+        result = stdout.rstrip('\n')
+
+    except OSError, e:
+        raise OSError("Cannot detect routing-stack")
+
+    return (result)
+
+
+# Global Routing-Stack variable
+routing_stack = get_routing_stack()
+
+
 def run_command(command):
     click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
 
@@ -270,6 +295,7 @@ def status():
     """Show Interface status information"""
     run_command("interface_stat")
 
+
 #
 # 'mac' command ("show mac ...")
 #
@@ -300,31 +326,6 @@ def ip():
     """Show IP (IPv4) commands"""
     pass
 
-#
-# 'bgp' group ("show ip bgp ...")
-#
-
-@ip.group(cls=AliasedGroup, default_if_no_args=False)
-def bgp():
-    """Show IPv4 BGP (Border Gateway Protocol) information"""
-    pass
-
-# 'neighbors' subcommand ("show ip bgp neighbors")
-@bgp.command()
-@click.argument('ipaddress', required=False)
-def neighbors(ipaddress):
-    """Show IP (IPv4) BGP neighbors"""
-    if ipaddress is not None:
-        command = 'sudo vtysh -c "show ip bgp neighbor {} "'.format(ipaddress)
-        run_command(command)
-    else:
-        run_command('sudo vtysh -c "show ip bgp neighbor"')
-
-# 'summary' subcommand ("show ip bgp summary")
-@bgp.command()
-def summary():
-    """Show summarized information of IPv4 BGP state"""
-    run_command('sudo vtysh -c "show ip bgp summary"')
 
 #
 # 'route' subcommand ("show ip route")
@@ -341,6 +342,13 @@ def route(ipaddress):
         run_command('sudo vtysh -c "show ip route"')
 
 
+# 'protocol' command
+@ip.command()
+def protocol():
+    """Show IPv4 protocol information"""
+    run_command('sudo vtysh -c "show ip protocol"')
+
+
 #
 # 'ipv6' group ("show ipv6 ...")
 #
@@ -351,34 +359,12 @@ def ipv6():
     """Show IPv6 commands"""
     pass
 
-#
-# 'bgp' group ("show ipv6 bgp ...")
-#
-
-@ipv6.group(cls=AliasedGroup, default_if_no_args=False)
-def bgp():
-    """Show IPv6 BGP (Border Gateway Protocol) information"""
-    pass
-
-# 'neighbors' subcommand ("show ip bgp neighbors")
-@bgp.command()
-@click.argument('ipaddress', required=True)
-def neighbors(ipaddress):
-    """Show IPv6 BGP neighbors"""
-    command = 'sudo vtysh -c "show ipv6 bgp neighbor {} "'.format(ipaddress)
-    run_command(command)
-
-# 'summary' subcommand ("show ip bgp summary")
-@bgp.command()
-def summary():
-    """Show summarized information of IPv6 BGP state"""
-    run_command('sudo vtysh -c "show ipv6 bgp summary"')
 
 #
 # 'route' subcommand ("show ipv6 route")
 #
 
-@ip.command()
+@ipv6.command()
 @click.argument('ipaddress', required=False)
 def route(ipaddress):
     """Show IPv6 routing table"""
@@ -387,6 +373,30 @@ def route(ipaddress):
         run_command(command)
     else:
         run_command('sudo vtysh -c "show ipv6 route"')
+
+
+# 'protocol' command
+@ipv6.command()
+def protocol():
+    """Show IPv6 protocol information"""
+    run_command('sudo vtysh -c "show ipv6 protocol"')
+
+
+#
+# Inserting BGP functionality into cli's show parse-chain. The insertion point
+# and the specific BGP commands to import, will be determined by the routing-stack
+# being elected.
+#
+if routing_stack == "quagga":
+    from .bgp_quagga_v4 import bgp
+    ip.add_command(bgp)
+    from .bgp_quagga_v6 import bgp
+    ipv6.add_command(bgp)
+elif routing_stack == "frr":
+    from .bgp_frr_v4 import bgp
+    cli.add_command(bgp)
+    from .bgp_frr_v6 import bgp
+    cli.add_command(bgp)
 
 
 #
