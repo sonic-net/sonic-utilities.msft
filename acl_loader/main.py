@@ -364,7 +364,7 @@ class AclLoader(object):
             self.configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
 
         for key in existing_rules:
-            if not cmp(self.rules_info[key], self.rules_db_info[key]):
+            if cmp(self.rules_info[key], self.rules_db_info[key]):
                 self.configdb.set_entry(self.ACL_RULE, key, None)
                 self.configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
 
