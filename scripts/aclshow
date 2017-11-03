@@ -46,6 +46,10 @@ class AclStat(object):
     """
     Process aclstat
     """
+
+    ACL_TABLE = "ACL_TABLE"
+    ACL_RULE = "ACL_RULE"
+
     def __init__(self, ports, rules, tables):
         self.port_map = {}
         self.acl_tables = {}
@@ -65,8 +69,10 @@ class AclStat(object):
 
         # Set up db connections
         self.db = swsssdk.SonicV2Connector(host="127.0.0.1")
-        self.db.connect(self.db.APPL_DB)
         self.db.connect(self.db.COUNTERS_DB)
+
+        self.configdb = swsssdk.ConfigDBConnector()
+        self.configdb.connect()
 
         self.read_port_map()
         self.validate_ports()
@@ -127,26 +133,7 @@ class AclStat(object):
             """
             Get ACL tables from the DB
             """
-            tables = self.db.keys(self.db.APPL_DB, "ACL_TABLE:*")
-
-            if verboseflag:
-                print("ACL Tables found:", len(tables))
-
-            if not tables:
-                return
-
-            for table in tables:
-                table_name = table.split(":")[1]
-                if self.table_list and not table_name in self.table_list:
-                        continue
-
-                table_props = self.db.get_all(self.db.APPL_DB, table)
-
-                if self.port_list:
-                    table_port_list = table_props['ports'].split(",")
-                    if not self.intersect(self.port_list, table_port_list):
-                        continue
-                self.acl_tables[table_name] = table_props
+            self.acl_tables = self.configdb.get_table(self.ACL_TABLE)
 
             if verboseflag:
                 print("ACL Tables to show:", len(self.acl_tables))
@@ -155,24 +142,7 @@ class AclStat(object):
             """
             Get ACL rules from the DB
             """
-            for table_name in self.acl_tables.keys():
-                rules = self.db.keys(self.db.APPL_DB, "ACL_RULE_TABLE:%s:*" % table_name)
-                if not rules:
-                    if verboseflag:
-                        print("No ACL rules found in %s" % table_name)
-                    continue
-
-                if verboseflag:
-                    rules_cnt = len(rules)
-                    print("ACL Rules found in %s:" % table_name, rules_cnt)
-
-                for rule in rules:
-                    rule_name = rule.split(":")[2]
-                    if self.rule_list and not rule_name in self.rule_list:
-                            continue
-                    rule_props = lowercase_keys(self.db.get_all(self.db.APPL_DB, rule))
-                    rule_props["table"] = table_name
-                    self.acl_rules[table_name, rule_name] = rule_props
+            self.acl_rules = self.configdb.get_table(self.ACL_RULE)
 
             if verboseflag:
                 print("ACL Rules to show:", len(self.acl_rules))
@@ -218,7 +188,7 @@ class AclStat(object):
         print out ACL rules and counters
         """
         def get_action(rule):
-            for action in ['packet_action', 'mirror_action']:
+            for action in ['PACKET_ACTION', 'MIRROR_ACTION']:
                 if action in rule:
                     return rule[action]
             return "(no action found)"
@@ -231,9 +201,9 @@ class AclStat(object):
                 continue
             rule = self.acl_rules[rule_key]
             ports = self.acl_tables[rule_key[0]]['ports']
-            line = [rule_key[1], rule['table'],
-                    self.acl_tables[rule['table']]['type'],
-                    rule['priority'],
+            line = [rule_key[1], rule_key[0],
+                    self.acl_tables[rule_key[0]]['type'],
+                    rule['PRIORITY'],
                     get_action(rule),
                     self.get_counter_value(rule_key, 'packets'),
                     self.get_counter_value(rule_key, 'bytes')]
