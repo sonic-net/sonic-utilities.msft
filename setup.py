@@ -17,7 +17,21 @@ setup(
     url='https://github.com/Azure/sonic-utilities',
     maintainer='Joe LeVeque',
     maintainer_email='jolevequ@microsoft.com',
-    packages=['config', 'sfputil', 'show', 'sonic_eeprom', 'sonic_installer', 'sonic_psu', 'sonic_sfp', 'acl_loader', 'sonic-utilities-tests', 'clear', 'debug', 'undebug'],
+    packages=[
+        'acl_loader',
+        'clear',
+        'config',
+        'debug',
+        'pfcwd',
+        'sfputil',
+        'show',
+        'sonic_eeprom',
+        'sonic_installer',
+        'sonic_psu',
+        'sonic_sfp',
+        'sonic-utilities-tests',
+        'undebug',
+    ],
     package_data={
         'show': ['aliases.ini']
     },
@@ -42,14 +56,15 @@ setup(
     ],
     entry_points={
         'console_scripts': [
+            'acl-loader = acl_loader.main:cli',
             'config = config.main:cli',
+            'debug = debug.main:cli',
+            'pfcwd = pfcwd.main:cli',
             'sfputil = sfputil.main:cli',
             'show = show.main:cli',
-            'sonic_installer = sonic_installer.main:cli',
-            'acl-loader = acl_loader.main:cli',
             'sonic-clear = clear.main:cli',
-            'debug = debug.main:cli',
-            'undebug = undebug.main:cli'
+            'sonic_installer = sonic_installer.main:cli',
+            'undebug = undebug.main:cli',
         ]
     },
     install_requires=[
