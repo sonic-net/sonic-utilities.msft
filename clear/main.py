@@ -151,9 +151,8 @@ def ipv6():
 
 
 #
-# Inserting BGP functionality into cli's clear parse-chain. The insertion point
-# and the specific BGP commands to import, will be determined by the routing-stack
-# being elected.
+# Inserting BGP functionality into cli's clear parse-chain.
+# BGP commands are determined by the routing-stack being elected.
 #
 if routing_stack == "quagga":
     from .bgp_quagga_v4 import bgp
@@ -161,10 +160,20 @@ if routing_stack == "quagga":
     from .bgp_quagga_v6 import bgp
     ipv6.add_command(bgp)
 elif routing_stack == "frr":
-    from .bgp_frr_v4 import bgp
-    cli.add_command(bgp)
-    from .bgp_frr_v6 import bgp
-    cli.add_command(bgp)
+    @cli.command()
+    @click.argument('bgp_args', nargs = -1, required = False)
+    def bgp(bgp_args):
+        """BGP information"""
+        bgp_cmd = "clear bgp"
+        options = False
+        for arg in bgp_args:
+            bgp_cmd += " " + str(arg)
+            options = True
+        if options is True:
+            command = 'sudo vtysh -c "{}"'.format(bgp_cmd)
+        else:
+            command = 'sudo vtysh -c "clear bgp *"'
+        run_command(command)
 
 
 @cli.command()
