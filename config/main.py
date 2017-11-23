@@ -94,6 +94,7 @@ def _abort_if_false(ctx, param, value):
         ctx.abort()
 
 def _restart_services():
+    run_command("service hostname-config restart", display_cmd=True)
     run_command("service interfaces-config restart", display_cmd=True)
     run_command("service ntp-config restart", display_cmd=True)
     run_command("service rsyslog-config restart", display_cmd=True)
@@ -143,11 +144,6 @@ def reload(filename):
     command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
     run_command(command, display_cmd=True)
     client.set(config_db.INIT_INDICATOR, True)
-    command = "{} -j {} -v \"DEVICE_METADATA['localhost']['hostname']\"".format(SONIC_CFGGEN_PATH, filename)
-    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    p.wait()
-    hostname = p.communicate()[0].strip()
-    _change_hostname(hostname)
     _restart_services()
 
 @cli.command()
@@ -189,14 +185,10 @@ def load_minigraph():
         command = "{} -m --write-to-db".format(SONIC_CFGGEN_PATH)
     run_command(command, display_cmd=True)
     client.set(config_db.INIT_INDICATOR, True)
-    command = "{} -m -v \"DEVICE_METADATA['localhost']['hostname']\"".format(SONIC_CFGGEN_PATH)
-    p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    p.wait()
-    hostname = p.communicate()[0].strip()
-    _change_hostname(hostname)
     #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
     _restart_services()
     print "Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`."
+
 #
 # 'bgp' group
 #
