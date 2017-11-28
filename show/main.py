@@ -468,6 +468,17 @@ def syseeprom():
     """Show system EEPROM information"""
     run_command("sudo decode-syseeprom")
 
+# 'psustatus' subcommand ("show platform psustatus")
+@platform.command()
+@click.option('-i', '--index', default=-1, type=int, help="the index of PSU")
+def psustatus(index):
+    """Show PSU status information"""
+    command = "sudo psuutil status"
+
+    if index >= 0:
+        command += " -i {}".format(index)
+
+    run_command(command)
 
 #
 # 'logging' command ("show logging")
