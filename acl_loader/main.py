@@ -7,6 +7,7 @@ import os.path
 import json
 import argparse
 import tabulate
+from natsort import natsorted
 
 import openconfig_acl
 import pyangbind.lib.pybindJSON as pybindJSON
@@ -384,7 +385,7 @@ class AclLoader(object):
             if not val["ports"]:
                 data.append([key, val["type"], "", val["policy_desc"]])
             else:
-                ports = sorted(val["ports"], )
+                ports = natsorted(val["ports"])
                 data.append([key, val["type"], ports[0], val["policy_desc"]])
 
                 if len(ports) > 1:
