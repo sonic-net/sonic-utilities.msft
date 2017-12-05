@@ -493,7 +493,10 @@ def logging(process, lines, follow):
     if follow:
         run_command("sudo tail -f /var/log/syslog")
     else:
-        command = "sudo cat /var/log/syslog"
+        if os.path.isfile("/var/log/syslog.1"):
+            command = "sudo cat /var/log/syslog.1 /var/log/syslog"
+        else:
+            command = "sudo cat /var/log/syslog"
 
         if process is not None:
             command += " | grep '{}'".format(process)
