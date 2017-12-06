@@ -190,6 +190,94 @@ def load_minigraph():
     print "Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`."
 
 #
+# 'vlan' group
+#
+@cli.group()
+@click.pass_context
+@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
+def vlan(ctx, redis_unix_socket_path):
+    """VLAN-related configuration tasks"""
+    kwargs = {}
+    if redis_unix_socket_path:
+        kwargs['unix_socket_path'] = redis_unix_socket_path
+    config_db = ConfigDBConnector(**kwargs)
+    config_db.connect(wait_for_init=False)
+    ctx.obj = {'db': config_db}
+    pass
+
+@vlan.command('add')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.pass_context
+def add_vlan(ctx, vid):
+    db = ctx.obj['db']
+    vlan = 'Vlan{}'.format(vid)
+    if len(db.get_entry('VLAN', vlan)) != 0:
+        print "{} already exists".format(vlan)
+        raise click.Abort
+    db.set_entry('VLAN', vlan, {'vlanid': vid})
+
+@vlan.command('del')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.pass_context
+def del_vlan(ctx, vid):
+    db = ctx.obj['db']
+    keys = [ (k, v) for k, v in db.get_table('VLAN_MEMBER') if k == 'Vlan{}'.format(vid) ]
+    for k in keys:
+        db.set_entry('VLAN_MEMBER', k, None)
+    db.set_entry('VLAN', 'Vlan{}'.format(vid), None)
+
+@vlan.group('member')
+@click.pass_context
+def vlan_member(ctx):
+    pass
+
+@vlan_member.command('add')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.option('-u', '--untagged', is_flag=True)
+@click.pass_context
+def add_vlan_member(ctx, vid, interface_name, untagged):
+    db = ctx.obj['db']
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    if len(vlan) == 0:
+        print "{} doesn't exist".format(vlan_name)
+        raise click.Abort
+    members = vlan.get('members', [])
+    if interface_name in members:
+        print "{} is already a member of {}".format(interface_name, vlan_name)
+        raise click.Abort
+    members.append(interface_name)
+    vlan['members'] = members
+    db.set_entry('VLAN', vlan_name, vlan)
+    db.set_entry('VLAN_MEMBER', (vlan_name, interface_name), {'tagging_mode': "untagged" if untagged else "tagged" })
+
+
+@vlan_member.command('del')
+@click.argument('vid', metavar='<vid>', required=True, type=int)
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.pass_context
+def del_vlan_member(ctx, vid, interface_name):
+    db = ctx.obj['db']
+    vlan_name = 'Vlan{}'.format(vid)
+    vlan = db.get_entry('VLAN', vlan_name)
+    if len(vlan) == 0:
+        print "{} doesn't exist".format(vlan_name)
+        raise click.Abort
+    members = vlan.get('members', [])
+    if interface_name not in members:
+        print "{} is not a member of {}".format(interface_name, vlan_name)
+        raise click.Abort
+    members.remove(interface_name)
+    if len(members) == 0:
+        del vlan['members']
+    else:
+        vlan['members'] = members
+    db.set_entry('VLAN', vlan_name, vlan)
+    db.set_entry('VLAN_MEMBER', (vlan_name, interface_name), None)
+
+
+#
 # 'bgp' group
 #
 

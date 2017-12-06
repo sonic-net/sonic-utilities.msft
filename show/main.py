@@ -10,6 +10,7 @@ import sys
 from click_default_group import DefaultGroup
 from natsort import natsorted
 from tabulate import tabulate
+from swsssdk import ConfigDBConnector
 
 try:
     # noinspection PyPep8Naming
@@ -723,6 +724,32 @@ def id(bridge_name):
     """Show list of learned MAC addresses for particular bridge"""
     command="sudo brctl showmacs {}".format(bridge_name)
     run_command(command)
+
+@vlan.command()
+@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
+def config(redis_unix_socket_path):
+    kwargs = {}
+    if redis_unix_socket_path:
+        kwargs['unix_socket_path'] = redis_unix_socket_path
+    config_db = ConfigDBConnector(**kwargs)
+    config_db.connect(wait_for_init=False)
+    data = config_db.get_table('VLAN')
+    keys = data.keys()
+
+    def mode(key, data):
+        info = []
+        for m in data.get('members', []):
+            entry = config_db.get_entry('VLAN_MEMBER', (key, m))
+            mode = entry.get('tagging_mode')
+            if mode == None:
+                info.append('?')
+            else:
+                info.append(mode)
+        return '\n'.join(info)
+
+    header = ['Name', 'VID', 'Member', 'Mode']
+    click.echo(tabulate([ [k, data[k]['vlanid'], '\n'.join(data[k].get('members', [])), mode(k, data[k])] for k in keys ], header))
+
 
 @cli.command('services')
 def services():
