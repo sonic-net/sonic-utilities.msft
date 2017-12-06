@@ -46,7 +46,7 @@ setup(
         'scripts/fast-reboot-dump.py',
         'scripts/fdbshow',
         'scripts/generate_dump',
-        'scripts/interface_stat',
+        'scripts/intfutil',
         'scripts/lldpshow',
         'scripts/port2alias',
         'scripts/portstat',

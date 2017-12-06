@@ -1,0 +1,178 @@
+#! /usr/bin/python
+
+import swsssdk
+import sys
+import re
+from tabulate import tabulate
+from natsort import natsorted
+
+
+
+# ========================== Common interface-utils logic ==========================
+
+
+PORT_STATUS_TABLE_PREFIX = "PORT_TABLE:"
+PORT_LANES_STATUS = "lanes"
+PORT_ALIAS = "alias"
+PORT_OPER_STATUS = "oper_status"
+PORT_ADMIN_STATUS = "admin_status"
+PORT_SPEED = "speed"
+PORT_MTU_STATUS = "mtu"
+PORT_DESCRIPTION = "description"
+
+
+def db_connect():
+    db = swsssdk.SonicV2Connector(host='127.0.0.1')
+    if db == None:
+        return None
+
+    db.connect(db.APPL_DB)
+
+    return db
+
+
+def db_keys_get(db, intf_name):
+
+    if intf_name == None:
+        db_keys = db.keys(db.APPL_DB, "PORT_TABLE:*")
+    elif intf_name.startswith('Ethernet'):
+        db_keys = db.keys(db.APPL_DB, "PORT_TABLE:%s" % intf_name)
+    else:
+        return None
+
+    return db_keys
+
+
+def db_port_status_get(db, intf_name, status_type):
+    """
+    Get the port status
+    """
+
+    full_table_id = PORT_STATUS_TABLE_PREFIX + intf_name
+    status = db.get(db.APPL_DB, full_table_id, status_type)
+    if status is None:
+        return "N/A"
+
+   if status_type == PORT_SPEED and status != "N/A":
+       status = '{}G'.format(status[:2] if int(status) < 100000 else status[:3])
+
+    return status
+
+
+# ========================== interface-status logic ==========================
+
+header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'Alias', 'Oper', 'Admin']
+
+class IntfStatus(object):
+
+    def display_intf_status(self, db_keys):
+        """
+            Generate interface-status output
+        """
+
+        i = {}
+        table = []
+        key = []
+
+        #
+        # Iterate through all the keys and append port's associated state to
+        # the result table.
+        #
+        for i in db_keys:
+            key = re.split(':', i, maxsplit=1)[-1].strip()
+            if key and key.startswith('Ethernet'):
+                table.append((key,
+                              db_port_status_get(self.db, key, PORT_LANES_STATUS),
+                              db_port_status_get(self.db, key, PORT_SPEED),
+                              db_port_status_get(self.db, key, PORT_MTU_STATUS),
+                              db_port_status_get(self.db, key, PORT_ALIAS),
+                              db_port_status_get(self.db, key, PORT_OPER_STATUS),
+                              db_port_status_get(self.db, key, PORT_ADMIN_STATUS)))
+
+        # Sorting and tabulating the result table.
+        sorted_table = natsorted(table)
+        print tabulate(sorted_table, header_stat, tablefmt="simple", stralign='right')
+
+
+    def __init__(self, intf_name):
+
+        self.db = db_connect()
+        if self.db == None:
+            return
+
+        db_keys = db_keys_get(self.db, intf_name)
+        if db_keys == None:
+            return
+
+        self.display_intf_status(db_keys)
+
+
+# ========================== interface-description logic ==========================
+
+
+header_desc = ['Interface', 'Oper', 'Admin', 'Alias', 'Description']
+
+
+class IntfDescription(object):
+
+    def display_intf_description(self, db_keys):
+        """
+            Generate interface-description output
+        """
+
+        i = {}
+        table = []
+        key = []
+
+        #
+        # Iterate through all the keys and append port's associated state to
+        # the result table.
+        #
+        for i in db_keys:
+            key = re.split(':', i, maxsplit=1)[-1].strip()
+            if key and key.startswith('Ethernet'):
+                table.append((key,
+                              db_port_status_get(self.db, key, PORT_OPER_STATUS),
+                              db_port_status_get(self.db, key, PORT_ADMIN_STATUS),
+                              db_port_status_get(self.db, key, PORT_ALIAS),
+                              db_port_status_get(self.db, key, PORT_DESCRIPTION)))
+
+        # Sorting and tabulating the result table.
+        sorted_table = natsorted(table)
+        print tabulate(sorted_table, header_desc, tablefmt="simple", stralign='right')
+
+    def __init__(self, intf_name):
+
+        self.db = db_connect()
+        if self.db == None:
+            return
+
+        db_keys = db_keys_get(self.db, intf_name)
+        if db_keys == None:
+            return
+
+        self.display_intf_description(db_keys)
+
+
+
+def main(args):
+    if len(args) == 0:
+        print "No valid arguments provided"
+        return
+
+    command = args[0]
+    if command != "status" and command != "description":
+        print "No valid command provided"
+        return
+
+    intf_name = args[1] if len(args) == 2 else None
+
+    if command == "status":
+        interface_stat = IntfStatus(intf_name)
+    elif command == "description":
+        interface_desc = IntfDescription(intf_name)
+
+    sys.exit(0)
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

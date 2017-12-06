@@ -206,6 +206,7 @@ def alias(interfacename):
 
     click.echo(tabulate(body, header))
 
+
 # 'summary' subcommand ("show interfaces summary")
 @interfaces.command()
 @click.argument('interfacename', required=False)
@@ -240,6 +241,7 @@ def basic(interfacename):
 
     run_command(command)
 
+
 @transceiver.command()
 @click.argument('interfacename', required=False)
 def details(interfacename):
@@ -252,15 +254,29 @@ def details(interfacename):
 
     run_command(command)
 
+
 @interfaces.command()
 @click.argument('interfacename', required=False)
 def description(interfacename):
     """Show interface status, protocol and description"""
 
     if interfacename is not None:
-        command = "sudo vtysh -c 'show interface {}'".format(interfacename)
+        command = "intfutil description {}".format(interfacename)
     else:
-        command = "sudo vtysh -c 'show interface description'"
+        command = "intfutil description"
+
+    run_command(command)
+
+
+@interfaces.command()
+@click.argument('interfacename', required=False)
+def status(interfacename):
+    """Show Interface status information"""
+
+    if interfacename is not None:
+        command = "intfutil status {}".format(interfacename)
+    else:
+        command = "intfutil status"
 
     run_command(command)
 
@@ -290,11 +306,6 @@ def counters(period, printall, clear):
 def portchannel():
     """Show PortChannel information"""
     run_command("teamshow")
-
-@interfaces.command()
-def status():
-    """Show Interface status information"""
-    run_command("interface_stat")
 
 
 #
