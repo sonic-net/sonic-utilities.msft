@@ -44,7 +44,7 @@ def log_info(msg, also_print_to_console=False):
     syslog.closelog()
 
     if also_print_to_console:
-        print msg
+        click.echo(msg)
 
 
 def log_warning(msg, also_print_to_console=False):
@@ -53,7 +53,7 @@ def log_warning(msg, also_print_to_console=False):
     syslog.closelog()
 
     if also_print_to_console:
-        print msg
+        click.echo(msg)
 
 
 def log_error(msg, also_print_to_console=False):
@@ -62,7 +62,7 @@ def log_error(msg, also_print_to_console=False):
     syslog.closelog()
 
     if also_print_to_console:
-        print msg
+        click.echo(msg)
 
 
 # ==================== Methods for initialization ====================
@@ -132,7 +132,7 @@ def cli():
     """psuutil - Command line utility for providing PSU status"""
 
     if os.geteuid() != 0:
-        print "Root privileges are required for this operation"
+        click.echo("Root privileges are required for this operation")
         sys.exit(1)
 
     # Load platform-specific psuutil class
@@ -150,12 +150,11 @@ def version():
 @cli.command()
 def numpsus():
     "Display the number of supported PSU in the device"
-    print(str(platform_psuutil.get_num_psus()))
+    click.echo(str(platform_psuutil.get_num_psus()))
 
 # 'status' subcommand
 @cli.command()
 @click.option('-i', '--index', default=-1, type=int, help="the index of PSU")
-@click.option('--textonly', is_flag=True, help="show the PSU status in a simple text format instead of table")
 def status(index, textonly):
     """Display PSU status"""
     supported_psu = range(1, platform_psuutil.get_num_psus() + 1)
@@ -172,7 +171,8 @@ def status(index, textonly):
         msg = ""
         psu_name = "PSU {}".format(psu)
         if psu not in supported_psu:
-            status_table.append([psu_name, "NOT SUPPORTED"])
+            click.echo("Error! The {} is not available on the platform.\n" \
+            "Number of supported PSU - {}.".format(psu_name, platform_psuutil.get_num_psus()))
             continue
         presence = platform_psuutil.get_psu_presence(psu)
         if presence:
@@ -182,11 +182,8 @@ def status(index, textonly):
             msg = 'NOT PRESENT'
         status_table.append([psu_name, msg])
 
-    if textonly:
-        for status in status_table:
-            print status[0] + ':' + status[1]
-    else:
-        print tabulate(status_table, header, tablefmt="grid")
+    if status_table:
+        click.echo(tabulate(status_table, header, tablefmt="simple"))
 
 if __name__ == '__main__':
     cli()
