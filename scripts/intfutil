@@ -53,7 +53,7 @@ def db_port_status_get(db, intf_name, status_type):
     if status is None:
         return "N/A"
 
-   if status_type == PORT_SPEED and status != "N/A":
+    if status_type == PORT_SPEED and status != "N/A":
        status = '{}G'.format(status[:2] if int(status) < 100000 else status[:3])
 
     return status
