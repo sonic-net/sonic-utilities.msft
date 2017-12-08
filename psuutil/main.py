@@ -155,7 +155,7 @@ def numpsus():
 # 'status' subcommand
 @cli.command()
 @click.option('-i', '--index', default=-1, type=int, help="the index of PSU")
-def status(index, textonly):
+def status(index):
     """Display PSU status"""
     supported_psu = range(1, platform_psuutil.get_num_psus() + 1)
     psu_ids = []
