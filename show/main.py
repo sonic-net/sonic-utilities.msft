@@ -833,5 +833,15 @@ def rule(table_name, rule_id):
 
     run_command("acl-loader show rule {} {}".format(table_name, rule_id))
 
+#
+# 'session' command (show ecn)
+#
+@cli.command('ecn')
+def ecn():
+    """Show ECN configuration"""
+    command = "ecnconfig -l"
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+    click.echo(proc.stdout.read())
+
 if __name__ == '__main__':
     cli()

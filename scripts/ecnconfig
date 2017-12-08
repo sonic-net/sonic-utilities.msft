@@ -1,0 +1,121 @@
+#!/usr/bin/python
+"""
+ecnconfig is the utility to show and change ECN configuration
+
+usage: ecnconfig [-h] [-v] [-l] [-p PROFILE] [-gmin GREEN_MIN]
+                 [-gmax GREEN_MAX] [-ymin YELLOW_MIN] [-ymax YELLOW_MAX]
+                 [-rmin RED_MIN] [-rmax RED_MAX] [-vv]
+
+optional arguments:
+  -h     --help                show this help message and exit
+  -v     --version             show program's version number and exit
+  -vv    --verbose             verbose output
+  -l     --list                show ECN WRED configuration
+  -p'    --profile             specify WRED profile name
+  -gmin  --green-min           set min threshold for packets marked green
+  -gmax  --green-max           set max threshold for packets marked green
+  -ymin  --yellow-min          set min threshold for packets marked yellow
+  -ymax  --yellow-max          set max threshold for packets marked yellow
+  -rmin  --red-min             set min threshold for packets marked red
+  -rmax  --red-max             set max threshold for packets marked red
+"""
+from __future__ import print_function
+
+import os
+import sys
+import json
+import argparse
+import swsssdk
+from tabulate import tabulate
+
+WRED_PROFILE_TABLE_NAME = "WRED_PROFILE"
+WRED_CONFIG_FIELDS = {
+    "gmax": "green_max_threshold",
+    "gmin": "green_min_threshold",
+    "ymax": "yellow_max_threshold",
+    "ymin": "yellow_min_threshold",
+    "rmax": "red_max_threshold",
+    "rmin": "red_min_threshold"
+}
+
+class EcnConfig(object):
+    """
+    Process aclstat
+    """
+    def __init__(self, verbose):
+        self.ports = []
+        self.queues = []
+        self.verbose = verbose
+
+        # Set up db connections
+        self.db = swsssdk.ConfigDBConnector()
+        self.db.connect()
+
+    def list(self):
+        wred_tables = self.db.get_table(WRED_PROFILE_TABLE_NAME)
+        for table in wred_tables:
+            profile_name = table
+            profile_data = wred_tables[table]
+            config = []
+            print("Profile: " + profile_name)
+            for field in profile_data:
+                line = [field, profile_data[field]]
+                config.append(line)
+            print(tabulate(config) + "\n")
+        if self.verbose:
+            print("Total profiles: %d" % len(wred_tables))
+
+    def set_wred_threshold(self, profile, threshold, value):
+        field = WRED_CONFIG_FIELDS[threshold]
+        if self.verbose:
+            print("Setting %s value to %s" % (field, value))
+        self.db.set_entry(WRED_PROFILE_TABLE_NAME, profile, {field: value})
+
+def main():
+    parser = argparse.ArgumentParser(description='Show and change ECN WRED configuration',
+                                     version='1.0.0',
+                                     formatter_class=argparse.RawTextHelpFormatter)
+    # group = parser.add_mutually_exclusive_group()
+    parser.add_argument('-l', '--list', action='store_true', help='show ECN WRED configuration')
+    parser.add_argument('-p', '--profile', type=str, help='specify WRED profile name', default=None)
+    parser.add_argument('-gmin', '--green-min', type=str, help='set min threshold for packets marked \'green\'', default=None)
+    parser.add_argument('-gmax', '--green-max', type=str, help='set max threshold for packets marked \'green\'', default=None)
+    parser.add_argument('-ymin', '--yellow-min', type=str, help='set min threshold for packets marked \'yellow\'', default=None)
+    parser.add_argument('-ymax', '--yellow-max', type=str, help='set max threshold for packets marked \'yellow\'', default=None)
+    parser.add_argument('-rmin', '--red-min', type=str, help='set min threshold for packets marked \'red\'', default=None)
+    parser.add_argument('-rmax', '--red-max', type=str, help='set max threshold for packets marked \'red\'', default=None)
+    parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
+    args = parser.parse_args()
+
+    try:
+        ecn = EcnConfig(args.verbose)
+        if args.list:
+            if len(sys.argv) > (3 if args.verbose else 2):
+                raise Exception("Input arguments error. No set options allowed when -l[ist] specified")
+            ecn.list()
+        elif args.profile:
+            if len(sys.argv) < (5 if args.verbose else 4):
+                raise Exception("Input arguments error. Specify at least one threshold parameter to set")
+            # the following parameters can be combined in one run
+            if args.green_max:
+                ecn.set_wred_threshold(args.profile, "gmax", args.green_max)
+            if args.green_min:
+                ecn.set_wred_threshold(args.profile, "gmin", args.green_min)
+            if args.yellow_max:
+                ecn.set_wred_threshold(args.profile, "ymax", args.yellow_max)
+            if args.yellow_min:
+                ecn.set_wred_threshold(args.profile, "ymin", args.yellow_min)
+            if args.red_max:
+                ecn.set_wred_threshold(args.profile, "rmax", args.red_max)
+            if args.red_min:
+                ecn.set_wred_threshold(args.profile, "rmin", args.red_min)
+        else:
+            parser.print_help()
+            sys.exit(1)
+
+    except Exception as e:
+        print(e.message, file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
