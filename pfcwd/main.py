@@ -127,8 +127,8 @@ def start(action, restoration_time, ports, detection_time):
     for port in ports:
         if port not in all_ports:
             continue
-        configdb.set_entry("PFC_WD_TABLE", port, None)
-        configdb.set_entry("PFC_WD_TABLE", port, pfcwd_info)
+        configdb.mod_entry("PFC_WD_TABLE", port, None)
+        configdb.mod_entry("PFC_WD_TABLE", port, pfcwd_info)
 
 # Stop WD
 @cli.command()
@@ -148,7 +148,7 @@ def stop(ports):
     for port in ports:
         if port not in all_ports:
             continue
-        configdb.set_entry("PFC_WD_TABLE", port, None)
+        configdb.mod_entry("PFC_WD_TABLE", port, None)
 
 if __name__ == '__main__':
     cli()

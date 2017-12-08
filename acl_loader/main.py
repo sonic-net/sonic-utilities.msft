@@ -340,9 +340,9 @@ class AclLoader(object):
         :return:
         """
         for key in self.rules_db_info.keys():
-            self.configdb.set_entry(self.ACL_RULE, key, None)
+            self.configdb.mod_entry(self.ACL_RULE, key, None)
 
-        self.configdb.set_config({self.ACL_RULE: self.rules_info})
+        self.configdb.mod_config({self.ACL_RULE: self.rules_info})
 
     def incremental_update(self):
         """
@@ -359,15 +359,15 @@ class AclLoader(object):
         existing_rules = new_rules.intersection(current_rules)
 
         for key in removed_rules:
-            self.configdb.set_entry(self.ACL_RULE, key, None)
+            self.configdb.mod_entry(self.ACL_RULE, key, None)
 
         for key in added_rules:
-            self.configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
+            self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
 
         for key in existing_rules:
             if cmp(self.rules_info[key], self.rules_db_info[key]):
-                self.configdb.set_entry(self.ACL_RULE, key, None)
-                self.configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
+                self.configdb.mod_entry(self.ACL_RULE, key, None)
+                self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
 
     def show_table(self, table_name):
         """

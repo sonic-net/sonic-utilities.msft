@@ -65,7 +65,7 @@ def _switch_bgp_session_status_by_addr(ipaddress, status, verbose):
     click.echo("{} {} BGP session with neighbor {}...".format(verb, status, ipaddress))
     config_db = ConfigDBConnector()
     config_db.connect()
-    config_db.set_entry('bgp_neighbor', ipaddress, {'admin_status': status})
+    config_db.mod_entry('bgp_neighbor', ipaddress, {'admin_status': status})
 
 def _switch_bgp_session_status(ipaddr_or_hostname, status, verbose):
     """Start up or shut down BGP session by IP address or hostname
