@@ -149,7 +149,7 @@ def version():
 # 'numpsus' subcommand
 @cli.command()
 def numpsus():
-    "Display the number of supported PSU in the device"
+    """Display number of supported PSUs on device"""
     click.echo(str(platform_psuutil.get_num_psus()))
 
 # 'status' subcommand
