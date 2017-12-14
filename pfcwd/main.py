@@ -6,16 +6,11 @@ from tabulate import tabulate
 from natsort import natsorted
 
 STATS_DESCRIPTION = [
-    ('STORM DETECTED CNT',   'PFC_WD_QUEUE_STATS_DEADLOCK_DETECTED'),
-    ('STORM RESTORED CNT',   'PFC_WD_QUEUE_STATS_DEADLOCK_RESTORED'),
-    ('TX PACKETS',           'PFC_WD_QUEUE_STATS_TX_PACKETS'),
-    ('RX PACKETS',           'PFC_WD_QUEUE_STATS_TX_DROPPED_PACKETS'),
-    ('TX PACKETS DROP',      'PFC_WD_QUEUE_STATS_RX_PACKETS'),
-    ('RX PACKETS DROP',      'PFC_WD_QUEUE_STATS_RX_DROPPED_PACKETS_LAST'),
-    ('TX PACKETS LAST',      'PFC_WD_QUEUE_STATS_TX_PACKETS_LAST'),
-    ('RX PACKETS LAST',      'PFC_WD_QUEUE_STATS_TX_DROPPED_PACKETS_LAST'),
-    ('TX PACKETS LAST DROP', 'PFC_WD_QUEUE_STATS_RX_PACKETS_LAST'),
-    ('RX PACKETS LAST DROP', 'PFC_WD_QUEUE_STATS_RX_DROPPED_PACKETS_LAST')
+    ('STORM DETECTED/RESTORED', 'PFC_WD_QUEUE_STATS_DEADLOCK_DETECTED', 'PFC_WD_QUEUE_STATS_DEADLOCK_RESTORED'),
+    ('TX OK/DROP',              'PFC_WD_QUEUE_STATS_TX_PACKETS',        'PFC_WD_QUEUE_STATS_TX_DROPPED_PACKETS'),
+    ('RX OK/DROP',              'PFC_WD_QUEUE_STATS_RX_PACKETS',        'PFC_WD_QUEUE_STATS_RX_DROPPED_PACKETS'),
+    ('TX LAST OK/DROP',         'PFC_WD_QUEUE_STATS_TX_PACKETS_LAST',   'PFC_WD_QUEUE_STATS_TX_DROPPED_PACKETS_LAST'),
+    ('RX LAST OK/DROP',         'PFC_WD_QUEUE_STATS_RX_PACKETS_LAST',   'PFC_WD_QUEUE_STATS_RX_DROPPED_PACKETS_LAST'),
 ]
 
 CONFIG_DESCRIPTION = [
@@ -47,8 +42,9 @@ def show():
 
 # Show stats
 @show.command()
+@click.option('-e', '--empty', is_flag = True)
 @click.argument('queues', nargs = -1)
-def stats(queues):
+def stats(empty, queues):
     """ Show PFC Watchdog stats per queue """
     db = swsssdk.SonicV2Connector(host='127.0.0.1')
     db.connect(db.COUNTERS_DB)
@@ -64,9 +60,10 @@ def stats(queues):
         if stats is None:
             continue
         for stat in STATS_DESCRIPTION:
-            line = stats.get(stat[1], '0')
+            line = stats.get(stat[1], '0') + '/' + stats.get(stat[2], '0')
             stats_list.append(line)
-        table.append([queue] + stats_list)
+        if stats_list != ['0/0'] * len(STATS_DESCRIPTION) or empty:
+            table.append([queue] + stats_list)
 
     click.echo(tabulate(table, STATS_HEADER, stralign='right', numalign='right', tablefmt='simple'))
 
