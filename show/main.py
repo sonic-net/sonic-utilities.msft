@@ -778,6 +778,58 @@ def services():
         else:
                 break
 
+@cli.command()
+def aaa():
+    """Show AAA configuration in ConfigDb"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    data = config_db.get_table('AAA')
+    output = ''
+
+    aaa = {
+        'authentication': {
+            'login': 'local (default)',
+            'failthrough': 'True (default)',
+            'fallback': 'True (default)'
+        }
+    }
+    aaa['authentication'].update(data['authentication'])
+    for row in aaa:
+        entry = aaa[row]
+        for key in entry:
+            output += ('AAA %s %s %s\n' % (row, key, str(entry[key])))
+    click.echo(output)
+
+
+@cli.command()
+def tacacs():
+    """Show TACACS+ configuration"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    output = ''
+    data = config_db.get_table('TACPLUS')
+
+    tacplus = {
+        'global': {
+            'auth_type': 'pap (default)',
+            'timeout': '5 (default)',
+            'passkey': '<EMPTY_STRING> (default)'
+        }
+    }
+    tacplus['global'].update(data['global'])
+    for key in tacplus['global']:
+        output += ('TACPLUS global %s %s\n' % (str(key), str(tacplus['global'][key])))
+
+    data = config_db.get_table('TACPLUS_SERVER')
+    if data != {}:
+        for row in data:
+            entry = data[row]
+            output += ('\nTACPLUS_SERVER address %s\n' % row)
+            for key in entry:
+                output += ('               %s %s\n' % (key, str(entry[key])))
+    click.echo(output)
+
+
 #
 # 'session' command ###
 #

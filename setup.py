@@ -57,7 +57,7 @@ setup(
         'scripts/lldpshow',
         'scripts/port2alias',
         'scripts/portstat',
-        'scripts/teamshow',
+        'scripts/teamshow'
     ],
     data_files=[
         ('/etc/bash_completion.d', glob.glob('data/etc/bash_completion.d/*')),
