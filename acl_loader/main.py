@@ -12,6 +12,7 @@ from natsort import natsorted
 import openconfig_acl
 import pyangbind.lib.pybindJSON as pybindJSON
 from swsssdk import ConfigDBConnector
+from swsssdk import SonicV2Connector
 
 
 def info(msg):
@@ -81,6 +82,8 @@ class AclLoader(object):
         self.sessions_db_info = {}
         self.configdb = ConfigDBConnector()
         self.configdb.connect()
+        self.appdb = SonicV2Connector()
+        self.appdb.connect(self.appdb.APPL_DB)
 
         self.read_tables_info()
         self.read_rules_info()
@@ -112,6 +115,11 @@ class AclLoader(object):
         :return:
         """
         self.sessions_db_info = self.configdb.get_table(self.MIRROR_SESSION)
+        for key in self.sessions_db_info.keys():
+            app_db_info = self.appdb.get_all(self.appdb.APPL_DB, "{}:{}".format(self.MIRROR_SESSION, key))
+
+            status = app_db_info.get("status", "inactive")
+            self.sessions_db_info[key]["status"] = status
 
     def get_sessions_db_info(self):
         """
@@ -400,14 +408,14 @@ class AclLoader(object):
         :param session_name: Optional. Mirror session name. Filter sessions by specified name.
         :return:
         """
-        header = ("Name", "SRC IP", "DST IP", "GRE", "DSCP", "TTL", "Queue")
+        header = ("Name", "Status", "SRC IP", "DST IP", "GRE", "DSCP", "TTL", "Queue")
 
         data = []
         for key, val in self.get_sessions_db_info().iteritems():
             if session_name and key != session_name:
                 continue
 
-            data.append([key, val["src_ip"], val["dst_ip"],
+            data.append([key, val["status"], val["src_ip"], val["dst_ip"],
                          val.get("gre_type", ""), val.get("dscp", ""),
                          val.get("ttl", ""), val.get("queue", "")])
 
