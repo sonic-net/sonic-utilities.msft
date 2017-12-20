@@ -220,6 +220,9 @@ class AclStat(object):
         def adj_len(text, mlen):
             return text + "." * (mlen - len(text))
 
+        if not self.acl_tables:
+            return
+
         # determine max len of the table and rule properties
         onetable = self.acl_tables.itervalues().next()
         tlen = len(onetable.keys()[0])
@@ -227,11 +230,14 @@ class AclStat(object):
             if len(property) > tlen:
                 tlen = len(property)
 
-        onerule = self.acl_rules.itervalues().next()
-        rlen = len(onerule.keys()[0])
-        for property in onerule.keys() + [PACKETS_COUNTER, BYTES_COUNTER]:
-            if len(property) > rlen:
-                rlen = len(property)
+        if not self.acl_rules:
+            rlen = 0
+        else:
+            onerule = self.acl_rules.itervalues().next()
+            rlen = len(onerule.keys()[0])
+            for property in onerule.keys() + [PACKETS_COUNTER, BYTES_COUNTER]:
+                if len(property) > rlen:
+                    rlen = len(property)
 
         mlen = max(rlen, tlen) + 1
 
