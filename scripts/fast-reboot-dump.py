@@ -1,28 +1,36 @@
 #!/usr/bin/env python
 
-
 import swsssdk
 import json
-from pprint import pprint
+import socket
+import struct
+from fcntl import ioctl
+import binascii
 
+
+ARP_CHUNK = binascii.unhexlify('08060001080006040001') # defines a part of the packet for ARP Request
+ARP_PAD = binascii.unhexlify('00' * 18)
 
 def generate_arp_entries(filename, all_available_macs):
     db = swsssdk.SonicV2Connector()
     db.connect(db.APPL_DB, False)   # Make one attempt only
 
     arp_output = []
-
+    arp_entries = []
     keys = db.keys(db.APPL_DB, 'NEIGH_TABLE:*')
     keys = [] if keys is None else keys
     for key in keys:
+        vlan_name = key.split(':')[1]
+        ip_addr = key.split(':')[2]
         entry = db.get_all(db.APPL_DB, key)
-        if entry['neigh'].lower() not in all_available_macs:
-            # print me to log
+        if (vlan_name, entry['neigh'].lower()) not in all_available_macs:
+            # FIXME: print me to log
             continue
         obj = {
           key: entry,
           'OP': 'SET'
         }
+        arp_entries.append((vlan_name, entry['neigh'].lower(), ip_addr))
         arp_output.append(obj)
 
     db.close(db.APPL_DB)
@@ -30,26 +38,16 @@ def generate_arp_entries(filename, all_available_macs):
     with open(filename, 'w') as fp:
         json.dump(arp_output, fp, indent=2, separators=(',', ': '))
 
-    return
+    return arp_entries
 
 def is_mac_unicast(mac):
     first_octet = mac.split(':')[0]
-
-    if int(first_octet, 16) & 0x01 == 0:
-        return True
-    else:
-        return False
+    return int(first_octet, 16) & 0x01 == 0
 
 def get_vlan_ifaces():
     vlans = []
     with open('/proc/net/dev') as fp:
-        raw = fp.read()
-
-    for line in raw.split('\n'):
-        if 'Vlan' not in line:
-            continue
-        vlan_name = line.split(':')[0].strip()
-        vlans.append(vlan_name)
+        vlans = [line.split(':')[0].strip() for line in fp if 'Vlan' in line]
 
     return vlans
 
@@ -95,15 +93,15 @@ def get_map_bridge_port_id_2_iface_name(db):
 
     return bridge_port_id_2_iface_name
 
-def get_fdb(db, vlan_id, bridge_id_2_iface):
+def get_fdb(db, vlan_name, vlan_id, bridge_id_2_iface):
     fdb_types = {
       'SAI_FDB_ENTRY_TYPE_DYNAMIC': 'dynamic',
       'SAI_FDB_ENTRY_TYPE_STATIC' : 'static'
     }
 
     available_macs = set()
-
-    entries = []
+    map_mac_ip = {}
+    fdb_entries = []
     keys = db.keys(db.ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:{*\"vlan\":\"%d\"}' % vlan_id)
     keys = [] if keys is None else keys
     for key in keys:
@@ -112,28 +110,27 @@ def get_fdb(db, vlan_id, bridge_id_2_iface):
         mac = str(key_obj['mac'])
         if not is_mac_unicast(mac):
             continue
-        available_macs.add(mac.lower())
-        mac = mac.replace(':', '-')
-        # FIXME: mac is unicast
+        available_macs.add((vlan_name, mac.lower()))
+        fdb_mac = mac.replace(':', '-')
         # get attributes
         value = db.get_all(db.ASIC_DB, key)
-        type = fdb_types[value['SAI_FDB_ENTRY_ATTR_TYPE']]
+        fdb_type = fdb_types[value['SAI_FDB_ENTRY_ATTR_TYPE']]
         if value['SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID'] not in bridge_id_2_iface:
             continue
-        port = bridge_id_2_iface[value['SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID']]
+        fdb_port = bridge_id_2_iface[value['SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID']]
 
         obj = {
-          'FDB_TABLE:Vlan%d:%s' % (vlan_id, mac) : {
-            'type': type,
-            'port': port,
+          'FDB_TABLE:Vlan%d:%s' % (vlan_id, fdb_mac) : {
+            'type': fdb_type,
+            'port': fdb_port,
           },
           'OP': 'SET'
         }
 
-        entries.append(obj)
+        fdb_entries.append(obj)
+        map_mac_ip[mac.lower()] = fdb_port
 
-    return entries, available_macs
-
+    return fdb_entries, available_macs, map_mac_ip
 
 def generate_fdb_entries(filename):
     fdb_entries = []
@@ -146,9 +143,10 @@ def generate_fdb_entries(filename):
     vlan_ifaces = get_vlan_ifaces()
 
     all_available_macs = set()
+    map_mac_ip_per_vlan = {}
     for vlan in vlan_ifaces:
         vlan_id = int(vlan.replace('Vlan', ''))
-        fdb_entry, available_macs = get_fdb(db, vlan_id, bridge_id_2_iface)
+        fdb_entry, available_macs, map_mac_ip_per_vlan[vlan] = get_fdb(db, vlan, vlan_id, bridge_id_2_iface)
         all_available_macs |= available_macs
         fdb_entries.extend(fdb_entry)
 
@@ -157,11 +155,69 @@ def generate_fdb_entries(filename):
     with open(filename, 'w') as fp:
         json.dump(fdb_entries, fp, indent=2, separators=(',', ': '))
 
-    return all_available_macs
+    return all_available_macs, map_mac_ip_per_vlan
+
+def get_if(iff, cmd):
+    s = socket.socket()
+    ifreq = ioctl(s, cmd, struct.pack("16s16x",iff))
+    s.close()
+    return ifreq
+
+def get_iface_mac_addr(iff):
+    SIOCGIFHWADDR = 0x8927          # Get hardware address
+    return get_if(iff, SIOCGIFHWADDR)[18:24]
+
+def get_iface_ip_addr(iff):
+    SIOCGIFADDR = 0x8915            # Get ip address
+    return get_if(iff, SIOCGIFADDR)[20:24]
+
+def send_arp(s, src_mac, src_ip, dst_mac_s, dst_ip_s):
+    # convert dst_mac in binary
+    dst_ip = socket.inet_aton(dst_ip_s)
+
+    # convert dst_ip in binary
+    dst_mac = binascii.unhexlify(dst_mac_s.replace(':', ''))
+
+    # make ARP packet
+    pkt = dst_mac + src_mac + ARP_CHUNK + src_mac + src_ip + dst_mac + dst_ip + ARP_PAD
+
+    # send it
+    s.send(pkt)
+
+    return
+
+def garp_send(arp_entries, map_mac_ip_per_vlan):
+    ETH_P_ALL = 0x03
+
+    # generate source ip addresses for arp packets
+    src_ip_addrs = {vlan_name:get_iface_ip_addr(vlan_name) for vlan_name,_,_ in arp_entries}
+
+    # generate source mac addresses for arp packets
+    src_ifs = {map_mac_ip_per_vlan[vlan_name][dst_mac] for vlan_name, dst_mac, _ in arp_entries}
+    src_mac_addrs = {src_if:get_iface_mac_addr(src_if) for src_if in src_ifs}
+
+    # open raw sockets for all required interfaces
+    sockets = {}
+    for src_if in src_ifs:
+        sockets[src_if] = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(ETH_P_ALL))
+        sockets[src_if].bind((src_if, 0))
+
+    # send arp packets
+    for vlan_name, dst_mac, dst_ip in arp_entries:
+        src_if = map_mac_ip_per_vlan[vlan_name][dst_mac]
+        send_arp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[vlan_name], dst_mac, dst_ip)
+
+    # close the raw sockets
+    for s in sockets.values():
+        s.close()
+
+    return
+
 
 def main():
-    all_available_macs = generate_fdb_entries('/tmp/fdb.json')
-    generate_arp_entries('/tmp/arp.json', all_available_macs)
+    all_available_macs, map_mac_ip_per_vlan = generate_fdb_entries('/tmp/fdb.json')
+    arp_entries = generate_arp_entries('/tmp/arp.json', all_available_macs)
+    garp_send(arp_entries, map_mac_ip_per_vlan)
 
     return
 
