@@ -394,6 +394,19 @@ class AclLoader(object):
                 self.configdb.mod_entry(self.ACL_RULE, key, None)
                 self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
 
+
+    def delete(self, table=None, rule=None):
+        """
+        :param table:
+        :param rule:
+        :return:
+        """
+        for key in self.rules_db_info.iterkeys():
+            if not table or table == key[0]:
+                if not rule or rule == key[1]:
+                    self.configdb.set_entry(self.ACL_RULE, key, None)
+
+
     def show_table(self, table_name):
         """
         Show ACL table configuration.
@@ -600,6 +613,19 @@ def incremental(ctx, filename, session_name, max_priority):
 
     acl_loader.load_rules_from_file(filename)
     acl_loader.incremental_update()
+
+
+@cli.command()
+@click.argument('table', required=False)
+@click.argument('rule', required=False)
+@click.pass_context
+def delete(ctx, table, rule):
+    """
+    Delete ACL rules.
+    """
+    acl_loader = ctx.obj["acl_loader"]
+
+    acl_loader.delete(table, rule)
 
 
 if __name__ == "__main__":
