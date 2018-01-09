@@ -25,7 +25,8 @@ def summary():
 # 'neighbors' subcommand ("show ipv6 bgp neighbors")
 @bgp.command()
 @click.argument('ipaddress', required=True)
-def neighbors(ipaddress):
+@click.argument('info_type', type=click.Choice(['routes', 'advertised-routes', 'received-routes']), required=True)
+def neighbors(ipaddress, info_type):
     """Show IPv6 BGP neighbors"""
-    command = 'sudo vtysh -c "show ipv6 bgp neighbor {} "'.format(ipaddress)
+    command = 'sudo vtysh -c "show ipv6 bgp neighbor {} {}"'.format(ipaddress, info_type)
     run_command(command)

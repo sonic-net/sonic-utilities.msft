@@ -25,11 +25,19 @@ def summary():
 # 'neighbors' subcommand ("show ip bgp neighbors")
 @bgp.command()
 @click.argument('ipaddress', required=False)
-def neighbors(ipaddress):
+@click.argument('info_type', type=click.Choice(['routes', 'advertised-routes', 'received-routes']), required=False)
+def neighbors(ipaddress, info_type):
     """Show IP (IPv4) BGP neighbors"""
 
+    command = 'sudo vtysh -c "show ip bgp neighbor'
+
     if ipaddress is not None:
-        command = 'sudo vtysh -c "show ip bgp neighbor {} "'.format(ipaddress)
-        run_command(command)
-    else:
-        run_command('sudo vtysh -c "show ip bgp neighbor"')
+        command += ' {}'.format(ipaddress)
+
+        # info_type is only valid if ipaddress is specified
+        if info_type is not None:
+            command += ' {}'.format(info_type)
+
+    command += '"'
+
+    run_command(command)
