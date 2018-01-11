@@ -231,10 +231,14 @@ def transceiver():
 
 @transceiver.command()
 @click.argument('interfacename', required=False)
-def basic(interfacename):
-    """Show basic interface transceiver information"""
+@click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
+def eeprom(interfacename, dump_dom):
+    """Show interface transceiver EEPROM information"""
 
     command = "sudo sfputil show eeprom"
+
+    if dump_dom:
+        command += " --dom"
 
     if interfacename is not None:
         command += " -p {}".format(interfacename)
@@ -244,10 +248,22 @@ def basic(interfacename):
 
 @transceiver.command()
 @click.argument('interfacename', required=False)
-def details(interfacename):
-    """Show interface transceiver details (Digital Optical Monitoring)"""
+def lpmode(interfacename):
+    """Show interface transceiver low-power mode status"""
 
-    command = "sudo sfputil show eeprom --dom"
+    command = "sudo sfputil show lpmode"
+
+    if interfacename is not None:
+        command += " -p {}".format(interfacename)
+
+    run_command(command)
+
+@transceiver.command()
+@click.argument('interfacename', required=False)
+def presence(interfacename):
+    """Show interface transceiver presence"""
+
+    command = "sudo sfputil show presence"
 
     if interfacename is not None:
         command += " -p {}".format(interfacename)
