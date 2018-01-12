@@ -98,9 +98,9 @@ def config(ports):
 # Start WD
 @cli.command()
 @click.option('--action', '-a', type=click.Choice(['drop', 'forward', 'alert']))
-@click.option('--restoration-time', '-r', type=click.IntRange(100, 5000))
+@click.option('--restoration-time', '-r', type=click.IntRange(100, 60000))
 @click.argument('ports', nargs = -1)
-@click.argument('detection-time', type=click.IntRange(100, 60000))
+@click.argument('detection-time', type=click.IntRange(100, 5000))
 def start(action, restoration_time, ports, detection_time):
     """ Start PFC watchdog on port(s) """
     configdb = swsssdk.ConfigDBConnector()
