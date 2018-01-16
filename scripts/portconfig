@@ -1,0 +1,78 @@
+#!/usr/bin/python
+"""
+portconfig is the utility to show and change ECN configuration
+
+usage: portconfig [-h] [-v] [-s] [-p PROFILE] [-gmin GREEN_MIN]
+                 [-gmax GREEN_MAX] [-ymin YELLOW_MIN] [-ymax YELLOW_MAX]
+                 [-rmin RED_MIN] [-rmax RED_MAX] [-vv]
+
+optional arguments:
+  -h     --help                show this help message and exit
+  -v     --version             show program's version number and exit
+  -vv    --verbose             verbose output
+  -p'    --port                port name
+  -s     --speed               port speed in Mbits
+"""
+from __future__ import print_function
+
+import os
+import sys
+import json
+import argparse
+import swsssdk
+
+PORT_TABLE_NAME = "PORT"
+PORT_SPEED_CONFIG_FIELD_NAME = "speed"
+
+class portconfig(object):
+    """
+    Process aclstat
+    """
+    def __init__(self, verbose, port):
+        self.verbose = verbose
+
+        # Set up db connections
+        self.db = swsssdk.ConfigDBConnector()
+        self.db.connect()
+        # check whether table for this port exists
+        port_tables = self.db.get_table(PORT_TABLE_NAME)
+        if not port_tables.has_key(port):
+            raise Exception("Invalid port specified")
+
+    def list_params(self, port):
+        # chack whether table for this port exists
+        port_tables = self.db.get_table(PORT_TABLE_NAME)
+        if port_tables.has_key(port):
+            print(port_tables[port])
+
+    def set_speed(self, port, speed):
+        if self.verbose:
+            print("Setting speed %s on port %s" % (speed, port))
+        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_SPEED_CONFIG_FIELD_NAME: speed})
+
+def main():
+    parser = argparse.ArgumentParser(description='Set SONiC port parameters',
+                         version='1.0.0',
+                         formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-p', '--port', type=str, help='port name (e.g. Ethernet0)', required=True, default=None)
+    parser.add_argument('-l', '--list', action='store_true', help='list port parametars', default=False)
+    parser.add_argument('-s', '--speed', type=int, help='port speed value in Mbit', default=None)
+    parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
+    args = parser.parse_args()
+
+    try:
+        port = portconfig(args.verbose, args.port)
+        if args.list:
+            port.list_params(args.port)
+        elif args.speed:
+            port.set_speed(args.port, args.speed)
+        else:
+            parser.print_help()
+            sys.exit(1)
+
+    except Exception as e:
+        print(e.message, file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

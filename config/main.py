@@ -371,6 +371,19 @@ def startup(interface_name, verbose):
     command = "ip link set {} up".format(interface_name)
     run_command(command, display_cmd=verbose)
 
+#
+# 'speed' subcommand
+#
+
+@interface.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('interface_speed', metavar='<interface_speed>', required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def speed(interface_name, interface_speed, verbose):
+    """Set interface speed"""
+    command = "portconfig -p {} -s {}".format(interface_name, interface_speed)
+    if verbose: command += " -vv"
+    run_command(command, display_cmd=verbose)
 
 #
 # 'acl' group
