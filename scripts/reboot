@@ -1,0 +1,28 @@
+#! /bin/bash
+
+function stop_sonic_services()
+{
+    echo "Stopping sonic services..."
+    systemctl stop swss
+    systemctl stop teamd
+    systemctl stop bgp
+    systemctl stop lldp
+    systemctl stop snmp
+}
+
+# Obtain our platform as we will mount directories with these names in each docker
+PLATFORM=`sonic-cfggen -v platform`
+
+DEVPATH="/usr/share/sonic/device"
+REBOOT="platform_reboot"
+
+if [ -x ${DEVPATH}/${PLATFORM}/${REBOOT} ]; then
+    stop_sonic_services
+    sync
+    sleep 3
+    echo "Rebooting with platform ${PLATFORM} specific tool ..."
+    ${DEVPATH}/${PLATFORM}/${REBOOT}
+    exit 0
+fi
+
+/sbin/reboot $@

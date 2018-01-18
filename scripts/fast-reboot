@@ -59,6 +59,6 @@ sync
 sleep 1
 sync
 
-# Reboot
+# Reboot: explicity call Linux native reboot under sbin
 echo "Rebooting to $NEXT_SONIC_IMAGE..."
-reboot
+/sbin/reboot

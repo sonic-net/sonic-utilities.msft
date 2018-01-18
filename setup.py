@@ -49,6 +49,7 @@ setup(
         'scripts/port2alias',
         'scripts/portconfig',
         'scripts/portstat',
+        'scripts/reboot',
         'scripts/teamshow'
     ],
     data_files=[
