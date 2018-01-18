@@ -189,9 +189,12 @@ def install(url):
         os.chmod(image_path, stat.S_IXUSR)
         run_command(image_path)
         run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
-    run_command("sync")
     run_command("rm -rf /host/old_config")
     run_command("cp -r /etc/sonic /host/old_config")
+
+    # sync filesystem, keep at last step.
+    run_command("sync")
+    run_command("sleep 3") # wait 3 seconds after sync
     click.echo('Done')
 
 
