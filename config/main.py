@@ -189,6 +189,8 @@ def load_minigraph():
         command = "{} -m --write-to-db".format(SONIC_CFGGEN_PATH)
     run_command(command, display_cmd=True)
     client.set(config_db.INIT_INDICATOR, True)
+    if os.path.isfile('/etc/sonic/acl.json'):
+        run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
     #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
     _restart_services()
     print "Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`."
