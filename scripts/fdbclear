@@ -1,0 +1,58 @@
+#!/usr/bin/python
+"""
+    Script to clear MAC/FDB entries learnt in Hardware
+
+    usage: fdbclear [-p PORT] [-v VLAN]
+    optional arguments:
+      -p,  --port              FDB learned on specific port: Ethernet0
+      -v,  --vlan              FDB learned on specific Vlan: 1000
+
+    Example of the output:
+
+"""
+
+import argparse
+import json
+import sys
+
+from natsort import natsorted
+from swsssdk import SonicV2Connector, port_util
+from tabulate import tabulate
+
+class FdbClear(object):
+
+
+    def __init__(self):
+        super(FdbClear,self).__init__()
+        self.db = SonicV2Connector(host="127.0.0.1")
+        self.db.connect(self.db.APPL_DB)
+        return
+
+    def send_notification(self, op, data):
+        opdata = [op,data]
+        msg = json.dumps(opdata,separators=(',',':'))
+        self.db.publish('APPL_DB','FLUSHFDBREQUEST', msg)
+        return
+
+def main():
+
+    parser = argparse.ArgumentParser(description='Clear FDB entries', formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('-p', '--port', type=str, help='Clear FDB learned on specific port: Ethernet0', default=None)
+    parser.add_argument('-v', '--vlan', type=str, help='Clear FDB learned on specific Vlan: 1001', default=None)
+    args = parser.parse_args()
+
+    try:
+        fdb = FdbClear()
+        if args.vlan is not None:
+            print("command not supported yet.")
+        elif args.port is not None:
+            print("command not supported yet.")
+        else:
+            fdb.send_notification("ALL", "ALL")
+            print("FDB entries are cleared.")
+    except Exception as e:
+        print e.message
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

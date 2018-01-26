@@ -42,6 +42,7 @@ setup(
         'scripts/ecnconfig',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
+        'scripts/fdbclear',
         'scripts/fdbshow',
         'scripts/generate_dump',
         'scripts/intfutil',
