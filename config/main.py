@@ -39,7 +39,10 @@ def _is_neighbor_ipaddress(ipaddress):
     """
     config_db = ConfigDBConnector()
     config_db.connect()
-    entry = config_db.get_entry('BGP_NEIGHBOR', ipaddress)
+
+    # Convert the IP address to uppercase because IPv6 addresses are stored
+    # in ConfigDB with all uppercase alphabet characters
+    entry = config_db.get_entry('BGP_NEIGHBOR', ipaddress.upper())
     return True if entry else False
 
 def _get_all_neighbor_ipaddresses():
@@ -49,38 +52,47 @@ def _get_all_neighbor_ipaddresses():
     config_db.connect()
     return config_db.get_table('BGP_NEIGHBOR').keys()
 
-def _get_neighbor_ipaddress_by_hostname(hostname):
-    """Returns string containing IP address of neighbor with hostname <hostname> or None if <hostname> not a neighbor
+def _get_neighbor_ipaddress_list_by_hostname(hostname):
+    """Returns list of strings, each containing an IP address of neighbor with
+       hostname <hostname>. Returns empty list if <hostname> not a neighbor
     """
+    addrs = []
     config_db = ConfigDBConnector()
     config_db.connect()
     bgp_sessions = config_db.get_table('BGP_NEIGHBOR')
     for addr, session in bgp_sessions.iteritems():
         if session.has_key('name') and session['name'] == hostname:
-            return addr
-    return None
+            addrs.append(addr)
+    return addrs
 
-def _switch_bgp_session_status_by_addr(ipaddress, status, verbose):
+def _change_bgp_session_status_by_addr(ipaddress, status, verbose):
     """Start up or shut down BGP session by IP address 
     """
     verb = 'Starting' if status == 'up' else 'Shutting'
     click.echo("{} {} BGP session with neighbor {}...".format(verb, status, ipaddress))
     config_db = ConfigDBConnector()
     config_db.connect()
-    config_db.mod_entry('bgp_neighbor', ipaddress, {'admin_status': status})
 
-def _switch_bgp_session_status(ipaddr_or_hostname, status, verbose):
+    # Convert the IP address to uppercase because IPv6 addresses are stored
+    # in ConfigDB with all uppercase alphabet characters
+    config_db.mod_entry('bgp_neighbor', ipaddress.upper(), {'admin_status': status})
+
+def _change_bgp_session_status(ipaddr_or_hostname, status, verbose):
     """Start up or shut down BGP session by IP address or hostname
     """
+    ip_addrs = []
     if _is_neighbor_ipaddress(ipaddr_or_hostname):
-        ipaddress = ipaddr_or_hostname
+        ip_addrs.append(ipaddr_or_hostname)
     else:
         # If <ipaddr_or_hostname> is not the IP address of a neighbor, check to see if it's a hostname
-        ipaddress = _get_neighbor_ipaddress_by_hostname(ipaddr_or_hostname)
-    if ipaddress == None:
+        ip_addrs = _get_neighbor_ipaddress_list_by_hostname(ipaddr_or_hostname)
+
+    if not ip_addrs:
         print "Error: could not locate neighbor '{}'".format(ipaddr_or_hostname)
         raise click.Abort
-    _switch_bgp_session_status_by_addr(ipaddress, status, verbose)
+
+    for ip_addr in ip_addrs:
+        _change_bgp_session_status_by_addr(ip_addr, status, verbose)
 
 def _change_hostname(hostname):
     current_hostname = os.uname()[1]
@@ -308,7 +320,7 @@ def all(verbose):
     """Shut down all BGP sessions"""
     bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses()
     for ipaddress in bgp_neighbor_ip_list:
-        _switch_bgp_session_status_by_addr(ipaddress, 'down', verbose)
+        _change_bgp_session_status_by_addr(ipaddress, 'down', verbose)
 
 # 'neighbor' subcommand
 @shutdown.command()
@@ -316,7 +328,7 @@ def all(verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def neighbor(ipaddr_or_hostname, verbose):
     """Shut down BGP session by neighbor IP address or hostname"""
-    _switch_bgp_session_status(ipaddr_or_hostname, 'down', verbose)
+    _change_bgp_session_status(ipaddr_or_hostname, 'down', verbose)
 
 @bgp.group()
 def startup():
@@ -330,7 +342,7 @@ def all(verbose):
     """Start up all BGP sessions"""
     bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses()
     for ipaddress in bgp_neighbor_ip_list:
-        _switch_bgp_session_status(ipaddress, 'up', verbose)
+        _change_bgp_session_status(ipaddress, 'up', verbose)
 
 # 'neighbor' subcommand
 @startup.command()
@@ -338,7 +350,7 @@ def all(verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def neighbor(ipaddr_or_hostname, verbose):
     """Start up BGP session by neighbor IP address or hostname"""
-    _switch_bgp_session_status(ipaddr_or_hostname, 'up', verbose)
+    _change_bgp_session_status(ipaddr_or_hostname, 'up', verbose)
 
 #
 # 'interface' group
