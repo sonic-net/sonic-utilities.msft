@@ -809,7 +809,8 @@ def aaa():
             'fallback': 'True (default)'
         }
     }
-    aaa['authentication'].update(data['authentication'])
+    if 'authentication' in data:
+        aaa['authentication'].update(data['authentication'])
     for row in aaa:
         entry = aaa[row]
         for key in entry:
@@ -832,7 +833,8 @@ def tacacs():
             'passkey': '<EMPTY_STRING> (default)'
         }
     }
-    tacplus['global'].update(data['global'])
+    if 'global' in data:
+        tacplus['global'].update(data['global'])
     for key in tacplus['global']:
         output += ('TACPLUS global %s %s\n' % (str(key), str(tacplus['global'][key])))
 
