@@ -159,7 +159,7 @@ def reload(filename):
     client.flushdb()
     command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
     run_command(command, display_cmd=True)
-    client.set(config_db.INIT_INDICATOR, True)
+    client.set(config_db.INIT_INDICATOR, 1)
     _restart_services()
 
 @cli.command()
@@ -200,7 +200,7 @@ def load_minigraph():
     else:
         command = "{} -m --write-to-db".format(SONIC_CFGGEN_PATH)
     run_command(command, display_cmd=True)
-    client.set(config_db.INIT_INDICATOR, True)
+    client.set(config_db.INIT_INDICATOR, 1)
     if os.path.isfile('/etc/sonic/acl.json'):
         run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
     #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
