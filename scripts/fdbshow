@@ -75,8 +75,11 @@ class FdbShow(object):
                 continue
             port_id = self.if_br_oid_map[br_port_id]
             if_name = self.if_oid_map[port_id]
-
-            self.bridge_mac_list.append((int(fdb["vlan"]),) + (fdb["mac"],) + (if_name,))
+            if 'vlan' in fdb:
+                vlan_id = fdb["vlan"]
+            elif 'bvid' in fdb:
+                vlan_id = port_util.get_vlan_id_from_bvid(self.db, fdb["bvid"])
+            self.bridge_mac_list.append((int(vlan_id),) + (fdb["mac"],) + (if_name,))
 
         self.bridge_mac_list.sort(key = lambda x: x[0])
         return
