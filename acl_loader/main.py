@@ -80,7 +80,7 @@ class AclLoader(object):
         self.sessions_db_info = {}
         self.configdb = ConfigDBConnector()
         self.configdb.connect()
-        self.appdb = SonicV2Connector()
+        self.appdb = SonicV2Connector(host="127.0.0.1")
         self.appdb.connect(self.appdb.APPL_DB)
 
         self.read_tables_info()
