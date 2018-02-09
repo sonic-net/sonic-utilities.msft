@@ -92,7 +92,9 @@ def config(ports):
             line = config_entry.get(config[1], config[2])
             config_list.append(line)
         table.append([port] + config_list)
-
+    poll_interval = configdb.get_entry( 'PFC_WD_TABLE', 'GLOBAL').get('POLL_INTERVAL')
+    if poll_interval is not None:
+        click.echo("Changed polling interval to " + poll_interval + "ms")
     click.echo(tabulate(table, CONFIG_HEADER, stralign='right', numalign='right', tablefmt='simple'))
 
 # Start WD
@@ -126,6 +128,19 @@ def start(action, restoration_time, ports, detection_time):
             continue
         configdb.mod_entry("PFC_WD_TABLE", port, None)
         configdb.mod_entry("PFC_WD_TABLE", port, pfcwd_info)
+
+# Set WD poll interval
+@cli.command()
+@click.argument('poll_interval', type=click.IntRange(100, 3000))
+def interval(poll_interval):
+    """ Set PFC watchdog counter polling interval """
+    configdb = swsssdk.ConfigDBConnector()
+    configdb.connect()
+    pfcwd_info = {}
+    if poll_interval is not None:
+        pfcwd_info['POLL_INTERVAL'] = poll_interval
+
+    configdb.mod_entry("PFC_WD_TABLE", "GLOBAL", pfcwd_info)
 
 # Stop WD
 @cli.command()
