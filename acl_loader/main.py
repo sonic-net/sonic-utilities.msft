@@ -115,8 +115,10 @@ class AclLoader(object):
         self.sessions_db_info = self.configdb.get_table(self.MIRROR_SESSION)
         for key in self.sessions_db_info.keys():
             app_db_info = self.appdb.get_all(self.appdb.APPL_DB, "{}:{}".format(self.MIRROR_SESSION, key))
-
-            status = app_db_info.get("status", "inactive")
+            if app_db_info:
+                status = app_db_info.get("status", "inactive")
+            else:
+                status = "error"
             self.sessions_db_info[key]["status"] = status
 
     def get_sessions_db_info(self):
