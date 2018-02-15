@@ -102,6 +102,41 @@ def _change_hostname(hostname):
         run_command('sed -i "/\s{}$/d" /etc/hosts'.format(current_hostname), display_cmd=True)
         run_command('echo "127.0.0.1 {}" >> /etc/hosts'.format(hostname), display_cmd=True)
 
+def _clear_qos():
+    QOS_TABLE_NAMES = [
+            'TC_TO_PRIORITY_GROUP_MAP',
+            'MAP_PFC_PRIORITY_TO_QUEUE',
+            'TC_TO_QUEUE_MAP',
+            'DSCP_TO_TC_MAP',
+            'SCHEDULER',
+            'PFC_PRIORITY_TO_PRIORITY_GROUP_MAP',
+            'PORT_QOS_MAP',
+            'WRED_PROFILE',
+            'QUEUE',
+            'CABLE_LENGTH',
+            'BUFFER_POOL',
+            'BUFFER_PROFILE',
+            'BUFFER_PG',
+            'BUFFER_QUEUE']
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    for qos_table in QOS_TABLE_NAMES:
+        config_db.delete_table(qos_table)
+
+def _get_hwsku():
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    metadata = config_db.get_table('DEVICE_METADATA')
+    return metadata['localhost']['hwsku']
+
+def _get_platform():
+    with open('/host/machine.conf') as machine_conf:
+        for line in machine_conf:
+            tokens = line.split('=')
+            if tokens[0].strip() == 'onie_platform' or tokens[0].strip() == 'aboot_platform':
+                return tokens[1].strip()
+    return ''
+
 # Callback for confirmation prompt. Aborts if user enters "n"
 def _abort_if_false(ctx, param, value):
     if not value:
@@ -203,9 +238,42 @@ def load_minigraph():
     client.set(config_db.INIT_INDICATOR, 1)
     if os.path.isfile('/etc/sonic/acl.json'):
         run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
+    run_command("config qos reload", display_cmd=True)
     #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
     _restart_services()
     print "Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`."
+
+#
+# 'qos' group
+#
+@cli.group()
+@click.pass_context
+def qos(ctx):
+    pass
+
+@qos.command('clear')
+def clear():
+    _clear_qos()
+
+@qos.command('reload')
+def reload():
+    _clear_qos()
+    platform = _get_platform()
+    hwsku = _get_hwsku()
+    buffer_template_file = os.path.join('/usr/share/sonic/device/', platform, hwsku, 'buffers.json.j2')
+    if os.path.isfile(buffer_template_file):
+        command = "{} -m -t {} >/tmp/buffers.json".format(SONIC_CFGGEN_PATH, buffer_template_file)
+        run_command(command, display_cmd=True)
+        command = "{} -j /tmp/buffers.json --write-to-db".format(SONIC_CFGGEN_PATH)
+        run_command(command, display_cmd=True)
+        qos_file = os.path.join('/usr/share/sonic/device/', platform, hwsku, 'qos.json')
+        if os.path.isfile(qos_file):
+            command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, qos_file)
+            run_command(command, display_cmd=True)
+        else:
+            click.secho('QoS definition not found at {}'.format(qos_file), fg='yellow')
+    else:
+        click.secho('Buffer definition template not found at {}'.format(buffer_template_file), fg='yellow')
 
 #
 # 'vlan' group
