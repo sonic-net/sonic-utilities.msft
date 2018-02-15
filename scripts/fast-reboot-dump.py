@@ -4,6 +4,7 @@ import swsssdk
 import json
 import socket
 import struct
+import os
 from fcntl import ioctl
 import binascii
 
@@ -213,10 +214,48 @@ def garp_send(arp_entries, map_mac_ip_per_vlan):
 
     return
 
+def get_default_entries(db, route):
+    key = 'ROUTE_TABLE:%s' % route
+    keys = db.keys(db.APPL_DB, key)
+    if keys is None:
+        return None
+
+    entry = db.get_all(db.APPL_DB, key)
+    obj = {
+        key: entry,
+        'OP': 'SET'
+    }
+
+    return obj
+
+def generate_default_route_entries(filename):
+    db = swsssdk.SonicV2Connector()
+    db.connect(db.APPL_DB, False)   # Make one attempt only
+
+    default_routes_output = []
+
+    ipv4_default = get_default_entries(db, '0.0.0.0/0')
+    if ipv4_default is not None:
+        default_routes_output.append(ipv4_default)
+
+    ipv6_default = get_default_entries(db, '::/0')
+    if ipv6_default is not None:
+        default_routes_output.append(ipv6_default)
+
+    db.close(db.APPL_DB)
+
+    if len(default_routes_output) > 0:
+        with open(filename, 'w') as fp:
+            json.dump(default_routes_output, fp, indent=2, separators=(',', ': '))
+    else:
+        if os.path.isfile(filename):
+            os.unlink(filename)
+
 
 def main():
     all_available_macs, map_mac_ip_per_vlan = generate_fdb_entries('/tmp/fdb.json')
     arp_entries = generate_arp_entries('/tmp/arp.json', all_available_macs)
+    generate_default_route_entries('/tmp/default_routes.json')
     garp_send(arp_entries, map_mac_ip_per_vlan)
 
     return

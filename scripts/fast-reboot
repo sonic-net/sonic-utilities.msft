@@ -26,10 +26,14 @@ sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 # Load kernel into the memory
 /sbin/kexec -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
 
-# Dump the ARP and FDB tables to files
+# Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
 /usr/bin/fast-reboot-dump.py
 docker cp /tmp/fdb.json swss:/
 docker cp /tmp/arp.json swss:/
+if [ -e /tmp/default_routes.json ]
+then
+  docker cp /tmp/default_routes.json swss:/
+fi
 
 # Kill bgpd to enable graceful restart of BGP
 docker exec -ti bgp killall -9 watchquagga
