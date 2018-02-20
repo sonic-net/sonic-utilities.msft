@@ -473,8 +473,8 @@ def summary():
     username = getpass.getuser()
 
     PLATFORM_TEMPLATE_FILE = "/tmp/cli_platform_{0}.j2".format(username)
-    PLATFORM_TEMPLATE_CONTENTS = "Platform: {{ platform }}\n" \
-                                 "HwSKU: {{ DEVICE_METADATA['localhost']['hwsku'] }}\n" \
+    PLATFORM_TEMPLATE_CONTENTS = "Platform: {{ DEVICE_METADATA.localhost.platform }}\n" \
+                                 "HwSKU: {{ DEVICE_METADATA.localhost.hwsku }}\n" \
                                  "ASIC: {{ asic_type }}"
 
     # Create a temporary Jinja2 template file to use with sonic-cfggen

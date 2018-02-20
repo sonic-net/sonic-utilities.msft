@@ -231,9 +231,9 @@ def load_minigraph():
     client = config_db.redis_clients[config_db.CONFIG_DB]
     client.flushdb()
     if os.path.isfile('/etc/sonic/init_cfg.json'):
-        command = "{} -m -j /etc/sonic/init_cfg.json --write-to-db".format(SONIC_CFGGEN_PATH)
+        command = "{} -H -m -j /etc/sonic/init_cfg.json --write-to-db".format(SONIC_CFGGEN_PATH)
     else:
-        command = "{} -m --write-to-db".format(SONIC_CFGGEN_PATH)
+        command = "{} -H -m --write-to-db".format(SONIC_CFGGEN_PATH)
     run_command(command, display_cmd=True)
     client.set(config_db.INIT_INDICATOR, 1)
     if os.path.isfile('/etc/sonic/acl.json'):

@@ -22,7 +22,7 @@ except ImportError, e:
 
 
 SONIC_CFGGEN = '/usr/local/bin/sonic-cfggen'
-PLATFORM_KEY = 'platform'
+PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
 
 PLATFORM_ROOT = '/usr/share/sonic/device'
 
@@ -32,7 +32,7 @@ CACHE_FILE = 'syseeprom_cache'
 # Returns platform and HW SKU
 def get_platform():
     try:
-        proc = subprocess.Popen([SONIC_CFGGEN, '-v', PLATFORM_KEY],
+        proc = subprocess.Popen([SONIC_CFGGEN, '-H', '-v', PLATFORM_KEY],
                                 stdout=subprocess.PIPE,
                                 shell=False,
                                 stderr=subprocess.STDOUT)
