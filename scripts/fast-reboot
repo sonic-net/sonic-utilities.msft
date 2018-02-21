@@ -55,7 +55,8 @@ systemctl stop docker.service
 # Stop opennsl modules for Broadcom platform
 if [ "$sonic_asic_type" = 'broadcom' ];
 then
- systemctl stop opennsl-modules-3.16.0-4-amd64.service
+  service_name=$(systemctl list-units --plain --no-pager --no-legend --type=service | grep opennsl | cut -f 1 -d' ')
+  systemctl stop "$service_name"
 fi
 
 # Wait until all buffers synced with disk
