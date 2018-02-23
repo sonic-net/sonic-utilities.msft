@@ -4,6 +4,7 @@ import swsssdk
 import json
 import socket
 import struct
+import sys
 import os
 from fcntl import ioctl
 import binascii
@@ -244,18 +245,17 @@ def generate_default_route_entries(filename):
 
     db.close(db.APPL_DB)
 
-    if len(default_routes_output) > 0:
-        with open(filename, 'w') as fp:
-            json.dump(default_routes_output, fp, indent=2, separators=(',', ': '))
-    else:
-        if os.path.isfile(filename):
-            os.unlink(filename)
+    with open(filename, 'w') as fp:
+        json.dump(default_routes_output, fp, indent=2, separators=(',', ': '))
 
 
 def main():
-    all_available_macs, map_mac_ip_per_vlan = generate_fdb_entries('/tmp/fdb.json')
-    arp_entries = generate_arp_entries('/tmp/arp.json', all_available_macs)
-    generate_default_route_entries('/tmp/default_routes.json')
+    root_dir = '/tmp'
+    if len(sys.argv) > 1 and os.path.isdir(sys.argv[1]):
+        root_dir = sys.argv[1]
+    all_available_macs, map_mac_ip_per_vlan = generate_fdb_entries(root_dir + '/fdb.json')
+    arp_entries = generate_arp_entries(root_dir + '/arp.json', all_available_macs)
+    generate_default_route_entries(root_dir + '/default_routes.json')
     garp_send(arp_entries, map_mac_ip_per_vlan)
 
     return

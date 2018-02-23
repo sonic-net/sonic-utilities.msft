@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Check root privileges
-if [ "$EUID" -ne 0 ]
+if [[ "$EUID" -ne 0 ]]
 then
   echo "Please run as root"
   exit
@@ -9,7 +9,7 @@ fi
 
 
 # Unload the previously loaded kernel if any loaded
-if [ "$(cat /sys/kernel/kexec_loaded)" -eq 1 ]
+if [[ "$(cat /sys/kernel/kexec_loaded)" -eq 1 ]]
 then
   /sbin/kexec -u
 fi
@@ -27,33 +27,28 @@ sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 /sbin/kexec -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
 
 # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
-/usr/bin/fast-reboot-dump.py
-docker cp /tmp/fdb.json swss:/
-docker cp /tmp/arp.json swss:/
-if [ -e /tmp/default_routes.json ]
-then
-  docker cp /tmp/default_routes.json swss:/
-fi
+# into /host/fast-reboot
+mkdir -p /host/fast-reboot
+/usr/bin/fast-reboot-dump.py /host/fast-reboot
 
-# Kill bgpd to enable graceful restart of BGP
-docker exec -ti bgp killall -9 watchquagga
+# Kill bgpd to start the bgp graceful restart procedure
 docker exec -ti bgp killall -9 zebra
 docker exec -ti bgp killall -9 bgpd
 
 # Kill lldp, otherwise it sends informotion about reboot
-docker kill lldp
+docker kill lldp > /dev/null
 
 # Kill teamd, otherwise it gets down all LAGs
-docker kill teamd
+docker kill teamd > /dev/null
 
-# Kill other containers to make reboot faster
-docker ps -qa | xargs docker kill
+# Kill other containers to make the reboot faster
+docker ps -q | xargs docker kill > /dev/null
 
 # Stop the docker container engine. Otherwise we will have a broken docker storage
 systemctl stop docker.service
 
 # Stop opennsl modules for Broadcom platform
-if [ "$sonic_asic_type" = 'broadcom' ];
+if [[ "$sonic_asic_type" = 'broadcom' ]];
 then
   service_name=$(systemctl list-units --plain --no-pager --no-legend --type=service | grep opennsl | cut -f 1 -d' ')
   systemctl stop "$service_name"
