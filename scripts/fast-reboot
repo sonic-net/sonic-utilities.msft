@@ -29,7 +29,7 @@ sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
 # into /host/fast-reboot
 mkdir -p /host/fast-reboot
-/usr/bin/fast-reboot-dump.py /host/fast-reboot
+/usr/bin/fast-reboot-dump.py -t /host/fast-reboot
 
 # Kill bgpd to start the bgp graceful restart procedure
 docker exec -ti bgp killall -9 zebra
