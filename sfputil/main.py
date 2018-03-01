@@ -28,8 +28,8 @@ PLATFORM_SPECIFIC_CLASS_NAME = "SfpUtil"
 PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 MINIGRAPH_PATH = '/etc/sonic/minigraph.xml'
-HWSKU_KEY = "DEVICE_METADATA['localhost']['hwsku']"
-PLATFORM_KEY = 'platform'
+HWSKU_KEY = 'DEVICE_METADATA.localhost.hwsku'
+PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
 
 # Global platform-specific sfputil class instance
 platform_sfputil = None
@@ -288,7 +288,7 @@ def port_eeprom_data_raw_string_pretty(logical_port_name):
 # Returns platform and HW SKU
 def get_platform_and_hwsku():
     try:
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-v', PLATFORM_KEY],
+        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-H', '-v', PLATFORM_KEY],
                                 stdout=subprocess.PIPE,
                                 shell=False,
                                 stderr=subprocess.STDOUT)
