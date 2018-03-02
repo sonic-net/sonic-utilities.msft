@@ -763,20 +763,29 @@ def config(redis_unix_socket_path):
     data = config_db.get_table('VLAN')
     keys = data.keys()
 
-    def mode(key, data):
-        info = []
-        for m in data.get('members', []):
-            entry = config_db.get_entry('VLAN_MEMBER', (key, m))
-            mode = entry.get('tagging_mode')
-            if mode == None:
-                info.append('?')
-            else:
-                info.append(mode)
-        return '\n'.join(info)
+    def tablelize(keys, data):
+        table = []
+
+        for k in keys:
+            for m in data[k].get('members', []):
+                r = []
+                r.append(k)
+                r.append(data[k]['vlanid'])
+                r.append(m)
+
+                entry = config_db.get_entry('VLAN_MEMBER', (k, m))
+                mode = entry.get('tagging_mode')
+                if mode == None:
+                    r.append('?')
+                else:
+                    r.append(mode)
+
+                table.append(r)
+
+        return table
 
     header = ['Name', 'VID', 'Member', 'Mode']
-    click.echo(tabulate([ [k, data[k]['vlanid'], '\n'.join(data[k].get('members', [])), mode(k, data[k])] for k in keys ], header))
-
+    click.echo(tabulate(tablelize(keys, data), header))
 
 @cli.command('services')
 def services():
