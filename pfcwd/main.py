@@ -5,6 +5,13 @@ import swsssdk
 from tabulate import tabulate
 from natsort import natsorted
 
+# Default configuration
+DEFAULT_DETECTION_TIME = 200
+DEFAULT_RESTORATION_TIME = 200
+DEFAULT_POLL_INTERVAL = 200
+DEFAULT_PORT_NUM = 32
+DEFAULT_ACTION = 'drop'
+
 STATS_DESCRIPTION = [
     ('STORM DETECTED/RESTORED', 'PFC_WD_QUEUE_STATS_DEADLOCK_DETECTED', 'PFC_WD_QUEUE_STATS_DEADLOCK_RESTORED'),
     ('TX OK/DROP',              'PFC_WD_QUEUE_STATS_TX_PACKETS',        'PFC_WD_QUEUE_STATS_TX_DROPPED_PACKETS'),
@@ -34,6 +41,17 @@ def get_all_queues(db):
 def get_all_ports(db):
     port_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_PORT_NAME_MAP')
     return natsorted(port_names.keys())
+
+def get_server_facing_ports(db):
+    candidates = db.get_table('DEVICE_NEIGHBOR')
+    server_facing_ports = []
+    for port in candidates.keys():
+        neighbor = db.get_entry('DEVICE_NEIGHBOR_METADATA', candidates[port]['name'])
+        if neighbor and neighbor['type'].lower() == 'server':
+            server_facing_ports.append(port)
+    if not server_facing_ports:
+        server_facing_ports = [p[1] for p in db.get_table('VLAN_MEMBER').keys()]
+    return server_facing_ports
 
 # Show commands
 @cli.group()
@@ -161,6 +179,40 @@ def stop(ports):
         if port not in all_ports:
             continue
         configdb.mod_entry("PFC_WD_TABLE", port, None)
+
+# Set WD default configuration on server facing ports when enable flag is on
+@cli.command()
+def start_default():
+    """ Start PFC WD by default configurations  """
+    configdb = swsssdk.ConfigDBConnector()
+    configdb.connect()
+    enable = configdb.get_entry('DEVICE_METADATA', 'localhost').get('default_pfcwd_status')
+
+    server_facing_ports = get_server_facing_ports(configdb)
+
+    if not enable or enable.lower() != "enable":
+       return
+
+    device_type = configdb.get_entry('DEVICE_METADATA', 'localhost').get('type')
+    if device_type.lower() != "torrouter":
+        return
+
+    port_num = len(configdb.get_table('PORT').keys())
+
+    # Paramter values positively correlate to the number of ports.
+    multiply = max(1, (port_num-1)/DEFAULT_PORT_NUM+1)
+    pfcwd_info = {
+        'detection_time': DEFAULT_DETECTION_TIME * multiply,
+        'restoration_time': DEFAULT_RESTORATION_TIME * multiply,
+        'action': DEFAULT_ACTION
+    }
+
+    for port in server_facing_ports:
+        configdb.set_entry("PFC_WD_TABLE", port, pfcwd_info)
+
+    pfcwd_info = {}
+    pfcwd_info['POLL_INTERVAL'] = DEFAULT_POLL_INTERVAL * multiply
+    configdb.mod_entry("PFC_WD_TABLE", "GLOBAL", pfcwd_info)
 
 if __name__ == '__main__':
     cli()
