@@ -39,10 +39,7 @@ def _is_neighbor_ipaddress(ipaddress):
     """
     config_db = ConfigDBConnector()
     config_db.connect()
-
-    # Convert the IP address to uppercase because IPv6 addresses are stored
-    # in ConfigDB with all uppercase alphabet characters
-    entry = config_db.get_entry('BGP_NEIGHBOR', ipaddress.upper())
+    entry = config_db.get_entry('BGP_NEIGHBOR', ipaddress)
     return True if entry else False
 
 def _get_all_neighbor_ipaddresses():
@@ -73,16 +70,17 @@ def _change_bgp_session_status_by_addr(ipaddress, status, verbose):
     config_db = ConfigDBConnector()
     config_db.connect()
 
-    # Convert the IP address to uppercase because IPv6 addresses are stored
-    # in ConfigDB with all uppercase alphabet characters
-    config_db.mod_entry('bgp_neighbor', ipaddress.upper(), {'admin_status': status})
+    config_db.mod_entry('bgp_neighbor', ipaddress, {'admin_status': status})
 
 def _change_bgp_session_status(ipaddr_or_hostname, status, verbose):
     """Start up or shut down BGP session by IP address or hostname
     """
     ip_addrs = []
-    if _is_neighbor_ipaddress(ipaddr_or_hostname):
-        ip_addrs.append(ipaddr_or_hostname)
+
+    # If we were passed an IP address, convert it to lowercase because IPv6 addresses were
+    # stored in ConfigDB with all lowercase alphabet characters during minigraph parsing
+    if _is_neighbor_ipaddress(ipaddr_or_hostname.lower()):
+        ip_addrs.append(ipaddr_or_hostname.lower())
     else:
         # If <ipaddr_or_hostname> is not the IP address of a neighbor, check to see if it's a hostname
         ip_addrs = _get_neighbor_ipaddress_list_by_hostname(ipaddr_or_hostname)
