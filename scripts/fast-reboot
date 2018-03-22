@@ -63,6 +63,12 @@ then
   systemctl stop "$service_name"
 fi
 
+# Stop kernel modules for Nephos platform
+if [[ "$sonic_asic_type" = 'nephos' ]];
+then
+  systemctl stop nps-modules-`uname -r`.service
+fi
+
 # Wait until all buffers synced with disk
 sync
 sleep 1
