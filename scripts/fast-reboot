@@ -50,6 +50,19 @@ docker kill lldp > /dev/null
 # Kill teamd, otherwise it gets down all LAGs
 docker kill teamd > /dev/null
 
+# syncd graceful stop is supported only for Broadcoms platforms only for now
+if [[ "$sonic_asic_type" = 'broadcom' ]];
+then
+    # Gracefully stop syncd
+    docker exec -ti syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
+
+    # Check that syncd was stopped
+    while docker top syncd | grep -q /usr/bin/syncd
+    do
+          sleep 0.1
+    done
+fi
+
 # Kill other containers to make the reboot faster
 docker ps -q | xargs docker kill > /dev/null
 
