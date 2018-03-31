@@ -3,7 +3,7 @@
 function stop_sonic_services()
 {
     echo "Stopping syncd..."
-    docker exec -it syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
+    docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
     sleep 3
 }
 

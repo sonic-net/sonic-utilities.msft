@@ -41,8 +41,8 @@ mkdir -p /host/fast-reboot
 /usr/bin/fast-reboot-dump.py -t /host/fast-reboot
 
 # Kill bgpd to start the bgp graceful restart procedure
-docker exec -ti bgp killall -9 zebra
-docker exec -ti bgp killall -9 bgpd
+docker exec -i bgp killall -9 zebra
+docker exec -i bgp killall -9 bgpd
 
 # Kill lldp, otherwise it sends informotion about reboot
 docker kill lldp > /dev/null
@@ -54,7 +54,7 @@ docker kill teamd > /dev/null
 if [[ "$sonic_asic_type" = 'broadcom' ]];
 then
     # Gracefully stop syncd
-    docker exec -ti syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
+    docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
 
     # Check that syncd was stopped
     while docker top syncd | grep -q /usr/bin/syncd
