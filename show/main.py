@@ -639,6 +639,13 @@ def runningconfiguration():
     pass
 
 
+# 'all' subcommand ("show runningconfiguration all")
+@runningconfiguration.command()
+def all():
+    """Show full running configuration"""
+    run_command('sonic-cfggen -d --print-data')
+
+
 # 'bgp' subcommand ("show runningconfiguration bgp")
 @runningconfiguration.command()
 def bgp():
