@@ -9,17 +9,17 @@
   
     Example of the output:
     admin@str~$ fdbshow
-      No.    Vlan  MacAddress         Port
-    -----  ------  -----------------  ----------
-        1    1000  7C:FE:90:80:9F:05  Ethernet20
-        2    1000  7C:FE:90:80:9F:10  Ethernet40
-        3    1000  7C:FE:90:80:9F:01  Ethernet4
-        4    1000  7C:FE:90:80:9F:02  Ethernet8
+      No.    Vlan  MacAddress         Port        Type
+    -----  ------  -----------------  ----------  -------
+        1    1000  7C:FE:90:80:9F:05  Ethernet20  Dynamic
+        2    1000  7C:FE:90:80:9F:10  Ethernet40  Dynamic
+        3    1000  7C:FE:90:80:9F:01  Ethernet4   Dynamic
+        4    1000  7C:FE:90:80:9F:02  Ethernet8   Dynamic
     Total number of entries 4
     admin@str:~$ fdbshow -p Ethernet4
-      No.    Vlan  MacAddress         Port
-    -----  ------  -----------------  ---------
-        1    1000  7C:FE:90:80:9F:01  Ethernet4
+      No.    Vlan  MacAddress         Port        Type
+    -----  ------  -----------------  ---------   -------
+        1    1000  7C:FE:90:80:9F:01  Ethernet4   Dynamic
     Total number of entries 1
     admin@str:~$ fdbshow -v 1001
     1001 is not in list
@@ -35,7 +35,7 @@ from tabulate import tabulate
 
 class FdbShow(object):
 
-    HEADER = ['No.', 'Vlan', 'MacAddress', 'Port']
+    HEADER = ['No.', 'Vlan', 'MacAddress', 'Port', 'Type']
     FDB_COUNT = 0
 
     def __init__(self):
@@ -71,6 +71,8 @@ class FdbShow(object):
 
             ent = self.db.get_all('ASIC_DB', s, blocking=True)
             br_port_id = ent[b"SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
+            ent_type = ent[b"SAI_FDB_ENTRY_ATTR_TYPE"]
+            fdb_type = ['Dynamic','Static'][ent_type == "SAI_FDB_ENTRY_TYPE_STATIC"]
             if br_port_id not in self.if_br_oid_map:
                 continue
             port_id = self.if_br_oid_map[br_port_id]
@@ -79,7 +81,7 @@ class FdbShow(object):
                 vlan_id = fdb["vlan"]
             elif 'bvid' in fdb:
                 vlan_id = port_util.get_vlan_id_from_bvid(self.db, fdb["bvid"])
-            self.bridge_mac_list.append((int(vlan_id),) + (fdb["mac"],) + (if_name,))
+            self.bridge_mac_list.append((int(vlan_id),) + (fdb["mac"],) + (if_name,) + (fdb_type,))
 
         self.bridge_mac_list.sort(key = lambda x: x[0])
         return
@@ -118,7 +120,7 @@ class FdbShow(object):
 
         for fdb in self.bridge_mac_list:
             self.FDB_COUNT += 1
-            output.append([self.FDB_COUNT, fdb[0], fdb[1], fdb[2]])
+            output.append([self.FDB_COUNT, fdb[0], fdb[1], fdb[2], fdb[3]])
 
         print tabulate(output, self.HEADER)
         print "Total number of entries {0} ".format(self.FDB_COUNT)
