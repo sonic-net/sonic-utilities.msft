@@ -2,6 +2,7 @@
 
 import click
 import json
+import syslog
 import tabulate
 from natsort import natsorted
 
@@ -13,14 +14,17 @@ from swsssdk import SonicV2Connector
 
 def info(msg):
     click.echo(click.style("Info: ", fg='cyan') + click.style(str(msg), fg='green'))
+    syslog.syslog(syslog.LOG_INFO, msg)
 
 
 def warning(msg):
     click.echo(click.style("Warning: ", fg='cyan') + click.style(str(msg), fg='yellow'))
+    syslog.syslog(syslog.LOG_WARNING, msg)
 
 
 def error(msg):
     click.echo(click.style("Error: ", fg='cyan') + click.style(str(msg), fg='red'))
+    syslog.syslog(syslog.LOG_ERR, msg)
 
 
 def deep_update(dst, src):
@@ -354,8 +358,11 @@ class AclLoader(object):
 
             for acl_entry_name in acl_set.acl_entries.acl_entry:
                 acl_entry = acl_set.acl_entries.acl_entry[acl_entry_name]
-                rule = self.convert_rule_to_db_schema(table_name, acl_entry)
-                deep_update(self.rules_info, rule)
+                try:
+                    rule = self.convert_rule_to_db_schema(table_name, acl_entry)
+                    deep_update(self.rules_info, rule)
+                except AclLoaderException as ex:
+                    error("Error processing rule %s: %s. Skipped." % (acl_entry_name, ex))
 
             if not self.is_table_mirror(table_name):
                 deep_update(self.rules_info, self.deny_rule(table_name))
