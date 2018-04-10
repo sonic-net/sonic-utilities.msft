@@ -865,10 +865,17 @@ def tacacs():
 
 
 #
-# 'session' command ###
+# 'mirror' group ###
 #
 
-@cli.command()
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def mirror():
+    """Show mirroring (Everflow) information"""
+    pass
+
+
+# 'session' subcommand  ("show mirror session")
+@mirror.command()
 @click.argument('session_name', required=False)
 def session(session_name):
     """Show existing everflow sessions"""
@@ -888,24 +895,7 @@ def acl():
     pass
 
 
-#
-# 'acl table' command ###
-#
-
-@acl.command()
-@click.argument('table_name', required=False)
-def table(table_name):
-    """Show existing ACL tables"""
-    if table_name is None:
-        table_name = ""
-
-    run_command("acl-loader show table {}".format(table_name))
-
-
-#
-# 'acl rule' command ###
-#
-
+# 'rule' subcommand  ("show acl rule")
 @acl.command()
 @click.argument('table_name', required=False)
 @click.argument('rule_id', required=False)
@@ -919,8 +909,20 @@ def rule(table_name, rule_id):
 
     run_command("acl-loader show rule {} {}".format(table_name, rule_id))
 
+
+# 'table' subcommand  ("show acl table")
+@acl.command()
+@click.argument('table_name', required=False)
+def table(table_name):
+    """Show existing ACL tables"""
+    if table_name is None:
+        table_name = ""
+
+    run_command("acl-loader show table {}".format(table_name))
+
+
 #
-# 'session' command (show ecn)
+# 'ecn' command ("show ecn")
 #
 @cli.command('ecn')
 def ecn():
