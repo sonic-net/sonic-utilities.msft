@@ -182,6 +182,18 @@ def counters():
     command = "portstat -c"
     run_command(command)
 
+@cli.command()
+def queuecounters():
+    """Clear queue counters"""
+    command = "queuestat -c"
+    run_command(command)
+
+@cli.command()
+def pfccounters():
+    """Clear pfc counters"""
+    command = "pfcstat -c"
+    run_command(command)
+
 #
 # 'arp' command ####
 #

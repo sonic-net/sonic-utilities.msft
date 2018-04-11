@@ -323,6 +323,53 @@ def portchannel():
     """Show PortChannel information"""
     run_command("teamshow")
 
+#
+# 'pfc' group ("show pfc ...")
+#
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def pfc():
+    """Show details of the priority-flow-control (pfc) """
+    pass
+
+# 'counters' subcommand ("show interfaces pfccounters")
+@pfc.command()
+@click.option('-c', '--clear', is_flag=True)
+def counters(clear):
+    """Show pfc counters"""
+
+    cmd = "pfcstat"
+
+    if clear:
+        cmd += " -c"
+
+    run_command(cmd)
+
+#
+# 'queue' group ("show queue ...")
+#
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def queue():
+    """Show details of the queues """
+    pass
+
+# 'queuecounters' subcommand ("show queue counters")
+@queue.command()
+@click.argument('interfacename', required=False)
+@click.option('-c', '--clear', is_flag=True)
+def counters(interfacename, clear):
+    """Show queue counters"""
+
+    cmd = "queuestat"
+
+    if clear:
+        cmd += " -c"
+    else:
+        if interfacename is not None:
+            cmd += " -p {}".format(interfacename)
+
+    run_command(cmd)
 
 #
 # 'mac' command ("show mac ...")

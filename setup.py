@@ -51,6 +51,8 @@ setup(
         'scripts/port2alias',
         'scripts/portconfig',
         'scripts/portstat',
+        'scripts/pfcstat',
+        'scripts/queuestat',
         'scripts/reboot',
         'scripts/teamshow'
     ],
