@@ -8,7 +8,6 @@ import sys
 import time
 import click
 import urllib
-import shutil
 import subprocess
 
 HOST_PATH = '/host'
@@ -126,7 +125,7 @@ def remove_image(image):
 
         image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
         click.echo('Removing image root filesystem...')
-        shutil.rmtree(HOST_PATH + '/' + image_dir)
+        subprocess.call(['rm','-rf', HOST_PATH + '/' + image_dir])
         click.echo('Image removed')
     else:
         click.echo('Updating GRUB...')
@@ -142,7 +141,7 @@ def remove_image(image):
 
         image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
         click.echo('Removing image root filesystem...')
-        shutil.rmtree(HOST_PATH + '/' + image_dir)
+        subprocess.call(['rm','-rf', HOST_PATH + '/' + image_dir])
         click.echo('Done')
 
         run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
