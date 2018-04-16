@@ -113,6 +113,11 @@ def config(ports):
     poll_interval = configdb.get_entry( 'PFC_WD_TABLE', 'GLOBAL').get('POLL_INTERVAL')
     if poll_interval is not None:
         click.echo("Changed polling interval to " + poll_interval + "ms")
+
+    big_red_switch = configdb.get_entry( 'PFC_WD_TABLE', 'GLOBAL').get('BIG_RED_SWITCH')
+    if big_red_switch is not None:
+        click.echo("BIG_RED_SWITCH status is " + big_red_switch)
+
     click.echo(tabulate(table, CONFIG_HEADER, stralign='right', numalign='right', tablefmt='simple'))
 
 # Start WD
@@ -212,6 +217,19 @@ def start_default():
 
     pfcwd_info = {}
     pfcwd_info['POLL_INTERVAL'] = DEFAULT_POLL_INTERVAL * multiply
+    configdb.mod_entry("PFC_WD_TABLE", "GLOBAL", pfcwd_info)
+
+# Enable/disable PFC WD BIG_RED_SWITCH mode
+@cli.command()
+@click.argument('big_red_switch', type=click.Choice(['enable', 'disable']))
+def big_red_switch(big_red_switch):
+    """ Enable/disable BIG_RED_SWITCH mode """
+    configdb = swsssdk.ConfigDBConnector()
+    configdb.connect()
+    pfcwd_info = {}
+    if big_red_switch is not None:
+        pfcwd_info['BIG_RED_SWITCH'] = big_red_switch
+
     configdb.mod_entry("PFC_WD_TABLE", "GLOBAL", pfcwd_info)
 
 if __name__ == '__main__':
