@@ -566,7 +566,7 @@ def psustatus(index):
 def logging(process, lines, follow):
     """Show system log"""
     if follow:
-        run_command("sudo tail -f /var/log/syslog")
+        run_command("sudo tail -F /var/log/syslog")
     else:
         if os.path.isfile("/var/log/syslog.1"):
             command = "sudo cat /var/log/syslog.1 /var/log/syslog"
