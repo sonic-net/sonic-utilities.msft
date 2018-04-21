@@ -117,22 +117,27 @@ def run_command(command, display_cmd=False):
         click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
 
     proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    (out, err) = proc.communicate()
 
-    try:
-        click.echo(out)
-    except IOError as e:
-        # In our version of Click (v6.6), click.echo() and click.echo_via_pager() do not properly handle
-        # SIGPIPE, and if a pipe is broken before all output is processed (e.g., pipe output to 'head'),
-        # it will result in a stack trace. This is apparently fixed upstream, but for now, we silently
-        # ignore SIGPIPE here.
-        if e.errno == errno.EPIPE:
-            sys.exit(0)
-        else:
-            raise
+    while True:
+        output = proc.stdout.readline()
+        if output == "" and proc.poll() is not None:
+            break
+        if output:
+            try:
+                click.echo(output.rstrip('\n'))
+            except IOError as e:
+                # In our version of Click (v6.6), click.echo() and click.echo_via_pager() do not properly handle
+                # SIGPIPE, and if a pipe is broken before all output is processed (e.g., pipe output to 'head'),
+                # it will result in a stack trace. This is apparently fixed upstream, but for now, we silently
+                # ignore SIGPIPE here.
+                if e.errno == errno.EPIPE:
+                    sys.exit(0)
+                else:
+                    raise
 
-    if proc.returncode != 0:
-        sys.exit(proc.returncode)
+    rc = proc.poll()
+    if rc != 0:
+        sys.exit(rc)
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
@@ -769,7 +774,7 @@ def interfaces(interfacename, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def snmp(server, verbose):
     """Show SNMP information"""
-    cmd = "sudo docker exec -it snmp cat /etc/snmp/snmpd.conf"
+    cmd = "sudo docker exec snmp cat /etc/snmp/snmpd.conf"
 
     if server is not None:
         cmd += " | grep -i agentAddress"
@@ -806,11 +811,11 @@ def bgp(verbose):
     result = proc.stdout.read().rstrip()
     click.echo("Routing-Stack is: {}".format(result))
     if result == "quagga":
-        run_command('sudo docker exec -it bgp cat /etc/quagga/bgpd.conf', display_cmd=verbose)
+        run_command('sudo docker exec bgp cat /etc/quagga/bgpd.conf', display_cmd=verbose)
     elif result == "frr":
-        run_command('sudo docker exec -it bgp cat /etc/frr/bgpd.conf', display_cmd=verbose)
+        run_command('sudo docker exec bgp cat /etc/frr/bgpd.conf', display_cmd=verbose)
     elif result == "gobgp":
-        run_command('sudo docker exec -it bgp cat /etc/gpbgp/bgpd.conf', display_cmd=verbose)
+        run_command('sudo docker exec bgp cat /etc/gpbgp/bgpd.conf', display_cmd=verbose)
     else:
         click.echo("Unidentified routing-stack")
 
@@ -916,7 +921,7 @@ def services():
         if line != '':
                 print(line.rstrip()+'\t'+"docker")
                 print("---------------------------")
-                cmd = "sudo docker exec -it {} ps -ef | sed '$d'".format(line.rstrip())
+                cmd = "sudo docker exec {} ps aux | sed '$d'".format(line.rstrip())
                 proc1 = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
                 print proc1.stdout.read()
         else:
