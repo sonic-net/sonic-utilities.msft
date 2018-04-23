@@ -10,6 +10,7 @@ from swsssdk import ConfigDBConnector
 from minigraph import parse_device_desc_xml
 
 import aaa
+import mlnx
 
 SONIC_CFGGEN_PATH = "sonic-cfggen"
 MINIGRAPH_PATH = "/etc/sonic/minigraph.xml"
@@ -532,6 +533,16 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
     if gmin is not None: command += " -gmin %d" % gmin
     if verbose: command += " -vv"
     run_command(command, display_cmd=verbose)
+
+
+#
+# 'platform' group
+#
+@cli.group()
+def platform():
+    """Platform-related configuration tasks"""
+platform.add_command(mlnx.mlnx)
+
 
 if __name__ == '__main__':
     cli()
