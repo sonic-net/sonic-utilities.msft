@@ -248,10 +248,10 @@ class AclLoader(object):
                 rule_props["IP_PROTOCOL"] = rule.ip.config.protocol
 
         if rule.ip.config.source_ip_address:
-            rule_props["SRC_IP"] = rule.ip.config.source_ip_address
+            rule_props["SRC_IP"] = rule.ip.config.source_ip_address.encode("ascii")
 
         if rule.ip.config.destination_ip_address:
-            rule_props["DST_IP"] = rule.ip.config.destination_ip_address
+            rule_props["DST_IP"] = rule.ip.config.destination_ip_address.encode("ascii")
 
         # NOTE: DSCP is available only for MIRROR table
         if self.is_table_mirror(table_name):
@@ -321,7 +321,7 @@ class AclLoader(object):
         rule_props = {}
         rule_data = {(table_name, "RULE_" + str(rule_idx)): rule_props}
 
-        rule_props["PRIORITY"] = self.max_priority - rule_idx
+        rule_props["PRIORITY"] = str(self.max_priority - rule_idx)
 
         deep_update(rule_props, self.convert_action(table_name, rule_idx, rule))
         deep_update(rule_props, self.convert_l2(table_name, rule_idx, rule))
@@ -338,8 +338,8 @@ class AclLoader(object):
         """
         rule_props = {}
         rule_data = {(table_name, "DEFAULT_RULE"): rule_props}
-        rule_props["PRIORITY"] = self.min_priority
-        rule_props["ETHER_TYPE"] = self.ethertype_map["ETHERTYPE_IPV4"]
+        rule_props["PRIORITY"] = str(self.min_priority)
+        rule_props["ETHER_TYPE"] = str(self.ethertype_map["ETHERTYPE_IPV4"])
         rule_props["PACKET_ACTION"] = "DROP"
         return rule_data
 
@@ -349,7 +349,7 @@ class AclLoader(object):
         :return:
         """
         for acl_set_name in self.yang_acl.acl.acl_sets.acl_set:
-            table_name = acl_set_name.replace(" ", "_").replace("-", "_").upper()
+            table_name = acl_set_name.replace(" ", "_").replace("-", "_").upper().encode('ascii')
             acl_set = self.yang_acl.acl.acl_sets.acl_set[acl_set_name]
 
             if not self.is_table_valid(table_name):
@@ -385,23 +385,54 @@ class AclLoader(object):
         modifications.
         :return:
         """
+
+        # TODO: Until we test ASIC behavior, we cannot assume that we can insert
+        # dataplane ACLs and shift existing ACLs. Therefore, we perform a full
+        # update on dataplane ACLs, and only perform an incremental update on
+        # control plane ACLs.
+
         new_rules = set(self.rules_info.iterkeys())
+        new_dataplane_rules = set()
+        new_controlplane_rules = set()
         current_rules = set(self.rules_db_info.iterkeys())
+        current_dataplane_rules = set()
+        current_controlplane_rules = set()
 
-        added_rules = new_rules.difference(current_rules)
-        removed_rules = current_rules.difference(new_rules)
-        existing_rules = new_rules.intersection(current_rules)
+        for key in new_rules:
+            table_name = key[0]
+            if self.tables_db_info[table_name]['type'].upper() == self.ACL_TABLE_TYPE_CTRLPLANE:
+                new_controlplane_rules.add(key)
+            else:
+                new_dataplane_rules.add(key)
 
-        for key in removed_rules:
+        for key in current_rules:
+            table_name = key[0]
+            if self.tables_db_info[table_name]['type'].upper() == self.ACL_TABLE_TYPE_CTRLPLANE:
+                current_controlplane_rules.add(key)
+            else:
+                current_dataplane_rules.add(key)
+
+        # Remove all existing dataplane rules
+        for key in current_dataplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, None)
 
-        for key in added_rules:
+        # Add all new dataplane rules
+        for key in new_dataplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
 
-        for key in existing_rules:
-            if cmp(self.rules_info[key], self.rules_db_info[key]):
-                self.configdb.mod_entry(self.ACL_RULE, key, None)
-                self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
+        added_controlplane_rules = new_controlplane_rules.difference(current_controlplane_rules)
+        removed_controlplane_rules = current_controlplane_rules.difference(new_controlplane_rules)
+        existing_controlplane_rules = new_rules.intersection(current_controlplane_rules)
+
+        for key in added_controlplane_rules:
+            self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
+
+        for key in removed_controlplane_rules:
+            self.configdb.mod_entry(self.ACL_RULE, key, None)
+
+        for key in existing_controlplane_rules:
+            if cmp(self.rules_info[key], self.rules_db_info[key]) != 0:
+                self.configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
 
 
     def delete(self, table=None, rule=None):
