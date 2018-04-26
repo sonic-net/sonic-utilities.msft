@@ -2,7 +2,7 @@
 """
 portconfig is the utility to show and change ECN configuration
 
-usage: portconfig [-h] [-v] [-s] [-p PROFILE] [-gmin GREEN_MIN]
+usage: portconfig [-h] [-v] [-s] [-f] [-p PROFILE] [-gmin GREEN_MIN]
                  [-gmax GREEN_MAX] [-ymin YELLOW_MIN] [-ymax YELLOW_MAX]
                  [-rmin RED_MIN] [-rmax RED_MAX] [-vv]
 
@@ -10,8 +10,9 @@ optional arguments:
   -h     --help                show this help message and exit
   -v     --version             show program's version number and exit
   -vv    --verbose             verbose output
-  -p'    --port                port name
+  -p     --port                port name
   -s     --speed               port speed in Mbits
+  -f     --fec                 port fec mode
 """
 from __future__ import print_function
 
@@ -23,6 +24,7 @@ import swsssdk
 
 PORT_TABLE_NAME = "PORT"
 PORT_SPEED_CONFIG_FIELD_NAME = "speed"
+PORT_FEC_CONFIG_FIELD_NAME = "fec"
 
 class portconfig(object):
     """
@@ -50,6 +52,11 @@ class portconfig(object):
             print("Setting speed %s on port %s" % (speed, port))
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_SPEED_CONFIG_FIELD_NAME: speed})
 
+    def set_fec(self, port, fec):
+        if self.verbose:
+            print("Setting fec %s on port %s" % (fec, port))
+        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_FEC_CONFIG_FIELD_NAME: fec})
+
 def main():
     parser = argparse.ArgumentParser(description='Set SONiC port parameters',
                          version='1.0.0',
@@ -57,6 +64,7 @@ def main():
     parser.add_argument('-p', '--port', type=str, help='port name (e.g. Ethernet0)', required=True, default=None)
     parser.add_argument('-l', '--list', action='store_true', help='list port parametars', default=False)
     parser.add_argument('-s', '--speed', type=int, help='port speed value in Mbit', default=None)
+    parser.add_argument('-f', '--fec', type=str, help='port fec mode value in (none, rs, fc)', default=None)
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
     args = parser.parse_args()
 
@@ -64,8 +72,11 @@ def main():
         port = portconfig(args.verbose, args.port)
         if args.list:
             port.list_params(args.port)
-        elif args.speed:
-            port.set_speed(args.port, args.speed)
+        elif args.speed or args.fec:
+            if args.speed:
+                port.set_speed(args.port, args.speed)
+            if args.fec:
+                port.set_fec(args.port, args.fec)
         else:
             parser.print_help()
             sys.exit(1)
