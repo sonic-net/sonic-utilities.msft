@@ -507,7 +507,7 @@ class AclLoader(object):
         :param rule_id: Optional. ACL rule name. Filter rule by specified rule name.
         :return:
         """
-        header = ("Rule ID", "Rule Name", "Priority", "Action", "Match")
+        header = ("Table", "Rule", "Priority", "Action", "Match")
 
         ignore_list = ["PRIORITY", "PACKET_ACTION", "MIRROR_ACTION"]
 
