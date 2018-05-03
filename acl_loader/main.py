@@ -366,7 +366,7 @@ class AclLoader(object):
                 warning("%s table does not exist" % (table_name))
                 continue
 
-            if self.current_table is not None and self.current_table != table_name
+            if self.current_table is not None and self.current_table != table_name:
                 continue
 
             for acl_entry_name in acl_set.acl_entries.acl_entry:
