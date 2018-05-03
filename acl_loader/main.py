@@ -78,6 +78,7 @@ class AclLoader(object):
     def __init__(self):
         self.yang_acl = None
         self.requested_session = None
+        self.current_table = None
         self.tables_db_info = {}
         self.rules_db_info = {}
         self.rules_info = {}
@@ -146,10 +147,19 @@ class AclLoader(object):
 
         return None
 
+    def set_table_name(self, table_name):
+        """
+        Set table name to restrict the table to be modified
+        :param table_name: Table name
+        :return:
+        """
+        self.current_table = table_name
+
     def set_session_name(self, session_name):
         """
-        Set session name to se used in ACL rule action.
+        Set session name to be used in ACL rule action
         :param session_name: Mirror session name
+        :return:
         """
         if session_name not in self.get_sessions_db_info():
             raise AclLoaderException("Session %s does not exist" % session_name)
@@ -356,6 +366,9 @@ class AclLoader(object):
                 warning("%s table does not exist" % (table_name))
                 continue
 
+            if self.current_table is not None and self.current_table != table_name
+                continue
+
             for acl_entry_name in acl_set.acl_entries.acl_entry:
                 acl_entry = acl_set.acl_entries.acl_entry[acl_entry_name]
                 try:
@@ -370,11 +383,14 @@ class AclLoader(object):
     def full_update(self):
         """
         Perform full update of ACL rules configuration. All existing rules
-        will be removed. New rules loaded from file will be installed.
+        will be removed. New rules loaded from file will be installed. If
+        the current_table is not empty, only rules within that table will
+        be removed and new rules in that table will be installed.
         :return:
         """
         for key in self.rules_db_info.keys():
-            self.configdb.mod_entry(self.ACL_RULE, key, None)
+            if self.current_table is None or self.current_table == key[0]:
+               self.configdb.mod_entry(self.ACL_RULE, key, None)
 
         self.configdb.mod_config({self.ACL_RULE: self.rules_info})
 
@@ -624,14 +640,19 @@ def update(ctx):
 
 @update.command()
 @click.argument('filename', type=click.Path(exists=True))
+@click.option('--table_name', type=click.STRING, required=False)
 @click.option('--session_name', type=click.STRING, required=False)
 @click.option('--max_priority', type=click.INT, required=False)
 @click.pass_context
-def full(ctx, filename, session_name, max_priority):
+def full(ctx, filename, table_name, session_name, max_priority):
     """
     Full update of ACL rules configuration.
+    If a table_name is provided, the operation will be restricted in the specified table.
     """
     acl_loader = ctx.obj["acl_loader"]
+
+    if table_name:
+        acl_loader.set_table_name(table_name)
 
     if session_name:
         acl_loader.set_session_name(session_name)
