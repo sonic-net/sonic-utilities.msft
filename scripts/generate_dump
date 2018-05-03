@@ -290,7 +290,7 @@ main() {
     if [[ $platform == *"mlnx"* ]]; then
         local sai_dump_filename="/tmp/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
         docker exec -it syncd saisdkdump -f $sai_dump_filename
-        docker cp syncd:$sai_dump_filename /tmp/
+        docker exec syncd tar Ccf $(dirname $sai_dump_filename) - $(basename $sai_dump_filename) | tar Cxf /tmp/ -
         save_file $sai_dump_filename sai_sdk_dump true
     fi
 
