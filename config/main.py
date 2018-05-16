@@ -13,8 +13,6 @@ import aaa
 import mlnx
 
 SONIC_CFGGEN_PATH = "sonic-cfggen"
-MINIGRAPH_PATH = "/etc/sonic/minigraph.xml"
-MINIGRAPH_BGP_SESSIONS = "minigraph_bgp"
 
 #
 # Helper functions
