@@ -21,6 +21,7 @@ setup(
         'acl_loader',
         'clear',
         'config',
+        'counterpoll',
         'crm',
         'debug',
         'pfcwd',
@@ -63,6 +64,7 @@ setup(
         'console_scripts': [
             'acl-loader = acl_loader.main:cli',
             'config = config.main:cli',
+            'counterpoll = counterpoll.main:cli',
             'crm = crm.main:cli',
             'debug = debug.main:cli',
             'pfcwd = pfcwd.main:cli',
