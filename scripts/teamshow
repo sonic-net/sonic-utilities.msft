@@ -24,12 +24,12 @@ import swsssdk
 import subprocess
 import sys
 from tabulate import tabulate
-from minigraph import parse_xml
 from natsort import natsorted
 from sonic_platform import get_machine_info
 from sonic_platform import get_platform_info
 
-PORT_CHANNEL_TABLE_PREFIX = "LAG_TABLE:"
+PORT_CHANNEL_APPL_TABLE_PREFIX = "LAG_TABLE:"
+PORT_CHANNEL_CFG_TABLE_PREFIX = "PORTCHANNEL|"
 PORT_CHANNEL_STATUS_FIELD = "oper_status"
 
 class Teamshow(object):
@@ -41,21 +41,20 @@ class Teamshow(object):
         # setup db connection
         self.db = swsssdk.SonicV2Connector(host="127.0.0.1")
         self.db.connect(self.db.APPL_DB)
+        self.db.connect(self.db.CONFIG_DB)
 
     def get_portchannel_names(self):
         """
-            Get the portchannel names from minigraph.
+            Get the portchannel names from database.
         """
-        minigraph_path = '/etc/sonic/minigraph.xml'
-        machine_info = get_machine_info()
-        platform_info = get_platform_info(machine_info)
-        self.teams = parse_xml(minigraph_path, platform = platform_info)['PORTCHANNEL'].keys();
+        team_keys = self.db.keys(self.db.CONFIG_DB, PORT_CHANNEL_CFG_TABLE_PREFIX+"*")
+        self.teams = [key[len(PORT_CHANNEL_CFG_TABLE_PREFIX):] for key in team_keys]
 
     def get_portchannel_status(self, port_channel_name):
         """
             Get port channel status from database.
         """
-        full_table_id = PORT_CHANNEL_TABLE_PREFIX + port_channel_name
+        full_table_id = PORT_CHANNEL_APPL_TABLE_PREFIX + port_channel_name
         return self.db.get(self.db.APPL_DB, full_table_id, PORT_CHANNEL_STATUS_FIELD)
 
     def get_team_id(self, team):
