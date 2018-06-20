@@ -282,7 +282,7 @@ def reload():
             command = "{} -m -t {} >/tmp/qos.json".format(SONIC_CFGGEN_PATH, qos_template_file)
             run_command(command, display_cmd=True)
 
-            # Apply the configurations only when both files are presented
+            # Apply the configurations only when both buffer and qos configuration files are presented
             command = "{} -j /tmp/buffers.json --write-to-db".format(SONIC_CFGGEN_PATH)
             run_command(command, display_cmd=True)
             command = "{} -j /tmp/qos.json --write-to-db".format(SONIC_CFGGEN_PATH)
