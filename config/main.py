@@ -276,14 +276,19 @@ def reload():
     if os.path.isfile(buffer_template_file):
         command = "{} -m -t {} >/tmp/buffers.json".format(SONIC_CFGGEN_PATH, buffer_template_file)
         run_command(command, display_cmd=True)
-        command = "{} -j /tmp/buffers.json --write-to-db".format(SONIC_CFGGEN_PATH)
-        run_command(command, display_cmd=True)
-        qos_file = os.path.join('/usr/share/sonic/device/', platform, hwsku, 'qos.json')
-        if os.path.isfile(qos_file):
-            command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, qos_file)
+
+        qos_template_file = os.path.join('/usr/share/sonic/device/', platform, hwsku, 'qos.json.j2')
+        if os.path.isfile(qos_template_file):
+            command = "{} -m -t {} >/tmp/qos.json".format(SONIC_CFGGEN_PATH, qos_template_file)
+            run_command(command, display_cmd=True)
+
+            # Apply the configurations only when both buffer and qos configuration files are presented
+            command = "{} -j /tmp/buffers.json --write-to-db".format(SONIC_CFGGEN_PATH)
+            run_command(command, display_cmd=True)
+            command = "{} -j /tmp/qos.json --write-to-db".format(SONIC_CFGGEN_PATH)
             run_command(command, display_cmd=True)
         else:
-            click.secho('QoS definition not found at {}'.format(qos_file), fg='yellow')
+            click.secho('QoS definition template not found at {}'.format(qos_template_file), fg='yellow')
     else:
         click.secho('Buffer definition template not found at {}'.format(buffer_template_file), fg='yellow')
 
