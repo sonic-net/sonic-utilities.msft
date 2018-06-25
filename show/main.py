@@ -1057,5 +1057,24 @@ def ecn():
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
     click.echo(proc.stdout.read())
 
+#
+# 'reboot-cause' command ("show reboot-cause")
+#
+@cli.command('reboot-cause')
+def reboot_cause():
+    """Show cause of most recent reboot"""
+    PREVIOUS_REBOOT_CAUSE_FILE = "/var/cache/sonic/previous-reboot-cause.txt"
+
+    # At boot time, PREVIOUS_REBOOT_CAUSE_FILE is generated based on
+    # the contents of the 'reboot cause' file as it was left when the device
+    # went down for reboot. This file should always be created at boot,
+    # but check first just in case it's not present.
+    if not os.path.isfile(PREVIOUS_REBOOT_CAUSE_FILE):
+        click.echo("Unable to determine cause of previous reboot\n")
+    else:
+        cmd = "cat {}".format(PREVIOUS_REBOOT_CAUSE_FILE)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+        click.echo(proc.stdout.read())
+
 if __name__ == '__main__':
     cli()
