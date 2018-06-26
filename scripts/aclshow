@@ -29,6 +29,7 @@ import swsssdk
 import sys
 
 from tabulate import tabulate
+from natsort import natsorted
 
 ### temp file to save counter positions when doing clear counter action.
 ### if we could have a SAI command to clear counters will be better, so no need to maintain
@@ -253,10 +254,13 @@ class AclStat(object):
                 table_props.append(line)
             print(tabulate(table_props, headers=['Property', 'Value']), "\n")
 
-        for table_name, rule_name in self.acl_rules.keys():
+        acl_rules_sort = self.acl_rules.keys()
+        acl_rules_sort = natsorted(acl_rules_sort, key=lambda x: (x[0], x[1]))
+
+        for table_name, rule_name in acl_rules_sort:
             rule_props = []
             rule = self.acl_rules[table_name, rule_name]
-            header = "ACL Rule: " + rule_name
+            header = "ACL Table: " + table_name + ", ACL Rule: " + rule_name
             print(header)
             print("="*len(header))
             for rk in rule.keys():
