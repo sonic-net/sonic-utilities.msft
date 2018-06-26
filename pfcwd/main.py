@@ -222,7 +222,7 @@ def start_default():
 # Enable/disable PFC WD counter polling
 @cli.command()
 @click.argument('counter_poll', type=click.Choice(['enable', 'disable']))
-def counter_poll(big_red_switch):
+def counter_poll(counter_poll):
     """ Enable/disable counter polling """
     configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
