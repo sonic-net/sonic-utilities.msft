@@ -219,6 +219,17 @@ def start_default():
     pfcwd_info['POLL_INTERVAL'] = DEFAULT_POLL_INTERVAL * multiply
     configdb.mod_entry("PFC_WD_TABLE", "GLOBAL", pfcwd_info)
 
+# Enable/disable PFC WD counter polling
+@cli.command()
+@click.argument('counter_poll', type=click.Choice(['enable', 'disable']))
+def counter_poll(big_red_switch):
+    """ Enable/disable counter polling """
+    configdb = swsssdk.ConfigDBConnector()
+    configdb.connect()
+    pfcwd_info = {}
+    pfcwd_info['FLEX_COUNTER_STATUS'] = counter_poll
+    configdb.mod_entry("FLEX_COUNTER_TABLE", "PFCWD", pfcwd_info)
+
 # Enable/disable PFC WD BIG_RED_SWITCH mode
 @cli.command()
 @click.argument('big_red_switch', type=click.Choice(['enable', 'disable']))
