@@ -13,6 +13,7 @@ LN=ln
 GZIP=gzip
 CP=cp
 MV=mv
+GREP=grep
 V=
 NOOP=false
 DO_COMPRESS=true
@@ -255,8 +256,12 @@ main() {
     save_cmd "show version" "version"
     save_cmd "show platform summary" "platform.summary"
     save_cmd "show platform syseeprom" "platform.syseeprom"
+    save_cmd "cat /host/machine.conf" "machine.conf"
 
     save_cmd "sensors" "sensors"
+    save_cmd "show platform psustatus" "platform.psustatus"
+    save_cmd "lspci -vvv -xx" "lspci"
+    save_cmd "lsusb -v" "lsusb"
 
     save_cmd "sysctl -a" "sysctl"
     save_ip "link" "link"
@@ -270,6 +275,11 @@ main() {
     save_vtysh "show ip bgp" "bgp.table" true
     save_bgp_neighbor
 
+    save_cmd "show interface status" "interface.status"
+    save_cmd "show interface counters" "interface.counters"
+    save_cmd "show interface transceiver presence" "interface.xcvrs.presence"
+    save_cmd "show interface transceiver eeprom --dom" "interface.xcvrs.eeprom"
+
     save_cmd "lldpctl" "lldpctl"
 
     save_cmd "ps aux" "ps.aux"
@@ -279,19 +289,36 @@ main() {
     save_cmd "vmstat -s" "vmstat.s"
     save_cmd "mount" "mount"
     save_cmd "df" "df"
+    save_cmd "dmesg" "dmesg"
 
     save_redis "0" "APP_DB"
     save_redis "1" "ASIC_DB"
     save_redis "2" "COUNTERS_DB"
 
+    save_cmd "docker ps -a" "docker.ps"
+    save_cmd "docker top pmon" "docker.pmon"
+
     save_cmd "docker exec -it syncd saidump" "saidump"
-    
+
     local platform="$(/usr/local/bin/sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)"
     if [[ $platform == *"mlnx"* ]]; then
         local sai_dump_filename="/tmp/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
         docker exec -it syncd saisdkdump -f $sai_dump_filename
         docker exec syncd tar Ccf $(dirname $sai_dump_filename) - $(basename $sai_dump_filename) | tar Cxf /tmp/ -
         save_file $sai_dump_filename sai_sdk_dump true
+    fi
+
+    local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
+    if [ "$asic" = "broadcom" ]; then
+        save_cmd "bcmcmd -t5 version" "broadcom.version"
+        save_cmd "bcmcmd -t5 soc" "broadcom.soc"
+        save_cmd "bcmcmd -t5 ps" "broadcom.ps"
+    fi
+
+    if $GREP -qi "aboot_platform=.*arista" /host/machine.conf; then
+        save_cmd "cat /proc/scd" "scd"
+        save_cmd "arista syseeprom" "arista.syseeprom"
+        save_cmd "arista dump" "arista.dump"
     fi
 
     $RM $V -rf $TARDIR
