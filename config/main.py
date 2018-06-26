@@ -180,22 +180,24 @@ def save(filename):
     run_command(command, display_cmd=True)
 
 @cli.command()
-@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
-                expose_value=False, prompt='Reload all config?')
+@click.option('-y', '--yes', is_flag=True)
 @click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
-def load(filename):
+def load(filename, yes):
     """Import a previous saved config DB dump file."""
+    if not yes:
+        click.confirm('Load config from the file %s?' % filename, abort=True)
     command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
     run_command(command, display_cmd=True)
 
 @cli.command()
-@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
-                expose_value=False, prompt='Clear current and reload all config?')
+@click.option('-y', '--yes', is_flag=True)
 @click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
-def reload(filename):
+def reload(filename, yes):
     """Clear current configuration and import a previous saved config DB dump file."""
     #Stop services before config push
     _stop_services()
+    if not yes:
+        click.confirm('Clear current config and reload config from the file %s?' % filename, abort=True)
     config_db = ConfigDBConnector()
     config_db.connect()
     client = config_db.redis_clients[config_db.CONFIG_DB]
