@@ -105,7 +105,7 @@ def get_next_image():
         if m:
             next_image_index = int(m.group(1))
         else:
-            m = re.search("saved_entry(\d+)", grubenv)
+            m = re.search("saved_entry=(\d+)", grubenv)
             if m:
                 next_image_index = int(m.group(1))
             else:
