@@ -17,32 +17,14 @@ try:
     import imp
     from sonic_eeprom import eeprom_dts
     import glob
+    from sonic_platform import get_machine_info
+    from sonic_platform import get_platform_info
 except ImportError, e:
     raise ImportError (str(e) + "- required module not found")
 
-
-SONIC_CFGGEN = '/usr/local/bin/sonic-cfggen'
-PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
-
 PLATFORM_ROOT = '/usr/share/sonic/device'
-
 CACHE_ROOT = '/var/cache/sonic/decode-syseeprom'
 CACHE_FILE = 'syseeprom_cache'
-
-# Returns platform and HW SKU
-def get_platform():
-    try:
-        proc = subprocess.Popen([SONIC_CFGGEN, '-H', '-v', PLATFORM_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        platform = stdout.rstrip('\n')
-    except OSError, e:
-        raise OSError("Cannot detect platform")
-
-    return platform
 
 def main():
 
@@ -50,7 +32,7 @@ def main():
         raise RuntimeError("must be root to run")
 
     # Get platform name
-    platform = get_platform()
+    platform = get_platform_info(get_machine_info())
 
     platform_path = '/'.join([PLATFORM_ROOT, platform])
 
