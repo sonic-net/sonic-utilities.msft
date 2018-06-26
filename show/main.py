@@ -169,6 +169,21 @@ def arp(ipaddress, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
+#
+# 'ndp' command ("show ndp")
+#
+
+@cli.command()
+@click.argument('ip6address', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def ndp(ip6address):
+    """Show IPv6 Neighbour table"""
+    cmd = "/bin/ip -6 neigh show"
+
+    if ip6address is not None:
+        cmd += ' {}'.format(ip6address)
+
+    run_command(cmd, display_cmd=verbose)
 
 #
 # 'interfaces' group ("show interfaces ...")
