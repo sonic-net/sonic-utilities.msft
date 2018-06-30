@@ -1,9 +1,13 @@
 #!/bin/bash
 
+REBOOT_USER=$(logname)
+REBOOT_TIME=$(date)
+REBOOT_CAUSE_FILE="/var/cache/sonic/reboot-cause.txt"
+
 # Check root privileges
 if [[ "$EUID" -ne 0 ]]
 then
-  echo "Please run as root"
+  echo "This command must be run as root" >&2
   exit
 fi
 
@@ -50,7 +54,7 @@ docker kill lldp > /dev/null
 # Kill teamd, otherwise it gets down all LAGs
 docker kill teamd > /dev/null
 
-# syncd graceful stop is supported only for Broadcoms platforms only for now
+# syncd graceful stop is supported only for Broadcom platforms only for now
 if [[ "$sonic_asic_type" = 'broadcom' ]];
 then
     # Gracefully stop syncd
@@ -82,6 +86,11 @@ then
   systemctl stop nps-modules-`uname -r`.service
 fi
 
+# Update the reboot cause file to reflect that user issued 'fast-reboot' command
+# Upon next boot, the contents of this file will be used to determine the
+# cause of the previous reboot
+echo "User issued 'fast-reboot' command [User: ${REBOOT_USER}, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
+
 # Wait until all buffers synced with disk
 sync
 sleep 1
@@ -89,4 +98,8 @@ sync
 
 # Reboot: explicity call Linux native reboot under sbin
 echo "Rebooting to $NEXT_SONIC_IMAGE..."
-/sbin/reboot
+exec /sbin/reboot
+
+# Should never reach here
+echo "fast-reboot failed!" >&2
+exit 1
