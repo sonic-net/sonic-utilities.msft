@@ -21,6 +21,8 @@ setup(
         'acl_loader',
         'clear',
         'config',
+        'connect',
+        'consutil',
         'counterpoll',
         'crm',
         'debug',
@@ -64,6 +66,8 @@ setup(
         'console_scripts': [
             'acl-loader = acl_loader.main:cli',
             'config = config.main:cli',
+            'connect = connect.main:connect',
+            'consutil = consutil.main:consutil',
             'counterpoll = counterpoll.main:cli',
             'crm = crm.main:cli',
             'debug = debug.main:cli',

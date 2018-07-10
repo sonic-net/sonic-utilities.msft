@@ -242,5 +242,16 @@ def clear_vlan_fdb(vlanid):
     command = 'fdbclear' + ' -v ' + vlanid
     run_command(command)
 '''
+
+#
+# 'line' command
+#
+@cli.command('line')
+@click.argument('linenum')
+def line(linenum):
+    """Clear preexisting connection to line"""
+    # TODO: Stub
+    return
+
 if __name__ == '__main__':
     cli()
