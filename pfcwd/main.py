@@ -127,7 +127,7 @@ def config(ports):
 @click.argument('ports', nargs = -1)
 @click.argument('detection-time', type=click.IntRange(100, 5000))
 def start(action, restoration_time, ports, detection_time):
-    """ Start PFC watchdog on port(s) """
+    """ Start PFC watchdog on port(s). To config all ports, use all as input. """
     configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     countersdb = swsssdk.SonicV2Connector(host='127.0.0.1')
@@ -147,10 +147,15 @@ def start(action, restoration_time, ports, detection_time):
         pfcwd_info['restoration_time'] = restoration_time
 
     for port in ports:
-        if port not in all_ports:
-            continue
-        configdb.mod_entry("PFC_WD_TABLE", port, None)
-        configdb.mod_entry("PFC_WD_TABLE", port, pfcwd_info)
+        if port == "all":
+            for p in all_ports:
+                configdb.mod_entry("PFC_WD_TABLE", p, None)
+                configdb.mod_entry("PFC_WD_TABLE", p, pfcwd_info)
+        else:
+            if port not in all_ports:
+                continue
+            configdb.mod_entry("PFC_WD_TABLE", port, None)
+            configdb.mod_entry("PFC_WD_TABLE", port, pfcwd_info)
 
 # Set WD poll interval
 @cli.command()
