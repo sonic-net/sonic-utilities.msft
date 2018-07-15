@@ -35,9 +35,10 @@ STATUS_INVALID = 'INVALID'
 
 QUEUE_TYPE_MC = 'MC'
 QUEUE_TYPE_UC = 'UC'
+QUEUE_TYPE_ALL = 'ALL'
 SAI_QUEUE_TYPE_MULTICAST = "SAI_QUEUE_TYPE_MULTICAST"
 SAI_QUEUE_TYPE_UNICAST = "SAI_QUEUE_TYPE_UNICAST"
- 
+SAI_QUEUE_TYPE_ALL = "SAI_QUEUE_TYPE_ALL"
 
 COUNTER_TABLE_PREFIX = "COUNTERS:"
 COUNTERS_PORT_NAME_MAP = "COUNTERS_PORT_NAME_MAP"
@@ -110,6 +111,8 @@ class Queuestat(object):
                     return QUEUE_TYPE_MC
                 elif queue_type == SAI_QUEUE_TYPE_UNICAST:
                     return QUEUE_TYPE_UC
+                elif queue_type == SAI_QUEUE_TYPE_ALL:
+                    return QUEUE_TYPE_ALL
                 else:
                     print "Queue Type is invalid:", table_id, queue_type
                     sys.exit(1)
@@ -147,8 +150,7 @@ class Queuestat(object):
         for key, data in cnstat_dict.iteritems():
             if key == 'time':
                 continue
-            index = int(data.queueindex) % (queue_count / 2)
-            table.append((port, data.queuetype + str(index),
+            table.append((port, data.queuetype + str(data.queueindex),
                         data.totalpacket, data.totalbytes,
                         data.droppacket, data.dropbytes))
 
@@ -179,16 +181,14 @@ class Queuestat(object):
             if key in cnstat_old_dict:
                 old_cntr = cnstat_old_dict.get(key)
 
-            index = int(cntr.queueindex) % (queue_count / 2)
-
             if old_cntr is not None:
-                table.append((port, cntr.queuetype + str(index),
+                table.append((port, cntr.queuetype + str(cntr.queueindex),
                             ns_diff(cntr.totalpacket, old_cntr.totalpacket),
                             ns_diff(cntr.totalbytes, old_cntr.totalbytes),
                             ns_diff(cntr.droppacket, old_cntr.droppacket),
                             ns_diff(cntr.dropbytes, old_cntr.dropbytes)))
             else:
-                table.append((port, cntr.queuetype + str(index),
+                table.append((port, cntr.queuetype + str(cntr.queueindex),
                         cntr.totalpacket, cntr.totalbytes,
                         cntr.droppacket, cntr.dropbytes))
 
