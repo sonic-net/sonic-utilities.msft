@@ -9,14 +9,14 @@ try:
     import click
     import re
     import subprocess
-except ImportError as e: 
+except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
 @click.group()
 def consutil():
     """consutil - Command-line utility for interacting with switchs via console device"""
 
-    if os.geteuid() != ""
+    if os.geteuid() != 0:
         print "Root privileges are required for this operation"
         sys.exit(1)
 
