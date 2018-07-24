@@ -46,7 +46,7 @@ TMP_SNIFFER_CONF_FILE = '/tmp/tmp.conf'
 SNIFFER_CONF_FILE = '/etc/supervisor/conf.d/mlnx_sniffer.conf'
 
 # Command to restart swss service
-COMMAND_RESTART_SWSS = 'service swss restart'
+COMMAND_RESTART_SWSS = 'systemctl restart swss.service'
 
 # global variable SDK_SNIFFER_TARGET_FILE_NAME
 SDK_SNIFFER_TARGET_FILE_NAME = ''

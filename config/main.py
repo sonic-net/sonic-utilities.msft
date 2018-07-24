@@ -150,7 +150,7 @@ def _stop_services():
         'teamd',
     ]
     for service in services:
-        run_command("service %s stop" % service, display_cmd=True)
+        run_command("systemctl stop %s" % service, display_cmd=True)
 
 def _restart_services():
     services = [
@@ -167,7 +167,7 @@ def _restart_services():
         'dhcp_relay',
     ]
     for service in services:
-        run_command("service %s restart" % service, display_cmd=True)
+        run_command("systemctl restart %s" % service, display_cmd=True)
 
 
 # This is our main entrypoint - the main 'config' command
