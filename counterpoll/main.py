@@ -84,12 +84,12 @@ def show():
     queue_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'QUEUE')
     port_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'PORT')
     
-    header = ("Type", "Interval", "Status")
+    header = ("Type", "Interval (in ms)", "Status")
     data = []
     if queue_info:
-        data.append(["QUEUE_STAT", queue_info["POLL_INTERVAL"], queue_info["FLEX_COUNTER_STATUS"]])
+        data.append(["QUEUE_STAT", queue_info["POLL_INTERVAL"] if 'POLL_INTERVAL' in queue_info else 'default (10000)', queue_info["FLEX_COUNTER_STATUS"] if 'FLEX_COUNTER_STATUS' in queue_info else 'disable' ])
     if port_info:
-        data.append(["PORT_STAT", port_info["POLL_INTERVAL"], port_info["FLEX_COUNTER_STATUS"]])
+        data.append(["PORT_STAT", port_info["POLL_INTERVAL"] if 'POLL_INTERVAL' in port_info else 'default (1000)', port_info["FLEX_COUNTER_STATUS"] if 'FLEX_COUNTER_STATUS' in port_info else 'disable'])
 
     print tabulate(data, headers=header, tablefmt="simple", missingval="")
 
