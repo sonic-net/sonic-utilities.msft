@@ -20,7 +20,7 @@ ERR_DEV = 2
 
 # runs command, exit if stderr is written to, returns stdout otherwise
 # input: cmd (str), output: output of cmd (str)
-def popenWrapper(cmd):
+def run_command(cmd):
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     output = proc.stdout.read()
     error = proc.stderr.read()
@@ -40,7 +40,7 @@ def checkDevice(linenum):
 # returns a sorted list of all devices (whose name matches DEVICE_PREFIX)
 def getAllDevices():
     cmd = "ls " + DEVICE_PREFIX + "*"
-    output = popenWrapper(cmd)
+    output = run_command(cmd)
     
     devices = output.split('\n')
     devices = list(filter(lambda dev: re.match(DEVICE_PREFIX + r"\d+", dev) != None, devices))
@@ -52,7 +52,7 @@ def getAllDevices():
 #     maps line number to (pid, process start time)
 def getBusyDevices():
     cmd = 'ps -eo pid,lstart,cmd | grep -E "(mini|pico)com"'
-    output = popenWrapper(cmd)
+    output = run_command(cmd)
     processes = output.split('\n')
     
     # matches any number of spaces then any number of digits
@@ -80,7 +80,7 @@ def getBusyDevices():
 def getBaud(linenum):
     checkDevice(linenum)
     cmd = "sudo stty -F " + DEVICE_PREFIX + str(linenum)
-    output = popenWrapper(cmd)
+    output = run_command(cmd)
     
     match = re.match(r"^speed (\d+) baud;", output)
     if match != None:
