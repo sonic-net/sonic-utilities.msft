@@ -29,14 +29,6 @@ def run_command(cmd):
         sys.exit(ERR_CMD)
     return output
 
-# exits if inputted line number does not correspond to a device
-# input: linenum
-def checkDevice(linenum):
-    devices = getAllDevices()
-    if DEVICE_PREFIX + str(linenum) not in devices:
-        click.echo("Line number {} does not exist".format(linenum))
-        sys.exit(ERR_DEV)
-
 # returns a sorted list of all devices (whose name matches DEVICE_PREFIX)
 def getAllDevices():
     cmd = "ls " + DEVICE_PREFIX + "*"
@@ -47,6 +39,14 @@ def getAllDevices():
     devices.sort(key=lambda dev: int(dev[len(DEVICE_PREFIX):]))
     
     return devices
+
+# exits if inputted line number does not correspond to a device
+# input: linenum
+def checkDevice(linenum):
+    devices = getAllDevices()
+    if DEVICE_PREFIX + str(linenum) not in devices:
+        click.echo("Line number {} does not exist".format(linenum))
+        sys.exit(ERR_DEV)
 
 # returns a dictionary of busy devices and their info
 #     maps line number to (pid, process start time)

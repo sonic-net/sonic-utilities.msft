@@ -9,6 +9,7 @@ try:
     import click
     import re
     import subprocess
+    from tabulate import tabulate
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
@@ -22,9 +23,25 @@ def consutil():
 
 # 'show' subcommand
 @consutil.command()
-def line():
-    """Show all /dev/ttyUSB lines"""
-    click.echo("show line")
+def show():
+    """Show all /dev/ttyUSB lines and their info"""
+    devices = getAllDevices()
+    busyDevices = getBusyDevices()
+
+    header = ["Line", "Baud", "PID", "Start Time"]
+    body = []
+    for device in devices:
+        lineNum = device[11:]
+        busy = " "
+        pid = ""
+        date = ""
+        if lineNum in busyDevices:
+            pid, date = busyDevices[lineNum]
+            busy = "*"
+        baud = getBaud(lineNum)
+        body.append([busy+lineNum, baud, pid, date])
+        
+    click.echo(tabulate(body, header, stralign="right"))
 
 # 'clear' subcommand
 @consutil.command()

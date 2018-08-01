@@ -1135,9 +1135,8 @@ def reboot_cause():
 @cli.command('line')
 def line():
     """Show all /dev/ttyUSB lines and their info"""
-    # TODO: Stub
-    return
-
+    cmd = "consutil show"
+    run_command(cmd, display_cmd=verbose)
 
 if __name__ == '__main__':
     cli()
