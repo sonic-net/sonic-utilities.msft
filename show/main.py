@@ -123,17 +123,7 @@ def run_command(command, display_cmd=False):
         if output == "" and proc.poll() is not None:
             break
         if output:
-            try:
-                click.echo(output.rstrip('\n'))
-            except IOError as e:
-                # In our version of Click (v6.6), click.echo() and click.echo_via_pager() do not properly handle
-                # SIGPIPE, and if a pipe is broken before all output is processed (e.g., pipe output to 'head'),
-                # it will result in a stack trace. This is apparently fixed upstream, but for now, we silently
-                # ignore SIGPIPE here.
-                if e.errno == errno.EPIPE:
-                    sys.exit(0)
-                else:
-                    raise
+            click.echo(output.rstrip('\n'))
 
     rc = proc.poll()
     if rc != 0:
