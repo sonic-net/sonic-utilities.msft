@@ -3,6 +3,7 @@
 import click
 import errno
 import os
+import pexpect
 import subprocess
 import sys
 from click_default_group import DefaultGroup
@@ -85,18 +86,8 @@ def run_command(command, display_cmd=False):
     if display_cmd:
         click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
 
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-
-    while True:
-        output = proc.stdout.readline()
-        if output == "" and proc.poll() is not None:
-            break
-        elif output:
-            click.echo(output.rstrip('\n'))
-
-    rc = proc.poll()
-    if rc != 0:
-        sys.exit(rc)
+    proc = pexpect.spawn(command)
+    proc.interact()
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
@@ -116,9 +107,19 @@ def connect():
 @connect.command('line')
 @click.argument('linenum')
 def line(linenum):
-    """Connect to line via serial connection"""
-    # TODO: Stub
-    return
+    """Connect to line LINENUM via serial connection"""
+    cmd = "consutil connect " + linenum
+    run_command(cmd)
+
+#
+# 'device' command ("connect device")
+#
+@connect.command('device')
+@click.argument('devicename')
+def device(devicename):
+    """Connect to device DEVICENAME via serial connection"""
+    cmd = "consutil connect -d " + devicename
+    run_command(cmd)
 
 if __name__ == '__main__':
     connect()
