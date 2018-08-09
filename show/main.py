@@ -149,13 +149,17 @@ def cli():
 
 @cli.command()
 @click.argument('ipaddress', required=False)
+@click.option('-if', '--iface')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def arp(ipaddress, verbose):
+def arp(ipaddress, iface, verbose):
     """Show IP ARP table"""
-    cmd = "/usr/sbin/arp -n"
+    cmd = "nbrshow -4"
 
     if ipaddress is not None:
-        cmd += " {}".format(ipaddress)
+        cmd += " -ip {}".format(ipaddress)
+
+    if iface is not None:
+        cmd += " -if {}".format(iface)
 
     run_command(cmd, display_cmd=verbose)
 
@@ -165,13 +169,17 @@ def arp(ipaddress, verbose):
 
 @cli.command()
 @click.argument('ip6address', required=False)
+@click.option('-if', '--iface')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def ndp(ip6address):
+def ndp(ip6address, iface, verbose):
     """Show IPv6 Neighbour table"""
-    cmd = "/bin/ip -6 neigh show"
+    cmd = "nbrshow -6"
 
     if ip6address is not None:
-        cmd += ' {}'.format(ip6address)
+        cmd += " -ip {}".format(ip6address)
+
+    if iface is not None:
+        cmd += " -if {}".format(iface)
 
     run_command(cmd, display_cmd=verbose)
 

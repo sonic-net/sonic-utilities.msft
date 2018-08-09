@@ -57,7 +57,8 @@ setup(
         'scripts/pfcstat',
         'scripts/queuestat',
         'scripts/reboot',
-        'scripts/teamshow'
+        'scripts/teamshow',
+        'scripts/nbrshow'
     ],
     data_files=[
         ('/etc/bash_completion.d', glob.glob('data/etc/bash_completion.d/*')),
