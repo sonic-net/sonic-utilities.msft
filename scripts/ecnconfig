@@ -4,7 +4,8 @@ ecnconfig is the utility to show and change ECN configuration
 
 usage: ecnconfig [-h] [-v] [-l] [-p PROFILE] [-gmin GREEN_MIN]
                  [-gmax GREEN_MAX] [-ymin YELLOW_MIN] [-ymax YELLOW_MAX]
-                 [-rmin RED_MIN] [-rmax RED_MAX] [-vv]
+                 [-rmin RED_MIN] [-rmax RED_MAX] [-gdrop GREEN_DROP_PROB]
+                 [-ydrop YELLOW_DROP_PROB] [-rdrop RED_DROP_PROB] [-vv]
 
 optional arguments:
   -h     --help                show this help message and exit
@@ -18,6 +19,9 @@ optional arguments:
   -ymax  --yellow-max          set max threshold for packets marked yellow
   -rmin  --red-min             set min threshold for packets marked red
   -rmax  --red-max             set max threshold for packets marked red
+  -gdrop --green-drop-prob     set drop probability for packets marked green
+  -ydrop --yellow-drop-prob    set drop probability for packets marked yellow
+  -rdrop --red-drop-prob       set drop probability for packets marked red
 """
 from __future__ import print_function
 
@@ -35,7 +39,10 @@ WRED_CONFIG_FIELDS = {
     "ymax": "yellow_max_threshold",
     "ymin": "yellow_min_threshold",
     "rmax": "red_max_threshold",
-    "rmin": "red_min_threshold"
+    "rmin": "red_min_threshold",
+    "gdrop": "green_drop_probability",
+    "ydrop": "yellow_drop_probability",
+    "rdrop": "red_drop_probability"
 }
 
 class EcnConfig(object):
@@ -71,6 +78,12 @@ class EcnConfig(object):
             print("Setting %s value to %s" % (field, value))
         self.db.mod_entry(WRED_PROFILE_TABLE_NAME, profile, {field: value})
 
+    def set_wred_prob(self, profile, drop_color, value):
+        field = WRED_CONFIG_FIELDS[drop_color]
+        if self.verbose:
+            print("Setting %s value to %s%%" % (field, value))
+        self.db.mod_entry(WRED_PROFILE_TABLE_NAME, profile, {field: value})
+
 def main():
     parser = argparse.ArgumentParser(description='Show and change ECN WRED configuration',
                                      version='1.0.0',
@@ -84,6 +97,9 @@ def main():
     parser.add_argument('-ymax', '--yellow-max', type=str, help='set max threshold for packets marked \'yellow\'', default=None)
     parser.add_argument('-rmin', '--red-min', type=str, help='set min threshold for packets marked \'red\'', default=None)
     parser.add_argument('-rmax', '--red-max', type=str, help='set max threshold for packets marked \'red\'', default=None)
+    parser.add_argument('-gdrop', '--green-drop-prob', type=str, help='set drop probability for packets marked \'green\'', default=None)
+    parser.add_argument('-ydrop', '--yellow-drop-prob', type=str, help='set drop probability for packets marked \'yellow\'', default=None)
+    parser.add_argument('-rdrop', '--red-drop-prob', type=str, help='set drop probability for packets marked \'red\'', default=None)
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
     args = parser.parse_args()
 
@@ -109,6 +125,12 @@ def main():
                 ecn.set_wred_threshold(args.profile, "rmax", args.red_max)
             if args.red_min:
                 ecn.set_wred_threshold(args.profile, "rmin", args.red_min)
+            if args.green_drop_prob:
+                ecn.set_wred_prob(args.profile, "gdrop", args.green_drop_prob)
+            if args.yellow_drop_prob:
+                ecn.set_wred_prob(args.profile, "ydrop", args.yellow_drop_prob)
+            if args.red_drop_prob:
+                ecn.set_wred_prob(args.profile, "rdrop", args.red_drop_prob)
         else:
             parser.print_help()
             sys.exit(1)
