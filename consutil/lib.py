@@ -11,7 +11,7 @@ try:
     import swsssdk
     import subprocess
     import sys
-except ImportError as e: 
+except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
 DEVICE_PREFIX = "/dev/ttyUSB"
@@ -50,11 +50,11 @@ def run_command(cmd):
 def getAllDevices():
     cmd = "ls " + DEVICE_PREFIX + "*"
     output = run_command(cmd)
-    
+
     devices = output.split('\n')
     devices = list(filter(lambda dev: re.match(DEVICE_PREFIX + r"\d+", dev) != None, devices))
     devices.sort(key=lambda dev: int(dev[len(DEVICE_PREFIX):]))
-    
+
     return devices
 
 # exits if inputted line number does not correspond to a device
@@ -71,17 +71,17 @@ def getBusyDevices():
     cmd = 'ps -eo pid,lstart,cmd | grep -E "(mini|pico)com"'
     output = run_command(cmd)
     processes = output.split('\n')
-    
+
     # matches any number of spaces then any number of digits
     regexPid = r" *(\d+)"
     # matches anything of form: Xxx Xxx ( 0)or(00) 00:00:00 0000
     regexDate = r"([A-Z][a-z]{2} [A-Z][a-z]{2} [\d ]\d \d{2}:\d{2}:\d{2} \d{4})"
-    # matches any non-whitespace characters ending in minicom or picocom, 
-    # then a space and any chars followed by /dev/ttyUSB<any digits>, 
+    # matches any non-whitespace characters ending in minicom or picocom,
+    # then a space and any chars followed by /dev/ttyUSB<any digits>,
     # then a space and any chars
     regexCmd = r"\S*(?:(?:mini)|(?:pico))com .*" + DEVICE_PREFIX + r"(\d+)(?: .*)?"
     regexProcess = re.compile(r"^"+regexPid+r" "+regexDate+r" "+regexCmd+r"$")
-    
+
     busyDevices = {}
     for process in processes:
         match = regexProcess.match(process)
@@ -98,8 +98,8 @@ def getBusyDevices():
 def getConnectionInfo(linenum):
     config_db = ConfigDBConnector()
     config_db.connect()
-    entry = config_db.get_entry(CONSOLE_PORT_TABLE, str(linenum)) 
-    
+    entry = config_db.get_entry(CONSOLE_PORT_TABLE, str(linenum))
+
     conf_baud = "-" if BAUD_KEY not in entry else entry[BAUD_KEY]
     act_baud = DEFAULT_BAUD if conf_baud == "-" else conf_baud
     flow_control = False
@@ -118,7 +118,7 @@ def getLineNumber(target, deviceBool):
 
     config_db = ConfigDBConnector()
     config_db.connect()
-    
+
     devices = getAllDevices()
     linenums = list(map(lambda dev: dev[len(DEVICE_PREFIX):], devices))
 

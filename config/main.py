@@ -343,6 +343,50 @@ def load_minigraph():
     print "Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`."
 
 #
+# 'mirror' group
+#
+@cli.group()
+def mirror_session(ctx):
+    pass
+
+@mirror_session.command()
+@click.argument('session_name', metavar='<session_name>', required=True)
+@click.argument('src_ip', metavar='<src_ip>', required=True)
+@click.argument('dst_ip', metavar='<dst_ip>', required=True)
+@click.argument('gre_type', metavar='<gre_type>', required=True)
+@click.argument('dscp', metavar='<dscp>', required=True)
+@click.argument('ttl', metavar='<ttl>', required=True)
+@click.argument('queue', metavar='<queue>', required=True)
+def add():
+    """
+    Add mirror session
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    session_info = {
+            "src_ip": src_ip,
+            "dst_ip": dst_ip,
+            "gre_type": gre_type,
+            "dscp": dscp,
+            "ttl": ttl,
+            "queue": queue
+            }
+
+    config_db.set_entry("MIRROR_SESSION", session_name, session_info)
+
+@mirror_session.command()
+@click.argument('session_name', metavar='<session_name>', required=True)
+def del():
+    """
+    Delete mirror session
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    config_db.set_entry("MIRROR_SESSION", session_name, None)
+
+
+#
 # 'qos' group
 #
 @cli.group()
