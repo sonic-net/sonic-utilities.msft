@@ -377,7 +377,7 @@ def add():
 
 @mirror_session.command()
 @click.argument('session_name', metavar='<session_name>', required=True)
-def del():
+def remove():
     """
     Delete mirror session
     """
