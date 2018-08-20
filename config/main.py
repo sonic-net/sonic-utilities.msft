@@ -346,7 +346,7 @@ def load_minigraph():
 # 'mirror' group
 #
 @cli.group()
-def mirror_session(ctx):
+def mirror_session():
     pass
 
 @mirror_session.command()
@@ -357,7 +357,7 @@ def mirror_session(ctx):
 @click.argument('dscp', metavar='<dscp>', required=True)
 @click.argument('ttl', metavar='<ttl>', required=True)
 @click.argument('queue', metavar='<queue>', required=True)
-def add():
+def add(session_name, src_ip, dst_ip, gre_type, dscp, ttl, queue):
     """
     Add mirror session
     """
@@ -377,7 +377,7 @@ def add():
 
 @mirror_session.command()
 @click.argument('session_name', metavar='<session_name>', required=True)
-def remove():
+def remove(session_name):
     """
     Delete mirror session
     """
