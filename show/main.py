@@ -448,6 +448,30 @@ def counters(interfacename, clear, verbose):
     run_command(cmd, display_cmd=verbose)
 
 #
+# 'pfc' group ###
+#
+
+@interfaces.group(cls=AliasedGroup, default_if_no_args=False)
+def pfc():
+    """Show PFC information"""
+    pass
+
+
+#
+# 'pfc status' command ###
+#
+
+@pfc.command()
+@click.argument('interface', type=click.STRING, required=False)
+def status(interface):
+    """Show PFC information"""
+    if interface is None:
+        interface = ""
+
+    run_command("pfc show asymmetric {0}".format(interface))
+
+
+#
 # 'mac' command ("show mac ...")
 #
 
@@ -1117,6 +1141,7 @@ def ecn():
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
     click.echo(proc.stdout.read())
 
+
 #
 # 'reboot-cause' command ("show reboot-cause")
 #
@@ -1145,6 +1170,7 @@ def line():
     """Show all /dev/ttyUSB lines and their info"""
     cmd = "consutil show"
     run_command(cmd, display_cmd=verbose)
+
 
 if __name__ == '__main__':
     cli()
