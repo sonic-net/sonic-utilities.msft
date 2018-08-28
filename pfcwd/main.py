@@ -198,14 +198,10 @@ def start_default():
     configdb.connect()
     enable = configdb.get_entry('DEVICE_METADATA', 'localhost').get('default_pfcwd_status')
 
-    server_facing_ports = get_server_facing_ports(configdb)
+    all_ports = get_all_ports(configdb)
 
     if not enable or enable.lower() != "enable":
        return
-
-    device_type = configdb.get_entry('DEVICE_METADATA', 'localhost').get('type')
-    if device_type.lower() != "torrouter":
-        return
 
     port_num = len(configdb.get_table('PORT').keys())
 
@@ -217,7 +213,7 @@ def start_default():
         'action': DEFAULT_ACTION
     }
 
-    for port in server_facing_ports:
+    for port in all_ports:
         configdb.set_entry("PFC_WD_TABLE", port, pfcwd_info)
 
     pfcwd_info = {}
