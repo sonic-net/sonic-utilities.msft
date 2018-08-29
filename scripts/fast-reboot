@@ -36,6 +36,22 @@ INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
 
 sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 
+# Install new FW for mellanox platforms before control plane goes down
+# So on boot switch will not spend time to upgrade FW increasing the CP downtime
+if [[ "$sonic_asic_type" == "mellanox" ]];
+then
+    CURRENT_SONIC_IMAGE=$(sonic_installer list | grep "Current: " | cut -d ' ' -f 2)
+    if [[ "${CURRENT_SONIC_IMAGE}" != "${NEXT_SONIC_IMAGE}" ]]; then
+        echo "Prepare ASIC to fast reboot: install new FW if requiered"
+        NEXT_IMAGE_FS_PATH="/host/image-${NEXT_SONIC_IMAGE#SONiC-OS-}/fs.squashfs"
+        FS_MOUNTPOINT="/tmp/image-${NEXT_SONIC_IMAGE#SONiC-OS-}-fs"
+        mkdir -p "$FS_MOUNTPOINT"
+        mount -t squashfs "$NEXT_IMAGE_FS_PATH" "$FS_MOUNTPOINT"
+        /usr/bin/mlnx-fw-upgrade.sh "$FS_MOUNTPOINT/etc/mlnx/fw-SPC.mfa"
+        umount "$FS_MOUNTPOINT"
+    fi
+fi
+
 # Load kernel into the memory
 /sbin/kexec -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
 
