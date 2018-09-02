@@ -52,6 +52,7 @@ setup(
         'scripts/generate_dump',
         'scripts/intfutil',
         'scripts/lldpshow',
+        'scripts/pcmping',
         'scripts/port2alias',
         'scripts/portconfig',
         'scripts/portstat',
