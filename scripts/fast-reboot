@@ -48,7 +48,12 @@ then
         mkdir -p "$FS_MOUNTPOINT"
         mount -t squashfs "$NEXT_IMAGE_FS_PATH" "$FS_MOUNTPOINT"
         /usr/bin/mlnx-fw-upgrade.sh "$FS_MOUNTPOINT/etc/mlnx/fw-SPC.mfa"
+        EXIT_CODE=$?
         umount "$FS_MOUNTPOINT"
+        if [[ $EXIT_CODE != 0 ]]; then
+            echo "Failed to burn FW"
+            exit 1
+        fi
     fi
 fi
 
