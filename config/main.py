@@ -353,11 +353,11 @@ def mirror_session():
 @click.argument('session_name', metavar='<session_name>', required=True)
 @click.argument('src_ip', metavar='<src_ip>', required=True)
 @click.argument('dst_ip', metavar='<dst_ip>', required=True)
-@click.argument('gre_type', metavar='<gre_type>', required=True)
 @click.argument('dscp', metavar='<dscp>', required=True)
 @click.argument('ttl', metavar='<ttl>', required=True)
-@click.argument('queue', metavar='<queue>', required=True)
-def add(session_name, src_ip, dst_ip, gre_type, dscp, ttl, queue):
+@click.argument('gre_type', metavar='[gre_type]', required=False)
+@click.argument('queue', metavar='[queue]', required=False)
+def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue):
     """
     Add mirror session
     """
@@ -367,11 +367,15 @@ def add(session_name, src_ip, dst_ip, gre_type, dscp, ttl, queue):
     session_info = {
             "src_ip": src_ip,
             "dst_ip": dst_ip,
-            "gre_type": gre_type,
             "dscp": dscp,
-            "ttl": ttl,
-            "queue": queue
+            "ttl": ttl
             }
+
+    if gre_type is not None:
+        session_info['gre_type'] = gre_type
+
+    if queue is not None:
+        session_info['queue'] = queue
 
     config_db.set_entry("MIRROR_SESSION", session_name, session_info)
 
