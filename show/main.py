@@ -11,6 +11,7 @@ from click_default_group import DefaultGroup
 from natsort import natsorted
 from tabulate import tabulate
 from swsssdk import ConfigDBConnector
+from swsssdk import SonicV2Connector
 
 import mlnx
 
@@ -780,7 +781,7 @@ def cpu(verbose):
     # Run top in batch mode to prevent unexpected newline after each newline
     cmd = "top -bn 1 -o %CPU"
     run_command(cmd, display_cmd=verbose)
- 
+
 # 'memory' subcommand
 @processes.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -1174,6 +1175,90 @@ def line():
     """Show all /dev/ttyUSB lines and their info"""
     cmd = "consutil show"
     run_command(cmd, display_cmd=verbose)
+    return
+
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def warm_restart():
+    """Show warm restart configuration and state"""
+    pass
+
+@warm_restart.command()
+@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
+def state(redis_unix_socket_path):
+    """Show warm restart state"""
+    kwargs = {}
+    if redis_unix_socket_path:
+        kwargs['unix_socket_path'] = redis_unix_socket_path
+
+    data = {}
+    db = SonicV2Connector(host='127.0.0.1')
+    db.connect(db.STATE_DB, False)   # Make one attempt only
+
+    TABLE_NAME_SEPARATOR = '|'
+    prefix = 'WARM_RESTART_TABLE' + TABLE_NAME_SEPARATOR
+    _hash = '{}{}'.format(prefix, '*')
+    table_keys = db.keys(db.STATE_DB, _hash)
+
+    def remove_prefix(text, prefix):
+        if text.startswith(prefix):
+            return text[len(prefix):]
+        return text
+
+    table = []
+    for tk in table_keys:
+        entry = db.get_all(db.STATE_DB, tk)
+        r = []
+        r.append(remove_prefix(tk, prefix))
+        r.append(entry['restart_count'])
+
+        if 'state' not in  entry:
+            r.append("")
+        else:
+            r.append(entry['state'])
+
+        table.append(r)
+
+    header = ['name', 'restart_count', 'state']
+    click.echo(tabulate(table, header))
+
+@warm_restart.command()
+@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
+def config(redis_unix_socket_path):
+    """Show warm restart config"""
+    kwargs = {}
+    if redis_unix_socket_path:
+        kwargs['unix_socket_path'] = redis_unix_socket_path
+    config_db = ConfigDBConnector(**kwargs)
+    config_db.connect(wait_for_init=False)
+    data = config_db.get_table('WARM_RESTART')
+    keys = data.keys()
+
+    def tablelize(keys, data):
+        table = []
+
+        for k in keys:
+            r = []
+            r.append(k)
+
+            if 'enable' not in  data[k]:
+                r.append("false")
+            else:
+                r.append(data[k]['enable'])
+
+            if 'neighsyncd_timer' in  data[k]:
+                r.append("neighsyncd_timer")
+                r.append(data[k]['neighsyncd_timer'])
+            else:
+                r.append("NULL")
+                r.append("NULL")
+
+            table.append(r)
+
+        return table
+
+    header = ['name', 'enable', 'timer_name', 'timer_duration']
+    click.echo(tabulate(tablelize(keys, data), header))
 
 
 if __name__ == '__main__':
