@@ -645,64 +645,112 @@ def neighbor(ipaddr_or_hostname, verbose):
 #
 
 @cli.group()
-def interface():
-    """Interface-related configuration tasks"""
-    pass
-
-#
-# 'shutdown' subcommand
-#
-
-@interface.command()
 @click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-def shutdown(interface_name, verbose):
-    """Shut down interface"""
+@click.pass_context
+def interface(ctx, interface_name):
+    """Interface-related configuration tasks"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {}
+    ctx.obj['config_db'] = config_db
     if get_interface_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
-        if interface_name is None:
+        ctx.obj['interface_name'] = interface_alias_to_name(interface_name)
+        if ctx.obj['interface_name'] is None:
             raise click.Abort()
-
-    command = "ip link set {} down".format(interface_name)
-    run_command(command, display_cmd=verbose)
+    else:
+        ctx.obj['interface_name'] = interface_name
 
 #
 # 'startup' subcommand
 #
 
 @interface.command()
-@click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-def startup(interface_name, verbose):
+@click.pass_context
+def startup(ctx):
     """Start up interface"""
-    if get_interface_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
-        if interface_name is None:
-            raise click.Abort()
+    config_db = ctx.obj['config_db']
+    interface_name = ctx.obj['interface_name']
 
+    if interface_name.startswith("Ethernet"):
+        config_db.set_entry("PORT", interface_name, {"admin_status": "up"})
+    elif interface_name.startswith("PortChannel"):
+        config_db.set_entry("PORTCHANNEL", interface_name, {"admin_status": "up"})
+#
+# 'shutdown' subcommand
+#
 
-    command = "ip link set {} up".format(interface_name)
-    run_command(command, display_cmd=verbose)
+@interface.command()
+@click.pass_context
+def shutdown(ctx):
+    """Shut down interface"""
+    config_db = ctx.obj['config_db']
+    interface_name = ctx.obj['interface_name']
+
+    if interface_name.startswith("Ethernet"):
+        config_db.set_entry("PORT", interface_name, {"admin_status": "down"})
+    elif interface_name.startswith("PortChannel"):
+        config_db.set_entry("PORTCHANNEL", interface_name, {"admin_status": "down"})
 
 #
 # 'speed' subcommand
 #
 
 @interface.command()
-@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.pass_context
 @click.argument('interface_speed', metavar='<interface_speed>', required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-def speed(interface_name, interface_speed, verbose):
+def speed(ctx, verbose):
     """Set interface speed"""
-    if get_interface_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
-        if interface_name is None:
-            raise click.Abort()
+    interface_name = ctx.obj['interface_name']
 
     command = "portconfig -p {} -s {}".format(interface_name, interface_speed)
-    if verbose: command += " -vv"
+    if verbose:
+        command += " -vv"
     run_command(command, display_cmd=verbose)
 
+#
+# 'ip' subgroup
+#
+
+@interface.group()
+@click.pass_context
+def ip(ctx):
+    """Add or remove IP address"""
+    pass
+
+#
+# 'add' subcommand
+#
+
+@ip.command()
+@click.argument("ip_addr", metavar="<ip_addr>", required=True)
+@click.pass_context
+def add(ctx, ip_addr):
+    """Add an IP address towards the interface"""
+    config_db = ctx.obj["config_db"]
+    interface_name = ctx.obj["interface_name"]
+
+    if interface_name.startswith("Ethernet"):
+        config_db.set_entry("INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+    elif interface_name.startswith("PortChannel"):
+        config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+
+#
+# 'del' subcommand
+#
+
+@ip.command()
+@click.argument("ip_addr", metavar="<ip_addr>", required=True)
+@click.pass_context
+def remove(ctx, ip_addr):
+    """Remove an IP address from the interface"""
+    config_db = ctx.obj["config_db"]
+    interface_name = ctx.obj["interface_name"]
+
+    if interface_name.startswith("Ethernet"):
+        config_db.set_entry("INTERFACE", (interface_name, ip_addr), None)
+    elif interface_name.startswith("PortChannel"):
+        config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), None)
 #
 # 'acl' group
 #
