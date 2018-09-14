@@ -201,6 +201,8 @@ class AclLoader(object):
         :return:
         """
         self.yang_acl = pybindJSON.load(filename, openconfig_acl, "openconfig_acl")
+        if pybindJSON.dumps(self.yang_acl) == '{}':
+            raise AclLoaderException("Invalid input file %s" % filename)
         self.convert_rules()
 
     def convert_action(self, table_name, rule_idx, rule):
