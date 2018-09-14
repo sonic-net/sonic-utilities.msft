@@ -197,10 +197,9 @@ def start_default():
     configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     enable = configdb.get_entry('DEVICE_METADATA', 'localhost').get('default_pfcwd_status')
-    countersdb = swsssdk.SonicV2Connector(host='127.0.0.1')
-    countersdb.connect(countersdb.COUNTERS_DB)
 
-    all_ports = get_all_ports(countersdb)
+    # Get active ports from Config DB
+    active_ports = natsorted(configdb.get_table('DEVICE_NEIGHBOR').keys())
 
     if not enable or enable.lower() != "enable":
        return
@@ -215,7 +214,7 @@ def start_default():
         'action': DEFAULT_ACTION
     }
 
-    for port in all_ports:
+    for port in active_ports:
         configdb.set_entry("PFC_WD_TABLE", port, pfcwd_info)
 
     pfcwd_info = {}
