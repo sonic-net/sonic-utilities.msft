@@ -77,7 +77,7 @@ def set_interface_mode(mode):
     """Modify SONIC_CLI_IFACE_MODE env variable in user .bashrc
     """
     user = os.getenv('SUDO_USER')
-    bashrc_ifacemode_line = "SONIC_CLI_IFACE_MODE={}".format(mode)
+    bashrc_ifacemode_line = "export SONIC_CLI_IFACE_MODE={}".format(mode)
 
     if not user:
         user = os.getenv('USER')
@@ -95,7 +95,7 @@ def set_interface_mode(mode):
         newdata = filedata + bashrc_ifacemode_line
         newdata += "\n"
     else:
-        newdata = re.sub(r"SONIC_CLI_IFACE_MODE=\w+",
+        newdata = re.sub(r"export SONIC_CLI_IFACE_MODE=\w+",
                          bashrc_ifacemode_line, filedata)
     f = open(bashrc, 'w')
     f.write(newdata)
