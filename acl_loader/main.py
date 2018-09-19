@@ -193,6 +193,17 @@ class AclLoader(object):
         """
         return self.tables_db_info[tname]['type'].upper() == self.ACL_TABLE_TYPE_CTRLPLANE
 
+    @staticmethod
+    def parse_acl_json(filename):
+        yang_acl = pybindJSON.load(filename, openconfig_acl, "openconfig_acl")
+        # Check pybindJSON parsing
+        # pybindJSON.load will silently return an empty json object if input invalid
+        with open(filename, 'r') as f:
+            plain_json = json.load(f)
+            if len(plain_json['acl']['acl-sets']['acl-set']) != len(yang_acl.acl.acl_sets.acl_set):
+                raise AclLoaderException("Invalid input file %s" % filename)
+        return yang_acl
+
     def load_rules_from_file(self, filename):
         """
         Load file with ACL rules configuration in openconfig ACL format. Convert rules
@@ -200,9 +211,7 @@ class AclLoader(object):
         :param filename: File in openconfig ACL format
         :return:
         """
-        self.yang_acl = pybindJSON.load(filename, openconfig_acl, "openconfig_acl")
-        if pybindJSON.dumps(self.yang_acl) == '{}':
-            raise AclLoaderException("Invalid input file %s" % filename)
+        self.yang_acl = AclLoader.parse_acl_json(filename)
         self.convert_rules()
 
     def convert_action(self, table_name, rule_idx, rule):

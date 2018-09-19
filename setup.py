@@ -36,7 +36,8 @@ setup(
         'undebug',
     ],
     package_data={
-        'show': ['aliases.ini']
+        'show': ['aliases.ini'],
+        'sonic-utilities-tests': ['acl_input/*'],
     },
     scripts=[
         'scripts/aclshow',

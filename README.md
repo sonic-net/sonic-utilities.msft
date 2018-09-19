@@ -4,8 +4,12 @@
 
 Command-line utilities for SONiC
 
+## How to run unit test
+```python
+python2 -m py.test -v
+```
 
-# Contribution guide
+## Contribution guide
 
 All contributors must sign a contribution license agreement (CLA) before contributions can be accepted. This process is now automated via a GitHub bot when submitting new pull request. If the contributor has not yet signed a CLA, the bot will create a comment on the pull request containing a link to electronically sign the CLA.
 
