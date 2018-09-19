@@ -9,6 +9,7 @@ import time
 import click
 import urllib
 import subprocess
+import collections
 
 HOST_PATH = '/host'
 IMAGE_PREFIX = 'SONiC-OS-'
@@ -55,6 +56,32 @@ def get_image_type():
     if "Aboot=" in cmdline.read():
         return IMAGE_TYPE_ABOOT
     return IMAGE_TYPE_ONIE
+
+def aboot_read_boot_config(path):
+    config = collections.OrderedDict()
+    with open(path) as f:
+        for line in f.readlines():
+            line = line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            key, value = line.split('=', 1)
+            config[key] = value
+    return config
+
+def aboot_write_boot_config(path, config):
+    with open(path, 'w') as f:
+        f.write(''.join( '%s=%s\n' % (k, v) for k, v in config.items()))
+
+def aboot_boot_config_set(**kwargs):
+    path = kwargs.get('path', HOST_PATH + ABOOT_BOOT_CONFIG)
+    config = aboot_read_boot_config(path)
+    for key, value in kwargs.items():
+        config[key] = value
+    aboot_write_boot_config(path, config)
+
+def aboot_image_path(image):
+    image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
+    return 'flash:%s/.sonic-boot.swi' % image_dir
 
 # Run bash command and print output to stdout
 def run_command(command):
@@ -118,14 +145,13 @@ def remove_image(image):
         nextimage = get_next_image()
         current = get_current_image()
         if image == nextimage:
-            image_dir = current.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
-            command = "echo \"SWI=flash:%s/.sonic-boot.swi\" > %s/%s" % (image_dir, HOST_PATH, ABOOT_BOOT_CONFIG)
-            run_command(command)
-            click.echo("Set next boot to current image %s" % current)
+            image_path = aboot_image_path(current)
+            aboot_boot_config_set(SWI=image_path, SWI_DEFAULT=image_path)
+            click.echo("Set next and default boot to current image %s" % current)
 
         image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
         click.echo('Removing image root filesystem...')
-        subprocess.call(['rm','-rf', HOST_PATH + '/' + image_dir])
+        subprocess.call(['rm','-rf', os.path.join(HOST_PATH, image_dir)])
         click.echo('Image removed')
     else:
         click.echo('Updating GRUB...')
@@ -220,11 +246,11 @@ def set_default(image):
         click.echo('Image does not exist')
         sys.exit(1)
     if get_image_type() == IMAGE_TYPE_ABOOT:
-        image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
-        command = "echo \"SWI=flash:%s/.sonic-boot.swi\" > %s/%s" % (image_dir, HOST_PATH, ABOOT_BOOT_CONFIG)
+        image_path = aboot_image_path(image)
+        aboot_boot_config_set(SWI=image_path, SWI_DEFAULT=image_path)
     else:
         command = 'grub-set-default --boot-directory=' + HOST_PATH + ' ' + str(images.index(image))
-    run_command(command)
+        run_command(command)
 
 
 # Set image for next boot
@@ -237,11 +263,11 @@ def set_next_boot(image):
         click.echo('Image does not exist')
         sys.exit(1)
     if get_image_type() == IMAGE_TYPE_ABOOT:
-        image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
-        command = "echo \"SWI=flash:%s/.sonic-boot.swi\" > %s/%s" % (image_dir, HOST_PATH, ABOOT_BOOT_CONFIG)
+        image_path = aboot_image_path(image)
+        aboot_boot_config_set(SWI=image_path)
     else:
         command = 'grub-reboot --boot-directory=' + HOST_PATH + ' ' + str(images.index(image))
-    run_command(command)
+        run_command(command)
 
 
 # Uninstall image
