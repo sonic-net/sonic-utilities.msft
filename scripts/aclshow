@@ -201,7 +201,6 @@ class AclStat(object):
                     self.get_counter_value(rule_key, 'packets') == 'N/A'):
                 continue
             rule = self.acl_rules[rule_key]
-            ports = self.acl_tables[rule_key[0]]['ports']
             line = [rule_key[1], rule_key[0],
                     self.acl_tables[rule_key[0]]['type'],
                     rule['PRIORITY'],
