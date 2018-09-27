@@ -342,6 +342,68 @@ def load_minigraph():
     _restart_services()
     print "Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`."
 
+
+#
+# 'portchannel' group
+#
+@cli.group()
+@click.pass_context
+def portchannel(ctx):
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {'db': config_db}
+    pass
+
+@portchannel.command('add')
+@click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
+@click.option('--min-links', default=0, type=int)
+@click.option('--fallback', default='false')
+@click.pass_context
+def add_portchannel(ctx, portchannel_name, min_links, fallback):
+    """Add port channel"""
+    db = ctx.obj['db']
+    fvs = {'admin_status': 'up',
+           'mtu': '9100'}
+    if min_links != 0:
+        fvs['min_links'] = str(min_links)
+    if fallback != 'false':
+        fvs['fallback'] = 'true'
+    db.set_entry('PORTCHANNEL', portchannel_name, fvs)
+
+@portchannel.command('del')
+@click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
+@click.pass_context
+def remove_portchannel(ctx, portchannel_name):
+    """Remove port channel"""
+    db = ctx.obj['db']
+    db.set_entry('PORTCHANNEL', portchannel_name, None)
+
+@portchannel.group('member')
+@click.pass_context
+def portchannel_member(ctx):
+    pass
+
+@portchannel_member.command('add')
+@click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
+@click.argument('port_name', metavar='<port_name>', required=True)
+@click.pass_context
+def add_portchannel_member(ctx, portchannel_name, port_name):
+    """Add member to port channel"""
+    db = ctx.obj['db']
+    db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
+            {'NULL': 'NULL'})
+
+@portchannel_member.command('del')
+@click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
+@click.argument('port_name', metavar='<port_name>', required=True)
+@click.pass_context
+def del_portchannel_member(ctx, portchannel_name, port_name):
+    """Remove member from portchannel"""
+    db = ctx.obj['db']
+    db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
+    db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
+
+
 #
 # 'mirror' group
 #
