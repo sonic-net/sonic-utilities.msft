@@ -128,6 +128,8 @@ def config(ports):
 @click.argument('detection-time', type=click.IntRange(100, 5000))
 def start(action, restoration_time, ports, detection_time):
     """ Start PFC watchdog on port(s). To config all ports, use all as input. """
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
     configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     countersdb = swsssdk.SonicV2Connector(host='127.0.0.1')
@@ -162,6 +164,8 @@ def start(action, restoration_time, ports, detection_time):
 @click.argument('poll_interval', type=click.IntRange(100, 3000))
 def interval(poll_interval):
     """ Set PFC watchdog counter polling interval """
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
     configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     pfcwd_info = {}
@@ -175,6 +179,8 @@ def interval(poll_interval):
 @click.argument('ports', nargs = -1)
 def stop(ports):
     """ Stop PFC watchdog on port(s) """
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
     configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     countersdb = swsssdk.SonicV2Connector(host='127.0.0.1')
@@ -194,6 +200,8 @@ def stop(ports):
 @cli.command()
 def start_default():
     """ Start PFC WD by default configurations  """
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
     configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     enable = configdb.get_entry('DEVICE_METADATA', 'localhost').get('default_pfcwd_status')
@@ -226,6 +234,8 @@ def start_default():
 @click.argument('counter_poll', type=click.Choice(['enable', 'disable']))
 def counter_poll(counter_poll):
     """ Enable/disable counter polling """
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
     configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     pfcwd_info = {}
@@ -237,6 +247,8 @@ def counter_poll(counter_poll):
 @click.argument('big_red_switch', type=click.Choice(['enable', 'disable']))
 def big_red_switch(big_red_switch):
     """ Enable/disable BIG_RED_SWITCH mode """
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
     configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     pfcwd_info = {}
