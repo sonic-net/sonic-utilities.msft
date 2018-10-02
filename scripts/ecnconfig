@@ -104,12 +104,16 @@ class EcnConfig(object):
             print("Total profiles: %d" % len(wred_profiles))
 
     def set_wred_threshold(self, profile, threshold, value):
+        if os.geteuid() != 0:
+            sys.exit("Root privileges required for this operation")
         field = WRED_CONFIG_FIELDS[threshold]
         if self.verbose:
             print("Setting %s value to %s" % (field, value))
         self.db.mod_entry(WRED_PROFILE_TABLE_NAME, profile, {field: value})
 
     def set_wred_prob(self, profile, drop_color, value):
+        if os.geteuid() != 0:
+            sys.exit("Root privileges required for this operation")
         field = WRED_CONFIG_FIELDS[drop_color]
         if self.verbose:
             print("Setting %s value to %s%%" % (field, value))
@@ -151,6 +155,8 @@ class EcnQ(object):
             self.ports_key = ','.join(sorted(ports, key = lambda k: int(k[8:])))
 
     def set(self, enable):
+        if os.geteuid() != 0:
+            sys.exit("Root privileges required for this operation")
         for queue in self.queues:
             if self.verbose:
                 print("%s ECN on %s queue %s" % ("Enable" if enable else "Disable", self.ports_key, queue))
