@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 
 REBOOT_USER=$(logname)
 REBOOT_TIME=$(date)
@@ -13,7 +13,6 @@ function stop_sonic_services()
     docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
     sleep 3
 }
-
 
 # Exit if not superuser
 if [[ "$EUID" -ne 0 ]]; then
@@ -33,7 +32,7 @@ sleep 3
 
 if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
     echo "Rebooting with platform ${PLATFORM} specific tool ..."
-    exec ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT}
+    exec ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} $@
 else
     # If no platform-specific reboot tool, just run /sbin/reboot
     exec /sbin/reboot $@
