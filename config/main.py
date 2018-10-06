@@ -276,17 +276,33 @@ def load(filename, yes):
 
 @cli.command()
 @click.option('-y', '--yes', is_flag=True)
+@click.option('-l', '--load-sysinfo', is_flag=True, help='load system default information (mac, portmap etc) first.')
 @click.argument('filename', default='/etc/sonic/config_db.json', type=click.Path(exists=True))
-def reload(filename, yes):
+def reload(filename, yes, load_sysinfo):
     """Clear current configuration and import a previous saved config DB dump file."""
     if not yes:
         click.confirm('Clear current config and reload config from the file %s?' % filename, abort=True)
+
+    if load_sysinfo:
+        command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, filename)
+        proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+        cfg_hwsku, err = proc.communicate()
+        if err:
+            click.echo("Could not get the HWSKU from config file, exiting")
+            sys.exit(1)
+        else:
+            cfg_hwsku = cfg_hwsku.strip()
+
     #Stop services before config push
     _stop_services()
     config_db = ConfigDBConnector()
     config_db.connect()
     client = config_db.redis_clients[config_db.CONFIG_DB]
     client.flushdb()
+    if load_sysinfo:
+        command = "{} -H -k {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku)
+        run_command(command, display_cmd=True)
+
     command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
     run_command(command, display_cmd=True)
     client.set(config_db.INIT_INDICATOR, 1)
