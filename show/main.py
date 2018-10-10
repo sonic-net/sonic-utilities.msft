@@ -1441,7 +1441,7 @@ def state(redis_unix_socket_path):
         entry = db.get_all(db.STATE_DB, tk)
         r = []
         r.append(remove_prefix(tk, prefix))
-        r.append(entry['restart_count'])
+        r.append(entry['restore_count'])
 
         if 'state' not in  entry:
             r.append("")
@@ -1450,7 +1450,7 @@ def state(redis_unix_socket_path):
 
         table.append(r)
 
-    header = ['name', 'restart_count', 'state']
+    header = ['name', 'restore_count', 'state']
     click.echo(tabulate(table, header))
 
 @warm_restart.command()
