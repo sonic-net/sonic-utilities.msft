@@ -1181,16 +1181,59 @@ def vlan():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def brief(verbose):
     """Show all bridge information"""
-    cmd = "sudo brctl show"
-    run_command(cmd, display_cmd=verbose)
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    header = ['VLAN ID', 'IP Address', 'Ports', 'DHCP Helper Address']
+    body = []
+    vlan_keys = []
 
-@vlan.command()
-@click.argument('bridge_name', required=True)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def id(bridge_name, verbose):
-    """Show list of learned MAC addresses for particular bridge"""
-    cmd = "sudo brctl showmacs {}".format(bridge_name)
-    run_command(cmd, display_cmd=verbose)
+    # Fetching data from config_db for VLAN, VLAN_INTERFACE and VLAN_MEMBER
+    vlan_dhcp_helper_data = config_db.get_table('VLAN')
+    vlan_ip_data = config_db.get_table('VLAN_INTERFACE')
+    vlan_ports_data = config_db.get_table('VLAN_MEMBER')
+
+    vlan_keys = natsorted(vlan_dhcp_helper_data.keys())
+
+    # Defining dictionaries for DHCP Helper address, Interface Gateway IP and VLAN ports
+    vlan_dhcp_helper_dict = {}
+    vlan_ip_dict = {}
+    vlan_ports_dict = {}
+
+    # Parsing DHCP Helpers info
+    for key in natsorted(vlan_dhcp_helper_data.keys()):
+        try:
+            if vlan_dhcp_helper_data[key]['dhcp_servers']:
+                vlan_dhcp_helper_dict[str(key.strip('Vlan'))] = vlan_dhcp_helper_data[key]['dhcp_servers']
+        except KeyError:
+            vlan_dhcp_helper_dict[str(key.strip('Vlan'))] = " "
+            pass
+
+    # Parsing VLAN Gateway info
+    for key in natsorted(vlan_ip_data.keys()):
+        interface_key = str(key[0].strip("Vlan"))
+        interface_value = str(key[1])
+        if interface_key in vlan_ip_dict:
+            vlan_ip_dict[interface_key].append(interface_value)
+        else:
+            vlan_ip_dict[interface_key] = [interface_value]
+
+    # Parsing VLAN Ports info
+    for key in natsorted(vlan_ports_data.keys()):
+        ports_key = str(key[0].strip("Vlan"))
+        ports_value = str(key[1])
+        if ports_key in vlan_ports_dict:
+            vlan_ports_dict[ports_key].append(ports_value)
+        else:
+            vlan_ports_dict[ports_key] = [ports_value]
+
+    # Printing the following dictionaries in tablular forms:
+    # vlan_dhcp_helper_dict={}, vlan_ip_dict = {}, vlan_ports_dict = {}
+    for key in natsorted(vlan_dhcp_helper_dict.keys()):
+        dhcp_helpers = ','.replace(',', '\n').join(vlan_dhcp_helper_dict[key])
+        ip_address = ','.replace(',', '\n').join(vlan_ip_dict[key])
+        vlan_ports = ','.replace(',', '\n').join((vlan_ports_dict[key]))
+        body.append([key, ip_address, vlan_ports, dhcp_helpers])
+    click.echo(tabulate(body, header, tablefmt="grid"))
 
 @vlan.command()
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
