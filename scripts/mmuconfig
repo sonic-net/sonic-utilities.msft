@@ -1,0 +1,114 @@
+#!/usr/bin/python
+"""
+mmuconfig is the utility to show and change mmu configuration
+
+usage: mmuconfig [-h] [-v] [-l] [-p PROFILE] [-a ALPHA] [-vv]
+
+optional arguments:
+  -h     --help            show this help message and exit
+  -v     --version         show program's version number and exit
+  -vv    --verbose         verbose output
+  -l     --list            show mmu configuration
+  -p     --profile         specify buffer profile name
+  -a     --alpha           set n for dyanmic threshold alpha 2^(n)
+
+"""
+
+from __future__ import print_function
+
+import os
+import sys
+import argparse
+import swsssdk
+import tabulate
+
+BUFFER_POOL_TABLE_NAME = "BUFFER_POOL"
+BUFFER_PROFILE_TABLE_NAME = "BUFFER_PROFILE"
+
+DYNAMIC_THRESHOLD = "dynamic_th"
+BUFFER_PROFILE_FIELDS = {
+    "alpha": DYNAMIC_THRESHOLD
+}
+
+
+class MmuConfig(object):
+    def __init__(self, verbose):
+        self.verbose = verbose
+
+        # Set up db connections
+        self.db = swsssdk.ConfigDBConnector()
+        self.db.connect()
+
+    def list(self):
+        buf_pools = self.db.get_table(BUFFER_POOL_TABLE_NAME)
+        for pool_name, pool_data in buf_pools.items():
+            config = []
+
+            print("Pool: " + pool_name)
+            for field, value in pool_data.items():
+                config.append([field, value])
+            print(tabulate.tabulate(config) + "\n")
+        if self.verbose:
+            print("Total pools: %d\n\n" % len(buf_pools))
+
+        buf_profs = self.db.get_table(BUFFER_PROFILE_TABLE_NAME)
+        for prof_name, prof_data in buf_profs.items():
+            config = []
+
+            print("Profile: " + prof_name)
+            for field, value in prof_data.items():
+                config.append([field, value])
+            print(tabulate.tabulate(config) + "\n")
+        if self.verbose:
+            print("Total profiles: %d" % len(buf_profs))
+
+    def set(self, profile, field_alias, value):
+        if os.geteuid() != 0:
+            sys.exit("Root privileges required for this operation")
+
+        field = BUFFER_PROFILE_FIELDS[field_alias]
+        if field == DYNAMIC_THRESHOLD:
+            v = int(value)
+            if v < -8 or v > 8:
+                sys.exit("Invalid alpha value: 2^(%s)" % (value))
+
+            buf_profs = self.db.get_table(BUFFER_PROFILE_TABLE_NAME)
+            if profile in buf_profs and DYNAMIC_THRESHOLD not in buf_profs[profile]:
+                sys.exit("%s not using dynamic thresholding" % (profile))
+        else:
+            sys.exit("Set field %s not supported" % (field))
+
+        if self.verbose:
+            print("Setting %s %s value to %s" % (profile, field, value))
+        self.db.mod_entry(BUFFER_PROFILE_TABLE_NAME, profile, {field: value})
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Show and change: mmu configuration',
+                                     version='1.0.0',
+                                     formatter_class=argparse.RawTextHelpFormatter)
+
+    parser.add_argument('-l', '--list', action='store_true', help='show mmu configuration')
+    parser.add_argument('-p', '--profile', type=str, help='specify buffer profile name', default=None)
+    parser.add_argument('-a', '--alpha', type=str, help='set n for dyanmic threshold alpha 2^(n)', default=None)
+    parser.add_argument('-vv', '--verbose', action='store_true', help='verbose output', default=False)
+
+    args = parser.parse_args()
+
+    try:
+        mmu_cfg = MmuConfig(args.verbose)
+        if args.list:
+            mmu_cfg.list()
+        elif args.profile:
+            if args.alpha:
+                mmu_cfg.set(args.profile, "alpha", args.alpha)
+        else:
+            parser.print_help()
+            sys.exit(1)
+
+    except Exception as e:
+        print("Exception caught:", e.message, file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

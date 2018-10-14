@@ -1421,6 +1421,16 @@ def ecn():
     click.echo(proc.stdout.read())
 
 
+# 'mmu' command ("show mmu")
+#
+@cli.command('mmu')
+def mmu():
+    """Show mmu configuration"""
+    cmd = "mmuconfig -l"
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    click.echo(proc.stdout.read())
+
+
 #
 # 'reboot-cause' command ("show reboot-cause")
 #
