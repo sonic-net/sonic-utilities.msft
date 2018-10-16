@@ -70,7 +70,7 @@ setup(
     entry_points={
         'console_scripts': [
             'acl-loader = acl_loader.main:cli',
-            'config = config.main:cli',
+            'config = config.main:config',
             'connect = connect.main:connect',
             'consutil = consutil.main:consutil',
             'counterpoll = counterpoll.main:cli',
