@@ -7,6 +7,8 @@ import json
 import subprocess
 import netaddr
 import re
+
+import sonic_platform
 from swsssdk import ConfigDBConnector
 from natsort import natsorted
 from minigraph import parse_device_desc_xml
@@ -926,7 +928,9 @@ def asymmetric(status, interface):
 @cli.group()
 def platform():
     """Platform-related configuration tasks"""
-platform.add_command(mlnx.mlnx)
+
+if (sonic_platform.get_sonic_version_info()['asic_type'] == 'mellanox'):
+    platform.add_command(mlnx.mlnx)
 
 
 #

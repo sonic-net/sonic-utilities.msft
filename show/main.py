@@ -874,7 +874,8 @@ def platform():
     """Show platform-specific hardware info"""
     pass
 
-platform.add_command(mlnx.mlnx)
+if (sonic_platform.get_sonic_version_info()['asic_type'] == 'mellanox'):
+    platform.add_command(mlnx.mlnx)
 
 # 'summary' subcommand ("show platform summary")
 @platform.command()
