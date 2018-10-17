@@ -902,7 +902,8 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
 #
 
 @interface.group()
-def pfc():
+@click.pass_context
+def pfc(ctx):
     """Set PFC configuration."""
     pass
 
@@ -913,9 +914,12 @@ def pfc():
 
 @pfc.command()
 @click.argument('status', type=click.Choice(['on', 'off']))
-@click.argument('interface', type=click.STRING)
-def asymmetric(status, interface):
+@click.pass_context
+def asymmetric(ctx, status):
     """Set asymmetric PFC configuration."""
+    config_db = ctx.obj["config_db"]
+    interface = ctx.obj["interface_name"]
+
     run_command("pfc config asymmetric {0} {1}".format(status, interface))
 
 #
