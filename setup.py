@@ -54,6 +54,7 @@ setup(
         'scripts/generate_dump',
         'scripts/intfutil',
         'scripts/lldpshow',
+        'scripts/nbrshow',
         'scripts/pcmping',
         'scripts/port2alias',
         'scripts/portconfig',
@@ -62,7 +63,7 @@ setup(
         'scripts/queuestat',
         'scripts/reboot',
         'scripts/teamshow',
-        'scripts/nbrshow'
+        'scripts/warm-reboot',
     ],
     data_files=[
         ('/etc/bash_completion.d', glob.glob('data/etc/bash_completion.d/*')),
