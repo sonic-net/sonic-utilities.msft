@@ -809,6 +809,8 @@ def add(ctx, ip_addr):
         config_db.set_entry("INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
     elif interface_name.startswith("PortChannel"):
         config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+    elif interface_name.startswith("Vlan"):
+        config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
 
 #
 # 'del' subcommand
@@ -826,6 +828,8 @@ def remove(ctx, ip_addr):
         config_db.set_entry("INTERFACE", (interface_name, ip_addr), None)
     elif interface_name.startswith("PortChannel"):
         config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), None)
+    elif interface_name.startswith("Vlan"):
+        config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), None)
 
 #
 # 'acl' group ('config acl ...')
