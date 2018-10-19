@@ -23,15 +23,6 @@ VERSION = '1.0'
 
 SNIFFER_SYSLOG_IDENTIFIER = "sniffer"
 
-# Mellanox platform name
-MLNX_PLATFORM_NAME = 'mellanox'
-
-# sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type
-PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
-SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
-SONIC_VERSION_PATH = '/etc/sonic/sonic_version.yml'
-ASIC_TYPE_KEY = 'asic_type'
-
 # SDK sniffer env variable
 ENV_VARIABLE_SX_SNIFFER = 'SX_SNIFFER_ENABLE'
 ENV_VARIABLE_SX_SNIFFER_TARGET = 'SX_SNIFFER_TARGET'
@@ -94,28 +85,6 @@ def run_command(command, display_cmd=False, ignore_error=False):
         sys.exit(proc.returncode)
 
 
-# Get asic type with command "sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type"
-def get_asic_type():
-    try:
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-y', SONIC_VERSION_PATH, '-v', ASIC_TYPE_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        asic_type = stdout.rstrip('\n')
-    except OSError, e:
-        raise OSError("Cannot detect platform asic type, %s" % str(e))
-
-    return asic_type
-
-
-# verify if the platform is with Mellanox asic.
-def verify_asic_type():
-    asic_type = get_asic_type()
-    return cmp(asic_type, MLNX_PLATFORM_NAME)
-
-
 # generate sniffer target file name include a time stamp.
 def sniffer_filename_generate(path, filename_prefix, filename_ext):
     time_stamp = time.strftime("%Y%m%d%H%M%S")
@@ -160,7 +129,7 @@ def conf_file_copy(src, dest):
 
 
 def conf_file_receive():
-    command = 'docker exec -ti ' + CONTAINER_NAME + ' bash -c "touch ' + SNIFFER_CONF_FILE + '"'
+    command = "docker exec {} bash -c 'touch {}'".format(CONTAINER_NAME, SNIFFER_CONF_FILE)
     run_command(command)
     conf_file_copy(SNIFFER_CONF_FILE_IN_CONTAINER, TMP_SNIFFER_CONF_FILE)
 
@@ -176,7 +145,7 @@ def sniffer_env_variable_set(enable, env_variable_name, env_variable_string=""):
     env_variable_exist_string = env_variable_read(env_variable_name)
     if env_variable_exist_string:
         if enable is True:
-            print "sniffer is already running, do nothing"
+            print "sniffer is already enabled, do nothing"
             ignore = True
         else:
             env_variable_delete(env_variable_exist_string)
@@ -184,13 +153,13 @@ def sniffer_env_variable_set(enable, env_variable_name, env_variable_string=""):
         if enable is True:
             env_variable_write(env_variable_string)
         else:
-            print "sniffer is already turned off, do nothing"
+            print "sniffer is already disabled, do nothing"
             ignore = True
 
     if not ignore:
         config_file_send()
 
-    command = 'rm -rf ' + TMP_SNIFFER_CONF_FILE
+    command = 'rm -rf {}'.format(TMP_SNIFFER_CONF_FILE)
     run_command(command)
 
     return ignore
@@ -217,32 +186,30 @@ def _abort_if_false(ctx, param, value):
 # 'mlnx' group
 @click.group()
 def mlnx():
-    """Mellanox platform specific configuration tasks"""
-    # check the platform info, this command only work on Mellanox platform
-    err = verify_asic_type()
-    if err != 0:
-        print "This command only supported on Mellanox platform"
-        sys.exit(2)
+    """ Mellanox platform configuration tasks """
+    pass
 
 
 # 'sniffer' group
 @mlnx.group()
 def sniffer():
-    """sniffer - Utility for managing Mellanox SDK/PRM sniffer"""
+    """ Utility for managing Mellanox SDK/PRM sniffer """
     pass
 
 
 # 'sdk' subgroup
-@sniffer.group()
-def sdk():
-    """SDK Sniffer - Command Line to enable/disable SDK sniffer"""
-    pass
-
-
-# 'sniffer sdk enable' command
-@sdk.command('enable')
+@sniffer.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false, expose_value=False,
-              prompt='To enable SDK sniffer swss service will be restarted, continue?')
+              prompt='To change SDK sniffer status, swss service will be restarted, continue?')
+@click.argument('option', type=click.Choice(["enable", "disable"]))
+def sdk(option):
+    """SDK Sniffer - Command Line to enable/disable SDK sniffer"""
+    if option == 'enable':
+        sdk_sniffer_enable()
+    elif option == 'disable':
+        sdk_sniffer_disable()
+
+
 def sdk_sniffer_enable():
     """Enable SDK Sniffer"""
     print "Enabling SDK sniffer"
@@ -264,15 +231,11 @@ def sdk_sniffer_enable():
         err = restart_swss()
         if err is not 0:
             return
-        print 'SDK sniffer is enabled, recording file is %s.' % sdk_sniffer_filename
+        print 'Enabled SDK sniffer, recording file is %s' % sdk_sniffer_filename
     else:
         pass
 
 
-# 'sniffer sdk disable' command
-@sdk.command('disable')
-@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false, expose_value=False,
-              prompt='To disable SDK sniffer swss service will be restarted, continue?')
 def sdk_sniffer_disable():
     """Disable SDK Sniffer"""
     print "Disabling SDK sniffer"
@@ -282,54 +245,23 @@ def sdk_sniffer_disable():
         err = restart_swss()
         if err is not 0:
             return
-        print "SDK sniffer is disabled"
+        print "Disabled SDK sniffer"
     else:
         pass
 
 
 # place holders for 'sniff prm enable/disable' and 'sniffer all enable/disable'
-'''
-@cli.group()
-def prm():
-    """PRM Sniffer - Command Line to enable/disable PRM sniffer"""
-    pass
+# @sniffer.command()
+# @click.argument('option', type=click.Choice(["enable", "disable"]))
+# def prf():
+#     pass
+#
+#
+# @sniffer.command()
+# @click.argument('option', type=click.Choice(["enable", "disable"]))
+# def all():
+#     pass
 
-
-@prm.command('enable')
-def enable_prm_sniffer():
-    """Enable SDK sniffer"""
-    pass
-
-
-@prm.command('disable')
-def disable_prm_sniffer():
-    """Disable PRM sniffer"""
-    pass
-
-
-@cli.group()
-def all():
-    """ALL SNIFFERS - Command line to enable/disable PRM and SDK sniffer"""
-    pass
-
-
-@all.command('enable')
-def enable_all_sniffer():
-    """Enable PRM and SDK sniffers"""
-    pass
-
-
-@all.command('disable')
-def disable_all_sniffer():
-    """Disable PRM and SDK sniffers"""
-    pass
-
-@cli.group()
-def status():
-    """Sniffer running status - Command Line to show sniffer running status"""
-    pass
-    
-'''
 
 if __name__ == '__main__':
-    mlnx()
+    sniffer()
