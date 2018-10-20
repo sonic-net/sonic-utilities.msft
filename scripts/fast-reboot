@@ -86,9 +86,9 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
     # Note: assume that 1 second is enough for orchagent to process the request and respone freeze or not
     for i in `seq 4 -1 0`; do
         docker exec -i swss /usr/bin/orchagent_restart_check -w 1000 && break
-        echo "RESTARTCHECK failed $i\n" >&2
+        echo "RESTARTCHECK failed $i" >&2
         if [[ "$i" = "0" ]]; then
-            echo "RESTARTCHECK failed finally\n" >&2
+            echo "RESTARTCHECK failed finally" >&2
             exit 10
         fi
     done
