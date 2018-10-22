@@ -185,7 +185,11 @@ def port_eeprom_data_string_pretty(logical_port_name, dump_dom):
 
     for physical_port in physical_port_list:
         port_name = get_physical_port_name(logical_port_name, i, ganged)
-        eeprom_dict = platform_sfputil.get_eeprom_dict(physical_port)
+        if not platform_sfputil.get_presence(physical_port):
+            eeprom_dict = None
+        else:
+            eeprom_dict = platform_sfputil.get_eeprom_dict(physical_port)
+
         if eeprom_dict is not None:
             eeprom_iface_dict = eeprom_dict.get('interface')
             iface_data_dict = eeprom_iface_dict.get('data')
@@ -228,7 +232,10 @@ def port_eeprom_data_string_pretty_oneline(logical_port_name,
         ganged = True
 
     for physical_port in physical_port_list:
-        eeprom_dict = platform_sfputil.get_eeprom_dict(physical_port)
+        if not platform_sfputil.get_presence(physical_port):
+            eeprom_dict = None
+        else:
+            eeprom_dict = platform_sfputil.get_eeprom_dict(physical_port)
 
         # Only print detected sfp ports for oneline
         if eeprom_dict is not None:
@@ -266,7 +273,11 @@ def port_eeprom_data_raw_string_pretty(logical_port_name):
 
     for physical_port in physical_port_list:
         port_name = get_physical_port_name(logical_port_name, i, ganged)
-        eeprom_raw = platform_sfputil.get_eeprom_raw(physical_port)
+        if not platform_sfputil.get_presence(physical_port):
+            eeprom_raw = None
+        else:
+            eeprom_raw = platform_sfputil.get_eeprom_raw(physical_port)
+
         if eeprom_raw is None:
             result += get_sfp_eeprom_status_string(port_name, False)
             result += "\n"
