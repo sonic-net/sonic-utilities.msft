@@ -1232,8 +1232,14 @@ def brief(verbose):
     # vlan_dhcp_helper_dict={}, vlan_ip_dict = {}, vlan_ports_dict = {}
     for key in natsorted(vlan_dhcp_helper_dict.keys()):
         dhcp_helpers = ','.replace(',', '\n').join(vlan_dhcp_helper_dict[key])
-        ip_address = ','.replace(',', '\n').join(vlan_ip_dict[key])
-        vlan_ports = ','.replace(',', '\n').join((vlan_ports_dict[key]))
+        if key not in vlan_ip_dict:
+            ip_address = ""
+        else:
+            ip_address = ','.replace(',', '\n').join(vlan_ip_dict[key])
+        if key not in vlan_ports_dict:
+            vlan_ports = ""
+        else:
+            vlan_ports = ','.replace(',', '\n').join((vlan_ports_dict[key]))
         body.append([key, ip_address, vlan_ports, dhcp_helpers])
     click.echo(tabulate(body, header, tablefmt="grid"))
 
