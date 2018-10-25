@@ -1185,7 +1185,7 @@ def brief(verbose):
     """Show all bridge information"""
     config_db = ConfigDBConnector()
     config_db.connect()
-    header = ['VLAN ID', 'IP Address', 'Ports', 'DHCP Helper Address']
+    header = ['VLAN ID', 'IP Address', 'Ports', 'Port Tagging', 'DHCP Helper Address']
     body = []
     vlan_keys = []
 
@@ -1196,10 +1196,12 @@ def brief(verbose):
 
     vlan_keys = natsorted(vlan_dhcp_helper_data.keys())
 
-    # Defining dictionaries for DHCP Helper address, Interface Gateway IP and VLAN ports
+    # Defining dictionaries for DHCP Helper address, Interface Gateway IP,
+    # VLAN ports and port tagging
     vlan_dhcp_helper_dict = {}
     vlan_ip_dict = {}
     vlan_ports_dict = {}
+    vlan_tagging_dict = {}
 
     # Parsing DHCP Helpers info
     for key in natsorted(vlan_dhcp_helper_data.keys()):
@@ -1223,15 +1225,20 @@ def brief(verbose):
     for key in natsorted(vlan_ports_data.keys()):
         ports_key = str(key[0].strip("Vlan"))
         ports_value = str(key[1])
+        ports_tagging = vlan_ports_data[key]['tagging_mode']
         if ports_key in vlan_ports_dict:
             vlan_ports_dict[ports_key].append(ports_value)
         else:
             vlan_ports_dict[ports_key] = [ports_value]
+        if ports_key in vlan_tagging_dict:
+            vlan_tagging_dict[ports_key].append(ports_tagging)
+        else:
+            vlan_tagging_dict[ports_key] = [ports_tagging]
 
     # Printing the following dictionaries in tablular forms:
     # vlan_dhcp_helper_dict={}, vlan_ip_dict = {}, vlan_ports_dict = {}
+    # vlan_tagging_dict = {}
     for key in natsorted(vlan_dhcp_helper_dict.keys()):
-        dhcp_helpers = ','.replace(',', '\n').join(vlan_dhcp_helper_dict[key])
         if key not in vlan_ip_dict:
             ip_address = ""
         else:
@@ -1240,7 +1247,15 @@ def brief(verbose):
             vlan_ports = ""
         else:
             vlan_ports = ','.replace(',', '\n').join((vlan_ports_dict[key]))
-        body.append([key, ip_address, vlan_ports, dhcp_helpers])
+        if key not in vlan_dhcp_helper_dict:
+            dhcp_helpers = ""
+        else:
+            dhcp_helpers = ','.replace(',', '\n').join(vlan_dhcp_helper_dict[key])
+        if key not in vlan_tagging_dict:
+            vlan_tagging = ""
+        else:
+            vlan_tagging = ','.replace(',', '\n').join((vlan_tagging_dict[key]))
+        body.append([key, ip_address, vlan_ports, vlan_tagging, dhcp_helpers])
     click.echo(tabulate(body, header, tablefmt="grid"))
 
 @vlan.command()
