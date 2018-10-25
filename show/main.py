@@ -1145,7 +1145,7 @@ def bgp(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def ntp(verbose):
     """Show NTP information"""
-    cmd = "ntpq -p"
+    cmd = "ntpq -p -n"
     run_command(cmd, display_cmd=verbose)
 
 
