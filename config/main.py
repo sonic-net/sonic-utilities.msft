@@ -749,9 +749,9 @@ def startup(ctx):
     interface_name = ctx.obj['interface_name']
 
     if interface_name.startswith("Ethernet"):
-        config_db.set_entry("PORT", interface_name, {"admin_status": "up"})
+        config_db.mod_entry("PORT", interface_name, {"admin_status": "up"})
     elif interface_name.startswith("PortChannel"):
-        config_db.set_entry("PORTCHANNEL", interface_name, {"admin_status": "up"})
+        config_db.mod_entry("PORTCHANNEL", interface_name, {"admin_status": "up"})
 #
 # 'shutdown' subcommand
 #
@@ -764,9 +764,9 @@ def shutdown(ctx):
     interface_name = ctx.obj['interface_name']
 
     if interface_name.startswith("Ethernet"):
-        config_db.set_entry("PORT", interface_name, {"admin_status": "down"})
+        config_db.mod_entry("PORT", interface_name, {"admin_status": "down"})
     elif interface_name.startswith("PortChannel"):
-        config_db.set_entry("PORTCHANNEL", interface_name, {"admin_status": "down"})
+        config_db.mod_entry("PORTCHANNEL", interface_name, {"admin_status": "down"})
 
 #
 # 'speed' subcommand
