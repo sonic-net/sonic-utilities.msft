@@ -195,6 +195,93 @@ def pfccounters():
     run_command(command)
 
 #
+# 'clear watermarks
+#
+
+@cli.group(name='priority-group')
+def priority_group():
+    """Clear priority_group WM"""
+    pass
+
+@priority_group.group()
+def watermark():
+    """Clear priority_group user WM. One does not simply clear WM, root is required"""
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+
+@watermark.command('headroom')
+def clear_wm_pg_headroom():
+    """Clear user headroom WM for pg"""
+    command = 'watermarkstat -c -t pg_headroom'
+    run_command(command)
+
+@watermark.command('shared')
+def clear_wm_pg_shared():
+    """Clear user shared WM for pg"""
+    command = 'watermarkstat -c -t pg_shared'
+    run_command(command)
+
+@priority_group.group(name='persistent-watermark')
+def persistent_watermark():
+    """Clear queue persistent WM. One does not simply clear WM, root is required"""
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+
+@persistent_watermark.command('headroom')
+def clear_pwm_pg_headroom():
+    """Clear persistent headroom WM for pg"""
+    command = 'watermarkstat -c -p -t pg_headroom'
+    run_command(command)
+
+@persistent_watermark.command('shared')
+def clear_pwm_pg_shared():
+    """Clear persistent shared WM for pg"""
+    command = 'watermarkstat -c -p -t pg_shared'
+    run_command(command)
+
+
+@cli.group()
+def queue():
+    """Clear queue WM"""
+    pass
+
+@queue.group()
+def watermark():
+    """Clear queue user WM. One does not simply clear WM, root is required"""
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+
+@watermark.command('unicast')
+def clear_wm_q_uni():
+    """Clear user WM for unicast queues"""
+    command = 'watermarkstat -c -t q_shared_uni'
+    run_command(command)
+
+@watermark.command('multicast')
+def clear_wm_q_multi():
+    """Clear user WM for multicast queues"""
+    command = 'watermarkstat -c -t q_shared_multi'
+    run_command(command)
+
+@queue.group(name='persistent-watermark')
+def persistent_watermark():
+    """Clear queue persistent WM. One does not simply clear WM, root is required"""
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+
+@persistent_watermark.command('unicast')
+def clear_pwm_q_uni():
+    """Clear persistent WM for persistent queues"""
+    command = 'watermarkstat -c -p -t q_shared_uni'
+    run_command(command)
+
+@persistent_watermark.command('multicast')
+def clear_pwm_q_multi():
+    """Clear persistent WM for multicast queues"""
+    command = 'watermarkstat -c -p -t q_shared_multi'
+    run_command(command)
+
+#
 # 'arp' command ####
 #
 

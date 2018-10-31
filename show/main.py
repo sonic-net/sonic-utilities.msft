@@ -658,6 +658,27 @@ def naming_mode(verbose):
 
 
 #
+# 'watermark' group ("show watermark telemetry interval")
+#
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def watermark():
+    """Show details of watermark """
+    pass
+
+@watermark.group()
+def telemetry():
+    """Show watermark telemetry info"""
+    pass
+
+@telemetry.command('interval')
+def show_tm_interval():
+    """Show telemetry interval"""
+    command = 'watermarkcfg --show-interval'
+    run_command(command)
+
+
+#
 # 'queue' group ("show queue ...")
 #
 
@@ -687,6 +708,86 @@ def counters(interfacename, clear, verbose):
             cmd += " -p {}".format(interfacename)
 
     run_command(cmd, display_cmd=verbose)
+
+# watermarks subcommands ("show queue watermarks|persistent-watermarks")
+
+@queue.group()
+def watermark():
+    """Show queue user WM"""
+    pass
+
+@watermark.command('unicast')
+def wm_q_uni():
+    """Show user WM for unicast queues"""
+    command = 'watermarkstat -t q_shared_uni'
+    run_command(command)
+
+@watermark.command('multicast')
+def wm_q_multi():
+    """Show user WM for multicast queues"""
+    command = 'watermarkstat -t q_shared_multi'
+    run_command(command)
+
+@queue.group(name='persistent-watermark')
+def persistent_watermark():
+    """Show queue persistent WM"""
+    pass
+
+@persistent_watermark.command('unicast')
+def pwm_q_uni():
+    """Show persistent WM for persistent queues"""
+    command = 'watermarkstat -p -t q_shared_uni'
+    run_command(command)
+
+@persistent_watermark.command('multicast')
+def pwm_q_multi():
+    """Show persistent WM for multicast queues"""
+    command = 'watermarkstat -p -t q_shared_multi'
+    run_command(command)
+
+
+#
+# 'priority-group' group ("show priority-group ...")
+#
+
+@cli.group(name='priority-group', cls=AliasedGroup, default_if_no_args=False)
+def priority_group():
+    """Show details of the PGs """
+
+
+@priority_group.group()
+def watermark():
+    """Show priority_group user WM"""
+    pass
+
+@watermark.command('headroom')
+def wm_pg_headroom():
+    """Show user headroom WM for pg"""
+    command = 'watermarkstat -t pg_headroom'
+    run_command(command)
+
+@watermark.command('shared')
+def wm_pg_shared():
+    """Show user shared WM for pg"""
+    command = 'watermarkstat -t pg_shared'
+    run_command(command)
+
+@priority_group.group(name='persistent-watermark')
+def persistent_watermark():
+    """Show queue persistent WM"""
+    pass
+
+@persistent_watermark.command('headroom')
+def pwm_pg_headroom():
+    """Show persistent headroom WM for pg"""
+    command = 'watermarkstat -p -t pg_headroom'
+    run_command(command)
+
+@persistent_watermark.command('shared')
+def pwm_pg_shared():
+    """Show persistent shared WM for pg"""
+    command = 'watermarkstat -p -t pg_shared'
+    run_command(command)
 
 #
 # 'pfc' group ###

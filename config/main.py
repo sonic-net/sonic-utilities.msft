@@ -938,6 +938,27 @@ version_info = sonic_platform.get_sonic_version_info()
 if (version_info and version_info.get('asic_type') == 'mellanox'):
     platform.add_command(mlnx.mlnx)
 
+#
+# 'watermark' group ("show watermark telemetry interval")
+#
+
+@cli.group()
+def watermark():
+    """Configure watermark """
+    pass
+
+@watermark.group()
+def telemetry():
+    """Configure watermark telemetry"""
+    pass
+
+@telemetry.command()
+@click.argument('interval', required=True)
+def interval(interval):
+    """Configure watermark telemetry interval"""
+    command = 'watermarkcfg --config-interval ' + interval
+    run_command(command)
+   
 
 #
 # 'interface_naming_mode' subgroup ('config interface_naming_mode ...')
