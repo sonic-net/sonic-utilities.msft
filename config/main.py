@@ -942,7 +942,7 @@ if (version_info and version_info.get('asic_type') == 'mellanox'):
 # 'watermark' group ("show watermark telemetry interval")
 #
 
-@cli.group()
+@config.group()
 def watermark():
     """Configure watermark """
     pass
