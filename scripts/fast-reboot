@@ -95,8 +95,8 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
 fi
 
 # Kill bgpd to start the bgp graceful restart procedure
-docker exec -i bgp killall -9 zebra
-docker exec -i bgp killall -9 bgpd
+docker exec -i bgp pkill -9 zebra
+docker exec -i bgp pkill -9 bgpd
 
 # Kill lldp, otherwise it sends informotion about reboot
 docker kill lldp > /dev/null
