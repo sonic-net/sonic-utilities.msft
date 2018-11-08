@@ -101,10 +101,20 @@ docker exec -i bgp pkill -9 bgpd
 # Kill lldp, otherwise it sends informotion about reboot
 docker kill lldp > /dev/null
 
-# Kill teamd, otherwise it gets down all LAGs
-# Note: teamd must be killed before syncd, because it will send the last packet through CPU port
-# TODO: stop teamd gracefully to allow teamd to send last valid update to be sure we'll have 90 seconds reboot time
-docker kill teamd > /dev/null
+# Stop teamd gracefully
+if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
+    # Send USR1 signal to all teamd instances to stop them
+    # It will prepare teamd for warm-reboot
+    # Note: We must send USR1 signal before syncd, because it will send the last packet through CPU port
+    docker exec -ti teamd pkill -USR1 teamd > /dev/null
+fi
+
+if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
+    # Kill teamd, otherwise it gets down all LAGs
+    # Note: teamd must be killed before syncd, because it will send the last packet through CPU port
+    # TODO: stop teamd gracefully to allow teamd to send last valid update to be sure we'll have 90 seconds reboot time
+    docker kill teamd > /dev/null
+fi
 
 # Kill swss dockers
 docker kill swss
