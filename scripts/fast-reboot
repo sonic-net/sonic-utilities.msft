@@ -130,6 +130,8 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
     $DUMP_CMD -d 6 -k "[FW][DA][BR][_M][T_][AR][BE][LS][ET][|A]*" -o $WARM_DIR/state_db.json
     # Save asicDB in /host/warm-reboot/asic_db.json
     $DUMP_CMD -d 1 -o $WARM_DIR/asic_db.json
+    # Save loglevelDB in /host/warm-reboot/loglevel_db.json
+    $DUMP_CMD -d 3 -o $WARM_DIR/loglevel_db.json
 fi
 
 if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
