@@ -14,6 +14,17 @@ function stop_sonic_services()
     sleep 3
 }
 
+function clear_warm_boot()
+{
+    # If reboot is requested, make sure the outstanding warm-boot is cleared
+    # So the system will come up from a cold boot.
+    WARM_DIR="/host/warmboot"
+    TIMESTAMP=`date +%Y%m%d-%H%M%S`
+    if [[ -f ${WARM_DIR}/config_db.json ]]; then
+        mv -f ${WARM_DIR}/config_db.json ${WARM_DIR}/config_db-${TIMESTAMP}.json
+    fi
+}
+
 # Exit if not superuser
 if [[ "$EUID" -ne 0 ]]; then
     echo "This command must be run as root" >&2
@@ -22,6 +33,8 @@ fi
 
 # Stop SONiC services gracefully.
 stop_sonic_services
+
+clear_warm_boot
 
 # Update the reboot cause file to reflect that user issued 'reboot' command
 # Upon next boot, the contents of this file will be used to determine the
