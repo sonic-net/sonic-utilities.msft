@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import click
+import ipaddr
 import json
 import syslog
 import tabulate
@@ -253,7 +254,7 @@ class AclLoader(object):
 
         return rule_props
 
-    def convert_ipv4(self, table_name, rule_idx, rule):
+    def convert_ip(self, table_name, rule_idx, rule):
         rule_props = {}
 
         if rule.ip.config.protocol:
@@ -269,10 +270,18 @@ class AclLoader(object):
                 rule_props["IP_PROTOCOL"] = rule.ip.config.protocol
 
         if rule.ip.config.source_ip_address:
-            rule_props["SRC_IP"] = rule.ip.config.source_ip_address.encode("ascii")
+            source_ip_address = rule.ip.config.source_ip_address.encode("ascii")
+            if ipaddr.IPNetwork(source_ip_address) == 4:
+                rule_props["SRC_IP"] = source_ip_address
+            else:
+                rule_props["SRC_IPV6"] = source_ip_address
 
         if rule.ip.config.destination_ip_address:
-            rule_props["DST_IP"] = rule.ip.config.destination_ip_address.encode("ascii")
+            destination_ip_address = rule.ip.config.destination_ip_address.encode("ascii")
+            if ipaddr.IPNetwork(destination_ip_address) == 4:
+                rule_props["DST_IP"] = destination_ip_address
+            else:
+                rule_props["DST_IPV6"] = destination_ip_address
 
         # NOTE: DSCP is available only for MIRROR table
         if self.is_table_mirror(table_name):
@@ -346,7 +355,7 @@ class AclLoader(object):
 
         deep_update(rule_props, self.convert_action(table_name, rule_idx, rule))
         deep_update(rule_props, self.convert_l2(table_name, rule_idx, rule))
-        deep_update(rule_props, self.convert_ipv4(table_name, rule_idx, rule))
+        deep_update(rule_props, self.convert_ip(table_name, rule_idx, rule))
         deep_update(rule_props, self.convert_transport(table_name, rule_idx, rule))
 
         return rule_data
