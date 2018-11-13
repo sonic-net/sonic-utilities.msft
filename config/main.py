@@ -16,7 +16,7 @@ from minigraph import parse_device_desc_xml
 import aaa
 import mlnx
 
-SONIC_CFGGEN_PATH = "sonic-cfggen"
+SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 
 #
 # Helper functions
@@ -42,13 +42,14 @@ def run_command(command, display_cmd=False, ignore_error=False):
 def interface_alias_to_name(interface_alias):
     """Return default interface name if alias name is given as argument
     """
-
-    cmd = 'sonic-cfggen -d --var-json "PORT"'
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-
-    port_dict = json.loads(p.stdout.read())
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    port_dict = config_db.get_table('PORT')
 
     if interface_alias is not None:
+        if not port_dict:
+            click.echo("port_dict is None!")
+            raise click.Abort()
         for port_name in natsorted(port_dict.keys()):
             if interface_alias == port_dict[port_name]['alias']:
                 return port_name
@@ -60,13 +61,14 @@ def interface_alias_to_name(interface_alias):
 def interface_name_to_alias(interface_name):
     """Return alias interface name if default name is given as argument
     """
-
-    cmd = 'sonic-cfggen -d --var-json "PORT"'
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-
-    port_dict = json.loads(p.stdout.read())
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    port_dict = config_db.get_table('PORT')
 
     if interface_name is not None:
+        if not port_dict:
+            click.echo("port_dict is None!")
+            raise click.Abort()
         for port_name in natsorted(port_dict.keys()):
             if interface_name == port_name:
                 return port_dict[port_name]['alias']
