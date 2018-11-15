@@ -1663,6 +1663,9 @@ def config(redis_unix_socket_path):
             if 'neighsyncd_timer' in  data[k]:
                 r.append("neighsyncd_timer")
                 r.append(data[k]['neighsyncd_timer'])
+            elif 'bgp_timer' in data[k]:
+                r.append("bgp_timer")
+                r.append(data[k]['bgp_timer'])
             else:
                 r.append("NULL")
                 r.append("NULL")
