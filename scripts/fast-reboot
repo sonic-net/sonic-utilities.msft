@@ -1,9 +1,20 @@
-#!/bin/bash
+#!/bin/bash -e
 
 REBOOT_USER=$(logname)
 REBOOT_TIME=$(date)
 REBOOT_CAUSE_FILE="/var/cache/sonic/reboot-cause.txt"
 REBOOT_TYPE=$(basename $0)
+WARM_DIR=/host/warmboot
+
+function clear_warm_boot()
+{
+    config warm_restart disable || /bin/true
+
+    TIMESTAMP=`date +%Y%m%d-%H%M%S`
+    if [[ -f ${WARM_DIR}/config_db.json ]]; then
+        mv -f ${WARM_DIR}/config_db.json ${WARM_DIR}/config_db-${TIMESTAMP}.json || /bin/true
+    fi
+}
 
 # Check reboot type supported
 BOOT_TYPE_ARG="cold"
@@ -13,6 +24,8 @@ case "$REBOOT_TYPE" in
         ;;
     "warm-reboot")
         BOOT_TYPE_ARG="warm"
+        trap clear_warm_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
+        config warm_restart enable system
         ;;
     *)
         echo "Not supported reboot type: $REBOOT_TYPE" >&2
@@ -119,15 +132,15 @@ fi
 # Kill swss dockers
 docker kill swss
 
+# syncd service stop is capable of handling both warm/fast/cold shutdown
+systemctl stop syncd
+
 # Warm reboot: dump state to host disk
 # Note: even if syncd changed ASIC_DB before killed, we don't care
 if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
-    # Set whole system warm reboot flag
-    config warm_restart enable system
     # Dump redis content to directory
     # Note: don't use pretty mode redis-dump (1.1) since there is a known bug with key pattern
     DUMP_CMD="redis-dump -s /var/run/redis/redis.sock"
-    WARM_DIR=/host/warmboot
     mkdir -p $WARM_DIR
     # Note: requiring redis-dump-load
     # Save applDB in /host/warm-reboot/appl_db.json
@@ -142,23 +155,6 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
     $DUMP_CMD -d 1 -o $WARM_DIR/asic_db.json
     # Save loglevelDB in /host/warm-reboot/loglevel_db.json
     $DUMP_CMD -d 3 -o $WARM_DIR/loglevel_db.json
-fi
-
-if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
-    # Gracefully stop syncd for warm-reboot
-    systemctl stop syncd
-elif [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
-    # syncd graceful stop for fast-reboot is supported only for Broadcom platforms only for now
-    if [[ "$sonic_asic_type" = 'broadcom' ]]; then
-        # Gracefully stop syncd
-        docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
-
-        # Check that syncd was stopped
-        while docker top syncd | grep -q /usr/bin/syncd
-        do
-            sleep 0.1
-        done
-    fi
 fi
 
 # Kill other containers to make the reboot faster
