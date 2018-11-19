@@ -9,7 +9,7 @@ REBOOT_CAUSE_FILE="/var/cache/sonic/reboot-cause.txt"
 
 function stop_sonic_services()
 {
-    echo "Stopping syncd..."
+    echo "Stopping syncd process..."
     docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
     sleep 3
 }
