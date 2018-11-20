@@ -145,17 +145,25 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
     mkdir -p $WARM_DIR
     # Note: requiring redis-dump-load
     # Save applDB in /host/warm-reboot/appl_db.json
-    $DUMP_CMD -d 0 -o $WARM_DIR/appl_db.json
+    local pids=()
+    $DUMP_CMD -d 0 -o $WARM_DIR/appl_db.json &
+    pids+=($!)
     # Save configDB in /host/warm-reboot/config_db.json
-    $DUMP_CMD -d 4 -o $WARM_DIR/config_db.json
+    $DUMP_CMD -d 4 -o $WARM_DIR/config_db.json &
+    pids+=($!)
     # Save stateDB (only FDB_TABLE and WARM_RESTART_TABLE) in /host/warm-reboot/state_db.json
     # WARNING WARNING WARNING: a trick to dump both FDB_TABLE|* and WARM_RESTA*
     # TODO: replace it with readable mechanism to dump multiple key patterns into one single json file
-    $DUMP_CMD -d 6 -k "[FW][DA][BR][_M][T_][AR][BE][LS][ET][|A]*" -o $WARM_DIR/state_db.json
+    $DUMP_CMD -d 6 -k "[FW][DA][BR][_M][T_][AR][BE][LS][ET][|A]*" -o $WARM_DIR/state_db.json &
+    pids+=($!)
     # Save asicDB in /host/warm-reboot/asic_db.json
-    $DUMP_CMD -d 1 -o $WARM_DIR/asic_db.json
+    $DUMP_CMD -d 1 -o $WARM_DIR/asic_db.json &
+    pids+=($!)
     # Save loglevelDB in /host/warm-reboot/loglevel_db.json
-    $DUMP_CMD -d 3 -o $WARM_DIR/loglevel_db.json
+    $DUMP_CMD -d 3 -o $WARM_DIR/loglevel_db.json &
+    pids+=($!)
+
+    wait ${pids[@]}
 fi
 
 # Kill other containers to make the reboot faster
