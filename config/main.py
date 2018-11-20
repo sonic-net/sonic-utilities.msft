@@ -7,6 +7,7 @@ import json
 import subprocess
 import netaddr
 import re
+import syslog
 
 import sonic_platform
 from swsssdk import ConfigDBConnector
@@ -17,6 +18,32 @@ import aaa
 import mlnx
 
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
+SYSLOG_IDENTIFIER = "config"
+
+# ========================== Syslog wrappers ==========================
+
+def log_debug(msg):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_DEBUG, msg)
+    syslog.closelog()
+
+
+def log_info(msg):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_INFO, msg)
+    syslog.closelog()
+
+
+def log_warning(msg):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_WARNING, msg)
+    syslog.closelog()
+
+
+def log_error(msg):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_ERR, msg)
+    syslog.closelog()
 
 #
 # Helper functions
@@ -229,7 +256,11 @@ def _stop_services():
         'teamd',
     ]
     for service in services:
-        run_command("systemctl stop %s" % service, display_cmd=True)
+        try:
+            run_command("systemctl stop %s" % service, display_cmd=True)
+        except SystemExit as e:
+            log_error("Stopping {} failed with error {}".format(service, e))
+            raise
 
 def _restart_services():
     services = [
@@ -246,8 +277,11 @@ def _restart_services():
         'dhcp_relay',
     ]
     for service in services:
-        run_command("systemctl restart %s" % service, display_cmd=True)
-
+        try:
+            run_command("systemctl restart %s" % service, display_cmd=True)
+        except SystemExit as e:
+            log_error("Restart {} failed with error {}".format(service, e))
+            raise
 
 # This is our main entrypoint - the main 'config' command
 @click.group()
@@ -285,6 +319,8 @@ def reload(filename, yes, load_sysinfo):
     """Clear current configuration and import a previous saved config DB dump file."""
     if not yes:
         click.confirm('Clear current config and reload config from the file %s?' % filename, abort=True)
+
+    log_info("'reload' executing...")
 
     if load_sysinfo:
         command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, filename)
@@ -340,6 +376,8 @@ def load_mgmt_config(filename):
                 expose_value=False, prompt='Reload config from minigraph?')
 def load_minigraph():
     """Reconfigure based on minigraph."""
+    log_info("'load_minigraph' executing...")
+
     #Stop services before config push
     _stop_services()
 
