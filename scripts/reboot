@@ -23,6 +23,7 @@ function clear_warm_boot()
     if [[ -f ${WARM_DIR}/config_db.json ]]; then
         mv -f ${WARM_DIR}/config_db.json ${WARM_DIR}/config_db-${TIMESTAMP}.json
     fi
+    /sbin/kexec -u || /bin/true
 }
 
 # Exit if not superuser

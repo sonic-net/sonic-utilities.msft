@@ -9,6 +9,7 @@ WARM_DIR=/host/warmboot
 function clear_warm_boot()
 {
     config warm_restart disable || /bin/true
+    /sbin/kexec -u || /bin/true
 
     TIMESTAMP=`date +%Y%m%d-%H%M%S`
     if [[ -f ${WARM_DIR}/config_db.json ]]; then
