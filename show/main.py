@@ -1624,9 +1624,12 @@ def state(redis_unix_socket_path):
         entry = db.get_all(db.STATE_DB, tk)
         r = []
         r.append(remove_prefix(tk, prefix))
-        r.append(entry['restore_count'])
+        if 'restore_count' not in entry:
+            r.append("")
+        else:
+            r.append(entry['restore_count'])
 
-        if 'state' not in  entry:
+        if 'state' not in entry:
             r.append("")
         else:
             r.append(entry['state'])
