@@ -271,14 +271,14 @@ class AclLoader(object):
 
         if rule.ip.config.source_ip_address:
             source_ip_address = rule.ip.config.source_ip_address.encode("ascii")
-            if ipaddr.IPNetwork(source_ip_address) == 4:
+            if ipaddr.IPNetwork(source_ip_address).version == 4:
                 rule_props["SRC_IP"] = source_ip_address
             else:
                 rule_props["SRC_IPV6"] = source_ip_address
 
         if rule.ip.config.destination_ip_address:
             destination_ip_address = rule.ip.config.destination_ip_address.encode("ascii")
-            if ipaddr.IPNetwork(destination_ip_address) == 4:
+            if ipaddr.IPNetwork(destination_ip_address).version == 4:
                 rule_props["DST_IP"] = destination_ip_address
             else:
                 rule_props["DST_IPV6"] = destination_ip_address
