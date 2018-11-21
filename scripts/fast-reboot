@@ -5,6 +5,14 @@ REBOOT_TIME=$(date)
 REBOOT_CAUSE_FILE="/var/cache/sonic/reboot-cause.txt"
 REBOOT_TYPE=$(basename $0)
 WARM_DIR=/host/warmboot
+REDIS_FILE=dump.rdb
+
+# Check root privileges
+if [[ "$EUID" -ne 0 ]]
+then
+    echo "This command must be run as root" >&2
+    exit 1
+fi
 
 function clear_warm_boot()
 {
@@ -12,8 +20,8 @@ function clear_warm_boot()
     /sbin/kexec -u || /bin/true
 
     TIMESTAMP=`date +%Y%m%d-%H%M%S`
-    if [[ -f ${WARM_DIR}/config_db.json ]]; then
-        mv -f ${WARM_DIR}/config_db.json ${WARM_DIR}/config_db-${TIMESTAMP}.json || /bin/true
+    if [[ -f ${WARM_DIR}/${REDIS_FILE} ]]; then
+        mv -f ${WARM_DIR}/${REDIS_FILE} ${WARM_DIR}/${REDIS_FILE}.${TIMESTAMP} || /bin/true
     fi
 }
 
@@ -33,14 +41,6 @@ case "$REBOOT_TYPE" in
         exit 1
         ;;
 esac
-
-# Check root privileges
-if [[ "$EUID" -ne 0 ]]
-then
-    echo "This command must be run as root" >&2
-    exit 1
-fi
-
 
 # Unload the previously loaded kernel if any loaded
 if [[ "$(cat /sys/kernel/kexec_loaded)" -eq 1 ]]
@@ -139,31 +139,19 @@ systemctl stop syncd
 # Warm reboot: dump state to host disk
 # Note: even if syncd changed ASIC_DB before killed, we don't care
 if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
-    # Dump redis content to directory
-    # Note: don't use pretty mode redis-dump (1.1) since there is a known bug with key pattern
-    DUMP_CMD="redis-dump -s /var/run/redis/redis.sock"
+    # Dump redis content to a file 'dump.rdb' in warmboot directory
     mkdir -p $WARM_DIR
-    # Note: requiring redis-dump-load
-    # Save applDB in /host/warm-reboot/appl_db.json
-    local pids=()
-    $DUMP_CMD -d 0 -o $WARM_DIR/appl_db.json &
-    pids+=($!)
-    # Save configDB in /host/warm-reboot/config_db.json
-    $DUMP_CMD -d 4 -o $WARM_DIR/config_db.json &
-    pids+=($!)
-    # Save stateDB (only FDB_TABLE and WARM_RESTART_TABLE) in /host/warm-reboot/state_db.json
-    # WARNING WARNING WARNING: a trick to dump both FDB_TABLE|* and WARM_RESTA*
-    # TODO: replace it with readable mechanism to dump multiple key patterns into one single json file
-    $DUMP_CMD -d 6 -k "[FW][DA][BR][_M][T_][AR][BE][LS][ET][|A]*" -o $WARM_DIR/state_db.json &
-    pids+=($!)
-    # Save asicDB in /host/warm-reboot/asic_db.json
-    $DUMP_CMD -d 1 -o $WARM_DIR/asic_db.json &
-    pids+=($!)
-    # Save loglevelDB in /host/warm-reboot/loglevel_db.json
-    $DUMP_CMD -d 3 -o $WARM_DIR/loglevel_db.json &
-    pids+=($!)
-
-    wait ${pids[@]}
+    # Delete keys in stateDB except FDB_TABLE|* and WARM_RESTA*
+    redis-cli -n 6 eval "
+        for _, k in ipairs(redis.call('keys', '*')) do
+            if not string.match(k, 'FDB_TABLE|') and not string.match(k, 'WARM_RESTART_TABLE|') then
+                redis.call('del', k)
+            end
+        end
+    " 0
+    redis-cli save
+    docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
+    docker exec -i database rm /var/lib/redis/$REDIS_FILE
 fi
 
 # Kill other containers to make the reboot faster

@@ -19,9 +19,10 @@ function clear_warm_boot()
     # If reboot is requested, make sure the outstanding warm-boot is cleared
     # So the system will come up from a cold boot.
     WARM_DIR="/host/warmboot"
+    REDIS_FILE=dump.rdb
     TIMESTAMP=`date +%Y%m%d-%H%M%S`
-    if [[ -f ${WARM_DIR}/config_db.json ]]; then
-        mv -f ${WARM_DIR}/config_db.json ${WARM_DIR}/config_db-${TIMESTAMP}.json
+    if [[ -f ${WARM_DIR}/${REDIS_FILE} ]]; then
+        mv -f ${WARM_DIR}/${REDIS_FILE} ${WARM_DIR}/${REDIS_FILE}.${TIMESTAMP} || /bin/true
     fi
     /sbin/kexec -u || /bin/true
 }
