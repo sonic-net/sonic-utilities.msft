@@ -134,7 +134,7 @@ class EcnQ(object):
     Process ecn on/off on queues
     """
     def __init__(self, queues, verbose):
-        self.ports_key = ''
+        self.ports_key = []
         self.queues = queues.split(',')
         self.validate_queues()
         self.verbose = verbose
@@ -156,35 +156,32 @@ class EcnQ(object):
     # TODO: Change to use active ports only
     def gen_ports_key(self):
         if self.ports_key is not None:
-            ports = []
-
             port_table = self.config_db.get_table(PORT_TABLE_NAME)
-            for port in port_table:
-                ports.append(port)
+            self.ports_key = port_table.keys()
 
-            self.ports_key = ','.join(sorted(ports, key = lambda k: int(k[8:])))
+            self.ports_key.sort(key = lambda k: int(k[8:]))
 
     def set(self, enable):
         if os.geteuid() != 0:
             sys.exit("Root privileges required for this operation")
         for queue in self.queues:
             if self.verbose:
-                print("%s ECN on %s queue %s" % ("Enable" if enable else "Disable", self.ports_key, queue))
-            key = '|'.join([self.ports_key, queue])
-            self.config_db.mod_entry(QUEUE_TABLE_NAME, key, {FIELD: ON if enable else OFF})
+                print("%s ECN on %s queue %s" % ("Enable" if enable else "Disable", ','.join(self.ports_key), queue))
+            for port_key in self.ports_key:
+                key = '|'.join([port_key, queue])
+                self.config_db.mod_entry(QUEUE_TABLE_NAME, key, {FIELD: ON if enable else OFF})
 
     def get(self):
         print("ECN status:")
         for queue in self.queues:
             out = ' '.join(['queue', queue])
             if self.verbose:
-                out = ' '.join([self.ports_key, out])
+                out = ' '.join([','.join(self.ports_key), out])
 
-            key = '|'.join([QUEUE_TABLE_NAME, self.ports_key, queue])
+            # ecn on/off status on a queue index is homogeneous among all ports
+            # checking one port is sufficient
+            key = '|'.join([QUEUE_TABLE_NAME, self.ports_key[0], queue])
             val = self.db.get(self.db.CONFIG_DB, key, FIELD)
-            if not val:
-                key = '|'.join([QUEUE_TABLE_NAME, self.ports_key, '3-4'])
-                val = self.db.get(self.db.CONFIG_DB, key, FIELD)
 
             if val == ON:
                 print("%s: on" % (out))
