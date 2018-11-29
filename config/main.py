@@ -564,14 +564,14 @@ def warm_restart(ctx, redis_unix_socket_path):
     pass
 
 @warm_restart.command('enable')
-@click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss", "bgp"]))
+@click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss", "bgp", "teamd"]))
 @click.pass_context
 def warm_restart_enable(ctx, module):
     db = ctx.obj['db']
     db.mod_entry('WARM_RESTART', module, {'enable': 'true'})
 
 @warm_restart.command('disable')
-@click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss", "bgp"]))
+@click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss", "bgp", "teamd"]))
 @click.pass_context
 def warm_restart_enable(ctx, module):
     db = ctx.obj['db']
