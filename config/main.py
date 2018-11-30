@@ -825,7 +825,7 @@ def shutdown(ctx):
 @click.pass_context
 @click.argument('interface_speed', metavar='<interface_speed>', required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-def speed(ctx, verbose):
+def speed(ctx, interface_speed, verbose):
     """Set interface speed"""
     interface_name = ctx.obj['interface_name']
 
