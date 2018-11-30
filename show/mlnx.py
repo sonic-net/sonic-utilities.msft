@@ -9,6 +9,9 @@ try:
     import sys
     import subprocess
     import click
+    import sonic_platform
+    from swsssdk import ConfigDBConnector
+    import xml.etree.ElementTree as ET
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
@@ -18,9 +21,12 @@ SNIFFER_CONF_FILE = '/etc/supervisor/conf.d/mlnx_sniffer.conf'
 SNIFFER_CONF_FILE_IN_CONTAINER = CONTAINER_NAME + ':' + SNIFFER_CONF_FILE
 TMP_SNIFFER_CONF_FILE = '/tmp/tmp.conf'
 
+HWSKU_PATH = '/usr/share/sonic/hwsku/'
+
+SAI_PROFILE_DELIMITER = '='
 
 # run command
-def run_command(command, display_cmd=False, ignore_error=False):
+def run_command(command, display_cmd=False, ignore_error=False, print_to_console=True):
     """Run bash command and print output to stdout
     """
     if display_cmd == True:
@@ -29,11 +35,13 @@ def run_command(command, display_cmd=False, ignore_error=False):
     proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     (out, err) = proc.communicate()
 
-    if len(out) > 0:
+    if len(out) > 0 and print_to_console:
         click.echo(out)
 
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
+
+    return out, err
 
 
 # 'mlnx' group
@@ -61,8 +69,57 @@ def sniffer_status_get(env_variable_name):
     return enabled
 
 
-@mlnx.command()
-def sniffer():
+def is_issu_status_enabled():
+    """ This function parses the SAI XML profile used for mlnx to
+    get whether ISSU is enabled or disabled
+    @return: True/False
+    """
+
+    # ISSU disabled if node in XML config wasn't found
+    issu_enabled = False
+
+    # Get the SAI XML path from sai.profile
+    sai_profile_path = '/{}/sai.profile'.format(HWSKU_PATH)
+
+    DOCKER_CAT_COMMAND = 'docker exec -ti {container_name} cat {path}'
+
+    command = DOCKER_CAT_COMMAND.format(container_name=CONTAINER_NAME, path=sai_profile_path)
+    sai_profile_content, _ = run_command(command, print_to_console=False)
+
+    sai_profile_kvs = {}
+
+    for line in sai_profile_content.split('\n'):
+        if not SAI_PROFILE_DELIMITER in line:
+            continue
+        key, value = line.split(SAI_PROFILE_DELIMITER)
+        sai_profile_kvs[key] = value.strip()
+
+    try:
+        sai_xml_path = sai_profile_kvs['SAI_INIT_CONFIG_FILE']
+    except KeyError:
+        print >> sys.stderr, "Failed to get SAI XML from sai profile"
+        sys.exit(1)
+
+    # Get ISSU from SAI XML
+    command = DOCKER_CAT_COMMAND.format(container_name=CONTAINER_NAME, path=sai_xml_path)
+    sai_xml_content, _ = run_command(command, print_to_console=False)
+
+    try:
+        root = ET.fromstring(sai_xml_content)
+    except ET.ParseError:
+        print >> sys.stderr, "Failed to parse SAI xml"
+        sys.exit(1)
+
+    el = root.find('platform_info').find('issu-enabled')
+
+    if el is not None:
+        issu_enabled = int(el.text) == 1
+
+    return issu_enabled
+
+
+@mlnx.command('sniffer')
+def sniffer_status():
     """ Show sniffer status """
     components = ['sdk']
     env_variable_strings = [ENV_VARIABLE_SX_SNIFFER]
@@ -72,3 +129,13 @@ def sniffer():
             print components[index] + " sniffer is enabled"
         else:
             print components[index] + " sniffer is disabled"
+
+
+@mlnx.command('issu')
+def issu_status():
+    """ Show ISSU status """
+
+    res = is_issu_status_enabled()
+
+    print 'ISSU is enabled' if res else 'ISSU is disabled'
+
