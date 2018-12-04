@@ -528,13 +528,13 @@ def reload():
     hwsku = _get_hwsku()
     buffer_template_file = os.path.join('/usr/share/sonic/device/', platform, hwsku, 'buffers.json.j2')
     if os.path.isfile(buffer_template_file):
-        command = "{} -m -t {} >/tmp/buffers.json".format(SONIC_CFGGEN_PATH, buffer_template_file)
+        command = "{} -d -t {} >/tmp/buffers.json".format(SONIC_CFGGEN_PATH, buffer_template_file)
         run_command(command, display_cmd=True)
 
         qos_template_file = os.path.join('/usr/share/sonic/device/', platform, hwsku, 'qos.json.j2')
         sonic_version_file = os.path.join('/etc/sonic/', 'sonic_version.yml')
         if os.path.isfile(qos_template_file):
-            command = "{} -m -t {} -y {} >/tmp/qos.json".format(SONIC_CFGGEN_PATH, qos_template_file, sonic_version_file)
+            command = "{} -d -t {} -y {} >/tmp/qos.json".format(SONIC_CFGGEN_PATH, qos_template_file, sonic_version_file)
             run_command(command, display_cmd=True)
 
             # Apply the configurations only when both buffer and qos configuration files are presented
