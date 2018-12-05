@@ -7,6 +7,8 @@ WARM_DIR=/host/warmboot
 REDIS_FILE=dump.rdb
 REBOOT_SCRIPT_NAME=$(basename $0)
 REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
+VERBOSE=no
+FORCE=no
 
 # Check root privileges
 if [[ "$EUID" -ne 0 ]]
@@ -15,10 +17,49 @@ then
     exit 1
 fi
 
+function debug()
+{
+    if [[ x"${VERBOSE}" == x"yes" ]]; then
+        echo `date` $@
+    fi
+    logger "$@"
+}
+
+function showHelpAndExit()
+{
+    echo "Usage: ${REBOOT_SCRIPT_NAME} [options]"
+    echo "    -h -? : get this help"
+    echo "    -v    : turn on verbose"
+    echo "    -f    : force execution"
+
+    exit 0
+}
+
+function parseOptions()
+{
+    while getopts "vfh?" opt; do
+        case ${opt} in
+            h )
+                showHelpAndExit
+                ;;
+            \? )
+                showHelpAndExit
+                ;;
+            v )
+                VERBOSE=yes
+                ;;
+            f )
+                FORCE=yes
+                ;;
+        esac
+    done
+}
+
 sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 
 function clear_warm_boot()
 {
+    debug "Failure ($?) cleanup ..."
     config warm_restart disable || /bin/true
     /sbin/kexec -u || /bin/true
 
@@ -43,6 +84,7 @@ function cleanup_except_table()
 
 function initialize_pre_shutdown()
 {
+    debug "Initialize pre-shutdown ..."
     TABLE="WARM_RESTART_TABLE|warm-shutdown"
     RESTORE_COUNT=`/usr/bin/redis-cli -n 6 hget "${TABLE}" restore_count`
     if [[ -z "$RESTORE_COUNT" ]]; then
@@ -53,11 +95,13 @@ function initialize_pre_shutdown()
 
 function request_pre_shutdown()
 {
+    debug "Requesting pre-shutdown ..."
     /usr/bin/docker exec -i syncd /usr/bin/syncd_request_shutdown --pre
 }
 
 function wait_for_pre_shutdown_complete_or_fail()
 {
+    debug "Waiting for pre-shutdown ..."
     TABLE="WARM_RESTART_TABLE|warm-shutdown"
     STATE="requesting"
     declare -i waitcount;
@@ -73,13 +117,15 @@ function wait_for_pre_shutdown_complete_or_fail()
     done
 
     if [[ x"${STATE}" != x"pre-shutdown-succeeded" ]]; then
-        echo "Syncd pre-shutdown failed: ${STATE} ..."
+        debug "Syncd pre-shutdown failed: ${STATE} ..."
         exit 10
     fi
+    debug "Pre-shutdown succeeded ..."
 }
 
 function backup_datebase()
 {
+    debug "Backing up database ..."
     # Dump redis content to a file 'dump.rdb' in warmboot directory
     mkdir -p $WARM_DIR
     # Delete keys in stateDB except FDB_TABLE|* and WARM_RESTA*
@@ -94,6 +140,8 @@ function backup_datebase()
     docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
     docker exec -i database rm /var/lib/redis/$REDIS_FILE
 }
+
+parseOptions $@
 
 # Check reboot type supported
 BOOT_TYPE_ARG="cold"
@@ -205,11 +253,16 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
     # Freeze orchagent for warm restart
     # Try freeze 5 times, it is possible that the orchagent is in transient state and no opportunity to be freezed
     # Note: assume that 1 second is enough for orchagent to process the request and respone freeze or not
+    debug "Pausing orchagent ..."
     for i in `seq 4 -1 0`; do
         docker exec -i swss /usr/bin/orchagent_restart_check -w 1000 && break
         echo "RESTARTCHECK failed $i" >&2
         if [[ "$i" = "0" ]]; then
             echo "RESTARTCHECK failed finally" >&2
+            if [[ x"${FORCE}" == x"yes" ]]; then
+                debug "Ignoring orchagent pausing failure ..."
+                break;
+            fi
             exit 10
         fi
         sleep 1
@@ -217,8 +270,10 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
 fi
 
 # Kill bgpd to start the bgp graceful restart procedure
+debug "Stopping bgp ..."
 docker exec -i bgp pkill -9 zebra
 docker exec -i bgp pkill -9 bgpd
+debug "Stopped  bgp ..."
 
 # Kill lldp, otherwise it sends informotion about reboot
 docker kill lldp > /dev/null
@@ -267,12 +322,15 @@ fi
 
 # Stop teamd gracefully
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+    debug "Stopping teamd ..."
     # Send USR1 signal to all teamd instances to stop them
     # It will prepare teamd for warm-reboot
     # Note: We must send USR1 signal before syncd, because it will send the last packet through CPU port
     docker exec -i teamd pkill -USR1 teamd > /dev/null
+    debug "Stopped  teamd ..."
 fi
 
+debug "Stopping syncd ..."
 # syncd service stop is capable of handling both warm/fast/cold shutdown
 if [[ "$sonic_asic_type" = "mellanox" ]]; then
     docker kill syncd
@@ -280,6 +338,7 @@ else
     # syncd service stop is capable of handling both warm/fast/cold shutdown
     systemctl stop syncd
 fi
+debug "Stopped  syncd ..."
 
 # Kill other containers to make the reboot faster
 docker ps -q | xargs docker kill > /dev/null
@@ -312,6 +371,7 @@ sync
 sleep 1
 sync
 
+debug "Rebooting ..."
 # Reboot: explicity call Linux native reboot under sbin
 echo "Rebooting to $NEXT_SONIC_IMAGE..."
 exec /sbin/reboot
