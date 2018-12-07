@@ -125,10 +125,11 @@ class NbrBase(object):
                 mac = unicode(ent[1].upper())
                 fdb_ent = next((fdb for fdb in self.bridge_mac_list[:]
                                if fdb[0] == vlanid and fdb[1] == mac), None)
+                vlan = vlanid
                 if fdb_ent is not None:
-                    vlan = vlanid
                     ent[2] = fdb_ent[2]
-
+                else:
+                    ent[2] = '-'
             ent.insert(vpos, vlan)
             output.append(ent)
 
@@ -171,6 +172,9 @@ class ArpShow(NbrBase):
             return
 
         for line in self.arpraw.splitlines()[1:]:
+            if 'ether' not in line.split():
+                continue
+
             ent = line.split()[::2]
             self.nbrdata.append(ent)
 
@@ -208,7 +212,14 @@ class NeighShow(NbrBase):
             return
 
         for line in self.arpraw.splitlines()[:]:
-            ent = line.split()[::2]
+            split = line.split()
+            if 'lladdr' not in split:
+                continue
+
+            ent = split[::2]
+
+            if 'router' not in split:
+                ent.append(split[-1])
 
             if self.iface is not None:
                 ent.insert(2, self.iface)
