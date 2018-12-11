@@ -9,6 +9,7 @@ REBOOT_SCRIPT_NAME=$(basename $0)
 REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
 VERBOSE=no
 FORCE=no
+REBOOT_METHOD="/sbin/reboot"
 
 # Check root privileges
 if [[ "$EUID" -ne 0 ]]
@@ -31,13 +32,15 @@ function showHelpAndExit()
     echo "    -h -? : get this help"
     echo "    -v    : turn on verbose"
     echo "    -f    : force execution"
+    echo "    -r    : reboot with /sbin/reboot [default]"
+    echo "    -k    : reboot with /sbin/kexec -e"
 
     exit 0
 }
 
 function parseOptions()
 {
-    while getopts "vfh?" opt; do
+    while getopts "vfh?rk" opt; do
         case ${opt} in
             h )
                 showHelpAndExit
@@ -50,6 +53,12 @@ function parseOptions()
                 ;;
             f )
                 FORCE=yes
+                ;;
+            r )
+                REBOOT_METHOD="/sbin/reboot"
+                ;;
+            k )
+                REBOOT_METHOD="/sbin/kexec -e"
                 ;;
         esac
     done
@@ -371,10 +380,9 @@ sync
 sleep 1
 sync
 
-debug "Rebooting ..."
 # Reboot: explicity call Linux native reboot under sbin
-echo "Rebooting to $NEXT_SONIC_IMAGE..."
-exec /sbin/reboot
+debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."
+exec ${REBOOT_METHOD}
 
 # Should never reach here
 echo "${REBOOT_TYPE} failed!" >&2
