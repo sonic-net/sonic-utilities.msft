@@ -60,10 +60,13 @@ class InterfaceAliasConverter(object):
             raise click.Abort()
 
         for port_name in self.port_dict.keys():
-            if self.alias_max_length < len(
-                    self.port_dict[port_name]['alias']):
-               self.alias_max_length = len(
-                    self.port_dict[port_name]['alias'])
+            try:
+                if self.alias_max_length < len(
+                        self.port_dict[port_name]['alias']):
+                   self.alias_max_length = len(
+                        self.port_dict[port_name]['alias'])
+            except KeyError:
+                break
 
     def name_to_alias(self, interface_name):
         """Return vendor interface alias if SONiC
