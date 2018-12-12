@@ -1672,6 +1672,9 @@ def config(redis_unix_socket_path):
             elif 'bgp_timer' in data[k]:
                 r.append("bgp_timer")
                 r.append(data[k]['bgp_timer'])
+            elif 'teamsyncd_timer' in data[k]:
+                r.append("teamsyncd_timer")
+                r.append(data[k]['teamsyncd_timer'])
             else:
                 r.append("NULL")
                 r.append("NULL")
