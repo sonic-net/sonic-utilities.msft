@@ -86,8 +86,8 @@ class AclLoader(object):
         self.sessions_db_info = {}
         self.configdb = ConfigDBConnector()
         self.configdb.connect()
-        self.appdb = SonicV2Connector(host="127.0.0.1")
-        self.appdb.connect(self.appdb.APPL_DB)
+        self.statedb = SonicV2Connector(host="127.0.0.1")
+        self.statedb.connect(self.statedb.STATE_DB)
 
         self.read_tables_info()
         self.read_rules_info()
@@ -120,9 +120,9 @@ class AclLoader(object):
         """
         self.sessions_db_info = self.configdb.get_table(self.MIRROR_SESSION)
         for key in self.sessions_db_info.keys():
-            app_db_info = self.appdb.get_all(self.appdb.APPL_DB, "{}:{}".format(self.MIRROR_SESSION, key))
-            if app_db_info:
-                status = app_db_info.get("status", "inactive")
+            state_db_info = self.statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(self.MIRROR_SESSION, key))
+            if state_db_info:
+                status = state_db_info.get("status", "inactive")
             else:
                 status = "error"
             self.sessions_db_info[key]["status"] = status
