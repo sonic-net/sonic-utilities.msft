@@ -229,7 +229,8 @@ def install(url):
         run_command(image_path)
         run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
     run_command("rm -rf /host/old_config")
-    run_command("cp -r /etc/sonic /host/old_config")
+    # copy directories and preserve original file structure, attributes and associated metadata
+    run_command("cp -ar /etc/sonic /host/old_config")
 
     # sync filesystem, keep at last step.
     run_command("sync")
