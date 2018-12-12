@@ -1476,22 +1476,13 @@ def tacacs():
                 output += ('               %s %s\n' % (key, str(entry[key])))
     click.echo(output)
 
-
 #
-# 'mirror' group ###
+# 'mirror_session' command  ("show mirror_session ...")
 #
-
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
-def mirror():
-    """Show mirroring (Everflow) information"""
-    pass
-
-
-# 'session' subcommand  ("show mirror session")
-@mirror.command()
+@cli.command()
 @click.argument('session_name', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def session(session_name, verbose):
+def mirror_session(session_name, verbose):
     """Show existing everflow sessions"""
     cmd = "acl-loader show session"
 
