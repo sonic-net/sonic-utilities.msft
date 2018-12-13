@@ -281,7 +281,7 @@ fi
 # Kill bgpd to start the bgp graceful restart procedure
 debug "Stopping bgp ..."
 docker exec -i bgp pkill -9 zebra
-docker exec -i bgp pkill -9 bgpd
+docker exec -i bgp pkill -9 bgpd || [ $? == 1 ]
 debug "Stopped  bgp ..."
 
 # Kill lldp, otherwise it sends informotion about reboot
