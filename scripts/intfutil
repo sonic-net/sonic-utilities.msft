@@ -12,6 +12,7 @@ from natsort import natsorted
 
 
 PORT_STATUS_TABLE_PREFIX = "PORT_TABLE:"
+PORT_TRANSCEIVER_TABLE_PREFIX = "TRANSCEIVER_INFO|"
 PORT_LANES_STATUS = "lanes"
 PORT_ALIAS = "alias"
 PORT_OPER_STATUS = "oper_status"
@@ -19,37 +20,38 @@ PORT_ADMIN_STATUS = "admin_status"
 PORT_SPEED = "speed"
 PORT_MTU_STATUS = "mtu"
 PORT_DESCRIPTION = "description"
+PORT_OPTICS_TYPE = "type"
 
 
-def db_connect():
-    db = swsssdk.SonicV2Connector(host='127.0.0.1')
-    if db == None:
+def db_connect_appl():
+    appl_db = swsssdk.SonicV2Connector(host='127.0.0.1')
+    if appl_db is None:
         return None
 
-    db.connect(db.APPL_DB)
+    appl_db.connect(appl_db.APPL_DB)
 
-    return db
+    return appl_db
 
 
-def db_keys_get(db, intf_name):
+def appl_db_keys_get(appl_db, intf_name):
 
-    if intf_name == None:
-        db_keys = db.keys(db.APPL_DB, "PORT_TABLE:*")
+    if intf_name is None:
+        appl_db_keys = appl_db.keys(appl_db.APPL_DB, "PORT_TABLE:*")
     elif intf_name.startswith('Ethernet'):
-        db_keys = db.keys(db.APPL_DB, "PORT_TABLE:%s" % intf_name)
+        appl_db_keys = db.keys(appl_db.APPL_DB, "PORT_TABLE:%s" % intf_name)
     else:
         return None
 
-    return db_keys
+    return appl_db_keys
 
 
-def db_port_status_get(db, intf_name, status_type):
+def appl_db_port_status_get(appl_db, intf_name, status_type):
     """
     Get the port status
     """
 
     full_table_id = PORT_STATUS_TABLE_PREFIX + intf_name
-    status = db.get(db.APPL_DB, full_table_id, status_type)
+    status = appl_db.get(appl_db.APPL_DB, full_table_id, status_type)
     if status is None:
         return "N/A"
 
@@ -59,13 +61,34 @@ def db_port_status_get(db, intf_name, status_type):
     return status
 
 
+def db_connect_state():
+    """
+    Connect to REDIS STATE DB and get optics info
+    """
+    state_db = swsssdk.SonicV2Connector(host='127.0.0.1')
+    if state_db is None:
+        return None
+    state_db.connect(state_db.STATE_DB, False)   # Make one attempt only
+    return state_db
+
+
+def state_db_port_optics_get(state_db, intf_name, type):
+    """
+    Get optic type info for port
+    """
+    full_table_id = PORT_TRANSCEIVER_TABLE_PREFIX + intf_name
+    optics_type = state_db.get(state_db.STATE_DB, full_table_id, type)
+    if optics_type is None: 
+        return "N/A" 
+    return optics_type 
+
 # ========================== interface-status logic ==========================
 
-header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'Alias', 'Oper', 'Admin']
+header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'Alias', 'Oper', 'Admin', 'Type']
 
 class IntfStatus(object):
 
-    def display_intf_status(self, db_keys):
+    def display_intf_status(self, appl_db_keys):
         """
             Generate interface-status output
         """
@@ -78,16 +101,17 @@ class IntfStatus(object):
         # Iterate through all the keys and append port's associated state to
         # the result table.
         #
-        for i in db_keys:
+        for i in appl_db_keys:
             key = re.split(':', i, maxsplit=1)[-1].strip()
             if key and key.startswith('Ethernet'):
                 table.append((key,
-                              db_port_status_get(self.db, key, PORT_LANES_STATUS),
-                              db_port_status_get(self.db, key, PORT_SPEED),
-                              db_port_status_get(self.db, key, PORT_MTU_STATUS),
-                              db_port_status_get(self.db, key, PORT_ALIAS),
-                              db_port_status_get(self.db, key, PORT_OPER_STATUS),
-                              db_port_status_get(self.db, key, PORT_ADMIN_STATUS)))
+                              appl_db_port_status_get(self.appl_db, key, PORT_LANES_STATUS),
+                              appl_db_port_status_get(self.appl_db, key, PORT_SPEED),
+                              appl_db_port_status_get(self.appl_db, key, PORT_MTU_STATUS),
+                              appl_db_port_status_get(self.appl_db, key, PORT_ALIAS),
+                              appl_db_port_status_get(self.appl_db, key, PORT_OPER_STATUS),
+                              appl_db_port_status_get(self.appl_db, key, PORT_ADMIN_STATUS),
+                              state_db_port_optics_get(self.state_db, key, PORT_OPTICS_TYPE)))
 
         # Sorting and tabulating the result table.
         sorted_table = natsorted(table)
@@ -96,15 +120,17 @@ class IntfStatus(object):
 
     def __init__(self, intf_name):
 
-        self.db = db_connect()
-        if self.db == None:
+        self.appl_db = db_connect_appl()
+        self.state_db = db_connect_state()
+        if self.appl_db is None:
             return
-
-        db_keys = db_keys_get(self.db, intf_name)
-        if db_keys == None:
+        if self.state_db is None: 
             return
+        appl_db_keys = appl_db_keys_get(self.appl_db, intf_name)
+        if appl_db_keys is None:
+            return
+        self.display_intf_status(appl_db_keys)
 
-        self.display_intf_status(db_keys)
 
 
 # ========================== interface-description logic ==========================
@@ -115,7 +141,7 @@ header_desc = ['Interface', 'Oper', 'Admin', 'Alias', 'Description']
 
 class IntfDescription(object):
 
-    def display_intf_description(self, db_keys):
+    def display_intf_description(self, appl_db_keys):
         """
             Generate interface-description output
         """
@@ -128,14 +154,14 @@ class IntfDescription(object):
         # Iterate through all the keys and append port's associated state to
         # the result table.
         #
-        for i in db_keys:
+        for i in appl_db_keys:
             key = re.split(':', i, maxsplit=1)[-1].strip()
             if key and key.startswith('Ethernet'):
                 table.append((key,
-                              db_port_status_get(self.db, key, PORT_OPER_STATUS),
-                              db_port_status_get(self.db, key, PORT_ADMIN_STATUS),
-                              db_port_status_get(self.db, key, PORT_ALIAS),
-                              db_port_status_get(self.db, key, PORT_DESCRIPTION)))
+                              appl_db_port_status_get(self.appl_db, key, PORT_OPER_STATUS),
+                              appl_db_port_status_get(self.appl_db, key, PORT_ADMIN_STATUS),
+                              appl_db_port_status_get(self.appl_db, key, PORT_ALIAS),
+                              appl_db_port_status_get(self.appl_db, key, PORT_DESCRIPTION)))
 
         # Sorting and tabulating the result table.
         sorted_table = natsorted(table)
@@ -143,15 +169,15 @@ class IntfDescription(object):
 
     def __init__(self, intf_name):
 
-        self.db = db_connect()
-        if self.db == None:
+        self.appl_db = db_connect_appl()
+        if self.appl_db is None:
             return
 
-        db_keys = db_keys_get(self.db, intf_name)
-        if db_keys == None:
+        appl_db_keys = appl_db_keys_get(self.appl_db, intf_name)
+        if appl_db_keys is None:
             return
 
-        self.display_intf_description(db_keys)
+        self.display_intf_description(appl_db_keys)
 
 
 
