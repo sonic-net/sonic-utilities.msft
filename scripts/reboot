@@ -3,15 +3,18 @@
 REBOOT_USER=$(logname)
 REBOOT_TIME=$(date)
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
+ASIC_TYPE=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 DEVPATH="/usr/share/sonic/device"
 PLAT_REBOOT="platform_reboot"
 REBOOT_CAUSE_FILE="/var/cache/sonic/reboot-cause.txt"
 
 function stop_sonic_services()
 {
-    echo "Stopping syncd process..."
-    docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
-    sleep 3
+    if [[ x"$ASIC_TYPE" != x"mellanox" ]]; then
+        echo "Stopping syncd process..."
+        docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
+        sleep 3
+    fi
 }
 
 function clear_warm_boot()
