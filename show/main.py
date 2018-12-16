@@ -2,6 +2,8 @@
 
 import errno
 import json
+import netaddr
+import netifaces
 import os
 import re
 import subprocess
@@ -794,10 +796,91 @@ def mac(vlan, port, verbose):
 #
 
 # This group houses IP (i.e., IPv4) commands and subgroups
-@cli.group()
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
 def ip():
     """Show IP (IPv4) commands"""
     pass
+
+
+#
+# get_if_admin_state
+#
+# Given an interface name, return its admin state reported by the kernel.
+#
+def get_if_admin_state(iface):
+    admin_file = "/sys/class/net/{0}/flags"
+
+    try:
+        state_file = open(admin_file.format(iface), "r")
+    except IOError as e:
+        print "Error: unable to open file: %s" % str(e)
+        return "error"
+
+    content = state_file.readline().rstrip()
+    flags = int(content, 16)
+
+    if flags & 0x1:
+        return "up"
+    else:
+        return "down"
+
+
+#
+# get_if_oper_state
+#
+# Given an interface name, return its oper state reported by the kernel.
+#
+def get_if_oper_state(iface):
+    oper_file = "/sys/class/net/{0}/carrier"
+
+    try:
+        state_file = open(oper_file.format(iface), "r")
+    except IOError as e:
+        print "Error: unable to open file: %s" % str(e)
+        return "error"
+
+    oper_state = state_file.readline().rstrip()
+    if oper_state == "1":
+        return "up"
+    else:
+        return "down"
+
+
+#
+# 'show ip interfaces' command
+#
+# Display all interfaces with an IPv4 address and their admin/oper states.
+# Addresses from all scopes are included. Interfaces with no addresses are
+# excluded.
+#
+@ip.command()
+def interfaces():
+    """Show interfaces IPv4 address"""
+    header = ['Interface', 'IPv4 address/mask', 'Admin/Oper']
+    data = []
+
+    interfaces = natsorted(netifaces.interfaces())
+
+    for iface in interfaces:
+        ipaddresses = netifaces.ifaddresses(iface)
+
+        if netifaces.AF_INET in ipaddresses:
+            ifaddresses = []
+            for ipaddr in ipaddresses[netifaces.AF_INET]:
+                netmask = netaddr.IPAddress(ipaddr['netmask']).netmask_bits()
+                ifaddresses.append(["", str(ipaddr['addr']) + "/" + str(netmask)])
+
+            if len(ifaddresses) > 0:
+                admin = get_if_admin_state(iface)
+                if admin == "up":
+                    oper = get_if_oper_state(iface)
+                else:
+                    oper = "down"
+                data.append([iface, ifaddresses[0][1], admin + "/" + oper])
+            for ifaddr in ifaddresses[1:]:
+                data.append(["", ifaddr[1], ""])
+
+    print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
 
 
 #
@@ -832,10 +915,47 @@ def protocol(verbose):
 #
 
 # This group houses IPv6-related commands and subgroups
-@cli.group()
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
 def ipv6():
     """Show IPv6 commands"""
     pass
+
+
+#
+# 'show ipv6 interfaces' command
+#
+# Display all interfaces with an IPv6 address and their admin/oper states.
+# Addresses from all scopes are included. Interfaces with no addresses are
+# excluded.
+#
+@ipv6.command()
+def interfaces():
+    """Show interfaces IPv6 address"""
+    header = ['Interface', 'IPv6 address/mask', 'Admin/Oper']
+    data = []
+
+    interfaces = natsorted(netifaces.interfaces())
+
+    for iface in interfaces:
+        ipaddresses = netifaces.ifaddresses(iface)
+
+        if netifaces.AF_INET6 in ipaddresses:
+            ifaddresses = []
+            for ipaddr in ipaddresses[netifaces.AF_INET6]:
+                netmask = ipaddr['netmask'].split('/', 1)[-1]
+                ifaddresses.append(["", str(ipaddr['addr']) + "/" + str(netmask)])
+
+            if len(ifaddresses) > 0:
+                admin = get_if_admin_state(iface)
+                if admin == "up":
+                    oper = get_if_oper_state(iface)
+                else:
+                    oper = "down"
+                data.append([iface, ifaddresses[0][1], admin + "/" + oper])
+            for ifaddr in ifaddresses[1:]:
+                data.append(["", ifaddr[1], ""])
+
+    print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
 
 
 #
