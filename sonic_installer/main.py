@@ -9,6 +9,7 @@ import time
 import click
 import urllib
 import subprocess
+from swsssdk import ConfigDBConnector
 import collections
 
 HOST_PATH = '/host'
@@ -396,23 +397,55 @@ def upgrade_docker(container_name, url, cleanup_image, enforce_check, tag):
     else:
         image_path = os.path.join("./", url)
 
-    # make sure orchagent is in clean state if swss is to be upgraded
-    if container_name == "swss":
-        skipPendingTaskCheck = " -s"
-        if enforce_check:
-            skipPendingTaskCheck = ""
+    # TODO: Validate the new docker image before disrupting existsing images.
 
-        cmd = "docker exec -it " + container_name + " orchagent_restart_check" + skipPendingTaskCheck
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-        (out, err) = proc.communicate()
-        if proc.returncode != 0:
+    warm = False
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    entry = config_db.get_entry('WARM_RESTART', container_name)
+    if entry and entry['enable'].lower() == 'true':
+        warm = True
+
+    # warm restart specific procssing for swss, bgp and teamd dockers.
+    if warm == True:
+        # make sure orchagent is in clean state if swss is to be upgraded
+        if container_name == "swss":
+            skipPendingTaskCheck = " -s"
             if enforce_check:
-                click.echo("Orchagent is not in clean state, check syslog and try later")
-                sys.exit(proc.returncode)
-            else:
-                click.echo("Orchagent is not in clean state, upgrading it anyway")
-        else:
-            click.echo("Orchagent is in clean state and frozen for warm upgrade")
+                skipPendingTaskCheck = ""
+
+            cmd = "docker exec -i swss orchagent_restart_check -w 1000 " + skipPendingTaskCheck
+            for i in range(1, 6):
+                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+                (out, err) = proc.communicate()
+                if proc.returncode != 0:
+                    if enforce_check:
+                        click.echo("Orchagent is not in clean state, RESTARTCHECK failed {}".format(i))
+                        if i == 5:
+                            sys.exit(proc.returncode)
+                    else:
+                        click.echo("Orchagent is not in clean state, upgrading it anyway")
+                        break
+                else:
+                    click.echo("Orchagent is in clean state and frozen for warm upgrade")
+                    break
+                run_command("sleep 1")
+
+        elif container_name == "bgp":
+            # Kill bgpd to restart the bgp graceful restart procedure
+            click.echo("Stopping bgp ...")
+            run_command("docker exec -i bgp pkill -9 zebra")
+            run_command("docker exec -i bgp pkill -9 bgpd")
+            run_command("sleep 2") # wait 2 seconds for bgp to settle down
+            click.echo("Stopped  bgp ...")
+
+        elif container_name == "teamd":
+            click.echo("Stopping teamd ...")
+            # Send USR1 signal to all teamd instances to stop them
+            # It will prepare teamd for warm-reboot
+            run_command("docker exec -i teamd pkill -USR1 teamd > /dev/null")
+            run_command("sleep 2") # wait 2 seconds for teamd to settle down
+            click.echo("Stopped  teamd ...")
 
     run_command("systemctl stop %s" % container_name)
     run_command("docker rm %s " % container_name)
