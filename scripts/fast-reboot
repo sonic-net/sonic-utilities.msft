@@ -34,13 +34,14 @@ function showHelpAndExit()
     echo "    -f    : force execution"
     echo "    -r    : reboot with /sbin/reboot [default]"
     echo "    -k    : reboot with /sbin/kexec -e"
+    echo "    -x    : execute script with -x flag"
 
     exit 0
 }
 
 function parseOptions()
 {
-    while getopts "vfh?rk" opt; do
+    while getopts "vfh?rkx" opt; do
         case ${opt} in
             h )
                 showHelpAndExit
@@ -60,6 +61,9 @@ function parseOptions()
             k )
                 REBOOT_METHOD="/sbin/kexec -e"
                 ;;
+            x )
+                set -x
+                ;;
         esac
     done
 }
@@ -69,7 +73,8 @@ sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 function clear_warm_boot()
 {
     debug "Failure ($?) cleanup ..."
-    config warm_restart disable || /bin/true
+    result=`timeout 10s config warm_restart disable; if [[ $? == 124 ]]; then echo timeout; else echo "code ($?)"; fi` || /bin/true
+    debug "Cancel warm-reboot: ${result}"
     /sbin/kexec -u || /bin/true
 
     TIMESTAMP=`date +%Y%m%d-%H%M%S`
@@ -113,16 +118,29 @@ function wait_for_pre_shutdown_complete_or_fail()
     debug "Waiting for pre-shutdown ..."
     TABLE="WARM_RESTART_TABLE|warm-shutdown"
     STATE="requesting"
-    declare -i waitcount;
+    declare -i waitcount
+    declare -i retrycount
     waitcount=0
+    retrycount=0
     # Wait up to 60 seconds for pre-shutdown to complete
     while [[ ${waitcount} -lt 600 ]]; do
-        STATE=`/usr/bin/redis-cli -n 6 hget "${TABLE}" state`
-        if [[ x"${STATE}" != x"requesting" ]]; then
+        # timeout doesn't work with -i option of "docker exec". Therefore we have
+        # to invoke docker exec directly below.
+        STATE=`timeout 5s docker exec database redis-cli -n 6 hget "${TABLE}" state; if [[ $? == 124 ]]; then echo "timed out"; fi`
+
+        if [[ x"${STATE}" == x"timed out" ]]; then
+            waitcount+=50
+            retrycount+=1
+            debug "Timed out getting pre-shutdown state (${waitcount}) retry count ${retrycount} ..."
+            if [[ retrycount -gt 2 ]]; then
+                break
+            fi
+        elif [[ x"${STATE}" != x"requesting" ]]; then
             break
+        else
+            sleep 0.1
+            waitcount+=1
         fi
-        sleep 0.1
-        waitcount+=1
     done
 
     if [[ x"${STATE}" != x"pre-shutdown-succeeded" ]]; then
