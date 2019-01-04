@@ -234,7 +234,7 @@ def install(url):
     run_command("cp -ar /etc/sonic /host/old_config")
 
     # sync filesystem, keep at last step.
-    run_command("sync")
+    run_command("sync;sync;sync")
     run_command("sleep 3") # wait 3 seconds after sync
     click.echo('Done')
 
