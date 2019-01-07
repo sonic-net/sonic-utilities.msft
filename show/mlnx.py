@@ -81,7 +81,7 @@ def is_issu_status_enabled():
     # Get the SAI XML path from sai.profile
     sai_profile_path = '/{}/sai.profile'.format(HWSKU_PATH)
 
-    DOCKER_CAT_COMMAND = 'docker exec -ti {container_name} cat {path}'
+    DOCKER_CAT_COMMAND = 'docker exec {container_name} cat {path}'
 
     command = DOCKER_CAT_COMMAND.format(container_name=CONTAINER_NAME, path=sai_profile_path)
     sai_profile_content, _ = run_command(command, print_to_console=False)

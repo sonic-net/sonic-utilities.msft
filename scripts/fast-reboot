@@ -11,12 +11,23 @@ VERBOSE=no
 FORCE=no
 REBOOT_METHOD="/sbin/reboot"
 
+EXIT_SUCCESS=0
+EXIT_FAILURE=1
+EXIT_NOT_SUPPORTED=2
+EXIT_ORCHAGENT_SHUTDOWN=10
+EXIT_SYNCD_SHUTDOWN=11
+
 # Check root privileges
 if [[ "$EUID" -ne 0 ]]
 then
     echo "This command must be run as root" >&2
-    exit 1
+    exit "${EXIT_FAILURE}"
 fi
+
+function error()
+{
+    echo $@ >&2
+}
 
 function debug()
 {
@@ -36,7 +47,7 @@ function showHelpAndExit()
     echo "    -k    : reboot with /sbin/kexec -e"
     echo "    -x    : execute script with -x flag"
 
-    exit 0
+    exit "${EXIT_SUCCESS}"
 }
 
 function parseOptions()
@@ -83,34 +94,24 @@ function clear_warm_boot()
     fi
 }
 
-function cleanup_except_table()
-{
-    local REDIS_DB_NUMBER="$1"
-    local TABLE_PREFIX="$2"
-    redis-cli -n "${REDIS_DB_NUMBER}" eval "
-        for _, k in ipairs(redis.call('keys', '*')) do
-            if not string.match(k, '${TABLE_PREFIX}') then
-                redis.call('del', k)
-            end
-        end
-    " 0
-}
-
 function initialize_pre_shutdown()
 {
     debug "Initialize pre-shutdown ..."
     TABLE="WARM_RESTART_TABLE|warm-shutdown"
     RESTORE_COUNT=`/usr/bin/redis-cli -n 6 hget "${TABLE}" restore_count`
     if [[ -z "$RESTORE_COUNT" ]]; then
-        /usr/bin/redis-cli -n 6 hset "${TABLE}" restore_count 0
+        /usr/bin/redis-cli -n 6 hset "${TABLE}" "restore_count" "0" > /dev/null
     fi
-    /usr/bin/redis-cli -n 6 hset "${TABLE}" state requesting
+    /usr/bin/redis-cli -n 6 hset "${TABLE}" "state" "requesting" > /dev/null
 }
 
 function request_pre_shutdown()
 {
     debug "Requesting pre-shutdown ..."
-    /usr/bin/docker exec -i syncd /usr/bin/syncd_request_shutdown --pre
+    /usr/bin/docker exec -i syncd /usr/bin/syncd_request_shutdown --pre &> /dev/null || {
+        error "Failed to request pre-shutdown"
+        exit "${EXIT_SYNCD_SHUTDOWN}"
+    }
 }
 
 function wait_for_pre_shutdown_complete_or_fail()
@@ -145,12 +146,12 @@ function wait_for_pre_shutdown_complete_or_fail()
 
     if [[ x"${STATE}" != x"pre-shutdown-succeeded" ]]; then
         debug "Syncd pre-shutdown failed: ${STATE} ..."
-        exit 10
+        exit "${EXIT_SYNCD_SHUTDOWN}"
     fi
     debug "Pre-shutdown succeeded ..."
 }
 
-function backup_datebase()
+function backup_database()
 {
     debug "Backing up database ..."
     # Dump redis content to a file 'dump.rdb' in warmboot directory
@@ -162,8 +163,8 @@ function backup_datebase()
                 redis.call('del', k)
             end
         end
-    " 0
-    redis-cli save
+    " 0 > /dev/null
+    redis-cli save > /dev/null
     docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
     docker exec -i database rm /var/lib/redis/$REDIS_FILE
 }
@@ -181,27 +182,17 @@ case "$REBOOT_TYPE" in
             REBOOT_TYPE="fastfast-reboot"
             BOOT_TYPE_ARG="fastfast"
             # source mlnx-ffb.sh file with
-            # functions to check ISSU upgrade/do ISSU start
+            # functions to check ISSU upgrade possibility
             source mlnx-ffb.sh
-
-            trap clear_warm_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
-
-            # Set warm reboot flag for some components.
-            # In fastfast boot flow, only APPL layer dockers
-            # are enabled to perform warm restart
-            config warm_restart disable system
-            config warm_restart disable swss
-            config warm_restart enable bgp
-            config warm_restart enable teamd
         else
             BOOT_TYPE_ARG="warm"
-            trap clear_warm_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
-            config warm_restart enable system
         fi
+        trap clear_warm_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
+        config warm_restart enable system
         ;;
     *)
-        echo "Not supported reboot type: $REBOOT_TYPE" >&2
-        exit 1
+        error "Not supported reboot type: $REBOOT_TYPE"
+        exit "${EXIT_NOT_SUPPORTED}"
         ;;
 esac
 
@@ -222,75 +213,63 @@ elif grep -q onie_platform= /host/machine.conf; then
     KERNEL_IMAGE="/host$(echo $KERNEL_OPTIONS | cut -d ' ' -f 2)"
     BOOT_OPTIONS="$(echo $KERNEL_OPTIONS | sed -e 's/\s*linux\s*/BOOT_IMAGE=/') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
 else
-    echo "Unknown bootloader. ${REBOOT_TYPE} is not supported."
-    exit 1
+    error "Unknown bootloader. ${REBOOT_TYPE} is not supported."
+    exit "${EXIT_NOT_SUPPORTED}"
 fi
 INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
 
 # Install new FW for mellanox platforms before control plane goes down
 # So on boot switch will not spend time to upgrade FW increasing the CP downtime
 if [[ "$sonic_asic_type" == "mellanox" ]]; then
+    MLNX_EXIT_SUCCESS=0
+    MLNX_EXIT_FW_ERROR=100
+    MLNX_EXIT_FFB_FAILURE=101
+
+    MLNX_FW_UPGRADE_SCRIPT="/usr/bin/mlnx-fw-upgrade.sh"
+
 
     if [[ "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
-        check_issu_enabled || {
-            echo "Warm reboot is not supported by this HWSKU"
-            exit 1
-        }
-
-        check_sdk_upgrade || {
-            echo "Warm reboot is not supported"
-            exit 1
+        check_ffb || {
+            error "Warm reboot is not supported"
+            exit "${MLNX_EXIT_FFB_FAILURE}"
         }
     fi
 
-    echo "Prepare MLNX ASIC to ${REBOOT_TYPE}: install new FW if required"
-
-    MLNX_EXIT_SUCCESS="0"
-    MLNX_EXIT_ERROR="1"
-
-    MLNX_FW_UPGRADE_SCRIPT="/usr/bin/mlnx-fw-upgrade.sh"
+    debug "Prepare MLNX ASIC to ${REBOOT_TYPE}: install new FW if required"
 
     ${MLNX_FW_UPGRADE_SCRIPT} --upgrade
     MLNX_EXIT_CODE="$?"
     if [[ "${MLNX_EXIT_CODE}" != "${MLNX_EXIT_SUCCESS}" ]]; then
-        echo "Failed to burn MLNX FW: errno=${MLNX_EXIT_CODE}"
-        exit "${MLNX_EXIT_ERROR}"
-    fi
-
-    if [[ "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
-        issu_start || {
-            echo "ISSU start failed"
-            echo "Cold reboot may be requiered to recover"
-            exit 1
-        }
+        error "Failed to burn MLNX FW: errno=${MLNX_EXIT_CODE}"
+        exit "${MLNX_EXIT_FW_ERROR}"
     fi
 fi
 
 # Load kernel into the memory
 /sbin/kexec -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
 
-if [[ "$REBOOT_TYPE" = "fast-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
     # into /host/fast-reboot
     mkdir -p /host/fast-reboot
     /usr/bin/fast-reboot-dump.py -t /host/fast-reboot
 fi
 
-if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
+if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
     # Freeze orchagent for warm restart
     # Try freeze 5 times, it is possible that the orchagent is in transient state and no opportunity to be freezed
     # Note: assume that 1 second is enough for orchagent to process the request and respone freeze or not
     debug "Pausing orchagent ..."
     for i in `seq 4 -1 0`; do
-        docker exec -i swss /usr/bin/orchagent_restart_check -w 1000 && break
-        echo "RESTARTCHECK failed $i" >&2
+        docker exec -i swss /usr/bin/orchagent_restart_check -w 1000 > /dev/null && break
+        error "RESTARTCHECK failed $i"
         if [[ "$i" = "0" ]]; then
-            echo "RESTARTCHECK failed finally" >&2
+            error "RESTARTCHECK failed finally"
             if [[ x"${FORCE}" == x"yes" ]]; then
                 debug "Ignoring orchagent pausing failure ..."
                 break;
             fi
-            exit 10
+            exit "${EXIT_ORCHAGENT_SHUTDOWN}"
         fi
         sleep 1
     done
@@ -313,38 +292,26 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
 fi
 
 # Kill swss dockers
-docker kill swss
-
-
-# Warm reboot: dump state to host disk
-if [[ "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
-    mkdir -p $WARM_DIR
-
-    # Dump route table form APPL DB.
-    # This route table will be used by fpmsyncd
-    # reconcialtion logic
-    cleanup_except_table 0 'ROUTE_TABLE'
-    cleanup_except_table 4 'WARM_RESTART_TABLE'
-    cleanup_except_table 6 'WARM_RESTART_TABLE'
-
-    redis-cli -n 1 FLUSHDB
-    redis-cli -n 2 FLUSHDB
-    redis-cli -n 5 FLUSHDB
-
-    redis-cli save
-    docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
-    docker exec -i database rm /var/lib/redis/$REDIS_FILE
-fi
+docker kill swss > /dev/null
 
 # Pre-shutdown syncd
-if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
+if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
     initialize_pre_shutdown
 
     request_pre_shutdown
 
     wait_for_pre_shutdown_complete_or_fail
 
-    backup_datebase
+    # Warm reboot: dump state to host disk
+    if [[ "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+        redis-cli -n 1 FLUSHDB > /dev/null
+        redis-cli -n 2 FLUSHDB > /dev/null
+        redis-cli -n 5 FLUSHDB > /dev/null
+    fi
+
+    # TODO: backup_database preserves FDB_TABLE
+    # need to cleanup as well for fastfast boot case
+    backup_database
 fi
 
 # Stop teamd gracefully
@@ -353,18 +320,12 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
     # Send USR1 signal to all teamd instances to stop them
     # It will prepare teamd for warm-reboot
     # Note: We must send USR1 signal before syncd, because it will send the last packet through CPU port
-    docker exec -i teamd pkill -USR1 teamd > /dev/null
+    docker exec -i teamd pkill -USR1 teamd || [ $? == 1 ] > /dev/null
     debug "Stopped  teamd ..."
 fi
 
 debug "Stopping syncd ..."
-# syncd service stop is capable of handling both warm/fast/cold shutdown
-if [[ "$sonic_asic_type" = "mellanox" ]]; then
-    docker kill syncd
-else
-    # syncd service stop is capable of handling both warm/fast/cold shutdown
-    systemctl stop syncd
-fi
+systemctl stop syncd
 debug "Stopped  syncd ..."
 
 # Kill other containers to make the reboot faster
@@ -403,5 +364,5 @@ debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."
 exec ${REBOOT_METHOD}
 
 # Should never reach here
-echo "${REBOOT_TYPE} failed!" >&2
-exit 1
+error "${REBOOT_TYPE} failed!"
+exit "${EXIT_FAILURE}"
