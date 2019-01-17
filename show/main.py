@@ -792,6 +792,21 @@ def mac(vlan, port, verbose):
     run_command(cmd, display_cmd=verbose)
 
 #
+# 'show route-map' command ("show route-map")
+#
+
+@cli.command('route-map')
+@click.argument('route_map_name', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def route_map(route_map_name, verbose):
+    """show route-map"""
+    cmd = 'sudo vtysh -c "show route-map'
+    if route_map_name is not None:
+        cmd += ' {}'.format(route_map_name)
+    cmd += '"'
+    run_command(cmd, display_cmd=verbose)
+	
+#
 # 'ip' group ("show ip ...")
 #
 
@@ -900,6 +915,22 @@ def route(ipaddress, verbose):
     cmd += '"'
 
     run_command(cmd, display_cmd=verbose)
+
+#
+# 'prefix-list' subcommand ("show ip prefix-list")
+#
+
+@ip.command('prefix-list')
+@click.argument('prefix_list_name', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def prefix_list(prefix_list_name, verbose):
+    """show ip prefix-list"""
+    cmd = 'sudo vtysh -c "show ip prefix-list'
+    if prefix_list_name is not None:
+        cmd += ' {}'.format(prefix_list_name)
+    cmd += '"'
+    run_command(cmd, display_cmd=verbose)
+
 
 # 'protocol' command
 @ip.command()
