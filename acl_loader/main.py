@@ -579,6 +579,9 @@ class AclLoader(object):
 
             matches.sort()
 
+            if len(matches) == 0:
+                matches.append("N/A")
+
             rule_data = [[tname, rid, priority, action, matches[0]]]
             if len(matches) > 1:
                 for m in matches[1:]:
