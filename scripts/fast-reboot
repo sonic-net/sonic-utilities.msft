@@ -2,7 +2,7 @@
 
 REBOOT_USER=$(logname)
 REBOOT_TIME=$(date)
-REBOOT_CAUSE_FILE="/var/cache/sonic/reboot-cause.txt"
+REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
 WARM_DIR=/host/warmboot
 REDIS_FILE=dump.rdb
 REBOOT_SCRIPT_NAME=$(basename $0)

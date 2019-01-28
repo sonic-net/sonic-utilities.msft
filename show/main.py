@@ -1658,7 +1658,7 @@ def mmu():
 @cli.command('reboot-cause')
 def reboot_cause():
     """Show cause of most recent reboot"""
-    PREVIOUS_REBOOT_CAUSE_FILE = "/var/cache/sonic/previous-reboot-cause.txt"
+    PREVIOUS_REBOOT_CAUSE_FILE = "/host/reboot-cause/previous-reboot-cause.txt"
 
     # At boot time, PREVIOUS_REBOOT_CAUSE_FILE is generated based on
     # the contents of the 'reboot cause' file as it was left when the device
