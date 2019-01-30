@@ -464,11 +464,7 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
     db = ctx.obj['db']
-    if len(db.get_entry('PORTCHANNEL', portchannel_name)) != 0:
-        db.set_entry('PORTCHANNEL', portchannel_name, None)
-    else:
-        ctx.fail("{} is not configured".format(portchannel_name))
-
+    db.set_entry('PORTCHANNEL', portchannel_name, None)
 
 @portchannel.group('member')
 @click.pass_context
@@ -492,11 +488,9 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
 def del_portchannel_member(ctx, portchannel_name, port_name):
     """Remove member from portchannel"""
     db = ctx.obj['db']
-    if len(db.get_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_namee)) != 0:
-        db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
-        db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
-    else:
-        ctx.fail("{} is not part of {}".format(port_name, portchannel_name))
+    db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
+    db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
+
 
 #
 # 'mirror_session' group ('config mirror_session ...')
