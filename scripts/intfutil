@@ -21,6 +21,7 @@ PORT_SPEED = "speed"
 PORT_MTU_STATUS = "mtu"
 PORT_DESCRIPTION = "description"
 PORT_OPTICS_TYPE = "type"
+PORT_PFC_ASYM_STATUS = "pfc_asym"
 
 
 def db_connect_appl():
@@ -84,7 +85,7 @@ def state_db_port_optics_get(state_db, intf_name, type):
 
 # ========================== interface-status logic ==========================
 
-header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'Alias', 'Oper', 'Admin', 'Type']
+header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'Alias', 'Oper', 'Admin', 'Type', 'Asym PFC']
 
 class IntfStatus(object):
 
@@ -111,7 +112,8 @@ class IntfStatus(object):
                               appl_db_port_status_get(self.appl_db, key, PORT_ALIAS),
                               appl_db_port_status_get(self.appl_db, key, PORT_OPER_STATUS),
                               appl_db_port_status_get(self.appl_db, key, PORT_ADMIN_STATUS),
-                              state_db_port_optics_get(self.state_db, key, PORT_OPTICS_TYPE)))
+                              state_db_port_optics_get(self.state_db, key, PORT_OPTICS_TYPE),
+                              appl_db_port_status_get(self.appl_db, key, PORT_PFC_ASYM_STATUS)))
 
         # Sorting and tabulating the result table.
         sorted_table = natsorted(table)
