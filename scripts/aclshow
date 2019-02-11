@@ -2,7 +2,7 @@
 """
 using aclshow to display SONiC switch acl rules and counters
 
-usage: aclshow [-h] [-v] [-c] [-d] [-vv] [-p PORTS] [-t TABLES] [-r RULES]
+usage: aclshow [-h] [-v] [-c] [-vv] [-t TABLES] [-r RULES]
 
 Display SONiC switch ACL Counters/status
 
@@ -12,10 +12,8 @@ optional arguments:
   -vv, --verbose              verbose output (progress, etc)
   -c,  --clear                clear ACL counters statistics
   -a,  --all                  show all ACL counters
-  -p PORTS,  --ports PORTS    action by specific port list: Ethernet0,Ethernet12
   -r RULES,  --rules RULES    action by specific rules list: Rule_1,Rule_2
   -t TABLES, --tables TABLES  action by specific tables list: Table_1,Table_2
-  -d,  --details              display detailed ACL info
 """
 
 from __future__ import print_function
@@ -37,7 +35,7 @@ from natsort import natsorted
 COUNTER_POSITION = '/tmp/.counters_acl.p'
 
 ### acl display header
-ACL_HEADER = ["RULE NAME", "TABLE NAME", "TYPE", "PRIO", "ACTION", "PACKETS COUNT", "BYTES COUNT"]
+ACL_HEADER = ["RULE NAME", "TABLE NAME", "PACKETS COUNT", "BYTES COUNT"]
 
 # some constants for rule properties
 PACKETS_COUNTER = "packets counter"
@@ -51,14 +49,11 @@ class AclStat(object):
     ACL_TABLE = "ACL_TABLE"
     ACL_RULE = "ACL_RULE"
 
-    def __init__(self, ports, rules, tables):
-        self.port_map = {}
+    def __init__(self, rules, tables):
         self.acl_tables = {}
         self.acl_rules = {}
         self.acl_counters = {}
         self.saved_acl_counters = {}
-        self.ports = ports
-        self.port_list = []
         self.rule_list = []
         self.table_list = []
 
@@ -74,30 +69,6 @@ class AclStat(object):
 
         self.configdb = swsssdk.ConfigDBConnector()
         self.configdb.connect()
-
-        self.read_port_map()
-        self.validate_ports()
-
-    def read_port_map(self):
-        """
-        Redis database interface mapping for SAI interface index and interface name
-        """
-        self.port_map = self.db.get_all(self.db.COUNTERS_DB, "COUNTERS_PORT_NAME_MAP")
-
-    def validate_ports(self):
-        """
-        if user give -p port option, make sure the port names are valid
-        """
-        if self.ports is not None:
-            p_list = self.ports.split(',')
-            for p in p_list:
-                pname = p.strip().title()
-                if pname not in self.port_map:
-                    raise Exception("Wrong ports interface name")
-                else:
-                    self.port_list.append(pname)
-        else:
-            self.port_list = self.port_map.keys()
 
     def previous_counters(self):
         """
@@ -137,7 +108,11 @@ class AclStat(object):
             self.acl_tables = self.configdb.get_table(self.ACL_TABLE)
 
             if verboseflag:
-                print("ACL Tables to show:", len(self.acl_tables))
+                print("Total number of ACL Tables: %d" % len(self.acl_tables))
+            if self.table_list:
+                self.acl_tables = { table:content for (table, content) in self.acl_tables.items() if table in self.table_list }
+            else:
+                self.acl_tables = { table:content for (table, content) in self.acl_tables.items() if table in ['DATAACL'] }
 
         def fetch_acl_rules():
             """
@@ -146,7 +121,11 @@ class AclStat(object):
             self.acl_rules = self.configdb.get_table(self.ACL_RULE)
 
             if verboseflag:
-                print("ACL Rules to show:", len(self.acl_rules))
+                print("Total number of ACL Rules: %d" % len(self.acl_rules))
+            if self.table_list:
+                self.acl_rules = { (table, rule):content for ((table, rule), content) in self.acl_rules.items() if table in self.table_list }
+            if self.rule_list:
+                self.acl_rules = { (table, rule):content for ((table, rule), content) in self.acl_rules.items() if rule in self.rule_list }
 
         def fetch_acl_counters():
             """
@@ -154,9 +133,6 @@ class AclStat(object):
             """
             acl_counters_cmd = "docker exec -it database redis-cli --csv -n 2 hgetall COUNTERS:"
             counters_cnt = len(self.acl_rules) # num of counters should be the same as rules
-            if verboseflag:
-                print("ACL Counters found:", counters_cnt)
-
             for table, rule in self.acl_rules.keys():
                 cnt_props = lowercase_keys(self.db.get_all(self.db.COUNTERS_DB, "COUNTERS:%s:%s" % (table, rule)))
                 self.acl_counters[table, rule] = cnt_props
@@ -179,7 +155,7 @@ class AclStat(object):
 
         if key in self.saved_acl_counters:
             new_value = int(self.acl_counters[key][type]) - int(self.saved_acl_counters[key][type])
-            if new_value > 0:
+            if new_value >= 0:
                 return str(new_value)
 
         return str(self.acl_counters[key][type])
@@ -202,9 +178,6 @@ class AclStat(object):
                 continue
             rule = self.acl_rules[rule_key]
             line = [rule_key[1], rule_key[0],
-                    self.acl_tables[rule_key[0]]['type'],
-                    rule['PRIORITY'],
-                    get_action(rule),
                     self.get_counter_value(rule_key, 'packets'),
                     self.get_counter_value(rule_key, 'bytes')]
             aclstat.append(line)
@@ -212,63 +185,6 @@ class AclStat(object):
         # sort the list with table name first and then descending priority
         aclstat.sort(key=lambda x: (x[1], -int(x[3])))
         print(tabulate(aclstat, header))
-
-    def display_acl_details(self):
-        """
-        print out acl details
-        """
-        def adj_len(text, mlen):
-            return text + "." * (mlen - len(text))
-
-        if not self.acl_tables:
-            return
-
-        # determine max len of the table and rule properties
-        onetable = self.acl_tables.itervalues().next()
-        tlen = len(onetable.keys()[0])
-        for property in onetable.keys():
-            if len(property) > tlen:
-                tlen = len(property)
-
-        if not self.acl_rules:
-            rlen = 0
-        else:
-            onerule = self.acl_rules.itervalues().next()
-            rlen = len(onerule.keys()[0])
-            for property in onerule.keys() + [PACKETS_COUNTER, BYTES_COUNTER]:
-                if len(property) > rlen:
-                    rlen = len(property)
-
-        mlen = max(rlen, tlen) + 1
-
-        for table_name in self.acl_tables.keys():
-            ports = self.acl_tables[table_name]['ports']
-            header = "ACL Table: " + table_name
-            print(header)
-            print("=" * len(header))
-            table_props = []
-            table = self.acl_tables[table_name]
-            for tk in table.keys():
-                line = [adj_len(tk, mlen), table[tk]]
-                table_props.append(line)
-            print(tabulate(table_props, headers=['Property', 'Value']), "\n")
-
-        acl_rules_sort = self.acl_rules.keys()
-        acl_rules_sort = natsorted(acl_rules_sort, key=lambda x: (x[0], x[1]))
-
-        for table_name, rule_name in acl_rules_sort:
-            rule_props = []
-            rule = self.acl_rules[table_name, rule_name]
-            header = "ACL Table: " + table_name + ", ACL Rule: " + rule_name
-            print(header)
-            print("="*len(header))
-            for rk in rule.keys():
-                line = [adj_len(rk, mlen), rule[rk]]
-                rule_props.append(line)
-            rule_props.append([adj_len(PACKETS_COUNTER, mlen), self.get_counter_value((table_name, rule_name), 'packets')])
-            rule_props.append([adj_len(BYTES_COUNTER, mlen), self.get_counter_value((table_name, rule_name), 'bytes')])
-            rule_props.append([adj_len('ports', mlen), ports])
-            print(tabulate(rule_props, headers=['Property', 'Value']), "\n")
 
     def clear_counters(self):
         """
@@ -286,24 +202,19 @@ def main():
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-a', '--all', action='store_true', help='Show all ACL counters')
     parser.add_argument('-c', '--clear', action='store_true', help='Clear ACL counters statistics')
-    parser.add_argument('-p', '--ports', type=str, help='action by specific port list: Ethernet0,Ethernet12', default=None)
     parser.add_argument('-r', '--rules', type=str, help='action by specific rules list: Rule1_Name,Rule2_Name', default=None)
     parser.add_argument('-t', '--tables', type=str, help='action by specific tables list: Table1_Name,Table2_Name', default=None)
-    parser.add_argument('-d', '--details', action='store_true', help='Display detailed ACL info', default=False)
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
     args = parser.parse_args()
 
     try:
-        acls = AclStat(args.ports, args.rules, args.tables)
+        acls = AclStat(args.rules, args.tables)
         acls.redis_acl_read(args.verbose)
         if args.clear:
             acls.clear_counters()
             return
         acls.previous_counters()
-        if args.details:
-            acls.display_acl_details()
-        else:
-            acls.display_acl_stat(args.all)
+        acls.display_acl_stat(args.all)
     except Exception as e:
         print(e.message, file=sys.stderr)
         sys.exit(1)
