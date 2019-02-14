@@ -11,6 +11,7 @@ import syslog
 
 import sonic_platform
 from swsssdk import ConfigDBConnector
+from swsssdk import SonicV2Connector
 from minigraph import parse_device_desc_xml
 
 import aaa
@@ -591,22 +592,34 @@ def warm_restart(ctx, redis_unix_socket_path):
         kwargs['unix_socket_path'] = redis_unix_socket_path
     config_db = ConfigDBConnector(**kwargs)
     config_db.connect(wait_for_init=False)
-    ctx.obj = {'db': config_db}
+
+    # warm restart enable/disable config is put in stateDB, not persistent across cold reboot, not saved to config_DB.json file
+    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db.connect(state_db.STATE_DB, False)
+    TABLE_NAME_SEPARATOR = '|'
+    prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
+    ctx.obj = {'db': config_db, 'state_db': state_db, 'prefix': prefix}
     pass
 
 @warm_restart.command('enable')
 @click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss", "bgp", "teamd"]))
 @click.pass_context
 def warm_restart_enable(ctx, module):
-    db = ctx.obj['db']
-    db.mod_entry('WARM_RESTART', module, {'enable': 'true'})
+    state_db = ctx.obj['state_db']
+    prefix = ctx.obj['prefix']
+    _hash = '{}{}'.format(prefix, module)
+    state_db.set(state_db.STATE_DB, _hash, 'enable', 'true')
+    state_db.close(state_db.STATE_DB)
 
 @warm_restart.command('disable')
 @click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss", "bgp", "teamd"]))
 @click.pass_context
 def warm_restart_enable(ctx, module):
-    db = ctx.obj['db']
-    db.mod_entry('WARM_RESTART', module, {'enable': 'false'})
+    state_db = ctx.obj['state_db']
+    prefix = ctx.obj['prefix']
+    _hash = '{}{}'.format(prefix, module)
+    state_db.set(state_db.STATE_DB, _hash, 'enable', 'false')
+    state_db.close(state_db.STATE_DB)
 
 @warm_restart.command('neighsyncd_timer')
 @click.argument('seconds', metavar='<seconds>', required=True, type=int)
@@ -1053,7 +1066,7 @@ def interval(interval):
     """Configure watermark telemetry interval"""
     command = 'watermarkcfg --config-interval ' + interval
     run_command(command)
-   
+
 
 #
 # 'interface_naming_mode' subgroup ('config interface_naming_mode ...')

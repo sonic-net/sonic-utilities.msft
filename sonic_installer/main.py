@@ -10,6 +10,7 @@ import click
 import urllib
 import subprocess
 from swsssdk import ConfigDBConnector
+from swsssdk import SonicV2Connector
 import collections
 
 HOST_PATH = '/host'
@@ -400,11 +401,15 @@ def upgrade_docker(container_name, url, cleanup_image, enforce_check, tag):
     # TODO: Validate the new docker image before disrupting existsing images.
 
     warm = False
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    entry = config_db.get_entry('WARM_RESTART', container_name)
-    if entry and entry['enable'].lower() == 'true':
+    # warm restart enable/disable config is put in stateDB, not persistent across cold reboot, not saved to config_DB.json file
+    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db.connect(state_db.STATE_DB, False)
+    TABLE_NAME_SEPARATOR = '|'
+    prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
+    _hash = '{}{}'.format(prefix, container_name)
+    if state_db.get(state_db.STATE_DB, _hash, "enable") == "true":
         warm = True
+    state_db.close(state_db.STATE_DB)
 
     # warm restart specific procssing for swss, bgp and teamd dockers.
     if warm == True:

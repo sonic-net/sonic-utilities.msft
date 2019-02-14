@@ -782,7 +782,7 @@ def route_map(route_map_name, verbose):
         cmd += ' {}'.format(route_map_name)
     cmd += '"'
     run_command(cmd, display_cmd=verbose)
-	
+
 #
 # 'ip' group ("show ip ...")
 #
@@ -1717,21 +1717,40 @@ def config(redis_unix_socket_path):
     config_db = ConfigDBConnector(**kwargs)
     config_db.connect(wait_for_init=False)
     data = config_db.get_table('WARM_RESTART')
+    # Python dictionary keys() Method
     keys = data.keys()
 
-    def tablelize(keys, data):
+    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db.connect(state_db.STATE_DB, False)   # Make one attempt only
+    TABLE_NAME_SEPARATOR = '|'
+    prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
+    _hash = '{}{}'.format(prefix, '*')
+    # DBInterface keys() method
+    enable_table_keys = state_db.keys(state_db.STATE_DB, _hash)
+
+    def tablelize(keys, data, enable_table_keys, prefix):
         table = []
+
+        if enable_table_keys is not None:
+            for k in enable_table_keys:
+                k = k.replace(prefix, "")
+                if k not in keys:
+                    keys.append(k)
 
         for k in keys:
             r = []
             r.append(k)
 
-            if 'enable' not in  data[k]:
+            enable_k = prefix + k
+            if enable_table_keys is None or enable_k not in enable_table_keys:
                 r.append("false")
             else:
-                r.append(data[k]['enable'])
+                r.append(state_db.get(state_db.STATE_DB, enable_k, "enable"))
 
-            if 'neighsyncd_timer' in  data[k]:
+            if k not in data:
+                r.append("NULL")
+                r.append("NULL")
+            elif 'neighsyncd_timer' in  data[k]:
                 r.append("neighsyncd_timer")
                 r.append(data[k]['neighsyncd_timer'])
             elif 'bgp_timer' in data[k]:
@@ -1749,8 +1768,8 @@ def config(redis_unix_socket_path):
         return table
 
     header = ['name', 'enable', 'timer_name', 'timer_duration']
-    click.echo(tabulate(tablelize(keys, data), header))
-
+    click.echo(tabulate(tablelize(keys, data, enable_table_keys, prefix), header))
+    state_db.close(state_db.STATE_DB)
 
 if __name__ == '__main__':
     cli()

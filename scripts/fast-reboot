@@ -159,7 +159,8 @@ function backup_database()
     # Delete keys in stateDB except FDB_TABLE|* and WARM_RESTA*
     redis-cli -n 6 eval "
         for _, k in ipairs(redis.call('keys', '*')) do
-            if not string.match(k, 'FDB_TABLE|') and not string.match(k, 'WARM_RESTART_TABLE|') then
+            if not string.match(k, 'FDB_TABLE|') and not string.match(k, 'WARM_RESTART_TABLE|') \
+                                          and not string.match(k, 'WARM_RESTART_ENABLE_TABLE|') then
                 redis.call('del', k)
             end
         end
