@@ -183,6 +183,15 @@ def counters():
     run_command(command)
 
 @cli.command()
+@click.argument('interface', metavar='<interface_name>', required=False, type=str)
+def rifcounters(interface):
+    """Clear RIF counters"""
+    command = "intfstat -c"
+    if interface is not None:
+        command = "intfstat -i {} -c".format(interface)
+    run_command(command)
+
+@cli.command()
 def queuecounters():
     """Clear queue counters"""
     command = "queuestat -c"

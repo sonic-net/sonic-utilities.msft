@@ -76,6 +76,40 @@ def disable():
     port_info['FLEX_COUNTER_STATUS'] = 'disable'
     configdb.mod_entry("FLEX_COUNTER_TABLE", "PORT", port_info)
 
+# RIF counter commands
+@cli.group()
+def rif():
+    """ RIF counter commands """
+
+@rif.command()
+@click.argument('poll_interval')
+def interval(poll_interval):
+    """ Set rif counter query interval """
+    configdb = swsssdk.ConfigDBConnector()
+    configdb.connect()
+    rif_info = {}
+    if poll_interval is not None:
+        rif_info['POLL_INTERVAL'] = poll_interval
+    configdb.mod_entry("FLEX_COUNTER_TABLE", "RIF", rif_info)
+
+@rif.command()
+def enable():
+    """ Enable rif counter query """
+    configdb = swsssdk.ConfigDBConnector()
+    configdb.connect()
+    rif_info = {}
+    rif_info['FLEX_COUNTER_STATUS'] = 'enable'
+    configdb.mod_entry("FLEX_COUNTER_TABLE", "RIF", rif_info)
+
+@rif.command()
+def disable():
+    """ Disable rif counter query """
+    configdb = swsssdk.ConfigDBConnector()
+    configdb.connect()
+    rif_info = {}
+    rif_info['FLEX_COUNTER_STATUS'] = 'disable'
+    configdb.mod_entry("FLEX_COUNTER_TABLE", "RIF", rif_info)
+
 # Watermark counter commands
 @cli.group()
 def watermark():
@@ -122,6 +156,7 @@ def show():
     configdb.connect()
     queue_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'QUEUE')
     port_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'PORT')
+    rif_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'RIF')
     queue_wm_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'QUEUE_WATERMARK')
     pg_wm_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'PG_WATERMARK')
     
@@ -131,6 +166,8 @@ def show():
         data.append(["QUEUE_STAT", queue_info["POLL_INTERVAL"] if 'POLL_INTERVAL' in queue_info else 'default (10000)', queue_info["FLEX_COUNTER_STATUS"] if 'FLEX_COUNTER_STATUS' in queue_info else 'disable' ])
     if port_info:
         data.append(["PORT_STAT", port_info["POLL_INTERVAL"] if 'POLL_INTERVAL' in port_info else 'default (1000)', port_info["FLEX_COUNTER_STATUS"] if 'FLEX_COUNTER_STATUS' in port_info else 'disable'])
+    if rif_info:
+        data.append(["RIF_STAT", rif_info["POLL_INTERVAL"] if 'POLL_INTERVAL' in rif_info else 'default (1000)', rif_info["FLEX_COUNTER_STATUS"] if 'FLEX_COUNTER_STATUS' in rif_info else 'disable'])
     if queue_wm_info:
         data.append(["QUEUE_WATERMARK_STAT", queue_wm_info["POLL_INTERVAL"] if 'POLL_INTERVAL' in queue_wm_info else 'default (1000)', queue_wm_info["FLEX_COUNTER_STATUS"] if 'FLEX_COUNTER_STATUS' in queue_wm_info else 'disable' ])
     if pg_wm_info:

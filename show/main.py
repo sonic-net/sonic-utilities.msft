@@ -263,6 +263,14 @@ def run_command_in_alias_mode(command):
                                iface_alias_converter.alias_max_length))
                 print_output_in_alias_mode(output, index)
 
+            elif command.startswith("intfstat"):
+                """Show RIF counters"""
+                index = 0
+                if output.startswith("IFACE"):
+                    output = output.replace("IFACE", "IFACE".rjust(
+                               iface_alias_converter.alias_max_length))
+                print_output_in_alias_mode(output, index)
+
             elif command == "pfcstat":
                 """Show pfc counters"""
                 index = 0
@@ -554,23 +562,41 @@ def status(interfacename, verbose):
 
 
 # 'counters' subcommand ("show interfaces counters")
-@interfaces.command()
+@interfaces.group(invoke_without_command=True)
 @click.option('-a', '--printall', is_flag=True)
 @click.option('-c', '--clear', is_flag=True)
 @click.option('-p', '--period')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def counters(period, printall, clear, verbose):
+@click.pass_context
+def counters(ctx, verbose, period, clear, printall):
     """Show interface counters"""
 
-    cmd = "portstat"
+    if ctx.invoked_subcommand is None:
+        cmd = "portstat"
 
-    if clear:
-        cmd += " -c"
-    else:
-        if printall:
-            cmd += " -a"
-        if period is not None:
-            cmd += " -p {}".format(period)
+        if clear:
+            cmd += " -c"
+        else:
+            if printall:
+                cmd += " -a"
+            if period is not None:
+                cmd += " -p {}".format(period)
+
+        run_command(cmd, display_cmd=verbose)
+
+# 'counters' subcommand ("show interfaces counters rif")
+@counters.command()
+@click.argument('interface', metavar='<interface_name>', required=False, type=str)
+@click.option('-p', '--period')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def rif(interface, period, verbose):
+    """Show interface counters"""
+
+    cmd = "intfstat"
+    if period is not None:
+        cmd += " -p {}".format(period)
+    if interface is not None:
+        cmd += " -i {}".format(interface)
 
     run_command(cmd, display_cmd=verbose)
 
