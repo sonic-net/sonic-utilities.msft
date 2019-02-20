@@ -189,6 +189,26 @@ def get_docker_tag_name(image):
         return "unknown"
     return tag
 
+# Function which validates whether a given URL specifies an existent file
+# on a reachable remote machine. Will abort the current operation if not
+def validate_url_or_abort(url):
+    # Attempt to retrieve HTTP response code
+    try:
+        urlfile = urllib.urlopen(url)
+        response_code = urlfile.getcode()
+        urlfile.close()
+    except IOError, err:
+        response_code = None
+
+    if not response_code:
+        click.echo("Did not receive a response from remote machine. Aborting...")
+        raise click.Abort()
+    else:
+        # Check for a 4xx response code which indicates a nonexistent URL
+        if response_code / 100 == 4:
+            click.echo("Image file not found on remote machine. Aborting...")
+            raise click.Abort()
+
 # Callback for confirmation prompt. Aborts if user enters "n"
 def abort_if_false(ctx, param, value):
     if not value:
@@ -218,10 +238,21 @@ def install(url):
 
     if url.startswith('http://') or url.startswith('https://'):
         click.echo('Downloading image...')
-        urllib.urlretrieve(url, DEFAULT_IMAGE_PATH, reporthook)
+        validate_url_or_abort(url)
+        try:
+            urllib.urlretrieve(url, DEFAULT_IMAGE_PATH, reporthook)
+        except Exception, e:
+            click.echo("Download error", e)
+            raise click.Abort()
         image_path = DEFAULT_IMAGE_PATH
     else:
         image_path = os.path.join("./", url)
+
+    # Verify that the local file exists and is a regular file
+    # TODO: Verify the file is a *proper SONiC image file*
+    if not os.path.isfile(image_path):
+        click.echo("Image file '{}' does not exist or is not a regular file. Aborting...".format(image_path))
+        raise click.Abort()
 
     if get_image_type() == IMAGE_TYPE_ABOOT:
         run_command("/usr/bin/unzip -od /tmp %s boot0" % image_path)
@@ -389,16 +420,21 @@ def upgrade_docker(container_name, url, cleanup_image, enforce_check, tag):
     DEFAULT_IMAGE_PATH = os.path.join("/tmp/", image_name)
     if url.startswith('http://') or url.startswith('https://'):
         click.echo('Downloading image...')
+        validate_url_or_abort(url)
         try:
             urllib.urlretrieve(url, DEFAULT_IMAGE_PATH, reporthook)
         except Exception, e:
             click.echo("Download error", e)
-            return
+            raise click.Abort()
         image_path = DEFAULT_IMAGE_PATH
     else:
         image_path = os.path.join("./", url)
 
-    # TODO: Validate the new docker image before disrupting existsing images.
+    # Verify that the local file exists and is a regular file
+    # TODO: Verify the file is a *proper Docker image file*
+    if not os.path.isfile(image_path):
+        click.echo("Image file '{}' does not exist or is not a regular file. Aborting...".format(image_path))
+        raise click.Abort()
 
     warm = False
     # warm restart enable/disable config is put in stateDB, not persistent across cold reboot, not saved to config_DB.json file
