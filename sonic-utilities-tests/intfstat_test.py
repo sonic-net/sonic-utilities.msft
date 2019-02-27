@@ -47,6 +47,12 @@ class TestIntfstat(object):
         print(result.output)
         assert result.output.split('\n')[0] == "The rates are calculated within 3 seconds period"
 
+    def test_period_single_interface(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["counters"].commands["rif"], ["Ethernet20", "-p3"])
+        print(result.output)
+        assert result.output.split('\n')[0] == "The rates are calculated within 3 seconds period"
+
     def test_single_intfs(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["counters"].commands["rif"], ["Ethernet20"])

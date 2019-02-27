@@ -338,7 +338,7 @@ def main():
         print "The rates are calculated within %s seconds period" % wait_time_in_seconds
         cnstat_new_dict = intfstat.get_cnstat(rif=interface_name)
         if interface_name:
-            intfstat.cnstat_single_interface(interface_name, cnstat_dict, cnstat_cached_dict)
+            intfstat.cnstat_single_interface(interface_name, cnstat_new_dict, cnstat_dict)
         else:
             intfstat.cnstat_diff_print(cnstat_new_dict, cnstat_dict, use_json)
 
