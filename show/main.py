@@ -433,11 +433,19 @@ def expected(interfacename):
     """Show expected neighbor information by interfaces"""
     neighbor_cmd = 'sonic-cfggen -d --var-json "DEVICE_NEIGHBOR"'
     p1 = subprocess.Popen(neighbor_cmd, shell=True, stdout=subprocess.PIPE)
-    neighbor_dict = json.loads(p1.stdout.read())
+    try :
+        neighbor_dict = json.loads(p1.stdout.read())
+    except ValueError:
+        print("DEVICE_NEIGHBOR information is not present.")
+        return
 
     neighbor_metadata_cmd = 'sonic-cfggen -d --var-json "DEVICE_NEIGHBOR_METADATA"'
     p2 = subprocess.Popen(neighbor_metadata_cmd, shell=True, stdout=subprocess.PIPE)
-    neighbor_metadata_dict = json.loads(p2.stdout.read())
+    try :
+        neighbor_metadata_dict = json.loads(p2.stdout.read())
+    except ValueError:
+        print("DEVICE_NEIGHBOR_METADATA information is not present.")
+        return
 
     #Swap Key and Value from interface: name to name: interface
     device2interface_dict = {}
