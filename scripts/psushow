@@ -1,0 +1,83 @@
+#! /usr/bin/python
+
+import argparse
+import sys
+import os
+from swsssdk import SonicV2Connector
+from tabulate import tabulate
+
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        test_path = os.path.join(modules_path, "sonic-utilities-tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, test_path)
+        import mock_tables.dbconnector
+except KeyError:
+    pass
+
+def psu_status_show(index):
+    db = SonicV2Connector(host="127.0.0.1")
+    db.connect(db.STATE_DB)
+
+    # Currently set chassis_num to 1, need to improve it once new platform API is implemented
+    chassis_num = 1
+    chassis_name = "chassis {}".format(chassis_num)
+    num_psus = db.get(db.STATE_DB, 'CHASSIS_INFO|{}'.format(chassis_name), 'num_psus')
+    if not num_psus:
+        print "Error! Failed to get the number of PSUs!"
+        return -1
+
+    supported_psu = range(1, int(num_psus) + 1)
+    if (index < 0):
+        psu_ids = supported_psu
+    else:
+        psu_ids = [index]
+
+    header = ['PSU', 'Status']
+    status_table = []
+
+    for psu in psu_ids:
+        msg = ""
+        psu_name = "PSU {}".format(psu)
+        if psu not in supported_psu:
+            print "Error! The {} is not available on the platform.\n" \
+                  "Number of supported PSU - {}.".format(psu_name, num_psus)
+            continue
+        presence = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'presence')
+        if presence == 'true':
+            oper_status = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'status')
+            msg = 'OK' if oper_status == 'true' else "NOT OK"
+        else:
+            msg = 'NOT PRESENT'
+        status_table.append([psu_name, msg])
+
+    if status_table:
+        print tabulate(status_table, header, tablefmt="simple")
+    return 0
+
+def main():
+    parser = argparse.ArgumentParser(description='Display the psu status information',
+                                     version='1.0.0',
+                                     formatter_class=argparse.RawTextHelpFormatter,
+                                     epilog="""
+Examples:
+  psushow -s -i 1
+""")
+
+    parser.add_argument('-s', '--status', action='store_true', help='show the status information')
+    parser.add_argument('-i', '--index', type=int, default=-1, help='the index of psu')
+    args = parser.parse_args()
+
+    status_show = args.status
+    psu_index = args.index
+    if status_show:
+        err = psu_status_show(psu_index)
+        if err:
+            print "Error: fail to get psu status from state DB"
+            sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+

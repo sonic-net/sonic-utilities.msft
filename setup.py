@@ -78,6 +78,7 @@ setup(
         'scripts/portconfig',
         'scripts/portstat',
         'scripts/pfcstat',
+        'scripts/psushow',
         'scripts/queuestat',
         'scripts/reboot',
         'scripts/teamshow',

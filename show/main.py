@@ -1133,7 +1133,7 @@ def syseeprom(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def psustatus(index, verbose):
     """Show PSU status information"""
-    cmd = "sudo psuutil status"
+    cmd = "psushow -s"
 
     if index >= 0:
         cmd += " -i {}".format(index)
