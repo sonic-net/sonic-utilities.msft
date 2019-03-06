@@ -27,7 +27,7 @@ CACHE_ROOT = '/var/cache/sonic/decode-syseeprom'
 CACHE_FILE = 'syseeprom_cache'
 
 def main():
-
+    support_eeprom_db = True
     if not os.geteuid() == 0:
         raise RuntimeError("must be root to run")
 
@@ -36,6 +36,9 @@ def main():
 
     platform_path = '/'.join([PLATFORM_ROOT, platform])
 
+    # Currently, don't support eeprom db on Arista platform
+    if 'arista' in platform_path:
+        support_eeprom_db = False
     #
     # Currently we only support board eeprom decode.
     #
@@ -55,7 +58,7 @@ def main():
     #
     # execute the command
     #
-    run(t, opts, args)
+    run(t, opts, args, support_eeprom_db)
 
 #-------------------------------------------------------------------------------
 #
@@ -63,6 +66,8 @@ def main():
 #
 def get_cmdline_opts():
     optcfg = optparse.OptionParser(usage="usage: %s [-s][-m]" % sys.argv[0])
+    optcfg.add_option("-d", dest="db", action="store_true",
+                      default=False, help="print eeprom from database")
     optcfg.add_option("-s", dest="serial", action="store_true",
                       default=False, help="print device serial number/service tag")
     optcfg.add_option("-m", dest="mgmtmac", action="store_true", default=False,
@@ -75,7 +80,16 @@ def get_cmdline_opts():
 #
 # Run
 #
-def run(target, opts, args):
+def run(target, opts, args, support_eeprom_db):
+
+    if support_eeprom_db and opts.db:
+        err = target.read_eeprom_db()
+        if err:
+            # Failed to read EEPROM information from database. Read from cache file
+            pass
+        else:
+            return 0
+
     status = target.check_status()
     if status <> 'ok':
         sys.stderr.write("Device is not ready: " + status + "\n")
@@ -109,8 +123,10 @@ def run(target, opts, args):
         pass
 
     if opts.init:
-        return 0
-
+        err = target.update_eeprom_db(e)
+        if err:
+            print "Failed to update eeprom database"
+            return -1
     elif opts.mgmtmac:
         mm = target.mgmtaddrstr(e)
         if mm != None:

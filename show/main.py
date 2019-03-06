@@ -1124,7 +1124,7 @@ def summary():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def syseeprom(verbose):
     """Show system EEPROM information"""
-    cmd = "sudo decode-syseeprom"
+    cmd = "sudo decode-syseeprom -d"
     run_command(cmd, display_cmd=verbose)
 
 # 'psustatus' subcommand ("show platform psustatus")
