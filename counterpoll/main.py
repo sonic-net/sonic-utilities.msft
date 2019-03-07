@@ -169,9 +169,9 @@ def show():
     if rif_info:
         data.append(["RIF_STAT", rif_info["POLL_INTERVAL"] if 'POLL_INTERVAL' in rif_info else 'default (1000)', rif_info["FLEX_COUNTER_STATUS"] if 'FLEX_COUNTER_STATUS' in rif_info else 'disable'])
     if queue_wm_info:
-        data.append(["QUEUE_WATERMARK_STAT", queue_wm_info["POLL_INTERVAL"] if 'POLL_INTERVAL' in queue_wm_info else 'default (1000)', queue_wm_info["FLEX_COUNTER_STATUS"] if 'FLEX_COUNTER_STATUS' in queue_wm_info else 'disable' ])
+        data.append(["QUEUE_WATERMARK_STAT", queue_wm_info["POLL_INTERVAL"] if 'POLL_INTERVAL' in queue_wm_info else 'default (10000)', queue_wm_info["FLEX_COUNTER_STATUS"] if 'FLEX_COUNTER_STATUS' in queue_wm_info else 'disable' ])
     if pg_wm_info:
-        data.append(["PG_WATERMARK_STAT", pg_wm_info["POLL_INTERVAL"] if 'POLL_INTERVAL' in pg_wm_info else 'default (1000)', pg_wm_info["FLEX_COUNTER_STATUS"] if 'FLEX_COUNTER_STATUS' in pg_wm_info else 'disable'])
+        data.append(["PG_WATERMARK_STAT", pg_wm_info["POLL_INTERVAL"] if 'POLL_INTERVAL' in pg_wm_info else 'default (10000)', pg_wm_info["FLEX_COUNTER_STATUS"] if 'FLEX_COUNTER_STATUS' in pg_wm_info else 'disable'])
 
     print tabulate(data, headers=header, tablefmt="simple", missingval="")
 
