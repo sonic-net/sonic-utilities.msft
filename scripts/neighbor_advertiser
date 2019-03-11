@@ -1,0 +1,412 @@
+#!/usr/bin/env python
+
+########################################
+#
+# Neighbor Advertiser
+#
+########################################
+
+
+import os
+import json
+import requests
+import argparse
+import syslog
+import traceback
+import sonic_platform
+from swsssdk import ConfigDBConnector
+from swsssdk import SonicV2Connector
+
+
+#
+# Config
+#
+
+DEFAULT_DURATION = 300
+SYSLOG_IDENTIFIER = 'neighbor_advertiser'
+
+
+#
+# Tunnel setup
+#
+
+MIRROR_SESSION_NAME = 'neighbor_advertiser'
+MIRROR_ACL_NAME = 'neighbor_advertiser_acl'
+MIRROR_ACL_RULE_NAME = 'rule_arp'
+VXLAN_TUNNEL_NAME = 'neighbor_advertiser'
+VXLAN_TUNNEL_MAP_PREFIX = 'map_'
+
+
+#
+# Path
+#
+
+SYS_NET_PATH = '/sys/class/net/'
+VLAN_MAC_ADDRESS_PATH = '/address'
+NEIGHBOR_ADVERTISER_REQUEST_SLICE_PATH = '/tmp/neighbor_advertiser/request_slice.json'
+NEIGHBOR_ADVERTISER_RESPONSE_CONFIG_PATH = '/tmp/neighbor_advertiser/response_config.json'
+FERRET_NEIGHBOR_ADVERTISER_API_PREFIX = '/Ferret/NeighborAdvertiser/Slices/'
+
+
+#
+# Syslog functions
+#
+
+def log_info(msg):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_INFO, msg)
+    syslog.closelog()
+
+
+def log_warning(msg):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_WARNING, msg)
+    syslog.closelog()
+
+
+def log_error(msg):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_ERR, msg)
+    syslog.closelog()
+
+
+#
+# Global variable of config_db
+#
+
+config_db = None
+
+
+#
+# Get switch info and intf addr
+#
+
+def connect_config_db():
+    global config_db
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+
+def get_switch_name():
+    metadata = config_db.get_table('DEVICE_METADATA')
+    return metadata['localhost']['hostname']
+
+
+def get_switch_hwsku():
+    metadata = config_db.get_table('DEVICE_METADATA')
+    return metadata['localhost']['hwsku']
+
+
+def extract_ip_ver_addr(ip_prefix):
+    addr = ip_prefix.split('/')[0]
+
+    if ':' in addr:
+        ver = 6
+    else:
+        ver = 4
+
+    return (ver, addr)
+
+
+def get_loopback_addr(ip_ver):
+    loopback_intfs = config_db.get_table('LOOPBACK_INTERFACE')
+    loopback_addr = ''
+
+    for intf in loopback_intfs.keys():
+        if 'Loopback0' in intf:
+            intf_ip_prefix = intf[1]
+            (intf_ip_ver, intf_ip_addr) = extract_ip_ver_addr(intf_ip_prefix)
+            if intf_ip_ver == ip_ver:
+                loopback_addr = intf_ip_addr
+                break
+
+    return loopback_addr
+
+
+def get_vlan_interfaces():
+    vlan_info = config_db.get_table('VLAN')
+    vlan_interfaces = []
+
+    for vlan_name in vlan_info.keys():
+        vlan_interfaces.append(vlan_name)
+
+    return vlan_interfaces
+
+
+def get_vlan_interface_members(vlan_intf_name):
+    vlan_info = config_db.get_table('VLAN')
+    vlan_interface_members = vlan_info[vlan_intf_name]['members']
+    return vlan_interface_members
+
+
+def get_vlan_interface_mac_address(vlan_intf_name):
+    mac_addr_file = SYS_NET_PATH + vlan_intf_name + VLAN_MAC_ADDRESS_PATH
+    mac_address = ''
+
+    if os.path.isfile(mac_addr_file):
+        with open (mac_addr_file) as f:
+            mac_address = f.readline()
+
+    return mac_address.strip()
+
+
+def get_vlan_interface_vlan_id(vlan_intf_name):
+    return vlan_intf_name[4:]
+
+
+def get_vlan_interface_vxlan_id(vlan_intf_name):
+    return vlan_intf_name[4:]
+
+
+def get_vlan_addr(vlan_intf_name, ip_ver):
+    vlan_intfs = config_db.get_table('VLAN_INTERFACE')
+    vlan_addr = []
+
+    for intf in vlan_intfs.keys():
+        if vlan_intf_name in intf:
+            intf_ip_prefix = intf[1]
+            (intf_ip_ver, intf_ip_addr) = extract_ip_ver_addr(intf_ip_prefix)
+            if intf_ip_ver == ip_ver:
+                vlan_addr.append(intf_ip_addr)
+
+    return vlan_addr
+
+
+#
+# Set up neighbor advertiser slice on Ferret
+#
+
+def construct_neighbor_advertiser_slice():
+    switch_info_obj = {
+        'name': get_switch_name(),
+        'ipv4Addr': get_loopback_addr(4),
+        'ipv6Addr': get_loopback_addr(6),
+        'hwSku': get_switch_hwsku()
+    }
+
+    responding_scheme_obj = {
+        'durationInSec': DEFAULT_DURATION
+    }
+
+    vlan_interfaces_obj = []
+
+    all_vlan_interfaces = get_vlan_interfaces()
+
+    for vlan_interface in all_vlan_interfaces:
+        vlan_id = get_vlan_interface_vlan_id(vlan_interface)
+        vxlan_id = get_vlan_interface_vxlan_id(vlan_interface)
+        ipv4_addr = get_vlan_addr(vlan_interface, 4)
+        ipv6_addr = get_vlan_addr(vlan_interface, 6)
+        mac_addr = get_vlan_interface_mac_address(vlan_interface)
+
+        if not mac_addr:
+            log_warning('Cannot find mac addr of vlan interface {}'.format(vlan_interface))
+            continue
+
+        ipv4_mappings = []
+        for addr in ipv4_addr:
+            mapping = {
+                'ipAddr': addr,
+                'macAddr': mac_addr
+            }
+            ipv4_mappings.append(mapping)
+
+        ipv6_mappings = []
+        for addr in ipv6_addr:
+            mapping = {
+                'ipAddr': addr,
+                'macAddr': mac_addr
+            }
+            ipv6_mappings.append(mapping)
+
+        vlan_interface_obj = {
+            'vlanId': vlan_id,
+            'vxlanId': vxlan_id,
+            'ipv4AddrMappings': ipv4_mappings,
+            'ipv6AddrMappings': ipv6_mappings
+        }
+
+        vlan_interfaces_obj.append(vlan_interface_obj)
+
+    slice_obj = {
+        'switchInfo': switch_info_obj,
+        'vlanInterfaces': vlan_interfaces_obj,
+        'respondingScheme': responding_scheme_obj
+    }
+
+    return slice_obj
+
+
+def post_neighbor_advertiser_slice(ferret_service_vip):
+    request_slice = construct_neighbor_advertiser_slice()
+    save_as_json(request_slice, NEIGHBOR_ADVERTISER_REQUEST_SLICE_PATH)
+
+    url = 'http://{}:85{}{}'.format(ferret_service_vip, FERRET_NEIGHBOR_ADVERTISER_API_PREFIX, get_switch_name())
+    response = requests.post(url, json = request_slice)
+    
+    ferret_server_ipv4_addr = ''
+
+    if response.ok:
+        neighbor_advertiser_configuration = json.loads(response.content)
+        save_as_json(neighbor_advertiser_configuration, NEIGHBOR_ADVERTISER_RESPONSE_CONFIG_PATH)
+        ferret_server_ipv4_addr = neighbor_advertiser_configuration['ipv4Addr']
+        log_info('Successfully set up neighbor advertiser slice')
+    else:
+        log_error('Failed to set up neighbor advertiser slice, error_code: {}'.format(response.status_code))
+        response.raise_for_status()
+
+    return ferret_server_ipv4_addr
+
+
+def save_as_json(obj, file_path):
+    dir_path = os.path.dirname(file_path)
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+
+    with open(file_path, 'w') as outfile:
+        json.dump(obj, outfile, sort_keys = True)
+
+
+#
+# Set mirror tunnel
+#
+
+def add_mirror_session(dst_ipv4_addr):
+    session_info = {
+        'src_ip': get_loopback_addr(4),
+        'dst_ip': dst_ipv4_addr
+    }
+
+    config_db.set_entry('MIRROR_SESSION', MIRROR_SESSION_NAME, session_info)
+
+
+def add_mirror_acl():
+    acl_info = {
+        'policy_desc': 'neighbor advertiser',
+        'type': 'mirror',
+        'ports': get_vlan_interfaces()
+    }
+
+    config_db.set_entry('ACL_TABLE', MIRROR_ACL_NAME, acl_info)
+
+
+def add_mirror_acl_rule():
+    acl_rule_info = {
+        'ether_type': '2054',
+        'mirror_action': MIRROR_SESSION_NAME
+    }
+
+    config_db.set_entry('ACL_RULE', (MIRROR_ACL_NAME, MIRROR_ACL_RULE_NAME), acl_rule_info)
+
+
+def set_mirror_tunnel(ferret_server_ip):
+    add_mirror_session(ferret_server_ip)
+    add_mirror_acl()
+    add_mirror_acl_rule()
+    log_info('Finish setting mirror tunnel; Ferret: {}'.format(ferret_server_ip))
+
+
+#
+# Reset mirror tunnel
+#
+
+def remove_mirror_session():
+    config_db.set_entry('MIRROR_SESSION', MIRROR_SESSION_NAME, None)
+
+
+def remove_mirror_acl():
+    config_db.set_entry('ACL_TABLE', MIRROR_ACL_NAME, None)
+
+
+def remove_mirror_acl_rule():
+    config_db.set_entry('ACL_RULE', (MIRROR_ACL_NAME, MIRROR_ACL_RULE_NAME), None)
+
+
+def reset_mirror_tunnel():
+    remove_mirror_acl_rule()
+    remove_mirror_acl()
+    remove_mirror_session()
+    log_info('Finish resetting mirror tunnel')
+
+
+#
+# Set vxlan tunnel
+#
+
+def add_vxlan_tunnel(dst_ipv4_addr):
+    vxlan_tunnel_info = {
+        'src_ip': get_loopback_addr(4),
+        'dst_ip': dst_ipv4_addr
+    }
+
+    config_db.set_entry('VXLAN_TUNNEL', VXLAN_TUNNEL_NAME, vxlan_tunnel_info)
+
+
+def add_vxlan_tunnel_map():
+    for (index, vlan_intf_name) in enumerate(get_vlan_interfaces(), 1):
+        vxlan_tunnel_map_info = {
+            'vni': get_vlan_interface_vxlan_id(vlan_intf_name),
+            'vlan': get_vlan_interface_vlan_id(vlan_intf_name)
+        }
+
+        config_db.set_entry('VXLAN_TUNNEL_MAP', (VXLAN_TUNNEL_NAME, VXLAN_TUNNEL_MAP_PREFIX + index), vxlan_tunnel_map_info)
+
+
+def set_vxlan_tunnel(ferret_server_ip):
+    add_vxlan_tunnel(ferret_server_ip)
+    add_vxlan_tunnel_map()
+    log_info('Finish setting vxlan tunnel; Ferret: {}'.format(ferret_server_ip))
+
+
+#
+# Reset vxlan tunnel
+#
+
+def remove_vxlan_tunnel():
+    config_db.set_entry('VXLAN_TUNNEL', VXLAN_TUNNEL_NAME, None)
+
+
+def remove_vxlan_tunnel_map():
+    for (index, vlan_intf_name) in enumerate(get_vlan_interfaces(), 1):
+        config_db.set_entry('VXLAN_TUNNEL_MAP', (VXLAN_TUNNEL_NAME, VXLAN_TUNNEL_MAP_PREFIX + index), None)
+
+
+def reset_vxlan_tunnel():
+    remove_vxlan_tunnel_map()
+    remove_vxlan_tunnel()
+    log_info('Finish resetting vxlan tunnel')
+
+
+#
+# Main function
+#
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', dest='vip', metavar='vip', type = str, required = True, help = 'ferret service vip')
+    parser.add_argument('-m', dest='mode', metavar='mode (set, reset)', type = str, required = True, choices=['set', 'reset'], help = 'operation mode')
+    args = parser.parse_args()
+
+    ferret_service_vip = args.vip
+    operation_mode = args.mode
+
+    connect_config_db()
+
+    if operation_mode == 'set':
+        ferret_server_ip = post_neighbor_advertiser_slice(ferret_service_vip)
+        set_vxlan_tunnel(ferret_server_ip)
+        set_mirror_tunnel(ferret_server_ip)
+
+    if operation_mode == 'reset':
+        reset_mirror_tunnel()
+        reset_vxlan_tunnel()
+
+    return true
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as e:
+        log_error('! [Failure] {} {}'.format(e, traceback.format_exc()))
+
