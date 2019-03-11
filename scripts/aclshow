@@ -35,7 +35,7 @@ from natsort import natsorted
 COUNTER_POSITION = '/tmp/.counters_acl.p'
 
 ### acl display header
-ACL_HEADER = ["RULE NAME", "TABLE NAME", "PACKETS COUNT", "BYTES COUNT"]
+ACL_HEADER = ["RULE NAME", "TABLE NAME", "PRIO", "PACKETS COUNT", "BYTES COUNT"]
 
 # some constants for rule properties
 PACKETS_COUNTER = "packets counter"
@@ -178,12 +178,13 @@ class AclStat(object):
                 continue
             rule = self.acl_rules[rule_key]
             line = [rule_key[1], rule_key[0],
+                    rule['PRIORITY'],
                     self.get_counter_value(rule_key, 'packets'),
                     self.get_counter_value(rule_key, 'bytes')]
             aclstat.append(line)
 
         # sort the list with table name first and then descending priority
-        aclstat.sort(key=lambda x: (x[1], -int(x[3])))
+        aclstat.sort(key=lambda x: (x[1], -int(x[2])))
         print(tabulate(aclstat, header))
 
     def clear_counters(self):
