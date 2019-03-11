@@ -1,1 +1,22 @@
-{}
+{
+    "PORT_TABLE:Ethernet0": {
+        "lanes": "0",
+        "alias": "Ethernet0",
+        "description": "ARISTA01T2:Ethernet1",
+        "speed": "25000",
+        "oper_status": "down",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "admin_status": "up"
+    },
+    "PORT_TABLE:Ethernet200": {
+        "lanes": "200,201,202,203",
+        "alias": "Ethernet200",
+        "description": "Ethernet200",
+        "speed": "100000",
+        "oper_status": "down",
+        "fec": "rs",
+        "mtu": "9100",
+        "pfc_asym": "off"
+    }
+}

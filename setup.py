@@ -81,6 +81,7 @@ setup(
         'scripts/psushow',
         'scripts/queuestat',
         'scripts/reboot',
+        'scripts/sfpshow',
         'scripts/teamshow',
         'scripts/nbrshow',
         'scripts/warm-reboot',
