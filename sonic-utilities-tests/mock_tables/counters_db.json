@@ -74,5 +74,45 @@
             "oid:0x600000000063c": "SAI_ROUTER_INTERFACE_TYPE_PORT",
             "oid:0x600000000063d": "SAI_ROUTER_INTERFACE_TYPE_PORT",
             "oid:0x600000000065f": "SAI_ROUTER_INTERFACE_TYPE_PORT"
+    },
+    "COUNTERS:DATAACL:DEFAULT_RULE": {
+            "Bytes": "1",
+            "Packets": "2"
+    },
+    "COUNTERS:DATAACL:RULE_1": {
+            "Bytes": "100",
+            "Packets": "101"
+    },
+    "COUNTERS:DATAACL:RULE_2": {
+            "Bytes": "200",
+            "Packets": "201"
+    },
+    "COUNTERS:DATAACL:RULE_3": {
+            "Bytes": "300",
+            "Packets": "301"
+    },
+    "COUNTERS:DATAACL:RULE_4": {
+            "Bytes": "400",
+            "Packets": "401"
+    },
+    "COUNTERS:DATAACL:RULE_05": {
+            "Bytes": "0",
+            "Packets": "0"
+    },
+    "COUNTERS:EVERFLOW:RULE_6": {
+            "Bytes": "600",
+            "Packets": "601"
+    },
+    "COUNTERS:DATAACL:RULE_7":{
+            "Bytes": "700",
+            "Packets": "701"
+    },
+    "COUNTERS:EVERFLOW:RULE_08": {
+            "Bytes": "0",
+            "Packets": "0"
+    },
+    "COUNTERS:DATAACL:RULE_9": {
+            "Bytes": "900",
+            "Packets": "901"
     }
 }
