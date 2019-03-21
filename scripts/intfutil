@@ -3,9 +3,11 @@
 import swsssdk
 import sys
 import re
+import types
 from tabulate import tabulate
 from natsort import natsorted
-
+from swsssdk import ConfigDBConnector
+from pprint import pprint
 
 
 # ========================== Common interface-utils logic ==========================
@@ -23,26 +25,71 @@ PORT_DESCRIPTION = "description"
 PORT_OPTICS_TYPE = "type"
 PORT_PFC_ASYM_STATUS = "pfc_asym"
 
+def db_connect_configdb():
+    """
+    Connect to configdb
+    """
+    config_db = ConfigDBConnector()
+    if config_db is None: 
+        return None 
+    config_db.connect()
+    return config_db 
+
+def get_frontpanel_port_list(config_db):
+    ports_dict = config_db.get_table('PORT')
+    front_panel_ports_list = []
+    for port in ports_dict.iterkeys():
+        front_panel_ports_list.append(port)
+    return front_panel_ports_list
+
+
+def get_interface_vlan_dict(config_db):
+    """
+    Get info from REDIS ConfigDB and create interface to vlan mapping
+    """
+    get_int_vlan_configdb_info = config_db.get_table('VLAN_MEMBER')
+    int_list = []
+    vlan_list = []
+    for line in get_int_vlan_configdb_info:
+        vlan_number = line[0]
+        interface = line[1]
+        int_list.append(interface)
+        vlan_list.append(vlan_number)
+    int_to_vlan_dict = dict(zip(int_list, vlan_list))
+    return int_to_vlan_dict
+
+
+def config_db_vlan_port_keys_get(int_to_vlan_dict, front_panel_ports_list, intf_name):
+    """
+    Get interface vlan value and return it.
+    """
+    vlan = "routed"
+    if intf_name in front_panel_ports_list:
+        if intf_name in int_to_vlan_dict.keys():
+            vlan = int_to_vlan_dict[intf_name]
+            if "Vlan" in vlan:
+                vlan = "trunk" 
+    return vlan
+
 
 def db_connect_appl():
     appl_db = swsssdk.SonicV2Connector(host='127.0.0.1')
     if appl_db is None:
         return None
-
     appl_db.connect(appl_db.APPL_DB)
-
     return appl_db
 
 
-def appl_db_keys_get(appl_db, intf_name):
-
+def appl_db_keys_get(appl_db, front_panel_ports_list, intf_name):
+    """
+    Get APPL_DB Keys
+    """
     if intf_name is None:
         appl_db_keys = appl_db.keys(appl_db.APPL_DB, "PORT_TABLE:*")
-    elif intf_name.startswith('Ethernet'):
-        appl_db_keys = appl_db.keys(appl_db.APPL_DB, "PORT_TABLE:%s" % intf_name)
+    elif intf_name in front_panel_ports_list:
+        appl_db_keys = db.keys(appl_db.APPL_DB, "PORT_TABLE:%s" % intf_name)
     else:
         return None
-
     return appl_db_keys
 
 
@@ -50,15 +97,12 @@ def appl_db_port_status_get(appl_db, intf_name, status_type):
     """
     Get the port status
     """
-
     full_table_id = PORT_STATUS_TABLE_PREFIX + intf_name
     status = appl_db.get(appl_db.APPL_DB, full_table_id, status_type)
     if status is None:
         return "N/A"
-
     if status_type == PORT_SPEED and status != "N/A":
        status = '{}G'.format(status[:-3])
-
     return status
 
 
@@ -83,13 +127,153 @@ def state_db_port_optics_get(state_db, intf_name, type):
         return "N/A" 
     return optics_type 
 
+def merge_dicts(x,y):
+    # store a copy of x, but overwrite with y's values where applicable
+    merged = dict(x,**y)
+    xkeys = x.keys()
+    # if the value of merged[key] was overwritten with y[key]'s value
+    # then we need to put back any missing x[key] values
+    for key in xkeys:
+        # if this key is a dictionary, recurse
+        if type(x[key]) is types.DictType and y.has_key(key):
+            merged[key] = merge(x[key],y[key])
+    return merged
+
+def tuple_to_dict(tup, new_dict):
+    """
+    From a tuple create a dictionary that uses the first item in the tuple as a key
+    and the 2nd item in the tuple as a value. 
+    """
+    for a, b in tup:
+        new_dict.setdefault(a, []).append(b)
+    return new_dict
+
+
+def get_raw_portchannel_info(config_db):
+    """
+    This function uses the redis config_db as input and gets the "PORTCHANNEL_MEMBER" table
+    create
+    >>> get_po_int_configdb_info = get_portchannel_info(config_db)
+    >>> pprint(get_po_int_configdb_info)
+    {('PortChannel0001', 'Ethernet108'): {},
+     ('PortChannel0001', 'Ethernet112'): {},
+     ('PortChannel0002', 'Ethernet116'): {},
+     ('PortChannel0003', 'Ethernet120'): {},
+     ('PortChannel0004', 'Ethernet124'): {}}
+    This function returns a dictionary with the key being portchannels and interface tuple.
+    """
+    get_raw_po_int_configdb_info = config_db.get_table('PORTCHANNEL_MEMBER')
+    return get_raw_po_int_configdb_info     # Return a dictionary with the key being the portchannel and interface
+
+def get_portchannel_list(get_raw_po_int_configdb_info):
+    """
+    >>> portchannel_list = get_portchannel_list(get_raw_po_int_configdb_info)
+    >>> pprint(portchannel_list)
+    ['PortChannel0001', 'PortChannel0002', 'PortChannel0003', 'PortChannel0004']
+    >>> 
+    """
+    portchannel_list = []
+    for po in get_raw_po_int_configdb_info:
+        portchannel = po[0]
+        if portchannel not in portchannel_list:
+            portchannel_list.append(portchannel)
+    portchannel = portchannel_list.sort()
+    return portchannel_list
+
+def create_po_int_tuple_list(get_raw_po_int_configdb_info):
+    """
+    >>> po_int_tuple = get_raw_po_int_configdb_info.keys()
+    >>> pprint(po_int_tuple_list)
+    [('PortChannel0001', 'Ethernet108'),
+     ('PortChannel0002', 'Ethernet116'),
+     ('PortChannel0004', 'Ethernet124'),
+     ('PortChannel0003', 'Ethernet120'),
+     ('PortChannel0001', 'Ethernet112')]
+    >>> 
+    """
+    po_int_tuple_list = get_raw_po_int_configdb_info.keys()
+    return po_int_tuple_list
+
+def create_po_int_dict(po_int_tuple_list):
+    """
+    This function takes the portchannel to interface tuple
+    and converts that into a portchannel to interface dictionary
+    with the portchannels as the key and the interfaces as the values.
+    """
+    temp_dict = {}
+    po_int_dict = tuple_to_dict(po_int_tuple_list, temp_dict)
+    return po_int_dict
+
+def create_int_to_portchannel_dict(po_int_tuple_list):
+    """
+    This function takes the portchannel to interface tuple
+    and converts that into an interface to portchannel dictionary
+    with the interfaces as the key and the portchannels as the values.
+    """
+    int_po_dict = {}
+    for po, intf in po_int_tuple_list:
+        int_po_dict.setdefault(intf, po)
+    return int_po_dict
+
+def po_speed_dict(po_int_dict, appl_db):
+    """
+    This function takes the portchannel to interface dictionary 
+    and the appl_db and then creates a portchannel to speed
+    dictionary. 
+    """
+    if po_int_dict: 
+        po_list = []
+        for key, value in po_int_dict.iteritems():
+            agg_speed_list =  []
+            po_list.append(key)
+            if len(value) == 1:
+                interface_speed = appl_db.get(appl_db.APPL_DB, "PORT_TABLE:" + value[0], "speed")
+                interface_speed = '{}G'.format(interface_speed[:-3])
+                po_list.append(interface_speed)
+            elif len(value) > 1:
+                for intf in value:
+                    temp_speed = appl_db.get(appl_db.APPL_DB, "PORT_TABLE:" + intf, "speed")
+                    temp_speed = int(temp_speed)
+                    agg_speed_list.append(temp_speed)
+                    interface_speed = sum(agg_speed_list)
+                    interface_speed = str(interface_speed)
+                    interface_speed = '{}G'.format(interface_speed[:-3])
+                po_list.append(interface_speed)
+            po_speed_dict = dict(po_list[i:i+2] for i in range(0, len(po_list), 2))
+        return po_speed_dict
+    else:
+        po_speed_dict = {}
+        return po_speed_dict
+
+def appl_db_portchannel_status_get(appl_db, config_db, po_name, status_type, portchannel_speed_dict):
+    """
+    Get the port status
+    """
+    full_table_id = "LAG_TABLE:" + po_name
+    po_table_id = "PORTCHANNEL|" + po_name
+    #print(full_table_id)
+    if status_type == "speed":
+        status = portchannel_speed_dict[po_name]
+        return status
+    if status_type == "vlan":
+        status = "routed"
+        return status
+    if status_type == "mtu":
+        status = config_db.get(config_db.CONFIG_DB, po_table_id, status_type)
+        return status
+    status = appl_db.get(appl_db.APPL_DB, full_table_id, status_type)
+    #print(status)
+    if status is None: 
+        return "N/A"
+    return status 
+
 # ========================== interface-status logic ==========================
 
-header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'Alias', 'Oper', 'Admin', 'Type', 'Asym PFC']
+header_stat = ['Interface', 'Lanes', 'Speed', 'MTU', 'Alias', 'Vlan', 'Oper', 'Admin', 'Type', 'Asym PFC']
 
 class IntfStatus(object):
 
-    def display_intf_status(self, appl_db_keys):
+    def display_intf_status(self, appl_db_keys, front_panel_ports_list, portchannel_speed_dict):
         """
             Generate interface-status output
         """
@@ -104,34 +288,65 @@ class IntfStatus(object):
         #
         for i in appl_db_keys:
             key = re.split(':', i, maxsplit=1)[-1].strip()
-            if key and key.startswith('Ethernet'):
+            if key in front_panel_ports_list:
                 table.append((key,
                               appl_db_port_status_get(self.appl_db, key, PORT_LANES_STATUS),
                               appl_db_port_status_get(self.appl_db, key, PORT_SPEED),
                               appl_db_port_status_get(self.appl_db, key, PORT_MTU_STATUS),
                               appl_db_port_status_get(self.appl_db, key, PORT_ALIAS),
+                              config_db_vlan_port_keys_get(self.combined_int_to_vlan_po_dict, self.front_panel_ports_list, key),
                               appl_db_port_status_get(self.appl_db, key, PORT_OPER_STATUS),
                               appl_db_port_status_get(self.appl_db, key, PORT_ADMIN_STATUS),
                               state_db_port_optics_get(self.state_db, key, PORT_OPTICS_TYPE),
                               appl_db_port_status_get(self.appl_db, key, PORT_PFC_ASYM_STATUS)))
-
         # Sorting and tabulating the result table.
+        for po, value in portchannel_speed_dict.iteritems():
+            if po:
+                table.append((po,
+                            appl_db_portchannel_status_get(self.appl_db, self.config_db, po, PORT_LANES_STATUS, self.portchannel_speed_dict),
+                            appl_db_portchannel_status_get(self.appl_db, self.config_db, po, PORT_SPEED, self.portchannel_speed_dict),
+                            appl_db_portchannel_status_get(self.appl_db, self.config_db, po, PORT_MTU_STATUS, self.portchannel_speed_dict),
+                            appl_db_portchannel_status_get(self.appl_db, self.config_db, po, PORT_ALIAS, self.portchannel_speed_dict),
+                            appl_db_portchannel_status_get(self.appl_db, self.config_db, po, "vlan", self.portchannel_speed_dict),
+                            appl_db_portchannel_status_get(self.appl_db, self.config_db, po, PORT_OPER_STATUS, self.portchannel_speed_dict),
+                            appl_db_portchannel_status_get(self.appl_db, self.config_db, po, PORT_ADMIN_STATUS, self.portchannel_speed_dict),
+                            appl_db_portchannel_status_get(self.appl_db, self.config_db, po, PORT_OPTICS_TYPE, self.portchannel_speed_dict),
+                            appl_db_portchannel_status_get(self.appl_db, self.config_db, po, PORT_PFC_ASYM_STATUS, self.portchannel_speed_dict)))
+
         sorted_table = natsorted(table)
         print tabulate(sorted_table, header_stat, tablefmt="simple", stralign='right')
 
 
     def __init__(self, intf_name):
-
+        """
+        Class constructor method
+        :param self: 
+        :param intf_name: string of interface
+        :return: 
+        """
         self.appl_db = db_connect_appl()
         self.state_db = db_connect_state()
+        self.config_db = db_connect_configdb()
         if self.appl_db is None:
             return
         if self.state_db is None: 
             return
-        appl_db_keys = appl_db_keys_get(self.appl_db, intf_name)
+        if self.config_db is None:
+            return
+        self.front_panel_ports_list = get_frontpanel_port_list(self.config_db)
+        appl_db_keys = appl_db_keys_get(self.appl_db, self.front_panel_ports_list, intf_name)
+        self.int_to_vlan_dict = get_interface_vlan_dict(self.config_db)
+        self.get_raw_po_int_configdb_info = get_raw_portchannel_info(self.config_db)
+        self.portchannel_list = get_portchannel_list(self.get_raw_po_int_configdb_info)
+        self.po_int_tuple_list = create_po_int_tuple_list(self.get_raw_po_int_configdb_info)
+        self.po_int_dict = create_po_int_dict(self.po_int_tuple_list)
+        self.int_po_dict = create_int_to_portchannel_dict(self.po_int_tuple_list)
+        self.combined_int_to_vlan_po_dict = merge_dicts(self.int_to_vlan_dict, self.int_po_dict)
+        self.portchannel_speed_dict = po_speed_dict(self.po_int_dict, self.appl_db)
+        self.portchannel_keys = self.portchannel_speed_dict.keys()
         if appl_db_keys is None:
             return
-        self.display_intf_status(appl_db_keys)
+        self.display_intf_status(appl_db_keys, self.front_panel_ports_list, self.portchannel_speed_dict)
 
 
 
@@ -143,7 +358,7 @@ header_desc = ['Interface', 'Oper', 'Admin', 'Alias', 'Description']
 
 class IntfDescription(object):
 
-    def display_intf_description(self, appl_db_keys):
+    def display_intf_description(self, appl_db_keys, front_panel_ports_list):
         """
             Generate interface-description output
         """
@@ -158,7 +373,7 @@ class IntfDescription(object):
         #
         for i in appl_db_keys:
             key = re.split(':', i, maxsplit=1)[-1].strip()
-            if key and key.startswith('Ethernet'):
+            if key in front_panel_ports_list:
                 table.append((key,
                               appl_db_port_status_get(self.appl_db, key, PORT_OPER_STATUS),
                               appl_db_port_status_get(self.appl_db, key, PORT_ADMIN_STATUS),
@@ -171,15 +386,18 @@ class IntfDescription(object):
 
     def __init__(self, intf_name):
 
+        self.config_db = db_connect_configdb()
         self.appl_db = db_connect_appl()
         if self.appl_db is None:
             return
-
-        appl_db_keys = appl_db_keys_get(self.appl_db, intf_name)
+        if self.config_db is None:
+            return
+        self.front_panel_ports_list = get_frontpanel_port_list(self.config_db)
+        appl_db_keys = appl_db_keys_get(self.appl_db, self.front_panel_ports_list, intf_name)
         if appl_db_keys is None:
             return
 
-        self.display_intf_description(appl_db_keys)
+        self.display_intf_description(appl_db_keys, self.front_panel_ports_list)
 
 
 
