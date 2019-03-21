@@ -10,6 +10,8 @@ REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
 VERBOSE=no
 FORCE=no
 REBOOT_METHOD="/sbin/kexec -e"
+ASSISTANT_IP_LIST=""
+ASSISTANT_SCRIPT="/usr/bin/neighbor_advertiser"
 
 EXIT_SUCCESS=0
 EXIT_FAILURE=1
@@ -40,24 +42,22 @@ function debug()
 function showHelpAndExit()
 {
     echo "Usage: ${REBOOT_SCRIPT_NAME} [options]"
-    echo "    -h -? : get this help"
+    echo "    -h,-? : get this help"
     echo "    -v    : turn on verbose"
     echo "    -f    : force execution"
     echo "    -r    : reboot with /sbin/reboot"
     echo "    -k    : reboot with /sbin/kexec -e [default]"
     echo "    -x    : execute script with -x flag"
+    echo "    -c    : specify control plane assistant IP list"
 
     exit "${EXIT_SUCCESS}"
 }
 
 function parseOptions()
 {
-    while getopts "vfh?rkx" opt; do
+    while getopts "vfh?rkxc:" opt; do
         case ${opt} in
-            h )
-                showHelpAndExit
-                ;;
-            \? )
+            h|\? )
                 showHelpAndExit
                 ;;
             v )
@@ -75,18 +75,30 @@ function parseOptions()
             x )
                 set -x
                 ;;
+            c )
+                ASSISTANT_IP_LIST=${OPTARG}
+                ;;
         esac
     done
 }
 
 sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 
+function clear_fast_boot()
+{
+    debug "${REBOOT_TYPE} failure ($?) cleanup ..."
+
+    /sbin/kexec -u || /bin/true
+
+    teardown_control_plane_assistant
+}
+
 function clear_warm_boot()
 {
-    debug "Failure ($?) cleanup ..."
+    clear_fast_boot
+
     result=`timeout 10s config warm_restart disable; if [[ $? == 124 ]]; then echo timeout; else echo "code ($?)"; fi` || /bin/true
     debug "Cancel warm-reboot: ${result}"
-    /sbin/kexec -u || /bin/true
 
     TIMESTAMP=`date +%Y%m%d-%H%M%S`
     if [[ -f ${WARM_DIR}/${REDIS_FILE} ]]; then
@@ -170,6 +182,22 @@ function backup_database()
     docker exec -i database rm /var/lib/redis/$REDIS_FILE
 }
 
+function setup_control_plane_assistant()
+{
+    if [[ -n "${ASSISTANT_IP_LIST}" && -x ${ASSISTANT_SCRIPT} ]]; then
+        debug "Setting up control plane assistant: ${ASSISTANT_IP_LIST} ..."
+        ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m set
+    fi
+}
+
+function teardown_control_plane_assistant()
+{
+    if [[ -n "${ASSISTANT_IP_LIST}" && -x ${ASSISTANT_SCRIPT} ]]; then
+        debug "Tearing down control plane assistant: ${ASSISTANT_IP_LIST} ..."
+        ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m reset
+    fi
+}
+
 parseOptions $@
 
 # Check reboot type supported
@@ -177,6 +205,7 @@ BOOT_TYPE_ARG="cold"
 case "$REBOOT_TYPE" in
     "fast-reboot")
         BOOT_TYPE_ARG=$REBOOT_TYPE
+        trap clear_fast_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
         ;;
     "warm-reboot")
         if [[ "$sonic_asic_type" == "mellanox" ]]; then
@@ -255,6 +284,8 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     mkdir -p /host/fast-reboot
     /usr/bin/fast-reboot-dump.py -t /host/fast-reboot
 fi
+
+setup_control_plane_assistant
 
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
     # Freeze orchagent for warm restart
