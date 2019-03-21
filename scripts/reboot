@@ -30,6 +30,33 @@ function clear_warm_boot()
     /sbin/kexec -u || /bin/true
 }
 
+SCRIPT=$0
+
+function show_help_and_exit()
+{
+    echo "Usage ${SCRIPT} [options]"
+    echo "    Request rebooting the device. Invoke platform-specific tool when available."
+    echo "    This script will shutdown syncd before rebooting."
+    echo " "
+    echo "    Available options:"
+    echo "        -h, -? : getting this help"
+
+    exit 0
+}
+
+function parse_options()
+{
+    while getopts "h?" opt; do
+        case ${opt} in
+            h|\? )
+                show_help_and_exit
+                ;;
+        esac
+    done
+}
+
+parse_options $@
+
 # Exit if not superuser
 if [[ "$EUID" -ne 0 ]]; then
     echo "This command must be run as root" >&2
