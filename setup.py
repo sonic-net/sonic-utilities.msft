@@ -76,6 +76,8 @@ setup(
         'scripts/psushow',
         'scripts/queuestat',
         'scripts/reboot',
+        'scripts/route_check.py',
+        'scripts/route_check_test.sh',
         'scripts/sfpshow',
         'scripts/teamshow',
         'scripts/nbrshow',
