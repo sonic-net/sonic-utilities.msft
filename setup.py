@@ -16,12 +16,6 @@ except ImportError:
 
 import glob
 from setuptools import setup
-import unittest
-
-def get_test_suite():
-    test_loader = unittest.TestLoader()
-    test_suite = test_loader.discover('sonic-utilities-tests', pattern='*.py')
-    return test_suite
 
 setup(
     name='sonic-utilities',
@@ -125,7 +119,11 @@ setup(
         'click',
         'natsort'
     ],
+    setup_requires= [
+        'pytest-runner'
+    ],
     tests_require = [
+        'pytest',
         'mock>=2.0.0',
         'mockredispy>=2.9.3'
     ],
