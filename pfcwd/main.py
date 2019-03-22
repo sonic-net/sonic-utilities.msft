@@ -30,6 +30,8 @@ CONFIG_DESCRIPTION = [
 STATS_HEADER = ('QUEUE',) + zip(*STATS_DESCRIPTION)[0]
 CONFIG_HEADER = ('PORT',) + zip(*CONFIG_DESCRIPTION)[0]
 
+CONFIG_DB_PFC_WD_TABLE_NAME = 'PFC_WD'
+
 # Main entrypoint
 @click.group()
 def cli():
@@ -104,18 +106,18 @@ def config(ports):
 
     for port in ports:
         config_list = []
-        config_entry = configdb.get_entry('PFC_WD_TABLE', port)
+        config_entry = configdb.get_entry(CONFIG_DB_PFC_WD_TABLE_NAME, port)
         if config_entry is None or config_entry == {}:
             continue
         for config in CONFIG_DESCRIPTION:
             line = config_entry.get(config[1], config[2])
             config_list.append(line)
         table.append([port] + config_list)
-    poll_interval = configdb.get_entry( 'PFC_WD_TABLE', 'GLOBAL').get('POLL_INTERVAL')
+    poll_interval = configdb.get_entry( CONFIG_DB_PFC_WD_TABLE_NAME, 'GLOBAL').get('POLL_INTERVAL')
     if poll_interval is not None:
         click.echo("Changed polling interval to " + poll_interval + "ms")
 
-    big_red_switch = configdb.get_entry( 'PFC_WD_TABLE', 'GLOBAL').get('BIG_RED_SWITCH')
+    big_red_switch = configdb.get_entry( CONFIG_DB_PFC_WD_TABLE_NAME, 'GLOBAL').get('BIG_RED_SWITCH')
     if big_red_switch is not None:
         click.echo("BIG_RED_SWITCH status is " + big_red_switch)
 
@@ -167,13 +169,13 @@ def start(action, restoration_time, ports, detection_time):
     for port in ports:
         if port == "all":
             for p in all_ports:
-                configdb.mod_entry("PFC_WD_TABLE", p, None)
-                configdb.mod_entry("PFC_WD_TABLE", p, pfcwd_info)
+                configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, p, None)
+                configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, p, pfcwd_info)
         else:
             if port not in all_ports:
                 continue
-            configdb.mod_entry("PFC_WD_TABLE", port, None)
-            configdb.mod_entry("PFC_WD_TABLE", port, pfcwd_info)
+            configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, port, None)
+            configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, port, pfcwd_info)
 
 # Set WD poll interval
 @cli.command()
@@ -188,7 +190,7 @@ def interval(poll_interval):
     if poll_interval is not None:
         pfcwd_info['POLL_INTERVAL'] = poll_interval
 
-    configdb.mod_entry("PFC_WD_TABLE", "GLOBAL", pfcwd_info)
+    configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL", pfcwd_info)
 
 # Stop WD
 @cli.command()
@@ -210,7 +212,7 @@ def stop(ports):
     for port in ports:
         if port not in all_ports:
             continue
-        configdb.mod_entry("PFC_WD_TABLE", port, None)
+        configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, port, None)
 
 # Set WD default configuration on server facing ports when enable flag is on
 @cli.command()
@@ -239,11 +241,11 @@ def start_default():
     }
 
     for port in active_ports:
-        configdb.set_entry("PFC_WD_TABLE", port, pfcwd_info)
+        configdb.set_entry(CONFIG_DB_PFC_WD_TABLE_NAME, port, pfcwd_info)
 
     pfcwd_info = {}
     pfcwd_info['POLL_INTERVAL'] = DEFAULT_POLL_INTERVAL * multiply
-    configdb.mod_entry("PFC_WD_TABLE", "GLOBAL", pfcwd_info)
+    configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL", pfcwd_info)
 
 # Enable/disable PFC WD counter polling
 @cli.command()
@@ -271,7 +273,7 @@ def big_red_switch(big_red_switch):
     if big_red_switch is not None:
         pfcwd_info['BIG_RED_SWITCH'] = big_red_switch
 
-    configdb.mod_entry("PFC_WD_TABLE", "GLOBAL", pfcwd_info)
+    configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL", pfcwd_info)
 
 if __name__ == '__main__':
     cli()
