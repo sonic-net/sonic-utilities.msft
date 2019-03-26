@@ -1087,6 +1087,27 @@ def table(verbose):
 # 'platform' group ("show platform ...")
 #
 
+def get_hw_info_dict():
+    """
+    This function is used to get the HW info helper function  
+    """
+    hw_info_dict = {}
+    machine_info = sonic_platform.get_machine_info()
+    platform = sonic_platform.get_platform_info(machine_info)
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    data = config_db.get_table('DEVICE_METADATA')
+    try: 
+        hwsku = data['localhost']['hwsku']
+    except KeyError:
+        hwsku = "Unknown"
+    version_info = sonic_platform.get_sonic_version_info()
+    asic_type = version_info['asic_type']
+    hw_info_dict['platform'] = platform
+    hw_info_dict['hwsku'] = hwsku
+    hw_info_dict['asic_type'] = asic_type
+    return hw_info_dict
+
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
 def platform():
     """Show platform-specific hardware info"""
@@ -1100,24 +1121,10 @@ if (version_info and version_info.get('asic_type') == 'mellanox'):
 @platform.command()
 def summary():
     """Show hardware platform information"""
-    machine_info = sonic_platform.get_machine_info()
-    platform = sonic_platform.get_platform_info(machine_info)
-
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    data = config_db.get_table('DEVICE_METADATA')
-
-    try:
-        hwsku = data['localhost']['hwsku']
-    except KeyError:
-        hwsku = "Unknown"
-
-    version_info = sonic_platform.get_sonic_version_info()
-    asic_type = version_info['asic_type']
-
-    click.echo("Platform: {}".format(platform))
-    click.echo("HwSKU: {}".format(hwsku))
-    click.echo("ASIC: {}".format(asic_type))
+    hw_info_dict = get_hw_info_dict()
+    click.echo("Platform: {}".format(hw_info_dict['platform']))
+    click.echo("HwSKU: {}".format(hw_info_dict['hwsku']))
+    click.echo("ASIC: {}".format(hw_info_dict['asic_type']))
 
 # 'syseeprom' subcommand ("show platform syseeprom")
 @platform.command()
@@ -1174,17 +1181,26 @@ def logging(process, lines, follow, verbose):
 #
 
 @cli.command()
-def version():
+@click.option("--verbose", is_flag=True, help="Enable verbose output")
+def version(verbose):
     """Show version information"""
     version_info = sonic_platform.get_sonic_version_info()
-
-    click.echo("SONiC Software Version: SONiC.{}".format(version_info['build_version']))
+    hw_info_dict = get_hw_info_dict()
+    serial_number_cmd = "sudo decode-syseeprom -s"
+    serial_number = subprocess.Popen(serial_number_cmd, shell=True, stdout=subprocess.PIPE)    
+    sys_uptime_cmd = "uptime"
+    sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, stdout=subprocess.PIPE)
+    click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
     click.echo("Distribution: Debian {}".format(version_info['debian_version']))
     click.echo("Kernel: {}".format(version_info['kernel_version']))
     click.echo("Build commit: {}".format(version_info['commit_id']))
     click.echo("Build date: {}".format(version_info['build_date']))
     click.echo("Built by: {}".format(version_info['built_by']))
-
+    click.echo("\nPlatform: {}".format(hw_info_dict['platform']))
+    click.echo("HwSKU: {}".format(hw_info_dict['hwsku']))
+    click.echo("ASIC: {}".format(hw_info_dict['asic_type']))
+    click.echo("Serial Number: {}".format(serial_number.stdout.read().strip()))
+    click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
