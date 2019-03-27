@@ -79,8 +79,8 @@ class InterfaceAliasConverter(object):
                 if interface_name == port_name:
                     return self.port_dict[port_name]['alias']
 
-        click.echo("Invalid interface {}".format(interface_name))
-        raise click.Abort()
+        # interface_name not in port_dict. Just return interface_name
+        return interface_name
 
     def alias_to_name(self, interface_alias):
         """Return SONiC interface name if vendor
@@ -91,8 +91,8 @@ class InterfaceAliasConverter(object):
                 if interface_alias == self.port_dict[port_name]['alias']:
                     return port_name
 
-        click.echo("Invalid interface {}".format(interface_alias))
-        raise click.Abort()
+        # interface_alias not in port_dict. Just return interface_alias
+        return interface_alias
 
 
 # Global Config object
@@ -902,7 +902,12 @@ def interfaces():
                     oper = get_if_oper_state(iface)
                 else:
                     oper = "down"
+
+                if get_interface_mode() == "alias":
+                    iface = iface_alias_converter.name_to_alias(iface)
+
                 data.append([iface, ifaddresses[0][1], admin + "/" + oper])
+
             for ifaddr in ifaddresses[1:]:
                 data.append(["", ifaddr[1], ""])
 
