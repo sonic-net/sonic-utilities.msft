@@ -998,6 +998,8 @@ def interfaces():
                     oper = get_if_oper_state(iface)
                 else:
                     oper = "down"
+                if get_interface_mode() == "alias":
+                    iface = iface_alias_converter.name_to_alias(iface)
                 data.append([iface, ifaddresses[0][1], admin + "/" + oper])
             for ifaddr in ifaddresses[1:]:
                 data.append(["", ifaddr[1], ""])
