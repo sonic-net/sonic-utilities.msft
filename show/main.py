@@ -450,6 +450,10 @@ def expected(interfacename):
     #Swap Key and Value from interface: name to name: interface
     device2interface_dict = {}
     for port in natsorted(neighbor_dict.keys()):
+        temp_port = port
+        if get_interface_mode() == "alias":
+            port = iface_alias_converter.name_to_alias(port)
+            neighbor_dict[port] = neighbor_dict.pop(temp_port)
         device2interface_dict[neighbor_dict[port]['name']] = {'localPort': port, 'neighborPort': neighbor_dict[port]['port']}
 
     header = ['LocalPort', 'Neighbor', 'NeighborPort', 'NeighborLoopback', 'NeighborMgmt', 'NeighborType']
