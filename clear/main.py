@@ -105,7 +105,12 @@ def get_routing_stack():
 routing_stack = get_routing_stack()
 
 
-def run_command(command, pager=False):
+def run_command(command, pager=False, return_output=False):
+    # Provide option for caller function to Process the output.
+    if return_output == True:
+        proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+        return proc.communicate()
+
     if pager is True:
         #click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
         p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
@@ -299,14 +304,48 @@ def clear_pwm_q_multi():
 def arp(ipaddress):
     """Clear IP ARP table"""
     if ipaddress is not None:
-        command = 'sudo /usr/sbin/arp -d {}'.format(ipaddress)
-        run_command(command)
+        command = 'sudo ip -4 neigh show {}'.format(ipaddress)
+        (out, err) = run_command(command, return_output=True)
+        if not err and 'dev' in out:
+            outputList = out.split()
+            dev = outputList[outputList.index('dev') + 1]
+            command = 'sudo ip -4 neigh del {} dev {}'.format(ipaddress, dev)
+        else:
+            click.echo("Neighbor {} not found".format(ipaddress))
+            return
     else:
-        run_command("sudo ip -s -s neigh flush all")
+        command = "sudo ip -4 -s -s neigh flush all"
+
+    run_command(command)
+
+#
+# 'ndp' command ####
+#
+
+@click.command()
+@click.argument('ipaddress', required=False)
+def ndp(ipaddress):
+    """Clear IPv6 NDP table"""
+    if ipaddress is not None:
+        command = 'sudo ip -6 neigh show {}'.format(ipaddress)
+        (out, err) = run_command(command, return_output=True)
+        if not err and 'dev' in out:
+            outputList = out.split()
+            dev = outputList[outputList.index('dev') + 1]
+            command = 'sudo ip -6 neigh del {} dev {}'.format(ipaddress, dev)
+        else:
+            click.echo("Neighbor {} not found".format(ipaddress))
+            return
+    else:
+        command = 'sudo ip -6 -s -s neigh flush all'
+
+    run_command(command)
 
 # Add 'arp' command to both the root 'cli' group and the 'ip' subgroup
 cli.add_command(arp)
+cli.add_command(ndp)
 ip.add_command(arp)
+ip.add_command(ndp)
 
 #
 # 'fdb' command ####
