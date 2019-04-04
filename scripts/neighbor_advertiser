@@ -8,6 +8,7 @@
 
 
 import os
+import sys
 import json
 import requests
 import argparse
@@ -23,6 +24,7 @@ from swsssdk import SonicV2Connector
 #
 
 DEFAULT_DURATION = 300
+DEFAULT_REQUEST_TIMEOUT = 2
 SYSLOG_IDENTIFIER = 'neighbor_advertiser'
 
 
@@ -242,18 +244,24 @@ def post_neighbor_advertiser_slice(ferret_service_vip):
     save_as_json(request_slice, NEIGHBOR_ADVERTISER_REQUEST_SLICE_PATH)
 
     url = 'http://{}:85{}{}'.format(ferret_service_vip, FERRET_NEIGHBOR_ADVERTISER_API_PREFIX, get_switch_name())
-    response = requests.post(url, json = request_slice)
-    
-    ferret_server_ipv4_addr = ''
+    response = None
 
-    if response.ok:
+    try:
+        response = requests.post(url, json = request_slice, timeout = DEFAULT_REQUEST_TIMEOUT)
+    except Exception as e:
+        log_error('The request failed, vip: {}, error: {}'.format(ferret_service_vip, e))
+
+    ferret_server_ipv4_addr = None
+
+    if response and response.ok:
         neighbor_advertiser_configuration = json.loads(response.content)
         save_as_json(neighbor_advertiser_configuration, NEIGHBOR_ADVERTISER_RESPONSE_CONFIG_PATH)
         ferret_server_ipv4_addr = neighbor_advertiser_configuration['ipv4Addr']
-        log_info('Successfully set up neighbor advertiser slice')
+        log_info('Successfully set up neighbor advertiser slice, vip: {}, dip: {}'.format(ferret_service_vip, ferret_server_ipv4_addr))
+    elif response:
+        log_error('Failed to set up neighbor advertiser slice, vip: {}, error_code: {}, error_content: {}'.format(ferret_service_vip, response.status_code, response.content))
     else:
-        log_error('Failed to set up neighbor advertiser slice, error_code: {}'.format(response.status_code))
-        response.raise_for_status()
+        log_error('Failed to set up neighbor advertiser slice, vip: {}, no response obtained'.format(ferret_service_vip))
 
     return ferret_server_ipv4_addr
 
@@ -383,25 +391,40 @@ def reset_vxlan_tunnel():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-s', dest='vip', metavar='vip', type = str, required = True, help = 'ferret service vip')
+    parser.add_argument('-s', dest='vips', metavar='vips', type = str, required = False, help = 'ferret service vip list, required in set mode')
     parser.add_argument('-m', dest='mode', metavar='mode (set, reset)', type = str, required = True, choices=['set', 'reset'], help = 'operation mode')
     args = parser.parse_args()
 
-    ferret_service_vip = args.vip
+    ferret_service_vips = args.vips
     operation_mode = args.mode
+
+    if operation_mode == 'set' and ferret_service_vips == None:
+        log_warning('ferret service vip is required in set mode')
+        sys.exit(1)
 
     connect_config_db()
 
     if operation_mode == 'set':
-        ferret_server_ip = post_neighbor_advertiser_slice(ferret_service_vip)
-        set_vxlan_tunnel(ferret_server_ip)
-        set_mirror_tunnel(ferret_server_ip)
+        set_success = False
+
+        for ferret_service_vip in ferret_service_vips.split(','):
+            ferret_server_ip = post_neighbor_advertiser_slice(ferret_service_vip)
+
+            if ferret_server_ip:
+                set_vxlan_tunnel(ferret_server_ip)
+                set_mirror_tunnel(ferret_server_ip)
+                set_success = True
+                break
+
+        if not set_success:
+            log_error('Failed to set up neighbor advertiser slice, tried all vips in {}'.format(ferret_service_vips))
+            sys.exit(1)
 
     if operation_mode == 'reset':
         reset_mirror_tunnel()
         reset_vxlan_tunnel()
 
-    return true
+    sys.exit(0)
 
 
 if __name__ == '__main__':
@@ -409,4 +432,5 @@ if __name__ == '__main__':
         main()
     except Exception as e:
         log_error('! [Failure] {} {}'.format(e, traceback.format_exc()))
+        sys.exit(1)
 
