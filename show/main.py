@@ -1472,8 +1472,12 @@ def brief(verbose):
         ports_value = str(key[1])
         ports_tagging = vlan_ports_data[key]['tagging_mode']
         if ports_key in vlan_ports_dict:
+            if get_interface_mode() == "alias":
+                ports_value = iface_alias_converter.name_to_alias(ports_value)
             vlan_ports_dict[ports_key].append(ports_value)
         else:
+            if get_interface_mode() == "alias":
+                ports_value = iface_alias_converter.name_to_alias(ports_value)
             vlan_ports_dict[ports_key] = [ports_value]
         if ports_key in vlan_tagging_dict:
             vlan_tagging_dict[ports_key].append(ports_tagging)
