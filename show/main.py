@@ -1282,10 +1282,13 @@ def users(verbose):
 #
 
 @cli.command()
+@click.option('--since', required=False, help="Collect logs and core files since given date")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def techsupport(verbose):
+def techsupport(since, verbose):
     """Gather information for troubleshooting"""
     cmd = "sudo generate_dump -v"
+    if since:
+        cmd += " -s {}".format(since)
     run_command(cmd, display_cmd=verbose)
 
 
