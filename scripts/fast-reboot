@@ -228,6 +228,9 @@ case "$REBOOT_TYPE" in
             # source mlnx-ffb.sh file with
             # functions to check ISSU upgrade possibility
             source mlnx-ffb.sh
+        elif [[ "$sonic_asic_type" == "barefoot" ]]; then
+            REBOOT_TYPE="fastfast-reboot"
+            BOOT_TYPE_ARG="fastfast"
         else
             BOOT_TYPE_ARG="warm"
         fi
