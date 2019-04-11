@@ -1576,8 +1576,7 @@ def aaa():
     aaa = {
         'authentication': {
             'login': 'local (default)',
-            'failthrough': 'True (default)',
-            'fallback': 'True (default)'
+            'failthrough': 'False (default)'
         }
     }
     if 'authentication' in data:
