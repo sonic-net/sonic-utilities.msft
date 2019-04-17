@@ -294,6 +294,7 @@ def _stop_services():
         'pmon',
         'bgp',
         'teamd',
+        'hostcfgd',
     ]
     for service in services:
         try:
@@ -315,6 +316,7 @@ def _restart_services():
         'lldp',
         'snmp',
         'dhcp_relay',
+        'hostcfgd',
     ]
     for service in services:
         try:
