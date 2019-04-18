@@ -24,6 +24,7 @@ EXIT_FILE_SYSTEM_FULL=3
 EXIT_NEXT_IMAGE_NOT_EXISTS=4
 EXIT_ORCHAGENT_SHUTDOWN=10
 EXIT_SYNCD_SHUTDOWN=11
+EXIT_FAST_REBOOT_DUMP_FAILURE=12
 
 function error()
 {
@@ -251,6 +252,14 @@ function reboot_pre_check()
     fi
 }
 
+function unload_kernel()
+{
+    # Unload the previously loaded kernel if any loaded
+    if [[ "$(cat /sys/kernel/kexec_loaded)" -eq 1 ]]; then
+        /sbin/kexec -u
+    fi
+}
+
 # main starts here
 parseOptions $@
 
@@ -292,11 +301,7 @@ case "$REBOOT_TYPE" in
         ;;
 esac
 
-# Unload the previously loaded kernel if any loaded
-if [[ "$(cat /sys/kernel/kexec_loaded)" -eq 1 ]]
-then
-    /sbin/kexec -u
-fi
+unload_kernel
 
 setup_reboot_variables
 
@@ -336,7 +341,13 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
     # into /host/fast-reboot
     mkdir -p /host/fast-reboot
-    /usr/bin/fast-reboot-dump.py -t /host/fast-reboot
+    FAST_REBOOT_DUMP_RC=0
+    /usr/bin/fast-reboot-dump.py -t /host/fast-reboot || FAST_REBOOT_DUMP_RC=$?
+    if [[ FAST_REBOOT_DUMP_RC -ne 0 ]]; then
+        error "Failed to run fast-reboot-dump.py. Exit code: $FAST_REBOOT_DUMP_RC"
+        unload_kernel
+        exit "${EXIT_FAST_REBOOT_DUMP_FAILURE}"
+    fi
 fi
 
 init_warm_reboot_states

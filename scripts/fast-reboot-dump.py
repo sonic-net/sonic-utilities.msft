@@ -9,6 +9,8 @@ import os
 from fcntl import ioctl
 import binascii
 import argparse
+import syslog
+import traceback
 
 
 ARP_CHUNK = binascii.unhexlify('08060001080006040001') # defines a part of the packet for ARP Request
@@ -267,14 +269,27 @@ def main():
     root_dir = args.target
     if not os.path.isdir(root_dir):
         print "Target directory '%s' not found" % root_dir
-        sys.exit(1)
+        return 3
     all_available_macs, map_mac_ip_per_vlan = generate_fdb_entries(root_dir + '/fdb.json')
     arp_entries = generate_arp_entries(root_dir + '/arp.json', all_available_macs)
     generate_default_route_entries(root_dir + '/default_routes.json')
     garp_send(arp_entries, map_mac_ip_per_vlan)
-
-    return
-
+    return 0
 
 if __name__ == '__main__':
-    main()
+    res = 0
+    try:
+        syslog.openlog('fast-reboot-dump')
+        res = main()
+    except KeyboardInterrupt:
+        syslog.syslog(syslog.LOG_NOTICE, "SIGINT received. Quitting")
+        res = 1
+    except Exception as e:
+        syslog.syslog(syslog.LOG_ERR, "Got an exception %s: Traceback: %s" % (str(e), traceback.format_exc()))
+        res = 2
+    finally:
+        syslog.closelog()
+    try:
+        sys.exit(res)
+    except SystemExit:
+        os._exit(res)
