@@ -57,7 +57,6 @@ setup(
         'scripts/decode-syseeprom',
         'scripts/dropcheck',
         'scripts/ecnconfig',
-        'scripts/mmuconfig',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
         'scripts/fdbclear',
@@ -66,6 +65,7 @@ setup(
         'scripts/intfutil',
         'scripts/intfstat',
         'scripts/lldpshow',
+        'scripts/mmuconfig',
         'scripts/nbrshow',
         'scripts/neighbor_advertiser',
         'scripts/pcmping',
@@ -80,7 +80,6 @@ setup(
         'scripts/route_check_test.sh',
         'scripts/sfpshow',
         'scripts/teamshow',
-        'scripts/nbrshow',
         'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg'
