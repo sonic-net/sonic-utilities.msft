@@ -24,7 +24,7 @@ def psu_status_show(index):
     # Currently set chassis_num to 1, need to improve it once new platform API is implemented
     chassis_num = 1
     chassis_name = "chassis {}".format(chassis_num)
-    num_psus = db.get(db.STATE_DB, 'CHASSIS_INFO|{}'.format(chassis_name), 'num_psus')
+    num_psus = db.get(db.STATE_DB, 'CHASSIS_INFO|{}'.format(chassis_name), 'psu_num')
     if not num_psus:
         print "Error! Failed to get the number of PSUs!"
         return -1

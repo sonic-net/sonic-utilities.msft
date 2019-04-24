@@ -33,7 +33,7 @@
         "tx4power": "N/A"
     },
     "CHASSIS_INFO|chassis 1": {
-        "num_psus": "2"
+        "psu_num": "2"
     },
     "PSU_INFO|PSU 1": {
         "presence": "true",
