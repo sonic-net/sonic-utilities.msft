@@ -92,6 +92,8 @@ def get_portchannel_ipv4(portchannel_name):
     config = configdb.get_config()
     portchannel_interfaces = config["PORTCHANNEL_INTERFACE"]
     for key in portchannel_interfaces.keys():
+        if len(key) == 1:
+            continue
         pc, ip = key
         ip = ip.split("/")[0]
         if pc == portchannel_name and ipaddress.IPAddress(ip).version == 4:

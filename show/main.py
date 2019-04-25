@@ -1462,6 +1462,8 @@ def brief(verbose):
 
     # Parsing VLAN Gateway info
     for key in natsorted(vlan_ip_data.keys()):
+        if len(key) == 1:
+            continue
         interface_key = str(key[0].strip("Vlan"))
         interface_value = str(key[1])
         if interface_key in vlan_ip_dict:
