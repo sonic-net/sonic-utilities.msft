@@ -27,7 +27,7 @@ CONFIG_DESCRIPTION = [
     ('RESTORATION TIME', 'restoration_time', 'infinite')
 ]
 
-STATS_HEADER = ('QUEUE',) + zip(*STATS_DESCRIPTION)[0]
+STATS_HEADER = ('QUEUE', 'STATUS',) + zip(*STATS_DESCRIPTION)[0]
 CONFIG_HEADER = ('PORT',) + zip(*CONFIG_DESCRIPTION)[0]
 
 CONFIG_DB_PFC_WD_TABLE_NAME = 'PFC_WD'
@@ -84,7 +84,7 @@ def stats(empty, queues):
             line = stats.get(stat[1], '0') + '/' + stats.get(stat[2], '0')
             stats_list.append(line)
         if stats_list != ['0/0'] * len(STATS_DESCRIPTION) or empty:
-            table.append([queue] + stats_list)
+            table.append([queue, stats['PFC_WD_STATUS']] + stats_list)
 
     click.echo(tabulate(table, STATS_HEADER, stralign='right', numalign='right', tablefmt='simple'))
 
