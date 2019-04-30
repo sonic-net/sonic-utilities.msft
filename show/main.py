@@ -617,7 +617,7 @@ def rif(interface, period, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def portchannel(verbose):
     """Show PortChannel information"""
-    cmd = "teamshow"
+    cmd = "sudo teamshow"
     run_command(cmd, display_cmd=verbose)
 
 #

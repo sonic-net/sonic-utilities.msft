@@ -19,6 +19,7 @@
 """
 
 import json
+import os
 import re
 import swsssdk
 import subprocess
@@ -127,6 +128,9 @@ class Teamshow(object):
         print tabulate(output, header)
 
 def main():
+    if os.geteuid() != 0:
+        exit("This utility must be run as root")
+
     try:
         team = Teamshow()
         team.get_portchannel_names()
@@ -134,8 +138,7 @@ def main():
         team.get_teamshow_result()
         team.display_summary()
     except Exception as e:
-        print e.message
-        sys.exit(1)
+        sys.exit(e.message)
 
 if __name__ == "__main__":
     main()
