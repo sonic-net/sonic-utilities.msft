@@ -387,6 +387,12 @@ def reload(filename, yes, load_sysinfo):
     command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
     run_command(command, display_cmd=True)
     client.set(config_db.INIT_INDICATOR, 1)
+
+    # Migrate DB contents to latest version
+    db_migrator='/usr/bin/db_migrator.py'
+    if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
+        run_command(db_migrator + ' -o migrate')
+
     _restart_services()
 
 @config.command()
@@ -437,6 +443,12 @@ def load_minigraph():
     if os.path.isfile('/etc/sonic/acl.json'):
         run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
     run_command("config qos reload", display_cmd=True)
+
+    # Write latest db version string into db
+    db_migrator='/usr/bin/db_migrator.py'
+    if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
+        run_command(db_migrator + ' -o set_version')
+
     #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
     _restart_services()
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
