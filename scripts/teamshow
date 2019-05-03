@@ -4,7 +4,8 @@
     Script to show LAG and LAG member status in a summary view
     Example of the output:
     acsadmin@sonic:~$ teamshow
-    Flags: A - active, I - inactive, Up - up, Dw - down, N/A - Not Available, S - selected, D - deselected
+    Flags: A - active, I - inactive, Up - up, Dw - down, N/A - Not Available,
+           S - selected, D - deselected, * - not synced
      No.  Team Dev       Protocol    Ports
     -----  -------------  ----------  ---------------------------
         0  PortChannel0   LACP(A)(Up)     Ethernet0(D) Ethernet4(S)
@@ -33,6 +34,9 @@ PORT_CHANNEL_APPL_TABLE_PREFIX = "LAG_TABLE:"
 PORT_CHANNEL_CFG_TABLE_PREFIX = "PORTCHANNEL|"
 PORT_CHANNEL_STATUS_FIELD = "oper_status"
 
+PORT_CHANNEL_MEMBER_APPL_TABLE_PREFIX = "LAG_MEMBER_TABLE:"
+PORT_CHANNEL_MEMBER_STATUS_FIELD = "status"
+
 class Teamshow(object):
     def __init__(self):
         self.teams = []
@@ -59,6 +63,10 @@ class Teamshow(object):
         """
         full_table_id = PORT_CHANNEL_APPL_TABLE_PREFIX + port_channel_name
         return self.db.get(self.db.APPL_DB, full_table_id, PORT_CHANNEL_STATUS_FIELD)
+
+    def get_portchannel_member_status(self, port_channel_name, port_name):
+        full_table_id = PORT_CHANNEL_MEMBER_APPL_TABLE_PREFIX + port_channel_name + ":" + port_name
+        return self.db.get(self.db.APPL_DB, full_table_id, PORT_CHANNEL_MEMBER_STATUS_FIELD)
 
     def get_team_id(self, team):
         """
@@ -111,16 +119,24 @@ class Teamshow(object):
                 info['ports'] = 'N/A'
             else:
                 for port in json_info['ports']:
-                    info['ports'] += port
-                    info['ports'] += '(S)' if json_info['ports'][port]['runner']['selected'] else '(D)'
-                    info['ports'] += ' '
+                    status = self.get_portchannel_member_status(team, port)
+                    selected = json_info["ports"][port]["runner"]["selected"]
+
+                    info["ports"] += port + "("
+                    info["ports"] += "S" if selected else "D"
+                    if status is None or (status == "enabled" and not selected) or (status == "disabled" and selected):
+                        info["ports"] += "*"
+                    info["ports"] += ") "
+
             self.summary[team_id] = info
 
     def display_summary(self):
         """
             Display the portchannel (team) summary.
         """
-        print "Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available, S - selected, D - deselected"
+        print("Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available,\n"
+              "       S - selected, D - deselected, * - not synced")
+
         header = ['No.', 'Team Dev', 'Protocol', 'Ports']
         output = []
         for team_id in natsorted(self.summary):
