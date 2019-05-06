@@ -68,11 +68,12 @@ WRED_CONFIG_FIELDS = {
     "rdrop": "red_drop_probability"
 }
 
-PORT_TABLE_NAME         = "PORT"
-QUEUE_TABLE_NAME        = "QUEUE"
-FIELD                   = "wred_profile"
-ON                      = "[WRED_PROFILE|AZURE_LOSSLESS]"
-OFF                     = "[]"
+PORT_TABLE_NAME            = "PORT"
+QUEUE_TABLE_NAME           = "QUEUE"
+DEVICE_NEIGHBOR_TABLE_NAME = "DEVICE_NEIGHBOR"
+FIELD                      = "wred_profile"
+ON                         = "[WRED_PROFILE|AZURE_LOSSLESS]"
+OFF                        = "[]"
 
 lossless_queues         = ['3', '4']
 
@@ -153,10 +154,9 @@ class EcnQ(object):
             if q not in lossless_queues:
                 sys.exit('Invalid queue index: %s' % q)
 
-    # TODO: Change to use active ports only
     def gen_ports_key(self):
         if self.ports_key is not None:
-            port_table = self.config_db.get_table(PORT_TABLE_NAME)
+            port_table = self.config_db.get_table(DEVICE_NEIGHBOR_TABLE_NAME)
             self.ports_key = port_table.keys()
 
             self.ports_key.sort(key = lambda k: int(k[8:]))
