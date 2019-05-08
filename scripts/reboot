@@ -7,11 +7,21 @@ ASIC_TYPE=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 DEVPATH="/usr/share/sonic/device"
 PLAT_REBOOT="platform_reboot"
 REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
+VERBOSE=no
+EXIT_NEXT_IMAGE_NOT_EXISTS=4
+
+function debug()
+{
+    if [[ x"${VERBOSE}" == x"yes" ]]; then
+        echo `date` $@
+    fi
+    logger "$@"
+}
 
 function stop_sonic_services()
 {
     if [[ x"$ASIC_TYPE" != x"mellanox" ]]; then
-        echo "Stopping syncd process..."
+        debug "Stopping syncd process..."
         docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
         sleep 3
     fi
@@ -44,12 +54,40 @@ function show_help_and_exit()
     exit 0
 }
 
+function setup_reboot_variables()
+{
+    NEXT_SONIC_IMAGE=$(sonic_installer list | grep "Next: " | cut -d ' ' -f 2)
+    IMAGE_PATH="/host/image-${NEXT_SONIC_IMAGE#SONiC-OS-}"
+}
+
+function reboot_pre_check()
+{
+    # Make sure that the file system is normal: read-write able
+    filename="/host/test-`date +%Y%m%d-%H%M%S`"
+    ERR=0
+    touch ${filename} || ERR=$?
+    if [[ ${ERR} -ne 0 ]]; then
+        # Continue rebooting in this case, but log the error
+        VERBOSE=yes debug "Filesystem might be read-only or full ..."
+    fi
+    rm ${filename}
+
+    # Make sure that the next image exists
+    if [[ ! -d ${IMAGE_PATH} ]]; then
+        VERBOSE=yes debug "Next image ${NEXT_SONIC_IMAGE} doesn't exist ..."
+        exit ${EXIT_NEXT_IMAGE_NOT_EXISTS}
+    fi
+}
+
 function parse_options()
 {
-    while getopts "h?" opt; do
+    while getopts "h?v" opt; do
         case ${opt} in
             h|\? )
                 show_help_and_exit
+                ;;
+            v )
+                VERBOSE=yes
                 ;;
         esac
     done
@@ -62,6 +100,11 @@ if [[ "$EUID" -ne 0 ]]; then
     echo "This command must be run as root" >&2
     exit 1
 fi
+
+debug "User requested rebooting device ..."
+
+setup_reboot_variables
+reboot_pre_check
 
 # Stop SONiC services gracefully.
 stop_sonic_services
@@ -81,7 +124,7 @@ if [ -x /sbin/hwclock ]; then
 fi
 
 if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
-    echo "Rebooting with platform ${PLATFORM} specific tool ..."
+    VERBOSE=yes debug "Rebooting with platform ${PLATFORM} specific tool ..."
     exec ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} $@
 else
     # If no platform-specific reboot tool, just run /sbin/reboot
@@ -89,5 +132,5 @@ else
 fi
 
 # Should never reach here
-echo "Reboot failed!" >&2
+VERBOSE=yes debug "Reboot failed!" >&2
 exit 1
