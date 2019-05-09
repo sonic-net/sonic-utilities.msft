@@ -14,7 +14,7 @@ import requests
 import argparse
 import syslog
 import traceback
-import sonic_platform
+import sonic_device_util
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 

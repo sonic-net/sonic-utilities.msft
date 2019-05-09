@@ -17,8 +17,8 @@ try:
     import imp
     from sonic_eeprom import eeprom_dts
     import glob
-    from sonic_platform import get_machine_info
-    from sonic_platform import get_platform_info
+    from sonic_device_util import get_machine_info
+    from sonic_device_util import get_platform_info
 except ImportError, e:
     raise ImportError (str(e) + "- required module not found")
 

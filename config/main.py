@@ -9,7 +9,7 @@ import netaddr
 import re
 import syslog
 
-import sonic_platform
+import sonic_device_util
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from minigraph import parse_device_desc_xml
@@ -1077,7 +1077,7 @@ def asymmetric(ctx, status):
 def platform():
     """Platform-related configuration tasks"""
 
-version_info = sonic_platform.get_sonic_version_info()
+version_info = sonic_device_util.get_sonic_version_info()
 if (version_info and version_info.get('asic_type') == 'mellanox'):
     platform.add_command(mlnx.mlnx)
 
