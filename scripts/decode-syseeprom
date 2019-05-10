@@ -70,6 +70,8 @@ def get_cmdline_opts():
                       default=False, help="print eeprom from database")
     optcfg.add_option("-s", dest="serial", action="store_true",
                       default=False, help="print device serial number/service tag")
+    optcfg.add_option("-p", dest="modelstr", action="store_true", default=False,
+                      help="print the device product name")
     optcfg.add_option("-m", dest="mgmtmac", action="store_true", default=False,
                       help="print the base mac address for management interfaces")
     optcfg.add_option("--init", dest="init", action="store_true", default=False,
@@ -138,6 +140,10 @@ def run(target, opts, args, support_eeprom_db):
             print e
         else:
             print serial or "Undefined."
+    elif opts.modelstr:
+        mm = target.modelstr(e)
+        if mm != None:
+            print mm
     else:
         target.decode_eeprom(e)
         (is_valid, valid_crc) = target.is_checksum_valid(e)
