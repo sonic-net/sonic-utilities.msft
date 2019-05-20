@@ -68,9 +68,9 @@ class DBMigrator():
         #       here we only intended to migrade to DB version 1.0.1.
         #       If new DB version is added in the future, the incremental
         #       upgrade will take care of the subsequent migrations.
-        # self.migrate_pfc_wd_table()
-        # self.set_version('version_1_0_1')
-        # return 'version_1_0_1'
+        self.migrate_pfc_wd_table()
+        self.set_version('version_1_0_1')
+        return 'version_1_0_1'
 
 
     def version_1_0_1(self):
