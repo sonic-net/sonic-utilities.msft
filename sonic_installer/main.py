@@ -53,11 +53,62 @@ def reporthook(count, block_size, total_size):
                                   (percent, progress_size / (1024 * 1024), speed, time_left))
     sys.stdout.flush()
 
-def get_image_type():
+def get_running_image_type():
+    """ Attempt to determine whether we are running an ONIE or Aboot image """
     cmdline = open('/proc/cmdline', 'r')
     if "Aboot=" in cmdline.read():
         return IMAGE_TYPE_ABOOT
     return IMAGE_TYPE_ONIE
+
+# Returns None if image doesn't exist or isn't a regular file
+def get_binary_image_type(binary_image_path):
+    """ Attempt to determine whether this is an ONIE or Aboot image file """
+    if not os.path.isfile(binary_image_path):
+        return None
+
+    with open(binary_image_path) as f:
+        # Aboot file is a zip archive; check the start of the file for the zip magic number
+        if f.read(4) == "\x50\x4b\x03\x04":
+           return IMAGE_TYPE_ABOOT
+    return IMAGE_TYPE_ONIE
+
+# Returns None if image doesn't exist or doesn't appear to be a valid SONiC image file
+def get_binary_image_version(binary_image_path):
+    binary_type = get_binary_image_type(binary_image_path)
+    if not binary_type:
+        return None
+    elif binary_type == IMAGE_TYPE_ABOOT:
+        p1 = subprocess.Popen(["unzip", "-p", binary_image_path, "boot0"], stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+        p2 = subprocess.Popen(["grep", "-m 1", "^image_name"], stdin=p1.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+        p3 = subprocess.Popen(["sed", "-n", r"s/^image_name=\"\image-\(.*\)\"$/\1/p"], stdin=p2.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+    else:
+        p1 = subprocess.Popen(["cat", "-v", binary_image_path], stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+        p2 = subprocess.Popen(["grep", "-m 1", "^image_version"], stdin=p1.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+        p3 = subprocess.Popen(["sed", "-n", r"s/^image_version=\"\(.*\)\"$/\1/p"], stdin=p2.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+
+    stdout = p3.communicate()[0]
+    p3.wait()
+    version_num = stdout.rstrip('\n')
+
+    # If we didn't read a version number, this doesn't appear to be a valid SONiC image file
+    if len(version_num) == 0:
+        return None
+
+    return IMAGE_PREFIX + version_num
+
+# Sets specified image as default image to boot from
+def set_default_image(image):
+    images = get_installed_images()
+    if image not in images:
+        return False
+
+    if get_running_image_type() == IMAGE_TYPE_ABOOT:
+        image_path = aboot_image_path(image)
+        aboot_boot_config_set(SWI=image_path, SWI_DEFAULT=image_path)
+    else:
+        command = 'grub-set-default --boot-directory=' + HOST_PATH + ' ' + str(images.index(image))
+        run_command(command)
+    return True
 
 def aboot_read_boot_config(path):
     config = collections.OrderedDict()
@@ -100,7 +151,7 @@ def run_command(command):
 # Returns list of installed images
 def get_installed_images():
     images = []
-    if get_image_type() == IMAGE_TYPE_ABOOT:
+    if get_running_image_type() == IMAGE_TYPE_ABOOT:
         for filename in os.listdir(HOST_PATH):
             if filename.startswith(IMAGE_DIR_PREFIX):
                 images.append(filename.replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX))
@@ -123,7 +174,7 @@ def get_current_image():
 
 # Returns name of next boot image
 def get_next_image():
-    if get_image_type() == IMAGE_TYPE_ABOOT:
+    if get_running_image_type() == IMAGE_TYPE_ABOOT:
         config = open(HOST_PATH + ABOOT_BOOT_CONFIG, 'r')
         next_image = re.search("SWI=flash:(\S+)/", config.read()).group(1).replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX)
         config.close()
@@ -143,7 +194,7 @@ def get_next_image():
     return next_image
 
 def remove_image(image):
-    if get_image_type() == IMAGE_TYPE_ABOOT:
+    if get_running_image_type() == IMAGE_TYPE_ABOOT:
         nextimage = get_next_image()
         current = get_current_image()
         if image == nextimage:
@@ -227,11 +278,13 @@ def cli():
 @cli.command()
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
         expose_value=False, prompt='New image will be installed, continue?')
+@click.option('-f', '--force', is_flag=True,
+        help="Force installation of an image of a type which differs from that of the current running image")
 @click.argument('url')
-def install(url):
+def install(url, force):
     """ Install image from local binary or URL"""
     cleanup_image = False
-    if get_image_type() == IMAGE_TYPE_ABOOT:
+    if get_running_image_type() == IMAGE_TYPE_ABOOT:
         DEFAULT_IMAGE_PATH = ABOOT_DEFAULT_IMAGE_PATH
     else:
         DEFAULT_IMAGE_PATH = ONIE_DEFAULT_IMAGE_PATH
@@ -248,24 +301,40 @@ def install(url):
     else:
         image_path = os.path.join("./", url)
 
-    # Verify that the local file exists and is a regular file
-    # TODO: Verify the file is a *proper SONiC image file*
-    if not os.path.isfile(image_path):
-        click.echo("Image file '{}' does not exist or is not a regular file. Aborting...".format(image_path))
+    running_image_type = get_running_image_type()
+    binary_image_type = get_binary_image_type(image_path)
+    binary_image_version = get_binary_image_version(image_path)
+    if not binary_image_type or not binary_image_version:
+        click.echo("Image file does not exist or is not a valid SONiC image file")
         raise click.Abort()
 
-    if get_image_type() == IMAGE_TYPE_ABOOT:
-        run_command("/usr/bin/unzip -od /tmp %s boot0" % image_path)
-        run_command("swipath=%s target_path=/host sonic_upgrade=1 . /tmp/boot0" % image_path)
+    # Is this version already installed?
+    if binary_image_version in get_installed_images():
+        click.echo("Image {} is already installed. Setting it as default...".format(binary_image_version))
+        if not set_default_image(binary_image_version):
+            click.echo('Error: Failed to set image as default')
+            raise click.Abort()
     else:
-        os.chmod(image_path, stat.S_IXUSR)
-        run_command(image_path)
-        run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
-    run_command("rm -rf /host/old_config")
-    # copy directories and preserve original file structure, attributes and associated metadata
-    run_command("cp -ar /etc/sonic /host/old_config")
+        # Verify that the binary image is of the same type as the running image
+        if (binary_image_type != running_image_type) and not force:
+            click.echo("Image file '{}' is of a different type than running image.\n" +
+                       "If you are sure you want to install this image, use -f|--force.\n" +
+                       "Aborting...".format(image_path))
+            raise click.Abort()
 
-    # sync filesystem, keep at last step.
+        click.echo("Installing image {} and setting it as default...".format(binary_image_version))
+        if running_image_type == IMAGE_TYPE_ABOOT:
+            run_command("/usr/bin/unzip -od /tmp %s boot0" % image_path)
+            run_command("swipath=%s target_path=/host sonic_upgrade=1 . /tmp/boot0" % image_path)
+        else:
+            os.chmod(image_path, stat.S_IXUSR)
+            run_command(image_path)
+            run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
+        run_command("rm -rf /host/old_config")
+        # copy directories and preserve original file structure, attributes and associated metadata
+        run_command("cp -ar /etc/sonic /host/old_config")
+
+    # Finally, sync filesystem
     run_command("sync;sync;sync")
     run_command("sleep 3") # wait 3 seconds after sync
     click.echo('Done')
@@ -289,16 +358,9 @@ def list():
 @click.argument('image')
 def set_default(image):
     """ Choose image to boot from by default """
-    images = get_installed_images()
-    if image not in images:
-        click.echo('Image does not exist')
-        sys.exit(1)
-    if get_image_type() == IMAGE_TYPE_ABOOT:
-        image_path = aboot_image_path(image)
-        aboot_boot_config_set(SWI=image_path, SWI_DEFAULT=image_path)
-    else:
-        command = 'grub-set-default --boot-directory=' + HOST_PATH + ' ' + str(images.index(image))
-        run_command(command)
+    if not set_default_image(image):
+        click.echo('Error: Image does not exist')
+        raise click.Abort()
 
 
 # Set image for next boot
@@ -310,7 +372,7 @@ def set_next_boot(image):
     if image not in images:
         click.echo('Image does not exist')
         sys.exit(1)
-    if get_image_type() == IMAGE_TYPE_ABOOT:
+    if get_running_image_type() == IMAGE_TYPE_ABOOT:
         image_path = aboot_image_path(image)
         aboot_boot_config_set(SWI=image_path)
     else:
@@ -341,36 +403,12 @@ def remove(image):
 @click.argument('binary_image_path')
 def binary_version(binary_image_path):
     """ Get version from local binary image file """
-    if not os.path.isfile(binary_image_path):
-        click.echo('Image file does not exist')
+    binary_version = get_binary_image_version(binary_image_path)
+    if not binary_version:
+        click.echo("Image file does not exist or is not a valid SONiC image file")
         sys.exit(1)
-
-    # Attempt to determine whether this is an ONIE or Aboot image
-    is_aboot = False
-
-    with open(binary_image_path) as f:
-        # Aboot file is a zip archive; check the start of the file for the zip magic number
-        if f.read(4) == "\x50\x4b\x03\x04":
-            is_aboot = True
-
-    if is_aboot:
-        p1 = subprocess.Popen(["unzip", "-p", binary_image_path, "boot0"], stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
-        p2 = subprocess.Popen(["grep", "-m 1", "^image_path"], stdin=p1.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
-        p3 = subprocess.Popen(["sed", "-n", r"s/^image_path=\"\$target_path\/image-\(.*\)\"$/\1/p"], stdin=p2.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
     else:
-        p1 = subprocess.Popen(["cat", "-v", binary_image_path], stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
-        p2 = subprocess.Popen(["grep", "-m 1", "^image_version"], stdin=p1.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
-        p3 = subprocess.Popen(["sed", "-n", r"s/^image_version=\"\(.*\)\"$/\1/p"], stdin=p2.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
-
-    stdout = p3.communicate()[0]
-    p3.wait()
-    version_num = stdout.rstrip('\n')
-
-    if len(version_num) == 0:
-        click.echo("File does not appear to be a vaild SONiC image file")
-        sys.exit(1)
-
-    click.echo(IMAGE_PREFIX + version_num)
+        click.echo(binary_version)
 
 # Remove installed images which are not current and next
 @cli.command()
@@ -395,7 +433,7 @@ def cleanup():
 @cli.command()
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
         expose_value=False, prompt='New docker image will be installed, continue?')
-@click.option('--cleanup_image', is_flag=True, help="Clean up old docker image")
+@click.option('--cleanup_image', is_flag=True, help="Clean up old docker image(s)")
 @click.option('--enforce_check', is_flag=True, help="Enforce pending task check for docker upgrade")
 @click.option('--tag', type=str, help="Tag for the new docker image")
 @click.argument('container_name', metavar='<container_name>', required=True,
