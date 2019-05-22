@@ -180,11 +180,11 @@ class AclLoader(object):
 
     def is_table_mirror(self, tname):
         """
-        Check if ACL table type is ACL_TABLE_TYPE_MIRROR
+        Check if ACL table type is ACL_TABLE_TYPE_MIRROR or ACL_TABLE_TYPE_MIRRORV6
         :param tname: ACL table name
-        :return: True if table type is ACL_TABLE_TYPE_MIRROR else False
+        :return: True if table type is MIRROR or MIRRORV6 else False
         """
-        return self.tables_db_info[tname]['type'].upper() == self.ACL_TABLE_TYPE_MIRROR
+        return self.tables_db_info[tname]['type'].upper().startswith(self.ACL_TABLE_TYPE_MIRROR)
 
     def is_table_control_plane(self, tname):
         """
