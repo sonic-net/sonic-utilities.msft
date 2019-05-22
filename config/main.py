@@ -530,7 +530,8 @@ def mirror_session():
 @click.argument('ttl', metavar='<ttl>', required=True)
 @click.argument('gre_type', metavar='[gre_type]', required=False)
 @click.argument('queue', metavar='[queue]', required=False)
-def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue):
+@click.option('--policer')
+def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer):
     """
     Add mirror session
     """
@@ -543,6 +544,9 @@ def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue):
             "dscp": dscp,
             "ttl": ttl
             }
+
+    if policer is not None:
+        session_info['policer'] = policer
 
     if gre_type is not None:
         session_info['gre_type'] = gre_type
