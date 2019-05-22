@@ -532,7 +532,7 @@ class AclLoader(object):
         :param session_name: Optional. Mirror session name. Filter sessions by specified name.
         :return:
         """
-        header = ("Name", "Status", "SRC IP", "DST IP", "GRE", "DSCP", "TTL", "Queue")
+        header = ("Name", "Status", "SRC IP", "DST IP", "GRE", "DSCP", "TTL", "Queue", "Policer")
 
         data = []
         for key, val in self.get_sessions_db_info().iteritems():
@@ -541,7 +541,7 @@ class AclLoader(object):
 
             data.append([key, val["status"], val["src_ip"], val["dst_ip"],
                          val.get("gre_type", ""), val.get("dscp", ""),
-                         val.get("ttl", ""), val.get("queue", "")])
+                         val.get("ttl", ""), val.get("queue", ""), val.get("policer", "")])
 
         print(tabulate.tabulate(data, headers=header, tablefmt="simple", missingval=""))
 
