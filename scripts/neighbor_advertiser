@@ -136,8 +136,13 @@ def get_vlan_interfaces():
 
 
 def get_vlan_interface_members(vlan_intf_name):
-    vlan_info = config_db.get_table('VLAN')
-    vlan_interface_members = vlan_info[vlan_intf_name]['members']
+    vlan_info = config_db.get_table('VLAN_MEMBER')
+    vlan_interface_members = []
+
+    for vlan_member in vlan_info.keys():
+        if vlan_member[0] == vlan_intf_name:
+            vlan_interface_members.append(vlan_member[1])
+
     return vlan_interface_members
 
 
@@ -289,10 +294,14 @@ def add_mirror_session(dst_ipv4_addr):
 
 
 def add_mirror_acl():
+    all_vlan_ports = []
+    for vlan_intf in get_vlan_interfaces():
+        all_vlan_ports.extend(get_vlan_interface_members(vlan_intf))
+
     acl_info = {
         'policy_desc': 'neighbor advertiser',
         'type': 'mirror',
-        'ports': get_vlan_interfaces()
+        'ports': all_vlan_ports
     }
 
     config_db.set_entry('ACL_TABLE', MIRROR_ACL_NAME, acl_info)
