@@ -576,23 +576,19 @@ def status(interfacename, verbose):
 # 'counters' subcommand ("show interfaces counters")
 @interfaces.group(invoke_without_command=True)
 @click.option('-a', '--printall', is_flag=True)
-@click.option('-c', '--clear', is_flag=True)
 @click.option('-p', '--period')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.pass_context
-def counters(ctx, verbose, period, clear, printall):
+def counters(ctx, verbose, period, printall):
     """Show interface counters"""
 
     if ctx.invoked_subcommand is None:
         cmd = "portstat"
 
-        if clear:
-            cmd += " -c"
-        else:
-            if printall:
-                cmd += " -a"
-            if period is not None:
-                cmd += " -p {}".format(period)
+        if printall:
+            cmd += " -a"
+        if period is not None:
+            cmd += " -p {}".format(period)
 
         run_command(cmd, display_cmd=verbose)
 
@@ -631,15 +627,11 @@ def pfc():
 
 # 'counters' subcommand ("show interfaces pfccounters")
 @pfc.command()
-@click.option('-c', '--clear', is_flag=True)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def counters(clear, verbose):
+def counters(verbose):
     """Show pfc counters"""
 
     cmd = "pfcstat"
-
-    if clear:
-        cmd += " -c"
 
     run_command(cmd, display_cmd=verbose)
 
@@ -682,12 +674,11 @@ def queue():
     """Show details of the queues """
     pass
 
-# 'queuecounters' subcommand ("show queue counters")
+# 'counters' subcommand ("show queue counters")
 @queue.command()
 @click.argument('interfacename', required=False)
-@click.option('-c', '--clear', is_flag=True)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def counters(interfacename, clear, verbose):
+def counters(interfacename, verbose):
     """Show queue counters"""
 
     cmd = "queuestat"
@@ -696,44 +687,51 @@ def counters(interfacename, clear, verbose):
         if get_interface_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
-    if clear:
-        cmd += " -c"
-    else:
-        if interfacename is not None:
-            cmd += " -p {}".format(interfacename)
+    if interfacename is not None:
+        cmd += " -p {}".format(interfacename)
 
     run_command(cmd, display_cmd=verbose)
 
-# watermarks subcommands ("show queue watermarks|persistent-watermarks")
+#
+# 'watermarks' subgroup ("show queue watermarks ...")
+#
 
 @queue.group()
 def watermark():
-    """Show queue user WM"""
+    """Show user WM for queues"""
     pass
 
+# 'unicast' subcommand ("show queue watermarks unicast")
 @watermark.command('unicast')
 def wm_q_uni():
     """Show user WM for unicast queues"""
     command = 'watermarkstat -t q_shared_uni'
     run_command(command)
 
+# 'multicast' subcommand ("show queue watermarks multicast")
 @watermark.command('multicast')
 def wm_q_multi():
     """Show user WM for multicast queues"""
     command = 'watermarkstat -t q_shared_multi'
     run_command(command)
 
+#
+# 'persistent-watermarks' subgroup ("show queue persistent-watermarks ...")
+#
+
 @queue.group(name='persistent-watermark')
 def persistent_watermark():
-    """Show queue persistent WM"""
+    """Show persistent WM for queues"""
     pass
 
+# 'unicast' subcommand ("show queue persistent-watermarks unicast")
 @persistent_watermark.command('unicast')
 def pwm_q_uni():
-    """Show persistent WM for persistent queues"""
+    """Show persistent WM for unicast queues"""
     command = 'watermarkstat -p -t q_shared_uni'
     run_command(command)
 
+# 'multicast' subcommand ("show queue persistent-watermarks multicast")
 @persistent_watermark.command('multicast')
 def pwm_q_multi():
     """Show persistent WM for multicast queues"""
