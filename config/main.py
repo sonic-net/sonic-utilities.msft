@@ -10,6 +10,7 @@ import re
 import syslog
 
 import sonic_device_util
+import ipaddress
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from minigraph import parse_device_desc_xml
@@ -950,15 +951,20 @@ def add(ctx, interface_name, ip_addr):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name.startswith("Ethernet"):
-        config_db.set_entry("INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-    elif interface_name.startswith("PortChannel"):
-        config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-    elif interface_name.startswith("Vlan"):
-        config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-    elif interface_name.startswith("Loopback"):
-        config_db.set_entry("LOOPBACK_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-
+    try:
+        ipaddress.ip_network(unicode(ip_addr), strict=False)
+        if interface_name.startswith("Ethernet"):
+            config_db.set_entry("INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+        elif interface_name.startswith("PortChannel"):
+            config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+        elif interface_name.startswith("Vlan"):
+            config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+        elif interface_name.startswith("Loopback"):
+            config_db.set_entry("LOOPBACK_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+        else:
+            ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+    except ValueError:
+        ctx.fail("'ip_addr' is not valid.")
 
 #
 # 'del' subcommand
@@ -976,15 +982,20 @@ def remove(ctx, interface_name, ip_addr):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name.startswith("Ethernet"):
-        config_db.set_entry("INTERFACE", (interface_name, ip_addr), None)
-    elif interface_name.startswith("PortChannel"):
-        config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), None)
-    elif interface_name.startswith("Vlan"):
-        config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), None)
-    elif interface_name.startswith("Loopback"):
-        config_db.set_entry("LOOPBACK_INTERFACE", (interface_name, ip_addr), None)
-
+    try:
+        ipaddress.ip_network(unicode(ip_addr), strict=False)
+        if interface_name.startswith("Ethernet"):
+            config_db.set_entry("INTERFACE", (interface_name, ip_addr), None)
+        elif interface_name.startswith("PortChannel"):
+            config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), None)
+        elif interface_name.startswith("Vlan"):
+            config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), None)
+        elif interface_name.startswith("Loopback"):
+            config_db.set_entry("LOOPBACK_INTERFACE", (interface_name, ip_addr), None)
+        else:
+            ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+    except ValueError:
+        ctx.fail("'ip_addr' is not valid.")
 #
 # 'acl' group ('config acl ...')
 #
