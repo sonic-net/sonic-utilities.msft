@@ -1526,7 +1526,14 @@ def config(redis_unix_socket_path):
     def tablelize(keys, data):
         table = []
 
-        for k in keys:
+        for k in natsorted(keys):
+            if 'members' not in data[k] :
+                r = []
+                r.append(k)
+                r.append(data[k]['vlanid'])
+                table.append(r)
+                continue
+
             for m in data[k].get('members', []):
                 r = []
                 r.append(k)
