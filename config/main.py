@@ -1005,6 +1005,92 @@ def acl():
     """ACL-related configuration tasks"""
     pass
 
+#
+# 'add' subgroup ('config acl add ...')
+#
+
+@acl.group()
+def add():
+    """
+    Add ACL configuration.
+    """
+    pass
+
+
+def get_acl_bound_ports():
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    ports = set()
+    portchannel_members = set()
+
+    portchannel_member_dict = config_db.get_table("PORTCHANNEL_MEMBER")
+    for key in portchannel_member_dict:
+        ports.add(key[0])
+        portchannel_members.add(key[1])
+
+    port_dict = config_db.get_table("PORT")
+    for key in port_dict:
+        if key not in portchannel_members:
+            ports.add(key)
+
+    return list(ports)
+
+#
+# 'table' subcommand ('config acl add table ...')
+#
+
+@add.command()
+@click.argument("table_name", metavar="<table_name>")
+@click.argument("table_type", metavar="<table_type>")
+@click.option("-d", "--description")
+@click.option("-p", "--ports")
+def table(table_name, table_type, description, ports):
+    """
+    Add ACL table
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    table_info = {"type": table_type}
+
+    if description:
+        table_info["policy_desc"] = description
+    else:
+        table_info["policy_desc"] = table_name
+
+    if ports:
+        table_info["ports@"] = ports
+    else:
+        table_info["ports@"] = ",".join(get_acl_bound_ports())
+
+    config_db.set_entry("ACL_TABLE", table_name, table_info)
+
+#
+# 'remove' subgroup ('config acl remove ...')
+#
+
+@acl.group()
+def remove():
+    """
+    Remove ACL configuration.
+    """
+    pass
+
+#
+# 'table' subcommand ('config acl remove table ...')
+#
+
+@remove.command()
+@click.argument("table_name", metavar="<table_name>")
+def table(table_name):
+    """
+    Remove ACL table
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    config_db.set_entry("ACL_TABLE", table_name, None)
+
 
 #
 # 'acl update' group
