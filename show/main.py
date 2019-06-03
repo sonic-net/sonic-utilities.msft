@@ -1641,6 +1641,22 @@ def mirror_session(session_name, verbose):
 
 
 #
+# 'policer' command  ("show policer ...")
+#
+@cli.command()
+@click.argument('policer_name', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def policer(policer_name, verbose):
+    """Show existing policers"""
+    cmd = "acl-loader show policer"
+
+    if policer_name is not None:
+        cmd += " {}".format(policer_name)
+
+    run_command(cmd, display_cmd=verbose)
+
+
+#
 # 'acl' group ###
 #
 
