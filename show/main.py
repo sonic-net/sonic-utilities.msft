@@ -747,10 +747,9 @@ def pwm_q_multi():
 def priority_group():
     """Show details of the PGs """
 
-
 @priority_group.group()
 def watermark():
-    """Show priority_group user WM"""
+    """Show priority-group user WM"""
     pass
 
 @watermark.command('headroom')
@@ -767,7 +766,7 @@ def wm_pg_shared():
 
 @priority_group.group(name='persistent-watermark')
 def persistent_watermark():
-    """Show queue persistent WM"""
+    """Show priority-group persistent WM"""
     pass
 
 @persistent_watermark.command('headroom')
@@ -780,6 +779,27 @@ def pwm_pg_headroom():
 def pwm_pg_shared():
     """Show persistent shared WM for pg"""
     command = 'watermarkstat -p -t pg_shared'
+    run_command(command)
+
+
+#
+# 'buffer_pool' group ("show buffer_pool ...")
+#
+
+@cli.group(name='buffer_pool', cls=AliasedGroup, default_if_no_args=False)
+def buffer_pool():
+    """Show details of the buffer pools"""
+
+@buffer_pool.command('watermark')
+def wm_buffer_pool():
+    """Show user WM for buffer pools"""
+    command = 'watermarkstat -t buffer_pool'
+    run_command(command)
+
+@buffer_pool.command('persistent-watermark')
+def pwm_buffer_pool():
+    """Show persistent WM for buffer pools"""
+    command = 'watermarkstat -p -t buffer_pool'
     run_command(command)
 
 

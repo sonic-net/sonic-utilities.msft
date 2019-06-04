@@ -18,6 +18,7 @@ from tabulate import tabulate
 headerPg = ['Port', 'PG0', 'PG1', 'PG2', 'PG3', 'PG4', 'PG5', 'PG6', 'PG7']
 headerUc = ['Port', 'UC0', 'UC1', 'UC2', 'UC3', 'UC4', 'UC5', 'UC6', 'UC7']
 headerMc = ['Port', 'MC8', 'MC9', 'MC10', 'MC11', 'MC12', 'MC13', 'MC14', 'MC15']
+headerBufferPool = ['Pool', 'Bytes']
 
 
 STATUS_NA = 'N/A'
@@ -43,6 +44,7 @@ COUNTERS_QUEUE_PORT_MAP = "COUNTERS_QUEUE_PORT_MAP"
 COUNTERS_PG_NAME_MAP = "COUNTERS_PG_NAME_MAP"
 COUNTERS_PG_PORT_MAP = "COUNTERS_PG_PORT_MAP"
 COUNTERS_PG_INDEX_MAP = "COUNTERS_PG_INDEX_MAP"
+COUNTERS_BUFFER_POOL_NAME_MAP = "COUNTERS_BUFFER_POOL_NAME_MAP"
 
 
 class Watermarkstat(object):
@@ -58,7 +60,7 @@ class Watermarkstat(object):
         def get_queue_type(table_id):
             queue_type = self.counters_db.get(self.counters_db.COUNTERS_DB, COUNTERS_QUEUE_TYPE_MAP, table_id)
             if queue_type is None:
-                print "Queue Type is not available!", table_id
+                print >> sys.stderr, "Queue Type is not available!", table_id
                 sys.exit(1)
             elif queue_type == SAI_QUEUE_TYPE_MULTICAST:
                 return QUEUE_TYPE_MC
@@ -67,13 +69,13 @@ class Watermarkstat(object):
             elif queue_type == SAI_QUEUE_TYPE_ALL:
                 return QUEUE_TYPE_ALL
             else:
-                print "Queue Type is invalid:", table_id, queue_type
+                print >> sys.stderr, "Queue Type is invalid:", table_id, queue_type
                 sys.exit(1)
 
         def get_queue_port(table_id):
             port_table_id = self.counters_db.get(self.counters_db.COUNTERS_DB, COUNTERS_QUEUE_PORT_MAP, table_id)
             if port_table_id is None:
-                print "Port is not available!", table_id
+                print >> sys.stderr, "Port is not available!", table_id
                 sys.exit(1)
 
             return port_table_id
@@ -81,7 +83,7 @@ class Watermarkstat(object):
         def get_pg_port(table_id):
             port_table_id = self.counters_db.get(self.counters_db.COUNTERS_DB, COUNTERS_PG_PORT_MAP, table_id)
             if port_table_id is None:
-                print "Port is not available!", table_id
+                print >> sys.stderr, "Port is not available!", table_id
                 sys.exit(1)
 
             return port_table_id
@@ -89,7 +91,7 @@ class Watermarkstat(object):
         # Get all ports
         self.counter_port_name_map = self.counters_db.get_all(self.counters_db.COUNTERS_DB, COUNTERS_PORT_NAME_MAP)
         if self.counter_port_name_map is None:
-            print "COUNTERS_PORT_NAME_MAP is empty!"
+            print >> sys.stderr, "COUNTERS_PORT_NAME_MAP is empty!"
             sys.exit(1)
 
         self.port_uc_queues_map = {}
@@ -106,7 +108,7 @@ class Watermarkstat(object):
         # Get Queues for each port
         counter_queue_name_map = self.counters_db.get_all(self.counters_db.COUNTERS_DB, COUNTERS_QUEUE_NAME_MAP)
         if counter_queue_name_map is None:
-            print "COUNTERS_QUEUE_NAME_MAP is empty!"
+            print >> sys.stderr, "COUNTERS_QUEUE_NAME_MAP is empty!"
             sys.exit(1)
 
         for queue in counter_queue_name_map:
@@ -120,40 +122,49 @@ class Watermarkstat(object):
         # Get PGs for each port
         counter_pg_name_map = self.counters_db.get_all(self.counters_db.COUNTERS_DB, COUNTERS_PG_NAME_MAP)
         if counter_pg_name_map is None:
-            print "COUNTERS_PG_NAME_MAP is empty!"
+            print >> sys.stderr, "COUNTERS_PG_NAME_MAP is empty!"
             sys.exit(1)
 
         for pg in counter_pg_name_map:
             port = self.port_name_map[get_pg_port(counter_pg_name_map[pg])]
             self.port_pg_map[port][pg] = counter_pg_name_map[pg]
 
+        # Get all buffer pools
+        self.buffer_pool_name_to_oid_map = self.counters_db.get_all(self.counters_db.COUNTERS_DB, COUNTERS_BUFFER_POOL_NAME_MAP)
+        if self.buffer_pool_name_to_oid_map is None:
+            print >> sys.stderr, "COUNTERS_BUFFER_POOL_NAME_MAP is empty!"
+            sys.exit(1)
+
         self.watermark_types = {
-            "pg_headroom": {"message": "Ingress headroom per PG:",
-                           "obj_map": self.port_pg_map,
-                           "idx_func": self.get_pg_index,
-                           "wm_name": "SAI_INGRESS_PRIORITY_GROUP_STAT_XOFF_ROOM_WATERMARK_BYTES",
-                           "header": headerPg},
-            "pg_shared": {"message": "Ingress shared pool occupancy per PG:",
-                          "obj_map": self.port_pg_map,
-                          "idx_func": self.get_pg_index,
-                          "wm_name": "SAI_INGRESS_PRIORITY_GROUP_STAT_SHARED_WATERMARK_BYTES",
-                          "header": headerPg},
-            "q_shared_uni": {"message": "Egress shared pool occupancy per unicast queue:",
-                            "obj_map": self.port_uc_queues_map,
-                            "idx_func": self.get_queue_index,
-                            "wm_name": "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES",
-                            "header": headerUc},
-            "q_shared_multi": {"message": "Egress shared pool occupancy per multicast queue:",
-                            "obj_map": self.port_mc_queues_map,
-                            "idx_func": self.get_queue_index,
-                            "wm_name": "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES",
-                            "header": headerMc}
+            "pg_headroom"   : {"message" : "Ingress headroom per PG:",
+                               "obj_map" : self.port_pg_map,
+                               "idx_func": self.get_pg_index,
+                               "wm_name" : "SAI_INGRESS_PRIORITY_GROUP_STAT_XOFF_ROOM_WATERMARK_BYTES",
+                               "header"  : headerPg},
+            "pg_shared"     : {"message" : "Ingress shared pool occupancy per PG:",
+                               "obj_map" : self.port_pg_map,
+                               "idx_func": self.get_pg_index,
+                               "wm_name" : "SAI_INGRESS_PRIORITY_GROUP_STAT_SHARED_WATERMARK_BYTES",
+                               "header"  : headerPg},
+            "q_shared_uni"  : {"message" : "Egress shared pool occupancy per unicast queue:",
+                               "obj_map" : self.port_uc_queues_map,
+                               "idx_func": self.get_queue_index,
+                               "wm_name" : "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES",
+                               "header"  : headerUc},
+            "q_shared_multi": {"message" : "Egress shared pool occupancy per multicast queue:",
+                               "obj_map" : self.port_mc_queues_map,
+                               "idx_func": self.get_queue_index,
+                               "wm_name" : "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES",
+                               "header"  : headerMc},
+            "buffer_pool"   : {"message": "Shared pool maximum occupancy:",
+                               "wm_name": "SAI_BUFFER_POOL_STAT_WATERMARK_BYTES",
+                               "header" : headerBufferPool}
         }
 
     def get_queue_index(self, table_id):
         queue_index = self.counters_db.get(self.counters_db.COUNTERS_DB, COUNTERS_QUEUE_INDEX_MAP, table_id)
         if queue_index is None:
-            print "Queue index is not available!", table_id
+            print >> sys.stderr, "Queue index is not available!", table_id
             sys.exit(1)
 
         return queue_index
@@ -161,7 +172,7 @@ class Watermarkstat(object):
     def get_pg_index(self, table_id):
         pg_index = self.counters_db.get(self.counters_db.COUNTERS_DB, COUNTERS_PG_INDEX_MAP, table_id)
         if pg_index is None:
-            print "Priority group index is not available!", table_id
+            print >> sys.stderr, "Priority group index is not available!", table_id
             sys.exit(1)
 
         return pg_index
@@ -171,7 +182,7 @@ class Watermarkstat(object):
             Get the counters from specific table.
         """
 
-        fields = ["0"]*8
+        fields = ["0"] * 8
 
         for name, obj_id in port_obj.items():
             full_table_id = table_prefix + obj_id
@@ -184,14 +195,25 @@ class Watermarkstat(object):
         cntr = tuple(fields)
         return cntr
 
-    def get_print_all_stat(self, table_prefix, type):
-        # Get stat for each port
+    def print_all_stat(self, table_prefix, key):
         table = []
-        for port in natsorted(self.counter_port_name_map):
-            data = self.get_counters(table_prefix,
-                                     type["obj_map"][port], type["idx_func"], type["wm_name"])
-            table.append((port, data[0], data[1], data[2], data[3],
-                        data[4], data[5], data[6], data[7]))
+        type = self.watermark_types[key]
+        if key == 'buffer_pool':
+            # Get stats for each buffer pool
+            for buf_pool, bp_oid in natsorted(self.buffer_pool_name_to_oid_map.items()):
+                key = table_prefix + bp_oid
+                data = self.counters_db.get(self.counters_db.COUNTERS_DB, key, type["wm_name"])
+                if data is None:
+                    data = STATUS_NA
+                table.append((buf_pool, data))
+        else:
+            # Get stat for each port
+            for port in natsorted(self.counter_port_name_map):
+                data = self.get_counters(table_prefix,
+                                         type["obj_map"][port], type["idx_func"], type["wm_name"])
+                table.append((port, data[0], data[1], data[2], data[3],
+                              data[4], data[5], data[6], data[7]))
+
         print(type["message"])
         print tabulate(table, type["header"], tablefmt='simple', stralign='right')
 
@@ -214,12 +236,15 @@ Examples:
   watermarkstat -t q_shared_multi -c
   watermarkstat -p -t pg_shared
   watermarkstat -p -t q_shared_multi -c
+  watermarkstat -t buffer_pool
+  watermarkstat -t buffer_pool -c
+  watermarkstat -p -t buffer_pool -c
 """)
 
     parser.add_argument('-c', '--clear', action='store_true', help='Clear watermarks request')
     parser.add_argument('-p', '--persistent', action='store_true', help='Do the operations on the persistent watermark')
     parser.add_argument('-t', '--type', required=True, action='store',
-                        choices=['pg_headroom', 'pg_shared', 'q_shared_uni', 'q_shared_multi'],
+                        choices=['pg_headroom', 'pg_shared', 'q_shared_uni', 'q_shared_multi', 'buffer_pool'],
                         help='The type of watermark')
     args = parser.parse_args()
     watermarkstat = Watermarkstat()
@@ -229,7 +254,7 @@ Examples:
         sys.exit(0)
     
     table_prefix = PERSISTENT_TABLE_PREFIX if args.persistent else USER_TABLE_PREFIX 
-    watermarkstat.get_print_all_stat(table_prefix, watermarkstat.watermark_types[args.type])
+    watermarkstat.print_all_stat(table_prefix, args.type)
     sys.exit(0)
 
 
