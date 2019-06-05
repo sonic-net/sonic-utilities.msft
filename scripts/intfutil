@@ -87,7 +87,7 @@ def appl_db_keys_get(appl_db, front_panel_ports_list, intf_name):
     if intf_name is None:
         appl_db_keys = appl_db.keys(appl_db.APPL_DB, "PORT_TABLE:*")
     elif intf_name in front_panel_ports_list:
-        appl_db_keys = db.keys(appl_db.APPL_DB, "PORT_TABLE:%s" % intf_name)
+        appl_db_keys = appl_db.keys(appl_db.APPL_DB, "PORT_TABLE:%s" % intf_name)
     else:
         return None
     return appl_db_keys
