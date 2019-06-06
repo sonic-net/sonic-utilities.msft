@@ -1071,7 +1071,7 @@ elif routing_stack == "frr":
     @click.argument('bgp_args', nargs = -1, required = False)
     @click.option('--verbose', is_flag=True, help="Enable verbose output")
     def bgp(bgp_args, verbose):
-        """BGP information"""
+        """Show BGP information"""
         bgp_cmd = "show bgp"
         for arg in bgp_args:
             bgp_cmd += " " + str(arg)
