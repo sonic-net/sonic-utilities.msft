@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import traceback
 import sys
 import argparse
 import syslog
@@ -22,7 +23,7 @@ def log_error(msg):
 
 
 class DBMigrator():
-    def __init__(self):
+    def __init__(self, socket=None):
         """
         Version string format:
            version_<major>_<minor>_<build>
@@ -39,7 +40,12 @@ class DBMigrator():
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
         self.TABLE_FIELD     = 'VERSION'
-        self.configDB        = ConfigDBConnector()
+
+        db_kwargs = {}
+        if socket:
+            db_kwargs['unix_socket_path'] = socket
+
+        self.configDB        = ConfigDBConnector(**db_kwargs)
         self.configDB.db_connect('CONFIG_DB')
 
 
@@ -120,16 +126,30 @@ def main():
                             choices=['migrate', 'set_version', 'get_version'],
                             help = 'operation to perform [default: get_version]',
                             default='get_version')
+        parser.add_argument('-s',
+                        dest='socket',
+                        metavar='unix socket',
+                        type = str,
+                        required = False,
+                        help = 'the unix socket that the desired database listens on',
+                        default = None )
         args = parser.parse_args()
         operation = args.operation
+        socket_path = args.socket
 
-        dbmgtr = DBMigrator()
+        if socket_path:
+            dbmgtr = DBMigrator(socket=socket_path)
+        else:
+            dbmgtr = DBMigrator()
+
         result = getattr(dbmgtr, operation)()
         if result:
             print(str(result))
 
     except Exception as e:
-        log_error('Caught excetion: ' + str(e))
+        log_error('Caught exception: ' + str(e))
+        traceback.print_exc()
+        print(str(e))
         parser.print_help()
         sys.exit(1)
 
