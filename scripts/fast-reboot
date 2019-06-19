@@ -356,22 +356,19 @@ setup_control_plane_assistant
 
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
     # Freeze orchagent for warm restart
-    # Try freeze 5 times, it is possible that the orchagent is in transient state and no opportunity to be freezed
-    # Note: assume that 1 second is enough for orchagent to process the request and respone freeze or not
+    # Ask orchagent_restart_check to try freeze 5 times with interval of 2 seconds,
+    # it is possible that the orchagent is in transient state and no opportunity to be freezed
+    # Note: assume that 2*5 seconds is enough for orchagent to process the request and respone freeze or not
     debug "Pausing orchagent ..."
-    for i in `seq 4 -1 0`; do
-        docker exec -i swss /usr/bin/orchagent_restart_check -w 1000 > /dev/null && break
-        error "RESTARTCHECK failed $i"
-        if [[ "$i" = "0" ]]; then
-            error "RESTARTCHECK failed finally"
-            if [[ x"${FORCE}" == x"yes" ]]; then
-                debug "Ignoring orchagent pausing failure ..."
-                break;
-            fi
+    docker exec -i swss /usr/bin/orchagent_restart_check -w 2000 -r 5 > /dev/null || RESTARTCHECK_RC=$?
+    if [[ RESTARTCHECK_RC -ne 0 ]]; then
+        error "RESTARTCHECK failed"
+        if [[ x"${FORCE}" == x"yes" ]]; then
+            debug "Ignoring orchagent pausing failure ..."
+        else
             exit "${EXIT_ORCHAGENT_SHUTDOWN}"
         fi
-        sleep 1
-    done
+    fi
 fi
 
 # Kill bgpd to start the bgp graceful restart procedure
