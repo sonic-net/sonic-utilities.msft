@@ -8,6 +8,11 @@ If this is a bug fix, make sure your description includes "closes #xxxx",
 "fixes #xxxx" or "resolves #xxxx" so that GitHub automatically closes the related
 issue when the PR is merged
 
+If you are modifying or removing an existing 'show', 'config' or 'sonic-clear'
+subcommand, or you are adding a new subcommand, please make sure you also
+update the Command Line Reference Guide (doc/Command-Reference.md) to reflect
+your changes.
+
 Please provide the following information:
 -->
 
