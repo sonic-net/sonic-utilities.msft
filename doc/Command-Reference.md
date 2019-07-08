@@ -9,8 +9,8 @@ Table of Contents
       * [SSH Login](#ssh-login)
       * [Configuring Management Interface](#configuring-management-interface)
       * [Config Help](#config-help)
+	  * [Show Help](#show-help)
       * [Show Versions](#show-versions)
-      * [Show Help](#show-help)
       * [Show System Status](#show-system-status)
       * [Show Hardware Platform](#show-hardware-platform)
          * [Transceivers](#transceivers)
@@ -86,13 +86,15 @@ Table of Contents
       * [SONiC Installer](#sonic-installer)
    * [Troubleshooting Commands](#troubleshooting-commands)
    * [Routing Stack Configuration And Show](#routing-stack-configuration-and-show)
+   * [Quagga BGP Show Commands](#Quagga-BGP-Show-Commands)
    
 
 # Document History
 
 | # | Date    |  Document Version | Details |
 | --- | --- | --- | --- |
-| 2 |  Apr-22-2019 |SONiC architecture | CLI Guide for SONiC 201811 version (build#32) with complete "config" command set |
+| 3 |  Jun-26-2019 |v3 | Update based on 201904 (build#19) release, "config interface" command changes related to interfacename order, FRR/Quagga show command changes, platform specific changes, ACL show changes and few formatting changes |
+| 2 |  Apr-22-2019 |v2 | CLI Guide for SONiC 201811 version (build#32) with complete "config" command set |
 | 1 |  Mar-23-2019 |v1 | Initial version of CLI Guide with minimal command set | 
 
 # Introduction
@@ -107,7 +109,7 @@ After logging into the device, SONiC software can be configured in following thr
  2) [config_db.json](https://github.com/Azure/SONiC/wiki/Configuration) 
  3) [minigraph.xml](https://github.com/Azure/SONiC/wiki/Configuration-with-Minigraph-(~Sep-2017))
 
-This document explains the first method and gives the complete list of commands that are supported in SONiC 201811 version (build#32).
+This document explains the first method and gives the complete list of commands that are supported in SONiC 201904 version (build#19).
 All the configuration commands need root privileges to execute them. Note that show commands can be executed by all users without the root privileges.
 Root privileges can be obtained either by using "sudo" keyword in front of all config commands, or by going to root prompt using "sudo -i".
 Note that all commands are case sensitive.
@@ -147,7 +149,7 @@ This section covers the basic configurations related to the following
 ## SSH Login
 
 All SONiC devices support both the serial console based login and the SSH based login by default.
-The default credential (if not modified at image build time) for login is admin/YourPaSsWoRd.
+The default credential (if not modified at image build time) for login is `admin/YourPaSsWoRd`.
 In case of SSH login, users can login to the management interface (eth0) IP address after configuring the same using serial console. 
 Refer the following section for configuring the IP address for management interface.
 
@@ -424,7 +426,7 @@ This command displays the platform environmentals, such as voltages, temperature
   <... few more things ...>
 
   ```
-Note: The show output has got lot of information; only the sample output is given in the above example. 
+NOTE: The show output has got lot of information; only the sample output is given in the above example. 
 Though the displayed output slightly differs from one platform to another platform, the overall content will be similar to the example mentioned above.
 
 **show reboot-cause**  
@@ -458,7 +460,7 @@ This file is saved in the path `/var/log` and can be viewed by giving the comman
 Individual process can also be viewed using the command `ps -ax | grep <\process name>
 
 - Usage:  
-  show logging ([<process-name>] [-l lines] | [-f])
+  show logging ([\<process_name\>] [-l lines] | [-f])
 
 - Example:
   ```
@@ -711,7 +713,7 @@ When this is disabled and if the authentication request fails on first server, a
 		   Allow AAA fail-through [enable | disable | default]
            enable - this allows the AAA module to process with local authentication if remote authentication fails.
 		   disbale - this disallows the AAA module to proceed further if remote authentication fails.
-		   default - this reconfigures the default value, which is "enable". 
+		   default - this re-configures the default value, which is "enable". 
 
 
 - Example:
@@ -739,7 +741,7 @@ When the tacacs+ authentication fails, it falls back to local authentication by 
 **aaa authentication login**  
 
 This command is used to either configure whether AAA should use local database or remote tacacs+ database for user authentication. 
-By default, AAA uses local database for authentication. New users can be added/deleted using the linux commands (note that the configuration done using linux commands are not preserved during reboot).
+By default, AAA uses local database for authentication. New users can be added/deleted using the linux commands (Note that the configuration done using linux commands are not preserved during reboot).
 Admin can enable remote tacacs+ server based authentication by selecting the AUTH_PROTOCOL as tacacs+ in this command.
 Admins need to configure the tacacs+ server accordingly and ensure that the connectivity to tacacas+ server is available via the management interface.
 Once if the admins choose the remote authentication based on tacacs+ server, all user logins will be authenticated by the tacacs+ server.
@@ -806,7 +808,7 @@ Some of the parameters like authtype, passkey and timeout can be either configur
 This command is used to add a TACACS+ server to the tacacs server list.
 Note that more than one tacacs+ (maximum of seven) can be added in the device. 
 When user tries to login, tacacs client shall contact the servers one by one. 
-When any server times out, device will try the next server one by one.
+When any server times out, device will try the next server one by one based on the priority value configured for that server.
 When this command is executed, the configured tacacs+ server addresses are updated in /etc/pam.d/common-auth-sonic configuration file which is being used by tacacs service.
 
 - Usage:  
@@ -815,7 +817,7 @@ When this command is executed, the configured tacacs+ server addresses are updat
 	 **Arguments:**  
 	 
 	 ip_address - TACACS+ server IP address.
-	 timeout - Transmission timeout interval in seconds, range 1 to 1000, default 5
+	 timeout - Transmission timeout interval in seconds, range 1 to 60, default 5
 	 key - Shared secret
 	 type - Authentication type, "chap" or "pap" or "mschap" or "login", default is "pap".
 	 port - TCP port range is 1 to 65535, default 49
@@ -837,6 +839,8 @@ When this command is executed, the configured tacacs+ server addresses are updat
 	auth    [success=done new_authtok_reqd=done default=ignore]     pam_tacplus.so server=10.0.0.8:49 secret= login=mschap timeout=5  try_first_pass
 	auth    [success=done new_authtok_reqd=done default=ignore]     pam_tacplus.so server=10.11.12.13:50 secret=testing789 login=mschap timeout=10  try_first_pass
 	auth    [success=1 default=ignore]      pam_unix.so nullok try_first_pass
+		
+	   NOTE: In the above example, the servers are stored (sorted) based on the priority value configured for the server.
   
   ```
 
@@ -895,8 +899,8 @@ When user has not configured server specific passkey, this global value shall be
   ```
   root@T1-2:~# config tacacs passkey testing123
   root@T1-2:~#
-  ```
-
+  ```  
+  
 **config tacacs timeout**  
 
 This command is used to modify the global value for the TACACS+ timeout.
@@ -904,12 +908,14 @@ When user has not configured server specific timeout, this global value shall be
 
 
    - Usage:  
-     config tacacs timeout <timeout_value_in_seconds>
+    config tacacs [default] timeout [\<timeout_value_in_seconds\>]  
+     valid values for timeout is 1 to 60 seconds. 
+	 When the optional keyword "default" is specified, timeout_value_in_seconds parameter wont be used; default value of 5 is used.
+	 Configuration using the keyword "default" is introduced in 201904 release.
 
-
-- Example:
+- Example: To configure non-default timeout value  
   ```
-  root@T1-2:~# config tacacs timeout 99
+  root@T1-2:~# config tacacs timeout 60
   root@T1-2:~#
   ```
 
@@ -1086,7 +1092,7 @@ This command displays the ARP entries in the device with following options.
 3) Display the ARP of a specific ip-address.
 
   - Usage:  
-    show arp [-if <ifname>] [<ip-address>]
+    show arp [-if \<if_name\>] [\<ip_address\>]
     show arp - displays all entries
     show arp -if <ifname> - displays the ARP specific to the specified interface.
     show arp <ip-address> - displays the ARP specific to the specicied ip-address.
@@ -1116,24 +1122,24 @@ This command displays the ARP entries in the device with following options.
 
 - Example:
   ```
-  admin@sonic:~$ show arp -if Ethernet40
-  Address          MacAddress          Iface        Vlan
-  -------------    -----------------   ----------   ------
-  192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
-  Total number of entries 1 
+    admin@sonic:~$ show arp -if Ethernet40
+    Address          MacAddress          Iface        Vlan
+    -------------    -----------------   ----------   ------
+    192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
+    Total number of entries 1 
 
   ```
   
   - Optionally, you can specify an IP address in order to display only that particular entry
 
-
 - Example:
   ```
-  admin@sonic:~$ show arp 192.168.1.181
-  Address          MacAddress          Iface        Vlan
-  -------------    -----------------   ----------   ------
-  192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
-  Total number of entries 1 
+    admin@sonic:~$ show arp 192.168.1.181
+    Address          MacAddress          Iface        Vlan
+    -------------    -----------------   ----------   ------
+    192.168.1.181    e4:c7:22:c1:07:7c   Ethernet40   -
+    Total number of entries 1 
+  
   ```
 
 ## NDP show commands
@@ -1142,7 +1148,7 @@ This command displays the ARP entries in the device with following options.
 This command displays either all the IPv6 neighbor mac addresses, or for a particular IPv6 neighbor, or for all IPv6 neighbors reachable via a specific interface.
 
   - Usage:  
-    show ndp [-if|--iface <interface-name.] [IP6ADDRESS]
+    show ndp [-if|--iface \<interface_name\>] [IPv6_ADDRESS]
 
 
 - Example:
@@ -1172,40 +1178,71 @@ This command displays either all the IPv6 neighbor mac addresses, or for a parti
 	fe80::20c:29ff:fef9:324   00:0c:29:f9:03:24  eth0     -       REACHABLE
 	Total number of entries 3 
 
-   ```
+  ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Watermark-Configuration-And-Show)
 
 
-
 # BGP Configuration And Show Commands
 
-This section explains all the BGP show commands and BGP configuation commands that are supported in SONiC.
+This section explains all the BGP show commands and BGP configuation commands in both "Quagga" and "FRR" routing software that are supported in SONiC.
+In 201811 and older verisons "Quagga" was enabled by default. In current version "FRR" is enabled by default.  
+Most of the FRR show commands start with "show bgp". Similar commands in Quagga starts with "show ip bgp". All sub-options supported in all these show commands are common for FRR and Quagga.
+Detailed show commands examples for Quagga are provided at the end of this document.This section captures only the commands supported by FRR.
 
-## BGP show commands
+## BGP show commands  
 
-**show ip bgp summary**  
 
-This command displays the summary of all IPv4 bgp neighbors that are configured and the corresponding states.
+**show bgp summary (for default FRR in 201904+ version) **  
+**show ip bgp summary (for Quagga in 201811- version) **  
 
-  - Usage:   
-    show ip bgp summary
+This command displays the summary of all IPv4 & IPv6 bgp neighbors that are configured and the corresponding states.  
+
+- Usage:   
+  show bgp summary (for default FRR in 201904+ version)   
+  show ip bgp summary (for Quagga in 201811- version)   
  
 - Example:
   ```
-  admin@sonic:~$ show ip bgp summary
-  BGP router identifier 1.2.3.4, local AS number 65061
-  RIB entries 6124, using 670 KiB of memory
-  Peers 2, using 143 KiB of memory
-  
-  Neighbor        V         AS MsgRcvd MsgSent   TblVer  InQ OutQ Up/Down  State/PfxRcd
-  192.168.1.161    4 65501   88698  102781        0    0    0 08w5d14h        2
-  192.168.1.163    4 65502   88698  102780        0    0    0 08w5d14h        2
-  
-  Total number of neighbors 2
-  ```
+   root@sonic-z9264f-9251:~# show bgp summary
 
-**show ip bgp neighbors**  
+   IPv4 Unicast Summary:
+   BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+   BGP table version 6465
+   RIB entries 12807, using 2001 KiB of memory
+   Peers 4, using 83 KiB of memory
+   Peer groups 2, using 128 bytes of memory
+
+   Neighbor        V         AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd
+   10.0.0.57       4      64600    3995    4001        0    0    0 00:39:32         6400
+   10.0.0.59       4      64600    3995    3998        0    0    0 00:39:32         6400
+   10.0.0.61       4      64600    3995    4001        0    0    0 00:39:32         6400
+   10.0.0.63       4      64600    3995    3998        0    0    0 00:39:32         6400
+
+   Total number of neighbors 4
+ 
+   IPv6 Unicast Summary:
+   BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+   BGP table version 12803
+   RIB entries 12805, using 2001 KiB of memory
+   Peers 4, using 83 KiB of memory
+   Peer groups 2, using 128 bytes of memory
+
+   Neighbor        V         AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd
+   fc00::72        4      64600    3995    5208        0    0    0 00:39:30         6400
+   fc00::76        4      64600    3994    5208        0    0    0 00:39:30         6400
+   fc00::7a        4      64600    3993    5208        0    0    0 00:39:30         6400
+   fc00::7e        4      64600    3993    5208        0    0    0 00:39:30         6400
+
+   Total number of neighbors 4
+  ```
+  Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ip bgp summary" for Quagga. 
+
+
+
+**show bgp neighbors (for default FRR in 201904+ version)**   
+**show ip bgp neighbors (for Quagga in 201811- version)**   
+
 
 This command displays all the details of IPv4 & IPv6 BGP neighbors when no optional argument is specified. 
 
@@ -1213,113 +1250,142 @@ When the optional argument IPv4_address is specified, it displays the detailed n
 
 Command has got additional optional arguments to display only the advertised routes, or the received routes, or all routes.
 
-In order to get details for an IPv6 neigbor, use "show ipv6 bgp neighbor <ipv6_address>" command.
+In order to get details for an IPv6 neigbor, use "show bgp ipv6 neighbor <ipv6_address>" command.
 
-  - Usage:  
-    show ip bgp neighbors [<ipv4-address> [advertised-routes | received-routes | routes]]
 
+- Usage:  
+  show bgp neighbors [\<ipv4-address\> [advertised-routes | received-routes | routes]] (for default FRR in 201904+ version)  
+  show ip bgp neighbors [\<ipv4-address\> [advertised-routes | received-routes | routes]] (for Quagga in 201811- version)  
 
 - Example:
   ```
-  admin@sonic:~$ show ip bgp neighbors
-  BGP neighbor is 192.168.1.161, remote AS 65501, local AS 65061, external link
-   Description: ARISTA01T0
-    BGP version 4, remote router ID 1.2.3.4
-    BGP state = Established, up for 08w5d14h
-    Last read 00:00:46, hold time is 180, keepalive interval is 60 seconds
-    Neighbor capabilities:
-      4 Byte AS: advertised and received
-      Dynamic: received
-      Route refresh: advertised and received(old & new)
-      Address family IPv4 Unicast: advertised and received
-      Graceful Restart Capabilty: advertised and received
-        Remote Restart timer is 120 seconds
-        Address families by peer:
-          IPv4 Unicast(not preserved)
-    Graceful restart informations:
-      End-of-RIB send: IPv4 Unicast
-      End-of-RIB received: IPv4 Unicast
-    Message statistics:
-      Inq depth is 0
-      Outq depth is 0
-                           Sent       Rcvd
-      Opens:                  1          1
-      Notifications:          0          0
-      Updates:            14066          3
-      Keepalives:         88718      88698
-      Route Refresh:          0          0
-      Capability:             0          0
-      Total:             102785      88702
-    Minimum time between advertisement runs is 30 seconds
-  
-   For address family: IPv4 Unicast
-    Community attribute sent to this neighbor(both)
-    2 accepted prefixes
-  
-    Connections established 1; dropped 0
-    Last reset never
-  Local host: 192.168.1.160, Local port: 32961
-  Foreign host: 192.168.1.161, Foreign port: 179
-  Nexthop: 192.168.1.160
-  Nexthop global: fe80::f60f:1bff:fe89:bc00
-  Nexthop local: ::
-  BGP connection: non shared network
-  Read thread: on  Write thread: off
+   admin@sonic:~$ show bgp neighbors
+   BGP neighbor is 10.0.0.57, remote AS 64600, local AS 65100, external link
+   Description: ARISTA01T1
+   BGP version 4, remote router ID 100.1.0.29, local router ID 10.1.0.32
+   BGP state = Established, up for 00:42:15
+   Last read 00:00:00, Last write 00:00:03
+   Hold time is 10, keepalive interval is 3 seconds
+   Configured hold time is 10, keepalive interval is 3 seconds
+   Neighbor capabilities:
+     4 Byte AS: advertised and received
+     AddPath:
+       IPv4 Unicast: RX advertised IPv4 Unicast and received
+     Route refresh: advertised and received(new)
+     Address Family IPv4 Unicast: advertised and received
+     Hostname Capability: advertised (name: sonic-z9264f-9251,domain name: n/a) not received
+     Graceful Restart Capabilty: advertised and received
+       Remote Restart timer is 300 seconds
+       Address families by peer:
+         none
+   Graceful restart information:
+     End-of-RIB send: IPv4 Unicast
+     End-of-RIB received: IPv4 Unicast
+   Message statistics:
+     Inq depth is 0
+     Outq depth is 0
+                          Sent       Rcvd
+     Opens:                  2          1
+     Notifications:          2          0
+     Updates:             3206       3202
+     Keepalives:           845        847
+     Route Refresh:          0          0
+     Capability:             0          0
+     Total:               4055       4050
+   Minimum time between advertisement runs is 0 seconds
+
+  For address family: IPv4 Unicast
+   Update group 1, subgroup 1
+   Packet Queue length 0
+   Inbound soft reconfiguration allowed
+   Community attribute sent to this neighbor(all)
+   6400 accepted prefixes
+
+   Connections established 1; dropped 0
+   Last reset 00:42:37, due to NOTIFICATION sent (Cease/Connection collision resolution)
+   Local host: 10.0.0.56, Local port: 179
+   Foreign host: 10.0.0.57, Foreign port: 46419
+   Nexthop: 10.0.0.56
+   Nexthop global: fc00::71
+   Nexthop local: fe80::2204:fff:fe36:9449
+   BGP connection: shared network
+   BGP Connect Retry Timer in Seconds: 120
+   Read thread: on  Write thread: on
   ```
-  
-  - Optionally, you can specify an IP address in order to display only that particular neighbor. In this mode, you can optionally specify whether you want to display all routes advertised to the specified neighbor, all routes received from the specified neighbor or all routes (received and accepted) from the specified neighbor.
+
+- Optionally, you can specify an IP address in order to display only that particular neighbor. In this mode, you can optionally specify whether you want to display all routes advertised to the specified neighbor, all routes received from the specified neighbor or all routes (received and accepted) from the specified neighbor.
  
 
 - Example:
   ``` 
-  admin@sonic:~$ show ip bgp neighbors 192.168.1.161
+    admin@sonic:~$ show bgp neighbors 10.0.0.57
 
-  admin@sonic:~$ show ip bgp neighbors 192.168.1.161 advertised-routes
+    admin@sonic:~$ show bgp neighbors 10.0.0.57 advertised-routes
 
-  admin@sonic:~$ show ip bgp neighbors 192.168.1.161 received-routes
+    admin@sonic:~$ show bgp neighbors 10.0.0.57 received-routes
 
-  admin@sonic:~$ show ip bgp neighbors 192.168.1.161 routes
+    admin@sonic:~$ show bgp neighbors 10.0.0.57 routes
+  
   ```
+  
+  Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ip bgp neighbors" for Quagga. 
 
-**show ipv6 bgp summary**  
 
-This command displays the summary of all IPv4 bgp neighbors that are configured and the corresponding states.
 
-  - Usage:  
-     show ipv6 bgp summary
+**show bgp ipv6 summary (for default FRR in 201904+ version)**  
+**show ipv6 bgp summary (for Quagga in 201811- version)**  
 
+This command displays the summary of all IPv6 bgp neighbors that are configured and the corresponding states.
+
+- Usage:  
+  show bgp ipv6 summary (for default FRR in 201904+ version)    
+  show ipv6 bgp summary (for Quagga in 201811- version)    
 
 - Example:
   ```
-  admin@sonic:~$ show ipv6 bgp summary
-  BGP router identifier 10.1.0.32, local AS number 65100
-  RIB entries 12809, using 1401 KiB of memory
-  Peers 8, using 36 KiB of memory
+  admin@sonic:~$ show bgp ipv6 summary
+  BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+  BGP table version 12803
+  RIB entries 12805, using 2001 KiB of memory
+  Peers 4, using 83 KiB of memory
+  Peer groups 2, using 128 bytes of memory
 
-  Neighbor        V         AS MsgRcvd MsgSent   TblVer  InQ OutQ Up/Down  State/PfxRcd
-  fc00::72        4 64600   12588   12591        0    0    0 06:51:17     6402
-  fc00::76        4 64600   12587    6190        0    0    0 06:51:28     6402
-  fc00::7a        4 64600   12587    9391        0    0    0 06:51:23     6402
-  fc00::7e        4 64600   12589   12592        0    0    0 06:51:25     6402
+  Neighbor        V         AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd
+  fc00::72        4      64600    3995    5208        0    0    0 00:39:30         6400
+  fc00::76        4      64600    3994    5208        0    0    0 00:39:30         6400
+  fc00::7a        4      64600    3993    5208        0    0    0 00:39:30         6400
+  fc00::7e        4      64600    3993    5208        0    0    0 00:39:30         6400
 
   Total number of neighbors 4
+  
   ```
+  Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ipv6 bgp summary" for Quagga. 
 
-**show ipv6 bgp neighbors**  
+
+
+**show bgp ipv6 neighbors (for default FRR in 201904+ version)**  
+**show ipv6 bgp neighbors (for Quagga in 201811- version)**  
+
 
 This command displays all the details of one particular IPv6 Border Gateway Protocol (BGP) neighbor. Option is also available to display only the advertised routes, or the received routes, or all routes.
 
+
   - Usage:  
-    show ipv6 bgp neighbors <ipv6-address> (advertised-routes | received-routes | routes)`
+    show bgp ipv6 neighbors [\<ipv6-address\> [(advertised-routes | received-routes | routes)]] (for default FRR in 201904+ version)   
+    show ipv6 bgp neighbors [\<ipv6-address\> [(advertised-routes | received-routes | routes)]] (for Quagga in 201811- version)   
 
 - Example:
   ```
-  admin@sonic:~$ show ipv6 bgp neighbors fc00::72 advertised-routes
+   admin@sonic:~$ show bgp ipv6 neighbors fc00::72 advertised-routes
 
-  admin@sonic:~$ show ipv6 bgp neighbors fc00::72 received-routes
+   admin@sonic:~$ show bgp ipv6 neighbors fc00::72 received-routes
 
-  admin@sonic:~$ show ipv6 bgp neighbors fc00::72 routes
+   admin@sonic:~$ show bgp ipv6 neighbors fc00::72 routes  
+   
   ```
+  Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ip bgp summary" for Quagga. 
+
+
 
 **show route-map**  
 
@@ -1511,11 +1577,12 @@ The list of the WRED profile fields that are configurable is listed in the below
 	  -v, --verbose                 Enable verbose output
 	  --help                        Show this message and exit.
   ```
- 
+  
+  
 - Example:
   ``` 
-  root@T1-2:~# config ecn -profile wredprofileabcd -rmax 100
-     This command configures the "red max threshold" for the WRED profile name "wredprofileabcd". It will create the WRED profile if it does not exist.
+     root@T1-2:~# config ecn -profile wredprofileabcd -rmax 100
+        This command configures the "red max threshold" for the WRED profile name "wredprofileabcd". It will create the WRED profile if it does not exist.
   ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#ECN-Configuration-And-Show-Commands)
@@ -1606,10 +1673,11 @@ This command displays the key fields of the interfaces such as Operational Statu
   Ethernet0    down       up   hundredGigE1/1  T0-1:hundredGigE1/30
   Ethernet4    down       up   hundredGigE1/2  T0-2:hundredGigE1/30
   Ethernet8    down     down   hundredGigE1/3        hundredGigE1/3
-  Ethernet12    down     down   hundredGigE1/4        hundredGigE1/4
+  Ethernet12   down     down   hundredGigE1/4        hundredGigE1/4
   ```
   ```
-  show the description for one particular interface.
+  show the description for one particular interface.  
+  
   admin@sonic:~$ show interfaces description Ethernet4
   Interface    Oper    Admin           Alias           Description
   -----------  ------  -------  --------------  --------------------
@@ -1632,13 +1700,14 @@ This command is used to display the list of expected neighbors for all interface
  
 - Example:
   ``` 
-  admin@sonic:~$ show interfaces neighbor expected
-	LocalPort    Neighbor    NeighborPort     NeighborLoopback    NeighborMgmt    NeighborType
-	-----------  ----------  ---------------  ------------------  --------------  --------------
-	Ethernet0    T0-1        hundredGigE1/30  None                10.11.162.45    ToRRouter
-	Ethernet4    T0-2        hundredGigE1/30  None                10.11.162.44    ToRRouter
-	Ethernet112  T2-1        hundredGigE1/2   None                10.11.150.201   SpineRouter
-	Ethernet116  T2-2        hundredGigE1/2   None                10.11.150.202   SpineRouter
+  root@sonic-z9264f-9251:~# show interfaces neighbor expected
+	LocalPort    Neighbor    NeighborPort    NeighborLoopback    NeighborMgmt    NeighborType
+	-----------  ----------  --------------  ------------------  --------------  --------------
+	Ethernet112  ARISTA01T1  Ethernet1       None                10.16.205.100   ToRRouter
+	Ethernet116  ARISTA02T1  Ethernet1       None                10.16.205.101   SpineRouter
+	Ethernet120  ARISTA03T1  Ethernet1       None                10.16.205.102   LeafRouter
+	Ethernet124  ARISTA04T1  Ethernet1       None                10.16.205.103   LeafRouter
+
   ```
 
 **show interfaces portchannel**  
@@ -1704,77 +1773,140 @@ This sub-section explains the following list of configuration on the interfaces.
 4) speed - to set the interface speed
 5) startup - to bring up the administratively shutdown interface
 
-**config interface ip add/remove**  
+From 201904 release onwards, the “config interface” command syntax is changed and the format is as follows    
 
-This command is used for adding or removing the IP address for an interface.
-IP address for either physical interface or for portchannel or for VLAN interface can be configured using this command.
+- config interface  interface_subcommand <interface_name>   
+i.e Interface name comes after the subcommand  
+- Ex: config interface startup Ethernet63  
 
-  - Usage:  
-    config interface <interface-name> ip add <ip_addr>
+The syntax for all such interface_subcommands are given below under each command  
 
-- Examples:  
-  
-  **Adding IP Address**  
+NOTE: In older versions of SONiC until 201811 release, the command syntax was  
+      "config interface <interface_name> interface_subcommand"
+
+**config interface ip add <interface-name> <ip_addr> (for 201904+ version)**  
+**config interface <interface-name> ip add <ip_addr> (for 201811- version)**  
+
+This command is used for adding the IP address for an interface.  
+IP address for either physical interface or for portchannel or for VLAN interface can be configured using this command. 
+
+
+- Usage:  
+    config interface ip add <interface-name> <ip_addr> (for 201904+ version)
+    config interface <interface-name> ip add <ip_addr> (for 201811- version)  
+
+- Example:  
   ```	
-  admin@sonic:~$ sudo config interface Vlan100 ip add 10.11.12.13/24 
+  admin@sonic:~$ sudo config interface ip add Ethernet63 10.11.12.13/24 
   ```
+NOTE: In SONiC versions until 201811, syntax was "config <interface_name> ip add <ip_addr>"
   
-  **Removing IP Address**  
-  ```
-  admin@sonic:~$ sudo config interface Vlan100 ip remove 10.11.12.13/24 
-  ```
   
-**config interface pfc**  
+**IP Address Configuration for Vlan Interface**  
+- Usage:  
+    config interface ip add <ip_addr> <vlan_IDName>
+
+- Example:  
+  ```	
+  admin@sonic:~$ sudo config interface ip add vlan100 10.11.12.13/24 
+  ```
+NOTE: In versions until 201811, syntax was "config interface <vlan_IDName> ip add <ip_addr>"
+
+  
+  
+**config interface ip remove <interface_name> <ip_addr> (for 201904+ version)**  
+**config interface <interface_name> ip remove <ip_addr> (for 201811- version)**  
+
+- Usage:  
+    config interface ip remove <interface_name> <ip_addr> (for 201904+ version)
+    config interface ip remove <interface_name> <ip_addr> (for 201811- version)
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config interface ip remove Ethernet63 10.11.12.13/24 
+  ```
+NOTE: In versions until 201811, syntax is "config  interface <interface_name> ip remove <ip_addr>"
+  
+  
+
+**IP Address Removal for Vlan Interface**  
+- Usage:  
+    config interface ip remove <vlan_IDName> <ip_addr> 
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config interface ip remove vlan100 10.11.12.13/24 
+  ```
+NOTE: In versions until 201811, syntax is "config interface <vlan_ID> ip remove <ip_addr>"
+
+  
+  
+**config interface pfc asymmetric <interface_name> (for 201904+ version)**  
+**config interface <interface_name> pfc asymmetric (for 201811- version)**  
 This command is used for setting the asymmetric PFC for an interface to either "on" or "off". Once if it is configured, use "show interfaces status" to check the same.
 
-  - Usage:  
-    config interface <interface-name> pfc asymmetric on/off
+- Usage:  
+    config interface pfc asymmetric <interface_name> on/off (for 201904+ version)
+    config interface <interface_name> pfc asymmetric on/off (for 201811- version)
 
-- Examples:  
+- Example:  
   ```	
-  admin@sonic:~$ sudo config interface Ethernet0 pfc asymmetric on 
+  admin@sonic:~$ sudo config interface pfc asymmetric Ethernet60 on 
   ```
 
-**config interface shutdown**  
+**config interface shutdown <interface_name> (for 201904+ version)**  
+**config interface <interface_name> shutdown (for 201811- version)**  
 
 This command is used to administratively shut down either the Physical interface or port channel interface. Once if it is configured, use "show interfaces status" to check the same.
 
-  - Usage:   
-    config interface <interface-name> shutdown
+- Usage:   
+    config interface shutdown <interface_name> (for 201904+ version)  
+    config interface <interface_name> shutdown (for 201811- version)
 
 - Example:
   ```
-  admin@sonic:~$ sudo config interface Ethernet0 shutdown
+  admin@sonic:~$ sudo config interface shutdown Ethernet63
   ```
+NOTE: In versions until 201811, syntax is "config interface <interface_name> shutdown"
 
-**config interface startup**  
+
+
+**config interface startup <interface_name> (for 201904+ version)**  
+**config interface <interface_name> startup (for 201811- version)**  
 
 This command is used for administratively bringing up the Physical interface or port channel interface.Once if it is configured, use "show interfaces status" to check the same.
 
-
-  - Usage:   
-    config interface <interface-name> startup
+- Usage:   
+    config interface startup <interface_name> (for 201904+ version)  
+    config interface <interface_name> startup (for 201811- version)
 
 - Example:
   ```
-  admin@sonic:~$ sudo config interface Ethernet0 startup
+  admin@sonic:~$ sudo config interface startup Ethernet63
   ```
+NOTE: In versions until 201811, syntax is "config interface <interface_name> startup"
 
-**config interface speed**  
+
+
+**config interface speed <interface_name> (for 201904+ version)**  
+**config interface <interface_name> speed (for 201811- version)**  
 
 This command is used to configure the speed for the Physical interface. Use the value 40000 for setting it to 40G and 100000 for 100G. Users need to know the device to configure it properly. 
-Dynamic breakout feature is yet supported in SONiC and hence uses cannot configure any values other than 40G and 100G.
+Dynamic breakout feature is yet to be supported in SONiC and hence uses cannot configure any values other than 40G and 100G.
 
-
-  - Usage:  
-    config interface <interface-name> speed <value>
-
+- Usage:  
+    config interface speed <interface_name> <speed_value>  (for 201904+ version)  
+    config interface <interface_name> speed <speed_value>  (for 201811- version)
+	
 - Example:
   ```
-  admin@sonic:~$ sudo config interface Ethernet0 speed 40000
+  admin@sonic:~$ sudo config interface speed Ethernet63 40000
   ```
 
-Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Interface-Configuration-And-Show-Commands)
+NOTE: In versions until 201811, syntax is "config interface <interface_name> speed <4000>"
+
+
+Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#interface-configuration-and-show-commands)
 
 
 # Interface Naming Mode
@@ -1863,7 +1995,7 @@ This sub-section explains the various IP protocol specific show commands that ar
 This command displays either all the route entries from the routing table or a specific route.
 
   - Usage:  
-    show ip route [<ip-address>]`
+    show ip route [\<ip_address\>]
 
 
 - Example:
@@ -1926,6 +2058,8 @@ The type of interfaces include the following.
 					 10.12.0.102/32	
   ```
 
+
+
 **show ip protocol**  
 
 This command displays the route-map that is configured for the routing protocol.
@@ -1970,7 +2104,7 @@ This sub-section explains the various IPv6 protocol specific show commands that 
 This command displays either all the IPv6 route entries from the routing table or a specific IPv6 route.
 
   - Usage:  
-    show ipv6 route [<ipv6-address>]
+    show ipv6 route [\<ipv6_address\>]
 	 
 
 - Example:
@@ -2085,7 +2219,7 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 This command displays the brief summary of all LLDP neighbors.
 
   - Usage:  
-    show lldp table`
+    show lldp table
 
 
 - Example:
@@ -2106,10 +2240,10 @@ This command displays the brief summary of all LLDP neighbors.
 This command displays more details about all LLDP neighbors or only the neighbors connected to a specific interface. 
 
   - Usage:  
-    show lldp neighbors [<interface-name>]
+    show lldp neighbors [INTERFACENAME]
 
 
-- Example:
+- Example1: To display all neighbors in all interfaces
   ```
 	admin@sonic:~$ show lldp neighbors
 	-------------------------------------------------------------------------------
@@ -2143,26 +2277,12 @@ This command displays more details about all LLDP neighbors or only the neighbor
 		PortID:       local hundredGigE1/2
 		PortDescr:    T0-2:hundredGigE1/30
 	-------------------------------------------------------------------------------
-	Interface:    Ethernet112, via: LLDP, RID: 2, Time: 0 day, 12:20:49
-	  Chassis:     
-		ChassisID:    mac 4c:76:25:e5:e6:c0
-		SysName:      T1-1
-		SysDescr:     Debian GNU/Linux 8 (jessie) Linux 4.9.0-8-amd64 #1 SMP Debian 4.9.110-3+deb9u6 (2015-12-19) x86_64
-		TTL:          120
-		MgmtIP:       10.11.162.41
-		Capability:   Bridge, on
-		Capability:   Router, on
-		Capability:   Wlan, off
-		Capability:   Station, off
-	  Port:        
-		PortID:       local hundredGigE1/2
-		PortDescr:    T0-2:hundredGigE1/29
-	-------------------------------------------------------------------------------	
   ```
+    
+    
   - Optionally, you can specify an interface name in order to display only that particular interface
  
-
-- Example:
+- Example2:
   ```
   admin@sonic:~$ show lldp neighbors Ethernet112
 	show lldp neighbors Ethernet112
@@ -2244,8 +2364,9 @@ If the argument is not specified, it prompts the user to confirm whether user re
 
 This command is used to load the configuration from /etc/sonic/minigraph.xml. 
 When users do not want to use configuration from config_db.json, they can copy the minigraph.xml configuration file to the device and load it using this command.
-This command restarts various services running in the device and it takes some time to complete the command.
-NOTE: If the user had logged in using SSH, users might get disconnected and some configuration failures might happen which might be hard to recover. Users need to reconnect their SSH sessions after configuring the management IP address. It is recommended to execute this command from console port.
+This command restarts various services running in the device and it takes some time to complete the command.  
+  
+NOTE: If the user had logged in using SSH, users might get disconnected and some configuration failures might happen which might be hard to recover. Users need to reconnect their SSH sessions after configuring the management IP address. It is recommended to execute this command from console port  
 NOTE: Management interface IP address and default route (or specific route) may require reconfiguration in case if those parameters are not part of the minigraph.xml.
 
 When user specifies the optional argument "-y" or "--yes", this command forces the loading without prompting the user for confirmation.
@@ -2403,10 +2524,72 @@ Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [
 
 # Platform Specific Commands
 
+There are few commands that are platform specific. Mellanox has used this feature and implemented Mellanox specific commands as follows.
+
+**show platform mlnx sniffer**  
+
+This command shows the SDK sniffer status
+
+  - Usage:  
+    show platform mlnx sniffer
+ 
+
+- Example:
+  ```
+  admin@arc-switch1004:~$ show platform mlnx sniffer
+  sdk sniffer is disabled
+  ```
+
+**show platform mlnx sniffer**  
+
+Another show command available on ‘show platform mlnx’ which is the issu status.
+This means if ISSU is enabled on this SKU or not. A warm boot command can be executed only when ISSU is enabled on the SKU.
+
+  - Usage:  
+    show platform mlnx issu
+
+
+  - Example:
+  ```
+  admin@arc-switch1004:~$ show platform mlnx issu
+  ISSU is enabled
+  ```
+
+In the case ISSU is disabled and warm-boot is called, the user will get a notification message explaining that the command cannot be invoked.
+
+Example:
+```
+admin@arc-switch1038:~$ sudo warm-reboot
+ISSU is not enabled on this HWSKU
+Warm reboot is not supported
+```
+
 **config platform mlnx**  
 This command is valid only on mellanox devices. The sub-commands for "config platform" gets populated only on mellanox platforms.
 There are no other subcommands on non-Mellanox devices and hence this command appears empty and useless in other platforms. 
-Mellanox specific commands shall be filled in later. 
+The platform mellanox command currently includes a single sub command which is the SDK sniffer.
+The SDK sniffer is a troubleshooting tool which records the RPC calls from the Mellanox SDK user API library to the sx_sdk task into a .pcap file. 
+This .pcap file can be replayed afterward to get the exact same configuration state on SDK and FW to reproduce and investigate issues.
+
+A new folder will be created to store the sniffer files: "/var/log/mellanox/sniffer/". The result file will be stored in a .pcap file, which includes a time stamp of the starting time in the file name, for example, "sx_sdk_sniffer_20180224081306.pcap"
+In order to have a complete .pcap file with all the RPC calls, the user should disable the SDK sniffer. Swss service will be restarted and no capturing is taken place from that moment.
+It is recommended to review the .pcap file while sniffing is disabled.
+Once SDK sniffer is enabled/disabled, the user is requested to approve that swss service will be restarted. 
+For example: To change SDK sniffer status, swss service will be restarted, continue? [y/N]:
+In order to avoid that confirmation the -y / --yes option should be used.
+
+  - Usage:  
+    config platform mlnx sniffer sdk [OPTIONS] OPTION  
+    Options:
+    -y, --yes
+    --help     Show this message and exit.
+
+  - Example:
+  ```
+  admin@arc-switch1038:~$ config platform mlnx sniffer sdk
+  To change SDK sniffer status, swss service will be restarted, continue? [y/N]: y
+  NOTE: In order to avoid that confirmation the -y / --yes option should be used.
+  ```
 
 # PortChannel Configuration And Show
 
@@ -2432,6 +2615,7 @@ This command displays all the port channels that are configured in the device an
       8  PortChannel8   LACP(A)(Up)  Ethernet8(S) Ethernet12(S)
   ```
 
+ 
 ## PortChannel Config commands
 
 This sub-section explains how to configure the portchannel and its member ports.
@@ -2855,31 +3039,31 @@ This command displays the running configuration of the snmp module.
 
 **show runningconfiguration acl**
 
-This command displays the running configuration of the acls
+ This command displays the running configuration of the acls
 
-  - Usage:
+   - Usage:
     show runningconfiguration acl
 
 
-- Example:
+ - Example:
   ```
   admin@sonic:~$ show runningconfiguration acl
   ```
 
-**show runningconfiguration interface <interfacename>**
+ **show runningconfiguration interface <interfacename>**
 
-This command displays the running configuration of the ports
+ This command displays the running configuration of the ports
 
-  - Usage:
+   - Usage:
     show runningconfiguration interface <interfacename>
 
 
-- Example:
+ - Example:
   ```
   admin@sonic:~$ show runningconfiguration interface
   ```
 
-  ```
+   ```
   admin@sonic:~$ show runningconfiguration interface <interfacename>
   ```
 
@@ -2907,7 +3091,7 @@ This command displays the current CPU usage by process. This command uses linux'
   - Usage:  
     show processes cpu
 	
-	Note that pipe option can be used using " | head -n" to display only the "n" number of lines.
+	NOTE that pipe option can be used using " | head -n" to display only the "n" number of lines.
 
 
 - Example:
@@ -2936,7 +3120,7 @@ This command displays the current memory usage by processes. This command uses l
   - Usage:  
     show processes memory
 	
-	Note that pipe option can be used using " | head -n" to display only the "n" number of lines.
+	NOTE that pipe option can be used using " | head -n" to display only the "n" number of lines.
 
 
 - Example:
@@ -3045,7 +3229,7 @@ This command displays the state of all the SONiC processes running inside a dock
 This command displays the system-wide memory utilization information – just a wrapper over linux native “free” command
 
   - Usage:  
-    sonic_installer remove <image_name>
+    show system-memory
 
 
 - Example:
@@ -3678,9 +3862,15 @@ Resulting archive file is saved as `/var/dump/<DEVICE_HOST_NAME>_YYYYMMDD_HHMMSS
   ```	
   admin@sonic:~$ show techsupport
   ```
+If the SONiC system was running for quite some time `show techsupport` will produce a large dump file. To reduce the amount of syslog and core files gathered during system dump use `--since` option:
+
+- Example:
+  ```	
+  admin@sonic:~$ show techsupport --since=yesterday  # Will collect syslog and core files for the last 24 hours
+  admin@sonic:~$ show techsupport --since='hour ago' # Will collect syslog and core files for the last one hour
+  ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Troubleshooting-commands)
-
 
 # Routing Stack Configuration And Show
 
@@ -3710,3 +3900,195 @@ Refer the routing stack [Quagga Command Reference](https://www.quagga.net/docs/q
 
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) 
+
+
+# Quagga BGP Show Commands  
+
+**show ip bgp summary**  
+
+This command displays the summary of all IPv4 bgp neighbors that are configured and the corresponding states.
+
+  - Usage:   
+    show ip bgp summary
+ 
+- Example:
+  ```
+  admin@sonic:~$ show ip bgp summary
+  BGP router identifier 1.2.3.4, local AS number 65061
+  RIB entries 6124, using 670 KiB of memory
+  Peers 2, using 143 KiB of memory
+  
+  Neighbor        V         AS MsgRcvd MsgSent   TblVer  InQ OutQ Up/Down  State/PfxRcd
+  192.168.1.161    4 65501   88698  102781        0    0    0 08w5d14h        2
+  192.168.1.163    4 65502   88698  102780        0    0    0 08w5d14h        2
+  
+  Total number of neighbors 2
+  ```
+
+**show ip bgp neighbors**  
+
+This command displays all the details of IPv4 & IPv6 BGP neighbors when no optional argument is specified. 
+
+When the optional argument IPv4_address is specified, it displays the detailed neighbor information about that specific IPv4 neighbor.
+
+Command has got additional optional arguments to display only the advertised routes, or the received routes, or all routes.
+
+In order to get details for an IPv6 neigbor, use "show ipv6 bgp neighbor <ipv6_address>" command.
+
+  - Usage:  
+    show ip bgp neighbors [<ipv4-address> [advertised-routes | received-routes | routes]]
+
+
+- Example:
+  ```
+  admin@sonic:~$ show ip bgp neighbors
+  BGP neighbor is 192.168.1.161, remote AS 65501, local AS 65061, external link
+   Description: ARISTA01T0
+    BGP version 4, remote router ID 1.2.3.4
+    BGP state = Established, up for 08w5d14h
+    Last read 00:00:46, hold time is 180, keepalive interval is 60 seconds
+    Neighbor capabilities:
+      4 Byte AS: advertised and received
+      Dynamic: received
+      Route refresh: advertised and received(old & new)
+      Address family IPv4 Unicast: advertised and received
+      Graceful Restart Capabilty: advertised and received
+        Remote Restart timer is 120 seconds
+        Address families by peer:
+          IPv4 Unicast(not preserved)
+    Graceful restart informations:
+      End-of-RIB send: IPv4 Unicast
+      End-of-RIB received: IPv4 Unicast
+    Message statistics:
+      Inq depth is 0
+      Outq depth is 0
+                           Sent       Rcvd
+      Opens:                  1          1
+      Notifications:          0          0
+      Updates:            14066          3
+      Keepalives:         88718      88698
+      Route Refresh:          0          0
+      Capability:             0          0
+      Total:             102785      88702
+    Minimum time between advertisement runs is 30 seconds
+  
+   For address family: IPv4 Unicast
+    Community attribute sent to this neighbor(both)
+    2 accepted prefixes
+  
+    Connections established 1; dropped 0
+    Last reset never
+  Local host: 192.168.1.160, Local port: 32961
+  Foreign host: 192.168.1.161, Foreign port: 179
+  Nexthop: 192.168.1.160
+  Nexthop global: fe80::f60f:1bff:fe89:bc00
+  Nexthop local: ::
+  BGP connection: non shared network
+  Read thread: on  Write thread: off
+  ```
+  
+  - Optionally, you can specify an IP address in order to display only that particular neighbor. In this mode, you can optionally specify whether you want to display all routes advertised to the specified neighbor, all routes received from the specified neighbor or all routes (received and accepted) from the specified neighbor.
+ 
+
+- Example:
+  ``` 
+  admin@sonic:~$ show ip bgp neighbors 192.168.1.161
+
+  admin@sonic:~$ show ip bgp neighbors 192.168.1.161 advertised-routes
+
+  admin@sonic:~$ show ip bgp neighbors 192.168.1.161 received-routes
+
+  admin@sonic:~$ show ip bgp neighbors 192.168.1.161 routes
+  ```
+
+**show ipv6 bgp summary**  
+
+This command displays the summary of all IPv4 bgp neighbors that are configured and the corresponding states.
+
+  - Usage:  
+     show ipv6 bgp summary
+
+
+- Example:
+  ```
+  admin@sonic:~$ show ipv6 bgp summary
+  BGP router identifier 10.1.0.32, local AS number 65100
+  RIB entries 12809, using 1401 KiB of memory
+  Peers 8, using 36 KiB of memory
+
+  Neighbor        V         AS MsgRcvd MsgSent   TblVer  InQ OutQ Up/Down  State/PfxRcd
+  fc00::72        4 64600   12588   12591        0    0    0 06:51:17     6402
+  fc00::76        4 64600   12587    6190        0    0    0 06:51:28     6402
+  fc00::7a        4 64600   12587    9391        0    0    0 06:51:23     6402
+  fc00::7e        4 64600   12589   12592        0    0    0 06:51:25     6402
+
+  Total number of neighbors 4
+  ```
+
+**show ipv6 bgp neighbors**  
+
+This command displays all the details of one particular IPv6 Border Gateway Protocol (BGP) neighbor. Option is also available to display only the advertised routes, or the received routes, or all routes.
+
+  - Usage:  
+    show ipv6 bgp neighbors <ipv6-address> (advertised-routes | received-routes | routes)`
+
+- Example:
+  ```
+  admin@sonic:~$ show ipv6 bgp neighbors fc00::72 advertised-routes
+
+  admin@sonic:~$ show ipv6 bgp neighbors fc00::72 received-routes
+
+  admin@sonic:~$ show ipv6 bgp neighbors fc00::72 routes
+  ```
+
+**show route-map**  
+
+This command displays the routing policy that takes precedence over the other route processes that are configured.
+
+  - Usage:  
+    show route-map
+  
+  - Example:
+  ``` 
+	admin@T1-2:~$ show route-map
+	ZEBRA:
+	route-map RM_SET_SRC, permit, sequence 10
+	  Match clauses:
+	  Set clauses:
+		src 10.12.0.102
+	  Call clause:
+	  Action:
+		Exit routemap
+	ZEBRA:
+	route-map RM_SET_SRC6, permit, sequence 10
+	  Match clauses:
+	  Set clauses:
+		src fc00:1::102
+	  Call clause:
+	  Action:
+		Exit routemap
+	BGP:
+	route-map FROM_BGP_SPEAKER_V4, permit, sequence 10
+	  Match clauses:
+	  Set clauses:
+	  Call clause:
+	  Action:
+	    Exit routemap
+	BGP:
+	route-map TO_BGP_SPEAKER_V4, deny, sequence 10
+	  Match clauses:
+	  Set clauses:
+	  Call clause:
+	  Action:
+	    Exit routemap
+	BGP:
+	route-map ISOLATE, permit, sequence 10
+	  Match clauses:
+	  Set clauses:
+		as-path prepend 65000
+	  Call clause:
+	  Action:
+		Exit routemap
+  ```
+
+Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Quagga-BGP-Show-Commands)
