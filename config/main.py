@@ -955,10 +955,13 @@ def add(ctx, interface_name, ip_addr):
         ipaddress.ip_network(unicode(ip_addr), strict=False)
         if interface_name.startswith("Ethernet"):
             config_db.set_entry("INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+            config_db.set_entry("INTERFACE", interface_name, {"NULL": "NULL"})
         elif interface_name.startswith("PortChannel"):
             config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+            config_db.set_entry("PORTCHANNEL_INTERFACE", interface_name, {"NULL": "NULL"})
         elif interface_name.startswith("Vlan"):
             config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+            config_db.set_entry("VLAN_INTERFACE", interface_name, {"NULL": "NULL"})
         elif interface_name.startswith("Loopback"):
             config_db.set_entry("LOOPBACK_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
         else:
@@ -982,20 +985,38 @@ def remove(ctx, interface_name, ip_addr):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
+    if_table = ""
     try:
         ipaddress.ip_network(unicode(ip_addr), strict=False)
         if interface_name.startswith("Ethernet"):
             config_db.set_entry("INTERFACE", (interface_name, ip_addr), None)
+            if_table = "INTERFACE"
         elif interface_name.startswith("PortChannel"):
             config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), None)
+            if_table = "PORTCHANNEL_INTERFACE"
         elif interface_name.startswith("Vlan"):
             config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), None)
+            if_table = "VLAN_INTERFACE"
         elif interface_name.startswith("Loopback"):
             config_db.set_entry("LOOPBACK_INTERFACE", (interface_name, ip_addr), None)
         else:
             ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
     except ValueError:
         ctx.fail("'ip_addr' is not valid.")
+    
+    exists = False
+    if if_table:
+        interfaces = config_db.get_table(if_table)
+        for key in interfaces.keys():
+            if not isinstance(key, tuple):
+                continue
+            if interface_name in key:
+                exists = True
+                break
+
+    if not exists:
+        config_db.set_entry(if_table, interface_name, None)
+
 #
 # 'acl' group ('config acl ...')
 #

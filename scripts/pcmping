@@ -86,13 +86,21 @@ def get_portchannel(interface):
     sys.stderr.write("Interface %s is not a portchannel member. Please Check!\n" % interface)
     sys.exit(1)
 
+def is_ip_prefix_in_key(key):
+    '''
+    Function to check if IP address is present in the key. If it
+    is present, then the key would be a tuple or else, it shall be
+    be string
+    '''
+    return (isinstance(key, tuple))
+
 def get_portchannel_ipv4(portchannel_name):
     configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     config = configdb.get_config()
     portchannel_interfaces = config["PORTCHANNEL_INTERFACE"]
     for key in portchannel_interfaces.keys():
-        if len(key) == 1:
+        if not is_ip_prefix_in_key(key):
             continue
         pc, ip = key
         ip = ip.split("/")[0]

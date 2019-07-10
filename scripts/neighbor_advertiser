@@ -110,11 +110,22 @@ def extract_ip_ver_addr(ip_prefix):
     return (ver, addr)
 
 
+def is_ip_prefix_in_key(key):
+    '''
+    Function to check if IP address is present in the key. If it
+    is present, then the key would be a tuple or else, it shall be
+    be string
+    '''
+    return (isinstance(key, tuple))
+
+
 def get_loopback_addr(ip_ver):
     loopback_intfs = config_db.get_table('LOOPBACK_INTERFACE')
     loopback_addr = ''
 
     for intf in loopback_intfs.keys():
+        if not is_ip_prefix_in_key(intf):
+             continue
         if 'Loopback0' in intf:
             intf_ip_prefix = intf[1]
             (intf_ip_ver, intf_ip_addr) = extract_ip_ver_addr(intf_ip_prefix)
@@ -170,6 +181,8 @@ def get_vlan_addr(vlan_intf_name, ip_ver):
     vlan_addr = []
 
     for intf in vlan_intfs.keys():
+        if not is_ip_prefix_in_key(intf):
+             continue
         if vlan_intf_name in intf:
             intf_ip_prefix = intf[1]
             (intf_ip_ver, intf_ip_addr) = extract_ip_ver_addr(intf_ip_prefix)

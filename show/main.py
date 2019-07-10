@@ -200,6 +200,15 @@ def get_interface_mode():
     return mode
 
 
+def is_ip_prefix_in_key(key):
+    '''
+    Function to check if IP address is present in the key. If it
+    is present, then the key would be a tuple or else, it shall be
+    be string
+    '''
+    return (isinstance(key, tuple))
+
+
 # Global class instance for SONiC interface name to alias conversion
 iface_alias_converter = InterfaceAliasConverter()
 
@@ -1503,7 +1512,7 @@ def brief(verbose):
 
     # Parsing VLAN Gateway info
     for key in natsorted(vlan_ip_data.keys()):
-        if len(key) == 1:
+        if not is_ip_prefix_in_key(key):
             continue
         interface_key = str(key[0].strip("Vlan"))
         interface_value = str(key[1])
