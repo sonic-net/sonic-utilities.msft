@@ -58,8 +58,8 @@ class InterfaceAliasConverter(object):
         self.port_dict = config_db.get_table('PORT')
 
         if not self.port_dict:
-            click.echo("port_dict is None!")
-            raise click.Abort()
+            click.echo(message="Warning: failed to retrieve PORT table from ConfigDB!", err=True)
+            self.port_dict = {}
 
         for port_name in self.port_dict.keys():
             try:
