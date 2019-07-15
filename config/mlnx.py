@@ -198,21 +198,33 @@ def sniffer():
 
 
 # 'sdk' subgroup
-@sniffer.command()
-@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false, expose_value=False,
-              prompt='To change SDK sniffer status, swss service will be restarted, continue?')
-@click.argument('option', type=click.Choice(["enable", "disable"]))
-def sdk(option):
+@sniffer.group()
+def sdk():
     """SDK Sniffer - Command Line to enable/disable SDK sniffer"""
-    if option == 'enable':
-        sdk_sniffer_enable()
-    elif option == 'disable':
-        sdk_sniffer_disable()
+    pass
+
+
+@sdk.command()
+@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false, expose_value=False,
+              prompt='Swss service will be restarted, continue?')
+def enable():
+    """Enable SDK Sniffer"""
+    print "Enabling SDK sniffer"
+    sdk_sniffer_enable()
+    print "Note: the sniffer file may exhaust the space on /var/log, please disable it when you are done with this sniffering."
+
+
+@sdk.command()
+@click.option('-y', '--yes', is_flag=True, callback=_abort_if_false, expose_value=False,
+              prompt='Swss service will be restarted, continue?')
+def disable():
+    """Disable SDK Sniffer"""
+    print "Disabling SDK sniffer"
+    sdk_sniffer_disable()
 
 
 def sdk_sniffer_enable():
     """Enable SDK Sniffer"""
-    print "Enabling SDK sniffer"
     sdk_sniffer_filename = sniffer_filename_generate(SDK_SNIFFER_TARGET_PATH,
                                                      SDK_SNIFFER_FILENAME_PREFIX,
                                                      SDK_SNIFFER_FILENAME_EXT)
@@ -231,21 +243,20 @@ def sdk_sniffer_enable():
         err = restart_swss()
         if err is not 0:
             return
-        print 'Enabled SDK sniffer, recording file is %s' % sdk_sniffer_filename
+        print 'SDK sniffer is Enabled, recording file is %s.' % sdk_sniffer_filename
     else:
         pass
 
 
 def sdk_sniffer_disable():
     """Disable SDK Sniffer"""
-    print "Disabling SDK sniffer"
 
     ignore = sniffer_env_variable_set(enable=False, env_variable_name=ENV_VARIABLE_SX_SNIFFER)
     if not ignore:
         err = restart_swss()
         if err is not 0:
             return
-        print "Disabled SDK sniffer"
+        print "SDK sniffer is Disabled."
     else:
         pass
 
