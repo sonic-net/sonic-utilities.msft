@@ -377,18 +377,30 @@ docker exec -i bgp pkill -9 zebra
 docker exec -i bgp pkill -9 bgpd || [ $? == 1 ]
 debug "Stopped  bgp ..."
 
-# Kill lldp, otherwise it sends informotion about reboot
+# Kill lldp, otherwise it sends informotion about reboot.
+# We call `docker kill lldp` to ensure the container stops as quickly as possible,
+# then immediately call `systemctl stop lldp` to prevent the service from
+# restarting the container automatically.
 docker kill lldp > /dev/null
+systemctl stop lldp
 
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Kill teamd, otherwise it gets down all LAGs
+    # We call `docker kill teamd` to ensure the container stops as quickly as possible,
+    # then immediately call `systemctl stop teamd` to prevent the service from
+    # restarting the container automatically.
     # Note: teamd must be killed before syncd, because it will send the last packet through CPU port
     # TODO: stop teamd gracefully to allow teamd to send last valid update to be sure we'll have 90 seconds reboot time
     docker kill teamd > /dev/null
+    systemctl stop teamd
 fi
 
-# Kill swss dockers
+# Kill swss Docker container
+# We call `docker kill swss` to ensure the container stops as quickly as possible,
+# then immediately call `systemctl stop swss` to prevent the service from
+# restarting the container automatically.
 docker kill swss > /dev/null
+systemctl stop swss
 
 # Pre-shutdown syncd
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
@@ -425,7 +437,13 @@ systemctl stop syncd
 debug "Stopped  syncd ..."
 
 # Kill other containers to make the reboot faster
-docker ps -q | xargs docker kill > /dev/null
+# We call `docker kill ...` to ensure the container stops as quickly as possible,
+# then immediately call `systemctl stop ...` to prevent the service from
+# restarting the container automatically.
+for CONTAINER_NAME in $(docker ps --format '{{.Names}}'); do
+    docker kill $CONTAINER_NAME > /dev/null
+    systemctl stop $CONTAINER_NAME
+done
 
 # Stop the docker container engine. Otherwise we will have a broken docker storage
 systemctl stop docker.service
