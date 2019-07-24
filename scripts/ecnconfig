@@ -21,9 +21,9 @@ optional arguments:
   -ymax  --yellow-max          set max threshold for packets marked yellow
   -rmin  --red-min             set min threshold for packets marked red
   -rmax  --red-max             set max threshold for packets marked red
-  -gdrop --green-drop-prob     set drop probability for packets marked green
-  -ydrop --yellow-drop-prob    set drop probability for packets marked yellow
-  -rdrop --red-drop-prob       set drop probability for packets marked red
+  -gdrop --green-drop-prob     set max drop/mark probability for packets marked green
+  -ydrop --yellow-drop-prob    set max drop/mark probability for packets marked yellow
+  -rdrop --red-drop-prob       set max drop/mark probability for packets marked red
 
 2) show and change ECN on/off status on queues
 
@@ -104,13 +104,57 @@ class EcnConfig(object):
         if self.verbose:
             print("Total profiles: %d" % len(wred_profiles))
 
+    # get parameters of a WRED profile
+    def get_profile_data(self, profile):
+        wred_profiles = self.db.get_table(WRED_PROFILE_TABLE_NAME)
+
+        for profile_name, profile_data in wred_profiles.items():
+            if profile_name == profile:
+                return profile_data 
+    
+        return None
+
+    def validate_profile_data(self, profile_data):
+        result = True
+
+        # check if thresholds are non-negative integers
+        # check if probabilities are non-nagative integers in [0, 100]
+        for key, field in WRED_CONFIG_FIELDS.items():
+            if field in profile_data:
+                value = profile_data[field]
+
+                if 'threshold' in field:
+                    if value.isdigit() == False:
+                        print("Invalid %s (%s). %s should be an non-negative integer." % (key, value, key))
+                        result = False 
+
+                elif 'probability' in field:
+                    if value.isdigit() == False or int(value) < 0 or int(value) > 100:
+                        print("Invalid %s (%s). %s should be an integer between 0 and 100." % (key, value, key))
+                        result = False
+
+        if result == False:
+            return result 
+
+        # check if min threshold is no larger than max threshold 
+        colors = ['g', 'y', 'r']
+        for color in colors:
+            if (WRED_CONFIG_FIELDS[color + 'min'] in profile_data and
+               WRED_CONFIG_FIELDS[color + 'max'] in profile_data):
+
+                min_thresh = int(profile_data[WRED_CONFIG_FIELDS[color + 'min']])
+                max_thresh = int(profile_data[WRED_CONFIG_FIELDS[color + 'max']])
+
+                if min_thresh > max_thresh:
+                    print("Invalid %s (%d) and %s (%d). %s should be no smaller than %s" % 
+                          (color + 'min', min_thresh, color + 'max', max_thresh, color + 'min', color + 'max'))
+                    result = False 
+
+        return result 
+
     def set_wred_threshold(self, profile, threshold, value):
         if os.geteuid() != 0:
             sys.exit("Root privileges required for this operation")
-
-        v = int(value)
-        if v < 0 :
-            raise Exception("Invalid %s" % (threshold))
 
         field = WRED_CONFIG_FIELDS[threshold]
         if self.verbose:
@@ -120,11 +164,7 @@ class EcnConfig(object):
     def set_wred_prob(self, profile, drop_color, value):
         if os.geteuid() != 0:
             sys.exit("Root privileges required for this operation")
-
-        v = int(value)
-        if v < 0 or v > 100:
-            raise Exception("Invalid %s" % (drop_color))
-
+        
         field = WRED_CONFIG_FIELDS[drop_color]
         if self.verbose:
             print("Setting %s value to %s%%" % (field, value))
@@ -203,9 +243,9 @@ def main():
     parser.add_argument('-ymax', '--yellow-max', type=str, help='set max threshold for packets marked \'yellow\'', default=None)
     parser.add_argument('-rmin', '--red-min', type=str, help='set min threshold for packets marked \'red\'', default=None)
     parser.add_argument('-rmax', '--red-max', type=str, help='set max threshold for packets marked \'red\'', default=None)
-    parser.add_argument('-gdrop', '--green-drop-prob', type=str, help='set drop probability for packets marked \'green\'', default=None)
-    parser.add_argument('-ydrop', '--yellow-drop-prob', type=str, help='set drop probability for packets marked \'yellow\'', default=None)
-    parser.add_argument('-rdrop', '--red-drop-prob', type=str, help='set drop probability for packets marked \'red\'', default=None)
+    parser.add_argument('-gdrop', '--green-drop-prob', type=str, help='set max drop/mark probability for packets marked \'green\'', default=None)
+    parser.add_argument('-ydrop', '--yellow-drop-prob', type=str, help='set max drop/mark probability for packets marked \'yellow\'', default=None)
+    parser.add_argument('-rdrop', '--red-drop-prob', type=str, help='set max drop/mark probability for packets marked \'red\'', default=None)
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
 
     parser.add_argument('command', nargs='?', choices=['on', 'off'], type=str, help='turn on/off ecn', default=None)
@@ -223,6 +263,36 @@ def main():
             elif args.profile:
                 if len(sys.argv) < (5 if args.verbose else 4):
                     raise Exception("Input arguments error. Specify at least one threshold parameter to set")
+
+                # get current configuration data 
+                wred_profile_data = prof_cfg.get_profile_data(args.profile)
+                if wred_profile_data == None:
+                    raise Exception("Input arguments error. Invalid WRED profile %s" % (args.profile))
+
+                if args.green_max:
+                    wred_profile_data[WRED_CONFIG_FIELDS["gmax"]] = args.green_max
+                if args.green_min:
+                    wred_profile_data[WRED_CONFIG_FIELDS["gmin"]] = args.green_min
+                if args.yellow_max:
+                    wred_profile_data[WRED_CONFIG_FIELDS["ymax"]] = args.yellow_max
+                if args.yellow_min:
+                    wred_profile_data[WRED_CONFIG_FIELDS["ymin"]] = args.yellow_min
+                if args.red_max:
+                    wred_profile_data[WRED_CONFIG_FIELDS["rmax"]] = args.red_max
+                if args.red_min:
+                    wred_profile_data[WRED_CONFIG_FIELDS["rmin"]] = args.red_min
+                if args.green_drop_prob:
+                    wred_profile_data[WRED_CONFIG_FIELDS["gdrop"]] = args.green_drop_prob
+                if args.yellow_drop_prob:
+                    wred_profile_data[WRED_CONFIG_FIELDS["ydrop"]] = args.yellow_drop_prob
+                if args.red_drop_prob:
+                    wred_profile_data[WRED_CONFIG_FIELDS["rdrop"]] = args.red_drop_prob
+
+                # validate new configuration data
+                if prof_cfg.validate_profile_data(wred_profile_data) == False:
+                    raise Exception("Input arguments error. Invalid WRED profile parameters")
+
+                # apply new configuration
                 # the following parameters can be combined in one run
                 if args.green_max:
                     prof_cfg.set_wred_threshold(args.profile, "gmax", args.green_max)
@@ -242,6 +312,7 @@ def main():
                     prof_cfg.set_wred_prob(args.profile, "ydrop", args.yellow_drop_prob)
                 if args.red_drop_prob:
                     prof_cfg.set_wred_prob(args.profile, "rdrop", args.red_drop_prob)
+
         elif args.queue:
             if len(sys.argv) < (4 if args.verbose else 3):
                 raise Exception("Input arguments error. Specify at least one queue by index")
