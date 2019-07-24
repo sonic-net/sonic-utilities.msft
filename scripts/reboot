@@ -116,6 +116,7 @@ clear_warm_boot
 # cause of the previous reboot
 echo "User issued 'reboot' command [User: ${REBOOT_USER}, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
 sync
+/sbin/fstrim -av
 sleep 3
 
 # sync the current system time to CMOS
