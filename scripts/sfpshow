@@ -75,7 +75,7 @@ class SFPShow(object):
         out_put=''
         ident = '        '
         for key in sorted_key_table:
-            if dom_info_dict[key] != 'N/A':
+            if dom_info_dict is not None and dom_info_dict[key] != 'N/A':
                 if dom_info_dict[key] == 'Unknown':
                     out_put = out_put + ident + ident + channel_monitor_map[key] + ': ' + dom_info_dict[key] + '\n'
                 else:
