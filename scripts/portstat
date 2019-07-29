@@ -59,6 +59,7 @@ PORT_OPER_STATUS_FIELD = "oper_status"
 PORT_ADMIN_STATUS_FIELD = "admin_status"
 PORT_STATUS_VALUE_UP = 'UP'
 PORT_STATUS_VALUE_DOWN = 'DOWN'
+PORT_SPEED_FIELD = "speed"
 
 PORT_STATE_UP = 'U'
 PORT_STATE_DOWN = 'D'
@@ -100,6 +101,19 @@ class Portstat(object):
             cnstat_dict[port] = get_counters(counter_port_name_map[port]) 
         return cnstat_dict
 
+    def get_port_speed(self, port_name):
+        """
+            Get the port speed
+        """
+        # Get speed from APPL_DB
+        full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
+        speed = self.db.get(self.db.APPL_DB, full_table_id, PORT_SPEED_FIELD)
+        if speed is None:
+            speed = PORT_RATE
+        else:
+            speed = int(speed)/1000
+        return speed
+
     def get_port_state(self, port_name):
         """
             Get the port state
@@ -137,20 +151,20 @@ class Portstat(object):
                 old_cntr = cnstat_old_dict.get(key)
             else:
                 old_cntr = NStats._make([0] * BUCKET_NUM)
-
+            port_speed = self.get_port_speed(key)
             if print_all:
                 table.append((key, self.get_port_state(key),
                               ns_diff(cntr.rx_ok, old_cntr.rx_ok),
                               ns_brate(cntr.rx_byt, old_cntr.rx_byt, time_gap),
                               ns_prate(cntr.rx_ok, old_cntr.rx_ok, time_gap),
-                              ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap),
+                              ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap, port_speed),
                               ns_diff(cntr.rx_err, old_cntr.rx_err),
                               ns_diff(cntr.rx_drop, old_cntr.rx_drop),
                               ns_diff(cntr.rx_ovr, old_cntr.rx_ovr),
                               ns_diff(cntr.tx_ok, old_cntr.tx_ok),
                               ns_brate(cntr.tx_byt, old_cntr.tx_byt, time_gap),
                               ns_prate(cntr.tx_ok, old_cntr.tx_ok, time_gap),
-                              ns_util(cntr.tx_byt, old_cntr.tx_byt, time_gap),
+                              ns_util(cntr.tx_byt, old_cntr.tx_byt, time_gap, port_speed),
                               ns_diff(cntr.tx_err, old_cntr.tx_err),
                               ns_diff(cntr.tx_drop, old_cntr.tx_drop),
                               ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
@@ -158,13 +172,13 @@ class Portstat(object):
                 table.append((key, self.get_port_state(key),
                               ns_diff(cntr.rx_ok, old_cntr.rx_ok),
                               ns_brate(cntr.rx_byt, old_cntr.rx_byt, time_gap),
-                              ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap),
+                              ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap, port_speed),
                               ns_diff(cntr.rx_err, old_cntr.rx_err),
                               ns_diff(cntr.rx_drop, old_cntr.rx_drop),
                               ns_diff(cntr.rx_ovr, old_cntr.rx_ovr),
                               ns_diff(cntr.tx_ok, old_cntr.tx_ok),
                               ns_brate(cntr.tx_byt, old_cntr.tx_byt, time_gap),
-                              ns_util(cntr.tx_byt, old_cntr.tx_byt, time_gap),
+                              ns_util(cntr.tx_byt, old_cntr.tx_byt, time_gap, port_speed),
                               ns_diff(cntr.tx_err, old_cntr.tx_err),
                               ns_diff(cntr.tx_drop, old_cntr.tx_drop),
                               ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
