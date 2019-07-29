@@ -525,12 +525,15 @@ class AclLoader(object):
                 if not val["ports"]:
                     data.append([key, val["type"], "", val["policy_desc"]])
                 else:
-                    ports = natsorted(val["ports"])
-                    data.append([key, val["type"], ports[0], val["policy_desc"]])
+                    if isinstance(val["ports"], list):
+                        ports = natsorted(val["ports"])
+                        data.append([key, val["type"], ports[0], val["policy_desc"]])
 
-                    if len(ports) > 1:
-                        for port in ports[1:]:
-                            data.append(["", "", port, ""])
+                        if len(ports) > 1:
+                            for port in ports[1:]:
+                                data.append(["", "", port, ""])
+                    else:
+                      data.append([key, val["type"], val["ports"], val["policy_desc"]])
 
         print(tabulate.tabulate(data, headers=header, tablefmt="simple", missingval=""))
 
