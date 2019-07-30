@@ -38,16 +38,81 @@ qsfp_data_map = {'modelname': 'Vendor PN', 'vendor_oui': 'Vendor OUI',
                  'encoding': 'Encoding', 'Connector': 'Connector' 
                  }
 
-sfp_dom_channel_monitor_map = {'rx1power': 'RXPower', 'tx1bias': 'TXBias', 'tx1power': 'TXPower'}
+sfp_dom_channel_monitor_map = {'rx1power': 'RXPower',
+                               'tx1bias': 'TXBias',
+                               'tx1power': 'TXPower'}
+
+sfp_dom_channel_threshold_map = {
+                                  'txpowerhighalarm':   'TxPowerHighAlarm',
+                                  'txpowerlowalarm':    'TxPowerLowAlarm',
+                                  'txpowerhighwarning': 'TxPowerHighWarning',
+                                  'txpowerlowwarning':  'TxPowerLowWarning',
+                                  'rxpowerhighalarm':   'RxPowerHighAlarm',
+                                  'rxpowerlowalarm':    'RxPowerLowAlarm',
+                                  'rxpowerhighwarning': 'RxPowerHighWarning',
+                                  'rxpowerlowwarning':  'RxPowerLowWarning',
+                                  'txbiashighalarm':    'TxBiasHighAlarm',
+                                  'txbiaslowalarm':     'TxBiasLowAlarm',
+                                  'txbiashighwarning':  'TxBiasHighWarning',
+                                  'txbiaslowwarning':   'TxBiasLowWarning',
+                                 }
+
+qsfp_dom_channel_threshold_map = {
+                                   'rxpowerhighalarm':   'RxPowerHighAlarm',
+                                   'rxpowerlowalarm':    'RxPowerLowAlarm',
+                                   'rxpowerhighwarning': 'RxPowerHighWarning',
+                                   'rxpowerlowwarning':  'RxPowerLowWarning',
+                                   'txbiashighalarm':    'TxBiasHighAlarm',
+                                   'txbiaslowalarm':     'TxBiasLowAlarm',
+                                   'txbiashighwarning':  'TxBiasHighWarning',
+                                   'txbiaslowwarning':   'TxBiasLowWarning',
+                                 }
+
+dom_module_threshold_map = {
+                             'temphighalarm':  'TempHighAlarm',
+                             'templowalarm':   'TempLowAlarm',
+                             'temphighwarning':'TempHighWarning',
+                             'templowwarning': 'TempLowWarning',
+                             'vcchighalarm':   'VccHighAlarm',
+                             'vcclowalarm':    'VccLowAlarm',
+                             'vcchighwarning': 'VccHighWarning',
+                             'vcclowwarning':  'VccLowWarning'
+                           }
 
 qsfp_dom_channel_monitor_map = {'rx1power': 'RX1Power', 'rx2power': 'RX2Power',
                                 'rx3power': 'RX3Power', 'rx4power': 'RX4Power',
-                                'tx1bias': 'TX1Bias', 'tx2bias': 'TX2Bias',
-                                'tx3bias': 'TX3Bias', 'tx4bias': 'TX4Bias',
+                                'tx1bias':  'TX1Bias',  'tx2bias':  'TX2Bias',
+                                'tx3bias':  'TX3Bias',  'tx4bias':  'TX4Bias',
                                 'tx1power': 'TX1Power', 'tx2power': 'TX2Power',
                                 'tx3power': 'TX3Power', 'tx4power': 'TX4Power'}
 
 dom_module_monitor_map = {'temperature': 'Temperature', 'voltage': 'Vcc'}
+
+dom_channel_threshold_unit_map = {
+                                   'txpowerhighalarm':   'dBm',
+                                   'txpowerlowalarm':    'dBm',
+                                   'txpowerhighwarning': 'dBm',
+                                   'txpowerlowwarning':  'dBm',
+                                   'rxpowerhighalarm':   'dBm',
+                                   'rxpowerlowalarm':    'dBm',
+                                   'rxpowerhighwarning': 'dBm',
+                                   'rxpowerlowwarning':  'dBm',
+                                   'txbiashighalarm':    'mA',
+                                   'txbiaslowalarm':     'mA',
+                                   'txbiashighwarning':  'mA',
+                                   'txbiaslowwarning':   'mA',
+                                 }
+
+dom_module_threshold_unit_map = {
+                                 'temphighalarm':   'C',
+                                 'templowalarm':    'C',
+                                 'temphighwarning': 'C',
+                                 'templowwarning':  'C',
+                                 'vcchighalarm':    'Volts',
+                                 'vcclowalarm':     'Volts',
+                                 'vcchighwarning':  'Volts',
+                                 'vcclowwarning':   'Volts'
+                                }
 
 dom_value_unit_map = {'rx1power': 'dBm', 'rx2power': 'dBm',
                       'rx3power': 'dBm', 'rx4power': 'dBm',
@@ -70,39 +135,113 @@ class SFPShow(object):
         self.sdb.connect(self.sdb.STATE_DB)
         return
 
-    # Convert channel monitor values to cli output string
-    def convert_channel_monitor_value_to_output_string(self, sorted_key_table, dom_info_dict, channel_monitor_map):
+    # Convert dict values to cli output string
+    def format_dict_value_to_string(self, sorted_key_table,
+                                    dom_info_dict, dom_value_map,
+                                    dom_unit_map, alignment = 0):
         out_put=''
         ident = '        '
+        seperator = ": "
         for key in sorted_key_table:
             if dom_info_dict is not None and dom_info_dict[key] != 'N/A':
+                current_val = (ident + ident +
+                        dom_value_map[key])
+                current_val = (current_val + seperator.rjust(len(seperator) +
+                               alignment - len(dom_value_map[key])))
                 if dom_info_dict[key] == 'Unknown':
-                    out_put = out_put + ident + ident + channel_monitor_map[key] + ': ' + dom_info_dict[key] + '\n'
+                    current_val = (current_val + dom_info_dict[key])
                 else:
-                    out_put = out_put + ident + ident + channel_monitor_map[key] + ': ' + dom_info_dict[key] + dom_value_unit_map[key] + '\n'
+                    current_val = (current_val + dom_info_dict[key] +
+                               dom_unit_map[key])
+                out_put  = out_put + current_val + '\n'
         return out_put
      
     # Convert dom sensor info in DB to cli output string
     def convert_dom_to_output_string(self, sfp_type, dom_info_dict):
         ident = '        '
         out_put_dom = ''
+        newline_ident = ': ' + '\n'
+        channel_threshold_align = 18
+        module_threshold_align = 15
+
         if sfp_type.startswith('QSFP'):
-            out_put_dom = out_put_dom + ident + 'ChannelMonitorValues' + ': ' + '\n'
-            sorted_dom_channel_monitor_info_key_table = natsorted(qsfp_dom_channel_monitor_map)
-            out_put_channel = self.convert_channel_monitor_value_to_output_string(sorted_dom_channel_monitor_info_key_table, dom_info_dict, qsfp_dom_channel_monitor_map)
+            #Channel Monitor
+            out_put_dom = (out_put_dom + ident + 'ChannelMonitorValues'
+                                                             + newline_ident)
+            sorted_key_table = natsorted(qsfp_dom_channel_monitor_map)
+            out_put_channel = self.format_dict_value_to_string(
+                                            sorted_key_table, dom_info_dict,
+                                            qsfp_dom_channel_monitor_map,
+                                            dom_value_unit_map)
             out_put_dom = out_put_dom + out_put_channel
 
-            out_put_dom = out_put_dom + ident + 'ModuleMonitorValues' + ': ' + '\n'
+            #Channel Threshold
+            out_put_dom = (out_put_dom + ident + 'ChannelThresholdValues'
+                                                             + newline_ident)
+            sorted_key_table = natsorted(qsfp_dom_channel_threshold_map)
+            out_put_channel_threshold = self.format_dict_value_to_string(
+                                         sorted_key_table, dom_info_dict,
+                                         qsfp_dom_channel_threshold_map,
+                                         dom_channel_threshold_unit_map,
+                                         channel_threshold_align)
+            out_put_dom = out_put_dom + out_put_channel_threshold
+
+            # Module Monitor
+            out_put_dom = (out_put_dom + ident + 'ModuleMonitorValues'
+                                                             + newline_ident)
+            sorted_key_table = natsorted(dom_module_monitor_map)
+            out_put_module = self.format_dict_value_to_string(
+                                            sorted_key_table, dom_info_dict,
+                                            dom_module_monitor_map,
+                                            dom_value_unit_map)
+            out_put_dom = out_put_dom + out_put_module
+
+            #Module Threshold
+            out_put_dom = (out_put_dom + ident + 'ModuleThresholdValues'
+                                                             + newline_ident)
+            sorted_key_table = natsorted(dom_module_threshold_map)
+            out_put_module_threshold = self.format_dict_value_to_string(
+                                         sorted_key_table, dom_info_dict,
+                                         dom_module_threshold_map,
+                                         dom_module_threshold_unit_map,
+                                         module_threshold_align)
+            out_put_dom = out_put_dom + out_put_module_threshold
 
         else:
-            out_put_dom = out_put_dom + ident + 'MonitorData' + ': ' + '\n'
-            sorted_dom_channel_monitor_info_key_table = natsorted(sfp_dom_channel_monitor_map)
-            out_put_channel = self.convert_channel_monitor_value_to_output_string(sorted_dom_channel_monitor_info_key_table, dom_info_dict, sfp_dom_channel_monitor_map)
+            out_put_dom = out_put_dom + ident + 'MonitorData' + newline_ident
+            sorted_key_table = natsorted(sfp_dom_channel_monitor_map)
+            out_put_channel = self.format_dict_value_to_string(
+                                            sorted_key_table, dom_info_dict,
+                                            sfp_dom_channel_monitor_map,
+                                            dom_value_unit_map)
             out_put_dom = out_put_dom + out_put_channel
 
-        sorted_dom_module_monitor_info_key_table = natsorted(dom_module_monitor_map)
-        out_put_module = self.convert_channel_monitor_value_to_output_string(sorted_dom_module_monitor_info_key_table, dom_info_dict, dom_module_monitor_map)
-        out_put_dom = out_put_dom + out_put_module
+            sorted_key_table = natsorted(dom_module_monitor_map)
+            out_put_module = self.format_dict_value_to_string(
+                                            sorted_key_table, dom_info_dict,
+                                            dom_module_monitor_map,
+                                            dom_value_unit_map)
+            out_put_dom = out_put_dom + out_put_module
+
+            out_put_dom = (out_put_dom + ident + 'ThresholdData'
+                                                             + newline_ident)
+            #Module Threshold
+            sorted_key_table = natsorted(dom_module_threshold_map)
+            out_put_module_threshold = self.format_dict_value_to_string(
+                                         sorted_key_table, dom_info_dict,
+                                         dom_module_threshold_map,
+                                         dom_module_threshold_unit_map,
+                                         module_threshold_align)
+            out_put_dom = out_put_dom + out_put_module_threshold
+
+            #Channel Threshold
+            sorted_key_table = natsorted(sfp_dom_channel_threshold_map)
+            out_put_channel_threshold = self.format_dict_value_to_string(
+                                         sorted_key_table, dom_info_dict,
+                                         sfp_dom_channel_threshold_map,
+                                         dom_channel_threshold_unit_map,
+                                         channel_threshold_align)
+            out_put_dom = out_put_dom + out_put_channel_threshold
 
         return out_put_dom
 

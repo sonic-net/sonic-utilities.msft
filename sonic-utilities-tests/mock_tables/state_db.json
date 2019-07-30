@@ -30,7 +30,23 @@
         "tx1power": "N/A",
         "tx2power": "N/A",
         "tx3power": "N/A",
-        "tx4power": "N/A"
+        "tx4power": "N/A",
+        "rxpowerhighalarm": "3.4001",
+        "rxpowerhighwarning": "2.4000",
+        "rxpowerlowalarm": "-13.5067",
+        "rxpowerlowwarning": "-9.5001",
+        "txbiashighalarm": "10.0000",
+        "txbiashighwarning": "9.5000",
+        "txbiaslowalarm": "0.5000",
+        "txbiaslowwarning": "1.0000",
+        "temphighalarm": "75.0000",
+        "temphighwarning": "70.0000",
+        "templowalarm": "-5.0000",
+        "templowwarning": "0.0000",
+        "vcchighalarm": "3.6300",
+        "vcchighwarning": "3.4650",
+        "vcclowalarm": "2.9700",
+        "vcclowwarning": "3.1349"
     },
     "CHASSIS_INFO|chassis 1": {
         "psu_num": "2"
