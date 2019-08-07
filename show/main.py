@@ -906,15 +906,16 @@ def get_if_oper_state(iface):
 #
 # 'show ip interfaces' command
 #
-# Display all interfaces with an IPv4 address and their admin/oper states.
+# Display all interfaces with an IPv4 address, admin/oper states, their BGP neighbor name and peer ip.
 # Addresses from all scopes are included. Interfaces with no addresses are
 # excluded.
 #
 @ip.command()
 def interfaces():
     """Show interfaces IPv4 address"""
-    header = ['Interface', 'IPv4 address/mask', 'Admin/Oper']
+    header = ['Interface', 'IPv4 address/mask', 'Admin/Oper', 'BGP Neighbor', 'Neighbor IP']
     data = []
+    bgp_peer = get_bgp_peer()
 
     interfaces = natsorted(netifaces.interfaces())
 
@@ -924,8 +925,16 @@ def interfaces():
         if netifaces.AF_INET in ipaddresses:
             ifaddresses = []
             for ipaddr in ipaddresses[netifaces.AF_INET]:
+                neighbor_name = 'N/A'
+                neighbor_ip = 'N/A'
+                local_ip = str(ipaddr['addr'])
                 netmask = netaddr.IPAddress(ipaddr['netmask']).netmask_bits()
-                ifaddresses.append(["", str(ipaddr['addr']) + "/" + str(netmask)])
+                ifaddresses.append(["", local_ip + "/" + str(netmask)])
+                try:
+                    neighbor_name = bgp_peer[local_ip][0]
+                    neighbor_ip = bgp_peer[local_ip][1]
+                except:
+                    pass
 
             if len(ifaddresses) > 0:
                 admin = get_if_admin_state(iface)
@@ -937,13 +946,32 @@ def interfaces():
                 if get_interface_mode() == "alias":
                     iface = iface_alias_converter.name_to_alias(iface)
 
-                data.append([iface, ifaddresses[0][1], admin + "/" + oper])
+                data.append([iface, ifaddresses[0][1], admin + "/" + oper, neighbor_name, neighbor_ip])
 
             for ifaddr in ifaddresses[1:]:
                 data.append(["", ifaddr[1], ""])
 
     print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
 
+# get bgp peering info
+def get_bgp_peer():
+    """
+    collects local and bgp neighbor ip along with device name in below format
+    {
+     'local_addr1':['neighbor_device1_name', 'neighbor_device1_ip'],
+     'local_addr2':['neighbor_device2_name', 'neighbor_device2_ip']
+     }
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    data = config_db.get_table('BGP_NEIGHBOR')
+    bgp_peer = {}
+
+    for neighbor_ip in data.keys():
+        local_addr = data[neighbor_ip]['local_addr']
+        neighbor_name = data[neighbor_ip]['name']
+        bgp_peer.setdefault(local_addr, [neighbor_name, neighbor_ip])
+    return bgp_peer
 
 #
 # 'route' subcommand ("show ip route")
@@ -1002,7 +1030,7 @@ def ipv6():
 #
 # 'show ipv6 interfaces' command
 #
-# Display all interfaces with an IPv6 address and their admin/oper states.
+# Display all interfaces with an IPv6 address, admin/oper states, their BGP neighbor name and peer ip.
 # Addresses from all scopes are included. Interfaces with no addresses are
 # excluded.
 #
@@ -1011,6 +1039,7 @@ def interfaces():
     """Show interfaces IPv6 address"""
     header = ['Interface', 'IPv6 address/mask', 'Admin/Oper']
     data = []
+    bgp_peer = get_bgp_peer()
 
     interfaces = natsorted(netifaces.interfaces())
 
@@ -1020,8 +1049,16 @@ def interfaces():
         if netifaces.AF_INET6 in ipaddresses:
             ifaddresses = []
             for ipaddr in ipaddresses[netifaces.AF_INET6]:
+                neighbor_name = 'N/A'
+                neighbor_ip = 'N/A'
+                local_ip = str(ipaddr['addr'])
                 netmask = ipaddr['netmask'].split('/', 1)[-1]
-                ifaddresses.append(["", str(ipaddr['addr']) + "/" + str(netmask)])
+                ifaddresses.append(["", local_ip + "/" + str(netmask)])
+                try:
+                    neighbor_name = bgp_peer[local_ip][0]
+                    neighbor_ip = bgp_peer[local_ip][1]
+                except:
+                    pass
 
             if len(ifaddresses) > 0:
                 admin = get_if_admin_state(iface)
@@ -1031,7 +1068,7 @@ def interfaces():
                     oper = "down"
                 if get_interface_mode() == "alias":
                     iface = iface_alias_converter.name_to_alias(iface)
-                data.append([iface, ifaddresses[0][1], admin + "/" + oper])
+                data.append([iface, ifaddresses[0][1], admin + "/" + oper], neighbor_name, neighbor_ip)
             for ifaddr in ifaddresses[1:]:
                 data.append(["", ifaddr[1], ""])
 
