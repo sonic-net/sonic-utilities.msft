@@ -427,6 +427,43 @@ def interfaces():
     """Show details of the network interfaces"""
     pass
 
+# 'alias' subcommand ("show interfaces alias")
+@interfaces.command()
+@click.argument('interfacename', required=False)
+def alias(interfacename):
+    """Show Interface Name/Alias Mapping"""
+
+    cmd = 'sonic-cfggen -d --var-json "PORT"'
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+
+    port_dict = json.loads(p.stdout.read())
+
+    header = ['Name', 'Alias']
+    body = []
+
+    if interfacename is not None:
+        if get_interface_mode() == "alias":
+            interfacename = iface_alias_converter.alias_to_name(interfacename)
+
+        # If we're given an interface name, output name and alias for that interface only
+        if interfacename in port_dict:
+            if 'alias' in port_dict[interfacename]:
+                body.append([interfacename, port_dict[interfacename]['alias']])
+            else:
+                body.append([interfacename, interfacename])
+        else:
+            click.echo("Invalid interface name, '{0}'".format(interfacename))
+            return
+    else:
+        # Output name and alias for all interfaces
+        for port_name in natsorted(port_dict.keys()):
+            if 'alias' in port_dict[port_name]:
+                body.append([port_name, port_dict[port_name]['alias']])
+            else:
+                body.append([port_name, port_name])
+
+    click.echo(tabulate(body, header))
+
 #
 # 'neighbor' group ###
 #
@@ -486,7 +523,6 @@ def expected(interfacename):
                          neighbor_metadata_dict['DEVICE_NEIGHBOR_METADATA'][device]['type']])
 
     click.echo(tabulate(body, header))
-
 
 @interfaces.group(cls=AliasedGroup, default_if_no_args=False)
 def transceiver():
