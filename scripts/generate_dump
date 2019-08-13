@@ -130,10 +130,15 @@ save_ip() {
 #  None
 ###############################################################################
 save_bgp_neighbor() {
-    neighbor_list=`vtysh -c "show ip bgp neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}'`
-    for word in $neighbor_list; do
+    neighbor_list_v4=$(vtysh -c "show ip bgp neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}')
+    for word in $neighbor_list_v4; do
         save_vtysh "show ip bgp neighbors $word advertised-routes" "ip.bgp.neighbor.$word.adv"
         save_vtysh "show ip bgp neighbors $word routes" "ip.bgp.neighbor.$word.rcv"
+    done
+    neighbor_list_v6=$(vtysh -c "show bgp ipv6 neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}' | fgrep ':')
+    for word in $neighbor_list_v6; do
+        save_vtysh "show bgp ipv6 neighbors $word advertised-routes" "ipv6.bgp.neighbor.$word.adv"
+        save_vtysh "show bgp ipv6 neighbors $word routes" "ipv6.bgp.neighbor.$word.rcv"
     done
 }
 
@@ -324,6 +329,9 @@ main() {
     save_vtysh "show ip bgp summary" "bgp.summary"
     save_vtysh "show ip bgp neighbors" "bgp.neighbors"
     save_vtysh "show ip bgp" "bgp.table" true
+    save_vtysh "show bgp ipv6 summary" "bgp.ipv6.summary"
+    save_vtysh "show bgp ipv6 neighbors" "bgp.ipv6.neighbors"
+    save_vtysh "show bgp ipv6" "bgp.ipv6.table" true
     save_bgp_neighbor
 
     save_cmd "show interface status" "interface.status"
