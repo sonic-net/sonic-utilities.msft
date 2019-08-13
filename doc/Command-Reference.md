@@ -2958,7 +2958,7 @@ This sub-section explains the show commands for displaying the running configura
 4) snmp
 5) all
 6) acl
-7) interface
+7) ports
 
 **show runningconfiguration all**
 
@@ -3038,21 +3038,21 @@ This command displays the running configuration of the snmp module.
   admin@sonic:~$ show runningconfiguration acl
   ```
 
- **show runningconfiguration interface <interfacename>**
+ **show runningconfiguration ports <portname>**
 
  This command displays the running configuration of the ports
 
    - Usage:
-    show runningconfiguration interface <interfacename>
+    show runningconfiguration ports <portname>
 
 
  - Example:
   ```
-  admin@sonic:~$ show runningconfiguration interface
+  admin@sonic:~$ show runningconfiguration ports
   ```
 
    ```
-  admin@sonic:~$ show runningconfiguration interface <interfacename>
+  admin@sonic:~$ show runningconfiguration ports <portname>
   ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Startup--Running-Configuration)

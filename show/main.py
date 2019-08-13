@@ -1420,16 +1420,16 @@ def acl(verbose):
     run_command(cmd, display_cmd=verbose)
 
 
-# 'interface' subcommand ("show runningconfiguration interface <interfacename>")
+# 'ports' subcommand ("show runningconfiguration ports <portname>")
 @runningconfiguration.command()
-@click.argument('interfacename', required=False)
+@click.argument('portname', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def interface(interfacename, verbose):
-    """Show port running configuration"""
+def ports(interfacename, verbose):
+    """Show ports running configuration"""
     cmd = "sonic-cfggen -d --var-json PORT"
 
-    if interfacename is not None:
-        cmd += " {0} {1}".format("--interface", interfacename)
+    if portname is not None:
+        cmd += " {0} {1}".format("--port", portname)
 
     run_command(cmd, display_cmd=verbose)
 
