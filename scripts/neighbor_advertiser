@@ -376,7 +376,7 @@ def add_vxlan_tunnel_map():
     for (index, vlan_intf_name) in enumerate(get_vlan_interfaces(), 1):
         vxlan_tunnel_map_info = {
             'vni': get_vlan_interface_vxlan_id(vlan_intf_name),
-            'vlan': get_vlan_interface_vlan_id(vlan_intf_name)
+            'vlan': vlan_intf_name
         }
 
         config_db.set_entry('VXLAN_TUNNEL_MAP', (VXLAN_TUNNEL_NAME, VXLAN_TUNNEL_MAP_PREFIX + str(index)), vxlan_tunnel_map_info)
