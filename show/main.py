@@ -1424,12 +1424,12 @@ def acl(verbose):
 @runningconfiguration.command()
 @click.argument('portname', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def ports(interfacename, verbose):
+def ports(portname, verbose):
     """Show ports running configuration"""
     cmd = "sonic-cfggen -d --var-json PORT"
 
     if portname is not None:
-        cmd += " {0} {1}".format("--port", portname)
+        cmd += " {0} {1}".format("--key", portname)
 
     run_command(cmd, display_cmd=verbose)
 
@@ -1449,10 +1449,10 @@ def bgp(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def interfaces(interfacename, verbose):
     """Show interfaces running configuration"""
-    cmd = "cat /etc/network/interfaces"
+    cmd = "sonic-cfggen -d --var-json INTERFACE"
 
     if interfacename is not None:
-        cmd += " | grep {} -A 4".format(interfacename)
+        cmd += " {0} {1}".format("--key", interfacename)
 
     run_command(cmd, display_cmd=verbose)
 
