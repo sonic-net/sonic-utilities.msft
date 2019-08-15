@@ -371,6 +371,11 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
     fi
 fi
 
+# Kill radv before stopping BGP service to prevent annoucing our departure.
+debug "Stopping radv ..."
+docker kill radv &>/dev/null || [ $? == 1 ]
+systemctl stop radv
+
 # Kill bgpd to start the bgp graceful restart procedure
 debug "Stopping bgp ..."
 docker exec -i bgp pkill -9 zebra
