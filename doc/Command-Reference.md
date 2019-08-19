@@ -4079,4 +4079,35 @@ This command displays the routing policy that takes precedence over the other ro
 		Exit routemap
   ```
 
+# Syslog Server Configuration Commands 
+
+This sub-section of commands is used to add or remove the configured syslog servers.
+
+**config syslog add** 
+
+This command is used to add a SYSLOG server to the syslog server list.  Note that more that one syslog server can be added in the device.
+
+- Usage: config syslog add <ip-address>
+- Example: 
+  ```
+  admin@str-s6000-acs-11:~$ sudo config syslog add 1.1.1.1
+  Syslog server 1.1.1.1 added to configuration
+  Restarting rsyslog-config service...
+  admin@str-s6000-acs-11:~$
+  ```
+
+**config syslog delete**
+
+This command is used to delete the syslog server configured. 
+
+- Usage: config syslog del <ip-address>
+- Example:
+  ```
+  admin@str-s6000-acs-11:~$ sudo config syslog del 1.1.1.1
+  Syslog server 1.1.1.1 removed from configuration
+  Restarting rsyslog-config service...
+  admin@str-s6000-acs-11:~$
+  ```
+  
+
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Quagga-BGP-Show-Commands)

@@ -1312,6 +1312,54 @@ def naming_mode_alias():
     """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
     set_interface_naming_mode('alias')
 
+#
+# 'syslog' group ('config syslog ...')
+#
+@config.group()
+@click.pass_context
+def syslog(ctx):
+    """Syslog server configuration tasks"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {'db': config_db}
+    pass
+
+@syslog.command('add')
+@click.argument('syslog_ip_address', metavar='<syslog_ip_address>', required=True)
+@click.pass_context
+def add_syslog_server(ctx, syslog_ip_address):
+    """ Add syslog server IP """
+    if not is_ipaddress(syslog_ip_address):
+        ctx.fail('Invalid ip address')
+    db = ctx.obj['db']
+    syslog_servers = db.get_table("SYSLOG_SERVER")
+    if syslog_ip_address in syslog_servers:
+        click.echo("Syslog server {} is already configured".format(syslog_ip_address))
+        return
+    else: 
+        db.set_entry('SYSLOG_SERVER', syslog_ip_address, {'NULL': 'NULL'})
+        click.echo("Syslog server {} added to configuration".format(syslog_ip_address))
+        try:
+            click.echo("Restarting rsyslog-config service...")
+            run_command("systemctl restart rsyslog-config", display_cmd=False)
+        except SystemExit as e:
+            ctx.fail("Restart service rsyslog-config failed with error {}".format(e))
+
+@syslog.command('del')
+@click.argument('syslog_ip_address', metavar='<syslog_ip_address>', required=True)
+@click.pass_context
+def del_syslog_server(ctx, syslog_ip_address):
+    """ Delete syslog server IP """
+    if not is_ipaddress(syslog_ip_address):
+        ctx.fail('Invalid IP address')
+    db = ctx.obj['db']
+    db.set_entry('SYSLOG_SERVER', '{}'.format(syslog_ip_address), None)
+    click.echo("Syslog server {} removed from configuration".format(syslog_ip_address))
+    try:
+        click.echo("Restarting rsyslog-config service...")
+        run_command("systemctl restart rsyslog-config", display_cmd=False)
+    except SystemExit as e:
+        ctx.fail("Restart service rsyslog-config failed with error {}".format(e))
 
 if __name__ == '__main__':
     config()
