@@ -287,22 +287,57 @@ def _abort_if_false(ctx, param, value):
         ctx.abort()
 
 def _stop_services():
-    services = [
+    services_to_stop = [
         'swss',
         'lldp',
         'pmon',
         'bgp',
         'hostcfgd',
     ]
-    for service in services:
+
+    for service in services_to_stop:
         try:
-            run_command("systemctl stop %s" % service, display_cmd=True)
+            click.echo("Stopping service {} ...".format(service))
+            run_command("systemctl stop {}".format(service))
+
         except SystemExit as e:
             log_error("Stopping {} failed with error {}".format(service, e))
             raise
 
+def _reset_failed_services():
+    services_to_reset = [
+        'bgp',
+        'dhcp_relay',
+        'hostcfgd',
+        'hostname-config',
+        'interfaces-config',
+        'lldp',
+        'ntp-config',
+        'pmon',
+        'radv',
+        'rsyslog-config',
+        'snmp',
+        'swss',
+        'syncd',
+        'teamd'
+    ]
+
+    command = "systemctl --failed | grep failed | awk '{ print $2 }' | awk -F'.' '{ print $1 }'"
+    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    (out, err) = proc.communicate()
+    failed_services = out.rstrip('\n').split('\n')
+
+    for service in failed_services:
+        if service in services_to_reset:
+            try:
+                click.echo("Resetting failed service {} ...".format(service))
+                run_command("systemctl reset-failed {}".format(service))
+            except SystemExit as e:
+                log_error("Failed to reset service {}".format(service))
+                raise
+
 def _restart_services():
-    services = [
+    services_to_restart = [
         'hostname-config',
         'interfaces-config',
         'ntp-config',
@@ -313,9 +348,11 @@ def _restart_services():
         'lldp',
         'hostcfgd',
     ]
-    for service in services:
+
+    for service in services_to_restart:
         try:
-            run_command("systemctl restart %s" % service, display_cmd=True)
+            click.echo("Restarting service {} ...".format(service))
+            run_command("systemctl restart {}".format(service))
         except SystemExit as e:
             log_error("Restart {} failed with error {}".format(service, e))
             raise
@@ -398,6 +435,9 @@ def reload(filename, yes, load_sysinfo):
     if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
         run_command(db_migrator + ' -o migrate')
 
+    # We first run "systemctl reset-failed" to remove the "failed"
+    # status from all services before we attempt to restart them
+    _reset_failed_services()
     _restart_services()
 
 @config.command()
@@ -454,6 +494,9 @@ def load_minigraph():
     if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
         run_command(db_migrator + ' -o set_version')
 
+    # We first run "systemctl reset-failed" to remove the "failed"
+    # status from all services before we attempt to restart them
+    _reset_failed_services()
     #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
     _restart_services()
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
