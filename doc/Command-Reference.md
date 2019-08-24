@@ -4139,6 +4139,36 @@ This command is used to delete a configured DHCP Relay Destination IP address fr
   Restarting DHCP relay service...
   Running command: systemctl restart dhcp_relay
   admin@str-s6000-acs-11:~$ 
+  ```
   
+# NTP Server Configuration Commands 
+
+This sub-section of commands is used to add or remove the configured NTP servers.
+
+**config ntp add** 
+
+This command is used to add a NTP server IP address to the NTP server list.  Note that more that one NTP server IP address can be added in the device.
+
+- Usage: config ntp add <ip-address>
+- Example: 
+  ```
+  admin@str-s6000-acs-11:~$ sudo config ntp add 9.9.9.9
+  NTP server 9.9.9.9 added to configuration
+  Restarting ntp-config service...
+  admin@str-s6000-acs-11:~$
+  ```
+
+**config ntp delete**
+
+This command is used to delete a configured NTP server IP address. 
+
+- Usage: config ntp del <ip-address>
+- Example:
+  ```
+  admin@str-s6000-acs-11:~$ sudo config ntp del 9.9.9.9
+  NTP server 9.9.9.9 removed from configuration
+  Restarting ntp-config service...
+  admin@str-s6000-acs-11:~$
+  ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#Quagga-BGP-Show-Commands)
