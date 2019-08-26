@@ -1476,8 +1476,16 @@ def snmp(server, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def ntp(verbose):
     """Show NTP running configuration"""
-    cmd = "cat /etc/ntp.conf"
-    run_command(cmd, display_cmd=verbose)
+    ntp_servers = []
+    ntp_dict = {}
+    with open("/etc/ntp.conf") as ntp_file:
+        data = ntp_file.readlines()
+    for line in data:
+        if line.startswith("server "):
+            ntp_server = line.split(" ")[1]
+            ntp_servers.append(ntp_server)
+    ntp_dict['NTP Servers'] = ntp_servers
+    print tabulate(ntp_dict, headers=ntp_dict.keys(), tablefmt="simple", stralign='left', missingval="")
 
 
 # 'syslog' subcommand ("show runningconfiguration syslog")
