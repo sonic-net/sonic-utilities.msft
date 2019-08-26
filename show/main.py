@@ -1480,6 +1480,24 @@ def ntp(verbose):
     run_command(cmd, display_cmd=verbose)
 
 
+# 'syslog' subcommand ("show runningconfiguration syslog")
+@runningconfiguration.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def syslog(verbose):
+    """Show Syslog running configuration"""
+    syslog_servers = []
+    syslog_dict = {}
+    with open("/etc/rsyslog.conf") as syslog_file:
+        data = syslog_file.readlines()
+    for line in data:
+        if line.startswith("*.* @"):
+            line = line.split(":")
+            server = line[0][5:]
+            syslog_servers.append(server)
+    syslog_dict['Syslog Servers'] = syslog_servers
+    print tabulate(syslog_dict, headers=syslog_dict.keys(), tablefmt="simple", stralign='left', missingval="")
+
+
 #
 # 'startupconfiguration' group ("show startupconfiguration ...")
 #
