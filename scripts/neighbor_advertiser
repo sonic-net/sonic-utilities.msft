@@ -34,7 +34,9 @@ SYSLOG_IDENTIFIER = 'neighbor_advertiser'
 
 MIRROR_SESSION_NAME = 'neighbor_advertiser'
 MIRROR_ACL_TABLE_NAME = 'EVERFLOW'
+MIRROR_ACL_TABLEV6_NAME = 'EVERFLOWV6'
 MIRROR_ACL_RULE_NAME = 'rule_arp'
+MIRROR_ACL_RULEV6_NAME = 'rule_nd'
 VXLAN_TUNNEL_NAME = 'neighbor_advertiser'
 VXLAN_TUNNEL_MAP_PREFIX = 'map_'
 
@@ -314,7 +316,17 @@ def add_mirror_acl_rule():
         'mirror_action': MIRROR_SESSION_NAME
     }
 
-    config_db.set_entry('ACL_RULE', (MIRROR_ACL_TABLE_NAME, MIRROR_ACL_RULE_NAME), acl_rule_info)
+    config_db.set_entry('ACL_RULE',
+            (MIRROR_ACL_TABLE_NAME, MIRROR_ACL_RULE_NAME), acl_rule_info)
+
+    acl_rule_info = {
+        'PRIORITY': '8887',
+        'ICMPV6_TYPE': '128',
+        'mirror_action': MIRROR_SESSION_NAME
+    }
+
+    config_db.set_entry('ACL_RULE',
+            (MIRROR_ACL_TABLEV6_NAME, MIRROR_ACL_RULEV6_NAME), acl_rule_info)
 
 
 def set_mirror_tunnel(ferret_server_ip):
@@ -333,6 +345,7 @@ def remove_mirror_session():
 
 def remove_mirror_acl_rule():
     config_db.set_entry('ACL_RULE', (MIRROR_ACL_TABLE_NAME, MIRROR_ACL_RULE_NAME), None)
+    config_db.set_entry('ACL_RULE', (MIRROR_ACL_TABLEV6_NAME, MIRROR_ACL_RULEV6_NAME), None)
 
 
 def reset_mirror_tunnel():
