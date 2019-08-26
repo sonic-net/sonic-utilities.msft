@@ -14,6 +14,7 @@ import requests
 import argparse
 import syslog
 import traceback
+import subprocess
 import sonic_device_util
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
@@ -194,6 +195,51 @@ def get_vlan_addr(vlan_intf_name, ip_ver):
     return vlan_addr
 
 
+def get_vlan_addresses(vlan_interface):
+    vlan_id = get_vlan_interface_vlan_id(vlan_interface)
+    vxlan_id = get_vlan_interface_vxlan_id(vlan_interface)
+
+    mac_addr = None
+    ipv4_addr = []
+    ipv6_addr = []
+
+    '''
+    Sample output for "ip addr show Vlan101"
+
+	218: Vlan101@Bridge: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+		link/ether 98:5d:82:01:d8:48 brd ff:ff:ff:ff:ff:ff
+		inet 10.171.22.113/29 scope global Vlan101
+		   valid_lft forever preferred_lft forever
+		inet6 2603:10b0:10f:843c::1/64 scope global
+		   valid_lft forever preferred_lft forever
+		inet6 fe80::9a5d:82ff:fe01:d848/64 scope link
+		   valid_lft forever preferred_lft forever
+    '''
+    try:
+        out = subprocess.check_output(['ip', 'addr', 'show', vlan_interface])
+        for line in out.splitlines():
+            keys=line.strip().split(' ')
+            if keys[0] == 'inet':
+                ipv4_addr.append(keys[1].split('/')[0])
+            elif keys[0] == 'inet6':
+                ipv6_addr.append(keys[1].split('/')[0])
+            elif keys[0] == 'link/ether':
+                mac_addr = keys[1]
+    except Exception as e:
+        log_error('failed to get %s addresses from o.s.' % vlan_interface)
+        pass
+
+    if not mac_addr:
+        mac_addr = get_vlan_interface_mac_address(vlan_interface)
+
+    if not ipv4_addr:
+        ipv4_addr = get_vlan_addr(vlan_interface, 4)
+
+    if not ipv6_addr:
+        ipv6_addr = get_vlan_addr(vlan_interface, 6)
+
+    return vlan_id, vxlan_id, ipv4_addr, ipv6_addr, mac_addr
+
 #
 # Set up neighbor advertiser slice on Ferret
 #
@@ -215,11 +261,7 @@ def construct_neighbor_advertiser_slice():
     all_vlan_interfaces = get_vlan_interfaces()
 
     for vlan_interface in all_vlan_interfaces:
-        vlan_id = get_vlan_interface_vlan_id(vlan_interface)
-        vxlan_id = get_vlan_interface_vxlan_id(vlan_interface)
-        ipv4_addr = get_vlan_addr(vlan_interface, 4)
-        ipv6_addr = get_vlan_addr(vlan_interface, 6)
-        mac_addr = get_vlan_interface_mac_address(vlan_interface)
+        vlan_id, vxlan_id, ipv4_addr, ipv6_addr, mac_addr = get_vlan_addresses(vlan_interface)
 
         if not mac_addr:
             log_warning('Cannot find mac addr of vlan interface {}'.format(vlan_interface))
