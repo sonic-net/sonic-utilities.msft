@@ -1396,8 +1396,12 @@ def del_syslog_server(ctx, syslog_ip_address):
     if not is_ipaddress(syslog_ip_address):
         ctx.fail('Invalid IP address')
     db = ctx.obj['db']
-    db.set_entry('SYSLOG_SERVER', '{}'.format(syslog_ip_address), None)
-    click.echo("Syslog server {} removed from configuration".format(syslog_ip_address))
+    syslog_servers = db.get_table("SYSLOG_SERVER")
+    if syslog_ip_address in syslog_servers:
+        db.set_entry('SYSLOG_SERVER', '{}'.format(syslog_ip_address), None)
+        click.echo("Syslog server {} removed from configuration".format(syslog_ip_address))
+    else: 
+        ctx.fail("Syslog server {} is not configured.".format(syslog_ip_address))
     try:
         click.echo("Restarting rsyslog-config service...")
         run_command("systemctl restart rsyslog-config", display_cmd=False)
