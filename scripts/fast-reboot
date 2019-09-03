@@ -250,6 +250,23 @@ function reboot_pre_check()
         debug "Next image ${NEXT_SONIC_IMAGE} doesn't exist ..."
         exit ${EXIT_NEXT_IMAGE_NOT_EXISTS}
     fi
+    
+    # Make sure ASIC configuration has not changed between images
+    ASIC_CONFIG_CHECK_SCRIPT="/usr/bin/asic_config_check"
+    ASIC_CONFIG_CHECK_SUCCESS=0
+    if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+        ASIC_CONFIG_CHECK_EXIT_CODE=0
+        ${ASIC_CONFIG_CHECK_SCRIPT} || ASIC_CONFIG_CHECK_EXIT_CODE=$?
+
+        if [[ "${ASIC_CONFIG_CHECK_EXIT_CODE}" != "${ASIC_CONFIG_CHECK_SUCCESS}" ]]; then
+            if [[ x"${FORCE}" == x"yes" ]]; then
+                debug "Ignoring ASIC config checksum failure..."
+            else
+                error "ASIC config may have changed: errno=${ASIC_CONFIG_CHECK_EXIT_CODE}"
+                exit "${EXIT_FAILURE}"
+            fi
+        fi
+    fi
 }
 
 function unload_kernel()
