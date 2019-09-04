@@ -363,7 +363,7 @@ def add_mirror_acl_rule():
 
     acl_rule_info = {
         'PRIORITY': '8887',
-        'ICMPV6_TYPE': '128',
+        'ICMPV6_TYPE': '135',
         'mirror_action': MIRROR_SESSION_NAME
     }
 
