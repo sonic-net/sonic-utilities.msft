@@ -1860,6 +1860,17 @@ def ecn():
     click.echo(proc.stdout.read())
 
 
+#
+# 'boot' command ("show boot")
+#
+@cli.command('boot')
+def boot():
+    """Show boot configuration"""
+    cmd = "sudo sonic_installer list"
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    click.echo(proc.stdout.read())
+
+
 # 'mmu' command ("show mmu")
 #
 @cli.command('mmu')

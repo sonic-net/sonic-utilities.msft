@@ -382,6 +382,21 @@ This command displays the current date and time configured on the system
   Mon Mar 25 20:25:16 UTC 2019
   ```
 
+**show boot**
+This command displays the current OS image, the image loaded on next reboot, and the lists the available images on the system
+
+-  Usage:
+   show boot
+
+- Example:
+  ```
+  admin@sonic:~$ show boot
+  Current: SONiC-OS-20181130.31
+  Next: SONiC-OS-20181130.31
+  Available: 
+  SONiC-OS-20181130.31
+  ```
+
 **show environment**
 This command displays the platform environmentals, such as voltages, temperatures and fan speeds
 
