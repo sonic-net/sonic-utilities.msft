@@ -9,6 +9,7 @@ REBOOT_SCRIPT_NAME=$(basename $0)
 REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
 VERBOSE=no
 FORCE=no
+STRICT=no
 REBOOT_METHOD="/sbin/kexec -e"
 ASSISTANT_IP_LIST=""
 ASSISTANT_SCRIPT="/usr/bin/neighbor_advertiser"
@@ -25,6 +26,7 @@ EXIT_NEXT_IMAGE_NOT_EXISTS=4
 EXIT_ORCHAGENT_SHUTDOWN=10
 EXIT_SYNCD_SHUTDOWN=11
 EXIT_FAST_REBOOT_DUMP_FAILURE=12
+EXIT_NO_CONTROL_PLANE_ASSISTANT=20
 
 function error()
 {
@@ -49,13 +51,15 @@ function showHelpAndExit()
     echo "    -k    : reboot with /sbin/kexec -e [default]"
     echo "    -x    : execute script with -x flag"
     echo "    -c    : specify control plane assistant IP list"
+    echo "    -s    : strict mode: do not proceed without:"
+    echo "            - control plane assistant IP list."
 
     exit "${EXIT_SUCCESS}"
 }
 
 function parseOptions()
 {
-    while getopts "vfh?rkxc:" opt; do
+    while getopts "vfh?rkxc:s" opt; do
         case ${opt} in
             h|\? )
                 showHelpAndExit
@@ -77,6 +81,9 @@ function parseOptions()
                 ;;
             c )
                 ASSISTANT_IP_LIST=${OPTARG}
+                ;;
+            s )
+                STRICT=yes
                 ;;
         esac
     done
@@ -199,6 +206,9 @@ function setup_control_plane_assistant()
     if [[ -n "${ASSISTANT_IP_LIST}" && -x ${ASSISTANT_SCRIPT} ]]; then
         debug "Setting up control plane assistant: ${ASSISTANT_IP_LIST} ..."
         ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m set
+    elif [[ X"${STRICT}" == X"yes" ]]; then
+        debug "Strict mode: fail due to lack of control plane assistant ..."
+        exit ${EXIT_NO_CONTROL_PLANE_ASSISTANT}
     fi
 }
 
