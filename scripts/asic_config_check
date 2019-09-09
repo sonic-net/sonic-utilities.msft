@@ -3,7 +3,7 @@
 # Exit codes
 ASIC_CONFIG_UNCHANGED=0
 ASIC_CONFIG_CHANGED=1
-SRC_ASIC_CONFIG_NOT_FOUND=2
+CURR_ASIC_CONFIG_NOT_FOUND=2
 DST_ASIC_CONFIG_NOT_FOUND=3
 
 # Logging utilities
@@ -17,14 +17,16 @@ function debug()
     logger -p user.info "$@"
 }
 
-# Retrieve the source ASIC config checksum from the source image
-# Exits with error SRC_ASIC_CONFIG_NOT_FOUND if the checksum is not found
-function GetSourceASICConfigChecksum()
+# Retrieve the current ASIC config checksum from the current image
+# Returns CURR_ASIC_CONFIG_NOT_FOUND if the checksum is not found, ASIC_CONFIG_UNCHANGED otherwise
+function GetCurrentASICConfigChecksum()
 {
     if [[ ! -f "/etc/sonic/asic_config_checksum" ]]; then
-            error "ASIC config not found in src image, can't verify changes"
-            exit "${SRC_ASIC_CONFIG_NOT_FOUND}"
+            debug "ASIC config not found in curr image, pre-check not supported"
+            return "${CURR_ASIC_CONFIG_NOT_FOUND}"
     fi
+
+    return "${ASIC_CONFIG_UNCHANGED}"
 }
 
 # Retrieve the destination ASIC config checksum from the destination image
@@ -56,13 +58,13 @@ function GetDestinationASICConfigChecksum()
     rm -rf "${FS_MOUNTPOINT}"
 }
 
-# Confirm that the src and dst ASIC config checksums match
+# Confirm that the curr and dst ASIC config checksums match
 # Exits with ASIC_CONFIG_CHANGED if the checksums differ
 function ConfirmASICConfigChecksumsMatch()
 {
-    SRC_CONFIG_CHECKSUM=$(cat /etc/sonic/asic_config_checksum)
+    CURR_CONFIG_CHECKSUM=$(cat /etc/sonic/asic_config_checksum)
     DST_CONFIG_CHECKSUM=$(cat /tmp/dst_asic_config_checksum)
-    if [[ "${SRC_CONFIG_CHECKSUM}" != "${DST_CONFIG_CHECKSUM}" ]]; then
+    if [[ "${CURR_CONFIG_CHECKSUM}" != "${DST_CONFIG_CHECKSUM}" ]]; then
         error "ASIC config may have changed, checksum failed"
         exit "${ASIC_CONFIG_CHANGED}"
     fi
@@ -71,14 +73,21 @@ function ConfirmASICConfigChecksumsMatch()
 # Main starts here
 debug "Checking that ASIC configuration has not changed"
 
-SRC_SONIC_IMAGE="$(sonic_installer list | grep "Current: " | cut -f2 -d' ')"
+CURR_SONIC_IMAGE="$(sonic_installer list | grep "Current: " | cut -f2 -d' ')"
 DST_SONIC_IMAGE="$(sonic_installer list | grep "Next: " | cut -f2 -d' ')"
-if [[ "${SRC_SONIC_IMAGE}" == "${DST_SONIC_IMAGE}" ]]; then
-    debug "ASIC config unchanged, src and dst SONiC version are the same"
+if [[ "${CURR_SONIC_IMAGE}" == "${DST_SONIC_IMAGE}" ]]; then
+    debug "ASIC config unchanged, current and destination SONiC version are the same"
     exit "${ASIC_CONFIG_UNCHANGED}"
 fi
 
-GetSourceASICConfigChecksum
+GET_CURR_CHECKSUM_RESULT=0
+GetCurrentASICConfigChecksum || GET_CURR_CHECKSUM_RESULT=$?
+
+# If the current device does not have a checksum then this check is not yet supported on this device
+if [[ "${GET_CURR_CHECKSUM_RESULT}" == "${CURR_ASIC_CONFIG_NOT_FOUND}" ]]; then
+    exit "${ASIC_CONFIG_UNCHANGED}"
+fi
+
 GetDestinationASICConfigChecksum
 ConfirmASICConfigChecksumsMatch
 
