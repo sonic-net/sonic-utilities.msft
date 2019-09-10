@@ -238,6 +238,31 @@ def _change_bgp_session_status(ipaddr_or_hostname, status, verbose):
     for ip_addr in ip_addrs:
         _change_bgp_session_status_by_addr(ip_addr, status, verbose)
 
+def _validate_bgp_neighbor(neighbor_ip_or_hostname):
+    """validates whether the given ip or host name is a BGP neighbor
+    """
+    ip_addrs = []
+    if _is_neighbor_ipaddress(neighbor_ip_or_hostname.lower()):
+        ip_addrs.append(neighbor_ip_or_hostname.lower())
+    else:
+        ip_addrs = _get_neighbor_ipaddress_list_by_hostname(neighbor_ip_or_hostname.upper())
+
+    if not ip_addrs:
+        click.get_current_context().fail("Could not locate neighbor '{}'".format(neighbor_ip_or_hostname))
+
+    return ip_addrs
+
+def _remove_bgp_neighbor_config(neighbor_ip_or_hostname):
+    """Removes BGP configuration of the given neighbor
+    """
+    ip_addrs = _validate_bgp_neighbor(neighbor_ip_or_hostname)
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    for ip_addr in ip_addrs:
+        config_db.mod_entry('bgp_neighbor', ip_addr, None)
+        click.echo("Removed configuration of BGP neighbor {}".format(ip_addr))
+
 def _change_hostname(hostname):
     current_hostname = os.uname()[1]
     if current_hostname != hostname:
@@ -951,6 +976,21 @@ def all(verbose):
 def neighbor(ipaddr_or_hostname, verbose):
     """Start up BGP session by neighbor IP address or hostname"""
     _change_bgp_session_status(ipaddr_or_hostname, 'up', verbose)
+
+#
+# 'remove' subgroup ('config bgp remove ...')
+#
+
+@bgp.group()
+def remove():
+    "Remove BGP neighbor configuration from the device"
+    pass
+
+@remove.command('neighbor')
+@click.argument('neighbor_ip_or_hostname', metavar='<neighbor_ip_or_hostname>', required=True)
+def remove_neighbor(neighbor_ip_or_hostname):
+    """Deletes BGP neighbor configuration of given hostname or ip from devices"""
+    _remove_bgp_neighbor_config(neighbor_ip_or_hostname)
 
 #
 # 'interface' group ('config interface ...')
