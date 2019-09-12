@@ -347,19 +347,13 @@ def _reset_failed_services():
         'teamd'
     ]
 
-    command = "systemctl --failed | grep failed | awk '{ print $2 }' | awk -F'.' '{ print $1 }'"
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    (out, err) = proc.communicate()
-    failed_services = out.rstrip('\n').split('\n')
-
-    for service in failed_services:
-        if service in services_to_reset:
-            try:
-                click.echo("Resetting failed service {} ...".format(service))
-                run_command("systemctl reset-failed {}".format(service))
-            except SystemExit as e:
-                log_error("Failed to reset service {}".format(service))
-                raise
+    for service in services_to_reset:
+        try:
+            click.echo("Resetting failed status for service {} ...".format(service))
+            run_command("systemctl reset-failed {}".format(service))
+        except SystemExit as e:
+            log_error("Failed to reset failed status for service {}".format(service))
+            raise
 
 def _restart_services():
     services_to_restart = [
