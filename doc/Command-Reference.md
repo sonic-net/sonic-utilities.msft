@@ -598,7 +598,19 @@ Couple of example outputs are given below.
 	(checksum valid)
   ```
 
+**show platform ssdhealth**  
+This command displays health parameters of the device's SSD
 
+- Usage:  
+  show platform ssdhealth [--verbose, --vendor]
+
+- Example:
+  ```
+  root@arc-switch1029:/home/admin# show platform ssdhealth
+  Device Model : M.2 (S42) 3IE3
+  Health       : 99.665%
+  Temperature  : 30C
+  ```
 
 **show platform psustatus**
 This command displays the status of the device's power supply units

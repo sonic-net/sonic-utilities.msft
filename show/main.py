@@ -1258,6 +1258,20 @@ def psustatus(index, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
+# 'ssdhealth' subcommand ("show platform ssdhealth [--verbose/--vendor]")
+@platform.command()
+@click.argument('device', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+@click.option('--vendor', is_flag=True, help="Enable vendor specific output")
+def ssdhealth(device, verbose, vendor):
+    """Show SSD Health information"""
+    if not device:
+        device = os.popen("lsblk -o NAME,TYPE -p | grep disk").readline().strip().split()[0]
+    cmd = "ssdutil -d " + device
+    options = " -v" if verbose else ""
+    options += " -e" if vendor else ""
+    run_command(cmd + options, display_cmd=verbose)
+
 #
 # 'logging' command ("show logging")
 #
