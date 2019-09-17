@@ -418,16 +418,12 @@ docker kill lldp > /dev/null
 systemctl stop lldp
 
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
-    # Kill teamd processes inside of teamd container with SIGINT to allow them to send last LACP frames
     # Kill teamd, otherwise it gets down all LAGs
     # We call `docker kill teamd` to ensure the container stops as quickly as possible,
     # then immediately call `systemctl stop teamd` to prevent the service from
     # restarting the container automatically.
     # Note: teamd must be killed before syncd, because it will send the last packet through CPU port
-    docker exec -i teamd pkill -INT teamd || [ $? == 1 ]
-    while docker exec -i teamd pgrep teamd > /dev/null; do
-      sleep 0.05
-    done
+    # TODO: stop teamd gracefully to allow teamd to send last valid update to be sure we'll have 90 seconds reboot time
     docker kill teamd > /dev/null
     systemctl stop teamd
 fi
