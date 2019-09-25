@@ -423,12 +423,14 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # then immediately call `systemctl stop teamd` to prevent the service from
     # restarting the container automatically.
     # Note: teamd must be killed before syncd, because it will send the last packet through CPU port
+    debug "Stopping teamd ..."
     docker exec -i teamd pkill -USR2 teamd || [ $? == 1 ]
     while docker exec -i teamd pgrep teamd > /dev/null; do
       sleep 0.05
     done
     docker kill teamd > /dev/null
     systemctl stop teamd
+    debug "Stopped teamd ..."
 fi
 
 # Kill swss Docker container
@@ -464,7 +466,7 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
     # Send USR1 signal to all teamd instances to stop them
     # It will prepare teamd for warm-reboot
     # Note: We must send USR1 signal before syncd, because it will send the last packet through CPU port
-    docker exec -i teamd pkill -USR1 teamd || [ $? == 1 ] > /dev/null
+    docker exec -i teamd pkill -USR1 teamd > /dev/null || [ $? == 1 ]
     debug "Stopped  teamd ..."
 fi
 
@@ -476,10 +478,16 @@ debug "Stopped  syncd ..."
 # We call `docker kill ...` to ensure the container stops as quickly as possible,
 # then immediately call `systemctl stop ...` to prevent the service from
 # restarting the container automatically.
+debug "Stopping all remaining containers ..."
 for CONTAINER_NAME in $(docker ps --format '{{.Names}}'); do
-    docker kill $CONTAINER_NAME > /dev/null
+    CONTAINER_STOP_RC=0
+    docker kill $CONTAINER_NAME &> /dev/null || CONTAINER_STOP_RC=$?
     systemctl stop $CONTAINER_NAME
+    if [[ CONTAINER_STOP_RC -ne 0 ]]; then
+        debug "Failed killing container $CONTAINER_NAME RC $CONTAINER_STOP_RC ."
+    fi
 done
+debug "Stopped all remaining containers ..."
 
 # Stop the docker container engine. Otherwise we will have a broken docker storage
 systemctl stop docker.service
