@@ -134,11 +134,14 @@ class AclLoader(object):
         self.sessions_db_info = self.configdb.get_table(self.CFG_MIRROR_SESSION_TABLE)
         for key in self.sessions_db_info.keys():
             state_db_info = self.statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(self.STATE_MIRROR_SESSION_TABLE, key))
+            monitor_port = ""
             if state_db_info:
                 status = state_db_info.get("status", "inactive")
+                monitor_port = state_db_info.get("monitor_port", "")
             else:
                 status = "error"
             self.sessions_db_info[key]["status"] = status
+            self.sessions_db_info[key]["monitor_port"] = monitor_port
 
     def get_sessions_db_info(self):
         return self.sessions_db_info
@@ -541,7 +544,7 @@ class AclLoader(object):
         :param session_name: Optional. Mirror session name. Filter sessions by specified name.
         :return:
         """
-        header = ("Name", "Status", "SRC IP", "DST IP", "GRE", "DSCP", "TTL", "Queue", "Policer")
+        header = ("Name", "Status", "SRC IP", "DST IP", "GRE", "DSCP", "TTL", "Queue", "Policer", "Monitor Port")
 
         data = []
         for key, val in self.get_sessions_db_info().iteritems():
@@ -550,7 +553,8 @@ class AclLoader(object):
 
             data.append([key, val["status"], val["src_ip"], val["dst_ip"],
                          val.get("gre_type", ""), val.get("dscp", ""),
-                         val.get("ttl", ""), val.get("queue", ""), val.get("policer", "")])
+                         val.get("ttl", ""), val.get("queue", ""), val.get("policer", ""),
+                         val.get("monitor_port", "")])
 
         print(tabulate.tabulate(data, headers=header, tablefmt="simple", missingval=""))
 
