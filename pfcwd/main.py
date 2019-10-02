@@ -42,7 +42,13 @@ def get_all_queues(db):
     return natsorted(queue_names.keys())
 
 def get_all_ports(db):
-    port_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_PORT_NAME_MAP')
+    all_port_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_PORT_NAME_MAP')
+
+    # Get list of physical ports
+    port_names = {}
+    for i in all_port_names:
+        if i.startswith('Ethernet'):
+            port_names[i]= all_port_names[i]
     return natsorted(port_names.keys())
 
 def get_server_facing_ports(db):
