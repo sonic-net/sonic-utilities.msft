@@ -90,7 +90,7 @@ def stats(empty, queues):
             line = stats.get(stat[1], '0') + '/' + stats.get(stat[2], '0')
             stats_list.append(line)
         if stats_list != ['0/0'] * len(STATS_DESCRIPTION) or empty:
-            table.append([queue, stats['PFC_WD_STATUS']] + stats_list)
+            table.append([queue, stats.get('PFC_WD_STATUS', 'N/A')] + stats_list)
 
     click.echo(tabulate(table, STATS_HEADER, stralign='right', numalign='right', tablefmt='simple'))
 
