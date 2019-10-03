@@ -1088,7 +1088,7 @@ def ipv6():
 @ipv6.command()
 def interfaces():
     """Show interfaces IPv6 address"""
-    header = ['Interface', 'IPv6 address/mask', 'Admin/Oper']
+    header = ['Interface', 'IPv6 address/mask', 'Admin/Oper', 'BGP Neighbor', 'Neighbor IP']
     data = []
     bgp_peer = get_bgp_peer()
 
@@ -1119,7 +1119,7 @@ def interfaces():
                     oper = "down"
                 if get_interface_mode() == "alias":
                     iface = iface_alias_converter.name_to_alias(iface)
-                data.append([iface, ifaddresses[0][1], admin + "/" + oper], neighbor_name, neighbor_ip)
+                data.append([iface, ifaddresses[0][1], admin + "/" + oper, neighbor_name, neighbor_ip])
             for ifaddr in ifaddresses[1:]:
                 data.append(["", ifaddr[1], ""])
 
