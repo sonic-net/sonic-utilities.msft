@@ -221,6 +221,7 @@ This command lists all the possible configuration commands at the top level.
     acl                    ACL-related configuration tasks
     bgp                    BGP-related configuration tasks
     ecn                    ECN-related configuration tasks
+    hostname               Change device hostname without impacting traffic
     interface              Interface-related configuration tasks
     interface_naming_mode  Modify interface naming mode for interacting...
     load                   Import a previous saved config DB dump file.
@@ -1635,6 +1636,26 @@ The list of the WRED profile fields that are configurable is listed in the below
   ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#ECN-Configuration-And-Show-Commands)
+
+# Update Device Hostname Configuration Commands
+
+This sub-section of commands is used to change device hostname without traffic being impacted.
+
+**config hostname <new_hostname>**
+This command is used to change device hostname without traffic being impacted.
+
+- Usage: config hostname [OPTIONS] <new_hostname>
+
+        Change device hostname without impacting the traffic.
+ Options:
+  -?, -h, --help  Show this message and exit.
+
+- Examples:
+  ```
+  admin@lnos-x1-a-csw06:~$ sudo config hostname CSW06
+  Running command: service hostname-config restart
+  Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
+  ```
 
 # Interface Configuration And Show-Commands
 

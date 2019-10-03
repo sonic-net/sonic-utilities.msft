@@ -557,6 +557,25 @@ def load_minigraph():
 
 
 #
+# 'hostname' command
+#
+@config.command('hostname')
+@click.argument('new_hostname', metavar='<new_hostname>', required=True)
+def hostname(new_hostname):
+    """Change device hostname without impacting the traffic."""
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"hostname" : new_hostname})
+    try:
+        command = "service hostname-config restart"
+        run_command(command, display_cmd=True)
+    except SystemExit as e:
+        click.echo("Restarting hostname-config  service failed with error {}".format(e))
+        raise
+    click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
+
+#
 # 'portchannel' group ('config portchannel ...')
 #
 @config.group()
