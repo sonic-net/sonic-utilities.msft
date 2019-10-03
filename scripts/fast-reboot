@@ -424,6 +424,10 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # restarting the container automatically.
     # Note: teamd must be killed before syncd, because it will send the last packet through CPU port
     debug "Stopping teamd ..."
+    docker exec -i teamd pkill -USR2 teamd || [ $? == 1 ]
+    while docker exec -i teamd pgrep teamd > /dev/null; do
+      sleep 0.05
+    done
     docker kill teamd > /dev/null
     systemctl stop teamd
     debug "Stopped teamd ..."
