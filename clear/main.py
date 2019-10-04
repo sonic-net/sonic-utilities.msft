@@ -107,18 +107,15 @@ routing_stack = get_routing_stack()
 
 def run_command(command, pager=False, return_output=False):
     # Provide option for caller function to Process the output.
-    if return_output == True:
-        proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    if return_output:
         return proc.communicate()
-
-    if pager is True:
+    elif pager:
         #click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
-        p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-        click.echo_via_pager(p.stdout.read())
+        click.echo_via_pager(proc.stdout.read())
     else:
         #click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
-        p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-        click.echo(p.stdout.read())
+        click.echo(proc.stdout.read())
 
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
@@ -165,21 +162,10 @@ if routing_stack == "quagga":
     from .bgp_quagga_v6 import bgp
     ipv6.add_command(bgp)
 elif routing_stack == "frr":
-    @cli.command()
-    @click.argument('bgp_args', nargs = -1, required = False)
-    def bgp(bgp_args):
-        """BGP information"""
-        bgp_cmd = "clear bgp"
-        options = False
-        for arg in bgp_args:
-            bgp_cmd += " " + str(arg)
-            options = True
-        if options is True:
-            command = 'sudo vtysh -c "{}"'.format(bgp_cmd)
-        else:
-            command = 'sudo vtysh -c "clear bgp *"'
-        run_command(command)
-
+    from .bgp_quagga_v4 import bgp
+    ip.add_command(bgp)
+    from .bgp_frr_v6 import bgp
+    ipv6.add_command(bgp)
 
 @cli.command()
 def counters():

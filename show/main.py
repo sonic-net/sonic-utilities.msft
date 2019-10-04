@@ -1077,6 +1077,22 @@ def ipv6():
     """Show IPv6 commands"""
     pass
 
+#
+# 'prefix-list' subcommand ("show ipv6 prefix-list")
+#
+
+@ipv6.command('prefix-list')
+@click.argument('prefix_list_name', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def prefix_list(prefix_list_name, verbose):
+    """show ip prefix-list"""
+    cmd = 'sudo vtysh -c "show ipv6 prefix-list'
+    if prefix_list_name is not None:
+        cmd += ' {}'.format(prefix_list_name)
+    cmd += '"'
+    run_command(cmd, display_cmd=verbose)
+
+
 
 #
 # 'show ipv6 interfaces' command
@@ -1158,12 +1174,15 @@ def protocol(verbose):
 # Inserting BGP functionality into cli's show parse-chain.
 # BGP commands are determined by the routing-stack being elected.
 #
+from .bgp_quagga_v4 import bgp
+ip.add_command(bgp)
+
 if routing_stack == "quagga":
-    from .bgp_quagga_v4 import bgp
-    ip.add_command(bgp)
     from .bgp_quagga_v6 import bgp
     ipv6.add_command(bgp)
 elif routing_stack == "frr":
+    from .bgp_frr_v6 import bgp
+    ipv6.add_command(bgp)
     @cli.command()
     @click.argument('bgp_args', nargs = -1, required = False)
     @click.option('--verbose', is_flag=True, help="Enable verbose output")
@@ -1215,7 +1234,7 @@ def table(verbose):
 
 def get_hw_info_dict():
     """
-    This function is used to get the HW info helper function  
+    This function is used to get the HW info helper function
     """
     hw_info_dict = {}
     machine_info = sonic_device_util.get_machine_info()
@@ -1223,7 +1242,7 @@ def get_hw_info_dict():
     config_db = ConfigDBConnector()
     config_db.connect()
     data = config_db.get_table('DEVICE_METADATA')
-    try: 
+    try:
         hwsku = data['localhost']['hwsku']
     except KeyError:
         hwsku = "Unknown"
@@ -1327,7 +1346,7 @@ def version(verbose):
     version_info = sonic_device_util.get_sonic_version_info()
     hw_info_dict = get_hw_info_dict()
     serial_number_cmd = "sudo decode-syseeprom -s"
-    serial_number = subprocess.Popen(serial_number_cmd, shell=True, stdout=subprocess.PIPE)    
+    serial_number = subprocess.Popen(serial_number_cmd, shell=True, stdout=subprocess.PIPE)
     sys_uptime_cmd = "uptime"
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, stdout=subprocess.PIPE)
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
