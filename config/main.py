@@ -908,6 +908,76 @@ def del_vlan_member(ctx, vid, interface_name):
     db.set_entry('VLAN', vlan_name, vlan)
     db.set_entry('VLAN_MEMBER', (vlan_name, interface_name), None)
 
+def mvrf_restart_services():
+    """Restart interfaces-config service and NTP service when mvrf is changed"""
+    """
+    When mvrf is enabled, eth0 should be moved to mvrf; when it is disabled,
+    move it back to default vrf. Restarting the "interfaces-config" service
+    will recreate the /etc/network/interfaces file and restart the
+    "networking" service that takes care of the eth0 movement.
+    NTP service should also be restarted to rerun the NTP service with or
+    without "cgexec" accordingly.
+    """
+    cmd="service ntp stop"
+    os.system (cmd)
+    cmd="systemctl restart interfaces-config"
+    os.system (cmd)
+    cmd="service ntp start"
+    os.system (cmd)
+
+def vrf_add_management_vrf():
+    """Enable management vrf in config DB"""
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    entry = config_db.get_entry('MGMT_VRF_CONFIG', "vrf_global")
+    if entry and entry['mgmtVrfEnabled'] == 'true' :
+        click.echo("ManagementVRF is already Enabled.")
+        return None
+    config_db.mod_entry('MGMT_VRF_CONFIG',"vrf_global",{"mgmtVrfEnabled": "true"})
+    mvrf_restart_services()
+
+def vrf_delete_management_vrf():
+    """Disable management vrf in config DB"""
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    entry = config_db.get_entry('MGMT_VRF_CONFIG', "vrf_global")
+    if not entry or entry['mgmtVrfEnabled'] == 'false' :
+        click.echo("ManagementVRF is already Disabled.")
+        return None
+    config_db.mod_entry('MGMT_VRF_CONFIG',"vrf_global",{"mgmtVrfEnabled": "false"})
+    mvrf_restart_services()
+
+#
+# 'vrf' group ('config vrf ...')
+#
+
+@config.group('vrf')
+def vrf():
+    """VRF-related configuration tasks"""
+    pass
+
+@vrf.command('add')
+@click.argument('vrfname', metavar='<vrfname>. Type mgmt for management VRF', required=True)
+@click.pass_context
+def vrf_add (ctx, vrfname):
+    """Create management VRF and move eth0 into it"""
+    if vrfname == 'mgmt' or vrfname == 'management':
+        vrf_add_management_vrf()
+    else:
+        click.echo("Creation of data vrf={} is not yet supported".format(vrfname))
+
+@vrf.command('del')
+@click.argument('vrfname', metavar='<vrfname>. Type mgmt for management VRF', required=False)
+@click.pass_context
+def vrf_del (ctx, vrfname):
+    """Delete management VRF and move back eth0 to default VRF"""
+    if vrfname == 'mgmt' or vrfname == 'management':
+        vrf_delete_management_vrf()
+    else:
+        click.echo("Deletion of data vrf={} is not yet supported".format(vrfname))
+
 @vlan.group('dhcp_relay')
 @click.pass_context
 def vlan_dhcp_relay(ctx):
@@ -1131,6 +1201,28 @@ def speed(ctx, interface_name, interface_speed, verbose):
         command += " -vv"
     run_command(command, display_cmd=verbose)
 
+def _get_all_mgmtinterface_keys():
+    """Returns list of strings containing mgmt interface keys 
+    """
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    return config_db.get_table('MGMT_INTERFACE').keys()
+
+def mgmt_ip_restart_services():
+    """Restart the required services when mgmt inteface IP address is changed"""
+    """
+    Whenever the eth0 IP address is changed, restart the "interfaces-config"
+    service which regenerates the /etc/network/interfaces file and restarts
+    the networking service to make the new/null IP address effective for eth0.
+    "ntp-config" service should also be restarted based on the new
+    eth0 IP address since the ntp.conf (generated from ntp.conf.j2) is
+    made to listen on that particular eth0 IP address or reset it back.
+    """
+    cmd="systemctl restart interfaces-config"
+    os.system (cmd)
+    cmd="systemctl restart ntp-config"
+    os.system (cmd)
+
 #
 # 'ip' subgroup ('config interface ip ...')
 #
@@ -1148,8 +1240,9 @@ def ip(ctx):
 @ip.command()
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument("ip_addr", metavar="<ip_addr>", required=True)
+@click.argument('gw', metavar='<default gateway IP address>', required=False)
 @click.pass_context
-def add(ctx, interface_name, ip_addr):
+def add(ctx, interface_name, ip_addr, gw):
     """Add an IP address towards the interface"""
     config_db = ctx.obj["config_db"]
     if get_interface_naming_mode() == "alias":
@@ -1166,6 +1259,29 @@ def add(ctx, interface_name, ip_addr):
             else:
                 config_db.set_entry("INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
                 config_db.set_entry("INTERFACE", interface_name, {"NULL": "NULL"})
+        elif interface_name == 'eth0':
+
+            # Configuring more than 1 IPv4 or more than 1 IPv6 address fails.
+            # Allow only one IPv4 and only one IPv6 address to be configured for IPv6.
+            # If a row already exist, overwrite it (by doing delete and add).
+            mgmtintf_key_list = _get_all_mgmtinterface_keys()
+
+            for key in mgmtintf_key_list:
+                # For loop runs for max 2 rows, once for IPv4 and once for IPv6.
+                # No need to capture the exception since the ip_addr is already validated earlier
+                ip_input = ipaddress.ip_interface(ip_addr)
+                current_ip = ipaddress.ip_interface(key[1])
+                if (ip_input.version == current_ip.version):
+                    # If user has configured IPv4/v6 address and the already available row is also IPv4/v6, delete it here.
+                    config_db.set_entry("MGMT_INTERFACE", ("eth0", key[1]), None)
+
+            # Set the new row with new value
+            if not gw:
+                config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
+            else:
+                config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), {"gwaddr": gw})
+            mgmt_ip_restart_services()
+
         elif interface_name.startswith("PortChannel"):
             if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
                 config_db.set_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "up"})
@@ -1209,6 +1325,9 @@ def remove(ctx, interface_name, ip_addr):
             else:
                 config_db.set_entry("INTERFACE", (interface_name, ip_addr), None)
                 if_table = "INTERFACE"
+        elif interface_name == 'eth0':
+            config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), None)
+            mgmt_ip_restart_services()
         elif interface_name.startswith("PortChannel"):
             if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
                 config_db.set_entry("VLAN_SUB_INTERFACE", (interface_name, ip_addr), None)
@@ -1225,7 +1344,7 @@ def remove(ctx, interface_name, ip_addr):
             ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
     except ValueError:
         ctx.fail("'ip_addr' is not valid.")
-    
+
     exists = False
     if if_table:
         interfaces = config_db.get_table(if_table)

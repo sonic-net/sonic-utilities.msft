@@ -433,6 +433,76 @@ def ndp(ip6address, iface, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
+def is_mgmt_vrf_enabled(ctx):
+    """Check if management VRF is enabled"""
+    if ctx.invoked_subcommand is None:
+        cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
+
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        res = p.communicate()
+        if p.returncode == 0:
+            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            mvrf_dict = json.loads(p.stdout.read())
+
+            # if the mgmtVrfEnabled attribute is configured, check the value
+            # and return True accordingly.
+            if 'mgmtVrfEnabled' in mvrf_dict['vrf_global']:
+                if (mvrf_dict['vrf_global']['mgmtVrfEnabled'] == "true"):
+                    #ManagementVRF is enabled. Return True.
+                    return True
+    return False
+
+#
+# 'mgmt-vrf' group ("show mgmt-vrf ...")
+#
+
+@cli.group('mgmt-vrf', invoke_without_command=True)
+@click.argument('routes', required=False)
+@click.pass_context
+def mgmt_vrf(ctx,routes):
+    """Show management VRF attributes"""
+
+    if is_mgmt_vrf_enabled(ctx) is False:
+        click.echo("\nManagementVRF : Disabled")
+        return
+    else:
+        if routes is None:
+            click.echo("\nManagementVRF : Enabled")
+            click.echo("\nManagement VRF interfaces in Linux:")
+            cmd = "ip -d link show mgmt"
+            run_command(cmd)
+            cmd = "ip link show vrf mgmt"
+            run_command(cmd)
+        else:
+            click.echo("\nRoutes in Management VRF Routing Table:")
+            cmd = "ip route show table 5000"
+            run_command(cmd)
+
+#
+# 'management_interface' group ("show management_interface ...")
+#
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def management_interface():
+    """Show management interface parameters"""
+    pass
+
+# 'address' subcommand ("show management_interface address")
+@management_interface.command()
+def address ():
+    """Show IP address configured for management interface"""
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    header = ['IFNAME', 'IP Address', 'PrefixLen',]
+    body = []
+
+    # Fetching data from config_db for MGMT_INTERFACE
+    mgmt_ip_data = config_db.get_table('MGMT_INTERFACE')
+    for key in natsorted(mgmt_ip_data.keys()):
+        click.echo("Management IP address = {0}".format(key[1]))
+        click.echo("Management Network Default Gateway = {0}".format(mgmt_ip_data[key]['gwaddr']))
+
 #
 # 'interfaces' group ("show interfaces ...")
 #
@@ -1592,21 +1662,9 @@ def bgp(verbose):
 def ntp(ctx, verbose):
     """Show NTP information"""
     ntpcmd = "ntpq -p -n"
-    if ctx.invoked_subcommand is None:
-        cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
-
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        res = p.communicate()
-        if p.returncode == 0 :
-            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            mvrf_dict = json.loads(p.stdout.read())
-
-            # if the mgmtVrfEnabled attribute is configured, check the value
-            # and print Enabled or Disabled accordingly.
-            if 'mgmtVrfEnabled' in mvrf_dict['vrf_global']:
-                if (mvrf_dict['vrf_global']['mgmtVrfEnabled'] == "true"):
-                    #ManagementVRF is enabled. Call ntpq using cgexec
-                    ntpcmd = "cgexec -g l3mdev:mgmt ntpq -p -n"
+    if is_mgmt_vrf_enabled(ctx) is True:
+        #ManagementVRF is enabled. Call ntpq using cgexec
+        ntpcmd = "cgexec -g l3mdev:mgmt ntpq -p -n"
     run_command(ntpcmd, display_cmd=verbose)
 
 
