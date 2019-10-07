@@ -38,6 +38,31 @@ def deep_update(dst, src):
     return dst
 
 
+class AclAction:
+    """ namespace for ACL action keys """
+
+    PACKET         = "PACKET_ACTION"
+    REDIRECT       = "REDIRECT_ACTION"
+    MIRROR         = "MIRROR_ACTION"
+    MIRROR_INGRESS = "MIRROR_INGRESS_ACTION"
+    MIRROR_EGRESS  = "MIRROR_EGRESS_ACTION"
+
+
+class PacketAction:
+    """ namespace for ACL packet actions """
+
+    DROP    = "DROP"
+    FORWARD = "FORWARD"
+    ACCEPT  = "ACCEPT"
+
+
+class Stage:
+    """ namespace for ACL stages """
+
+    INGRESS = "INGRESS"
+    EGRESS  = "EGRESS"
+
+
 class AclLoaderException(Exception):
     pass
 
@@ -52,6 +77,9 @@ class AclLoader(object):
     STATE_MIRROR_SESSION_TABLE = "MIRROR_SESSION_TABLE"
     POLICER = "POLICER"
     SESSION_PREFIX = "everflow"
+    SWITCH_CAPABILITY_TABLE = "SWITCH_CAPABILITY"
+    ACL_ACTIONS_CAPABILITY_FIELD = "ACL_ACTIONS"
+    ACL_ACTION_CAPABILITY_FIELD = "ACL_ACTION"
 
     min_priority = 1
     max_priority = 10000
@@ -81,6 +109,7 @@ class AclLoader(object):
     def __init__(self):
         self.yang_acl = None
         self.requested_session = None
+        self.mirror_stage = None
         self.current_table = None
         self.tables_db_info = {}
         self.rules_db_info = {}
@@ -179,6 +208,14 @@ class AclLoader(object):
 
         self.requested_session = session_name
 
+    def set_mirror_stage(self, stage):
+        """
+        Set mirror stage to be used in ACL mirror rule action
+        :param session_name: stage 'ingress'/'egress'
+        :return:
+        """
+        self.mirror_stage = stage.upper()
+
     def set_max_priority(self, priority):
         """
         Set rules max priority
@@ -232,24 +269,71 @@ class AclLoader(object):
 
         if rule.actions.config.forwarding_action == "ACCEPT":
             if self.is_table_control_plane(table_name):
-                rule_props["PACKET_ACTION"] = "ACCEPT"
+                rule_props[AclAction.PACKET] = PacketAction.ACCEPT
             elif self.is_table_mirror(table_name):
                 session_name = self.get_session_name()
                 if not session_name:
                     raise AclLoaderException("Mirroring session does not exist")
 
-                rule_props["MIRROR_ACTION"] = session_name
+                if self.mirror_stage == Stage.INGRESS:
+                    mirror_action = AclAction.MIRROR_INGRESS
+                elif self.mirror_stage == Stage.EGRESS:
+                    mirror_action = AclAction.MIRROR_EGRESS
+                else:
+                    raise AclLoaderException("Invalid mirror stage passed {}".format(self.mirror_stage))
+
+                rule_props[mirror_action] = session_name
             else:
-                rule_props["PACKET_ACTION"] = "FORWARD"
+                rule_props[AclAction.PACKET] = PacketAction.FORWARD
         elif rule.actions.config.forwarding_action == "DROP":
-            rule_props["PACKET_ACTION"] = "DROP"
+            rule_props[AclAction.PACKET] = PacketAction.DROP
         elif rule.actions.config.forwarding_action == "REJECT":
-            rule_props["PACKET_ACTION"] = "DROP"
+            rule_props[AclAction.PACKET] = PacketAction.DROP
         else:
-            raise AclLoaderException("Unknown rule action %s in table %s, rule %d" % (
+            raise AclLoaderException("Unknown rule action {} in table {}, rule {}".format(
+                rule.actions.config.forwarding_action, table_name, rule_idx))
+
+        if not self.validate_actions(table_name, rule_props):
+            raise AclLoaderException("Rule action {} is not supported in table {}, rule {}".format(
                 rule.actions.config.forwarding_action, table_name, rule_idx))
 
         return rule_props
+
+    def validate_actions(self, table_name, action_props):
+        if self.is_table_control_plane(table_name):
+            return True
+
+        action_count = len(action_props)
+
+        if table_name not in self.tables_db_info:
+            raise AclLoaderException("Table {} does not exist".format(table_name))
+
+        stage = self.tables_db_info[table_name].get("stage", Stage.INGRESS)
+        capability = self.statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
+        for action_key in dict(action_props):
+            key = "{}|{}".format(self.ACL_ACTIONS_CAPABILITY_FIELD, stage.upper())
+            if key not in capability:
+                del action_props[action_key]
+                continue
+
+            values = capability[key].split(",")
+            if action_key.upper() not in values:
+                del action_props[action_key]
+                continue
+
+            if action_key == AclAction.PACKET:
+                # Check if action_value is supported
+                action_value = action_props[action_key]
+                key = "{}|{}".format(self.ACL_ACTION_CAPABILITY_FIELD, action_key.upper())
+                if key not in capability:
+                    del action_props[action_key]
+                    continue
+
+                if action_value not in capability[key]:
+                    del action_props[action_key]
+                    continue
+
+        return action_count == len(action_props)
 
     def convert_l2(self, table_name, rule_idx, rule):
         rule_props = {}
@@ -510,30 +594,32 @@ class AclLoader(object):
         :param table_name: Optional. ACL table name. Filter tables by specified name.
         :return:
         """
-        header = ("Name", "Type", "Binding", "Description")
+        header = ("Name", "Type", "Binding", "Description", "Stage")
 
         data = []
         for key, val in self.get_tables_db_info().iteritems():
             if table_name and key != table_name:
                 continue
 
+            stage = val.get("stage", Stage.INGRESS).lower()
+
             if val["type"] == AclLoader.ACL_TABLE_TYPE_CTRLPLANE:
                 services = natsorted(val["services"])
-                data.append([key, val["type"], services[0], val["policy_desc"]])
+                data.append([key, val["type"], services[0], val["policy_desc"], stage])
 
                 if len(services) > 1:
                     for service in services[1:]:
-                        data.append(["", "", service, ""])
+                        data.append(["", "", service, "", ""])
             else:
                 if not val["ports"]:
-                    data.append([key, val["type"], "", val["policy_desc"]])
+                    data.append([key, val["type"], "", val["policy_desc"], stage])
                 else:
                     ports = natsorted(val["ports"])
-                    data.append([key, val["type"], ports[0], val["policy_desc"]])
+                    data.append([key, val["type"], ports[0], val["policy_desc"], stage])
 
                     if len(ports) > 1:
                         for port in ports[1:]:
-                            data.append(["", "", port, ""])
+                            data.append(["", "", port, "", ""])
 
         print(tabulate.tabulate(data, headers=header, tablefmt="simple", missingval=""))
 
@@ -586,7 +672,33 @@ class AclLoader(object):
         """
         header = ("Table", "Rule", "Priority", "Action", "Match")
 
-        ignore_list = ["PRIORITY", "PACKET_ACTION", "MIRROR_ACTION"]
+        def pop_priority(val):
+            priority  = val.pop("PRIORITY")
+            return priority
+
+        def pop_action(val):
+            action = ""
+
+            for key in dict(val):
+                key = key.upper()
+                if key == AclAction.PACKET:
+                    action = val.pop(key)
+                elif key == AclAction.REDIRECT:
+                    action = "REDIRECT: {}".format(val.pop(key))
+                elif key in (AclAction.MIRROR, AclAction.MIRROR_INGRESS):
+                    action = "MIRROR INGRESS: {}".format(val.pop(key))
+                elif key == AclAction.MIRROR_EGRESS:
+                    action = "MIRROR EGRESS: {}".format(val.pop(key))
+                else:
+                    continue
+
+            return action
+
+        def pop_matches(val):
+            matches = list(sorted(["%s: %s" % (k, val[k]) for k in val]))
+            if len(matches) == 0:
+                matches.append("N/A")
+            return matches
 
         raw_data = []
         for (tname, rid), val in self.get_rules_db_info().iteritems():
@@ -597,22 +709,9 @@ class AclLoader(object):
             if rule_id and rule_id != rid:
                 continue
 
-            priority = val["PRIORITY"]
-
-            action = ""
-            if "PACKET_ACTION" in val:
-                action = val["PACKET_ACTION"]
-            elif "MIRROR_ACTION" in val:
-                action = "MIRROR: %s" % val["MIRROR_ACTION"]
-            else:
-                continue
-
-            matches = ["%s: %s" % (k, v) for k, v in val.iteritems() if k not in ignore_list]
-
-            matches.sort()
-
-            if len(matches) == 0:
-                matches.append("N/A")
+            priority = pop_priority(val)
+            action = pop_action(val)
+            matches = pop_matches(val)
 
             rule_data = [[tname, rid, priority, action, matches[0]]]
             if len(matches) > 1:
@@ -718,9 +817,10 @@ def update(ctx):
 @click.argument('filename', type=click.Path(exists=True))
 @click.option('--table_name', type=click.STRING, required=False)
 @click.option('--session_name', type=click.STRING, required=False)
+@click.option('--mirror_stage', type=click.Choice(["ingress", "egress"]), default="ingress")
 @click.option('--max_priority', type=click.INT, required=False)
 @click.pass_context
-def full(ctx, filename, table_name, session_name, max_priority):
+def full(ctx, filename, table_name, session_name, mirror_stage, max_priority):
     """
     Full update of ACL rules configuration.
     If a table_name is provided, the operation will be restricted in the specified table.
@@ -733,6 +833,8 @@ def full(ctx, filename, table_name, session_name, max_priority):
     if session_name:
         acl_loader.set_session_name(session_name)
 
+    acl_loader.set_mirror_stage(mirror_stage)
+
     if max_priority:
         acl_loader.set_max_priority(max_priority)
 
@@ -743,9 +845,10 @@ def full(ctx, filename, table_name, session_name, max_priority):
 @update.command()
 @click.argument('filename', type=click.Path(exists=True))
 @click.option('--session_name', type=click.STRING, required=False)
+@click.option('--mirror_stage', type=click.Choice(["ingress", "egress"]), default="ingress")
 @click.option('--max_priority', type=click.INT, required=False)
 @click.pass_context
-def incremental(ctx, filename, session_name, max_priority):
+def incremental(ctx, filename, session_name, mirror_stage, max_priority):
     """
     Incremental update of ACL rule configuration.
     """
@@ -753,6 +856,8 @@ def incremental(ctx, filename, session_name, max_priority):
 
     if session_name:
         acl_loader.set_session_name(session_name)
+
+    acl_loader.set_mirror_stage(mirror_stage)
 
     if max_priority:
         acl_loader.set_max_priority(max_priority)

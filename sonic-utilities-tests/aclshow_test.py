@@ -67,7 +67,7 @@ rule0_output = '' + \
 # Expected output for aclshow -r RULE_4,RULE_6 -vv
 rule4_rule6_verbose_output = '' + \
 """Reading ACL info...
-Total number of ACL Tables: 4
+Total number of ACL Tables: 5
 Total number of ACL Rules: 10
 
 RULE NAME    TABLE NAME      PRIO    PACKETS COUNT    BYTES COUNT

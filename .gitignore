@@ -2,3 +2,6 @@ build/
 deb_dist/
 dist/
 *.egg-info/
+*.pyc
+.cache
+*.tar.gz

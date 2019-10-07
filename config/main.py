@@ -1407,7 +1407,8 @@ def get_acl_bound_ports():
 @click.argument("table_type", metavar="<table_type>")
 @click.option("-d", "--description")
 @click.option("-p", "--ports")
-def table(table_name, table_type, description, ports):
+@click.option("-s", "--stage", type=click.Choice(["ingress", "egress"]), default="ingress")
+def table(table_name, table_type, description, ports, stage):
     """
     Add ACL table
     """
@@ -1425,6 +1426,8 @@ def table(table_name, table_type, description, ports):
         table_info["ports@"] = ports
     else:
         table_info["ports@"] = ",".join(get_acl_bound_ports())
+
+    table_info["stage"] = stage
 
     config_db.set_entry("ACL_TABLE", table_name, table_info)
 
