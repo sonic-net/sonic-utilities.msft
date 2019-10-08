@@ -162,7 +162,7 @@ class Intfstat(object):
                         ns_prate(cntr.tx_p_ok, old_cntr.tx_p_ok, time_gap),
                         ns_diff(cntr.tx_p_err, old_cntr.tx_p_err)))
         if use_json:
-            print self.table_as_json(table, header)
+            print table_as_json(table, header)
         else:
             print tabulate(table, header, tablefmt='simple', stralign='right')
 

@@ -184,7 +184,7 @@ class Portstat(object):
                               ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
 
         if use_json:
-            print self.table_as_json(table, print_all)
+            print table_as_json(table, header)
         else:
             if print_all:
                 print tabulate(table, header_all, tablefmt='simple', stralign='right')
