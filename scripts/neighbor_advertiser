@@ -36,6 +36,7 @@ SYSLOG_IDENTIFIER = 'neighbor_advertiser'
 #
 
 MIRROR_SESSION_NAME = 'neighbor_advertiser'
+MIRROR_ACL_TABLE_PREFIX = 'SONIC_'
 MIRROR_ACL_TABLE_NAME = 'EVERFLOW'
 MIRROR_ACL_TABLEV6_NAME = 'EVERFLOWV6'
 MIRROR_ACL_RULE_NAME = 'rule_arp'
@@ -384,9 +385,29 @@ def save_as_json(obj, file_path):
         json.dump(obj, outfile, sort_keys = True)
 
 
+# This function tries to find the corresponding names of the mirror v4 and v6 table
+# Right now, the name could be EVERFLOW/EVERFLOWv6 or SONIC_EVERFLOW/SONIC_EVERFLOWV6
+def find_mirror_table_name():
+    acl_tables = config_db.get_keys("ACL_TABLE")
+    v4_table, v6_table = "", ""
+    for table in acl_tables:
+        if MIRROR_ACL_TABLE_NAME == table or \
+                MIRROR_ACL_TABLE_PREFIX + MIRROR_ACL_TABLE_NAME == table:
+            v4_table = table
+        if MIRROR_ACL_TABLEV6_NAME == table or \
+                MIRROR_ACL_TABLE_PREFIX + MIRROR_ACL_TABLEV6_NAME == table:
+            v6_table = table
+    if not v4_table:
+        log_error(MIRROR_ACL_TABLE_NAME + " table does not exist")
+    if not v6_table:
+        log_error(MIRROR_ACL_TABLEV6_NAME + " table does not exist")
+    return (v4_table, v6_table)
+
+
 #
 # Set mirror tunnel
 #
+
 
 def add_mirror_session(dst_ipv4_addr):
     session_info = {
@@ -397,25 +418,26 @@ def add_mirror_session(dst_ipv4_addr):
     config_db.set_entry('MIRROR_SESSION', MIRROR_SESSION_NAME, session_info)
 
 
-
 def add_mirror_acl_rule():
-    acl_rule_info = {
-        'PRIORITY': '8888',
-        'ether_type': '2054',
-        'mirror_action': MIRROR_SESSION_NAME
-    }
+    (v4_table, v6_table) = find_mirror_table_name()
 
-    config_db.set_entry('ACL_RULE',
-            (MIRROR_ACL_TABLE_NAME, MIRROR_ACL_RULE_NAME), acl_rule_info)
+    if v4_table:
+        acl_rule_info = {
+            'PRIORITY': '8888',
+            'ether_type': '2054',
+            'mirror_action': MIRROR_SESSION_NAME
+        }
+        config_db.set_entry('ACL_RULE',
+                (v4_table, MIRROR_ACL_RULE_NAME), acl_rule_info)
 
-    acl_rule_info = {
-        'PRIORITY': '8887',
-        'ICMPV6_TYPE': '135',
-        'mirror_action': MIRROR_SESSION_NAME
-    }
-
-    config_db.set_entry('ACL_RULE',
-            (MIRROR_ACL_TABLEV6_NAME, MIRROR_ACL_RULEV6_NAME), acl_rule_info)
+    if v6_table:
+        acl_rule_info = {
+            'PRIORITY': '8887',
+            'ICMPV6_TYPE': '135',
+            'mirror_action': MIRROR_SESSION_NAME
+        }
+        config_db.set_entry('ACL_RULE',
+                (v6_table, MIRROR_ACL_RULEV6_NAME), acl_rule_info)
 
 
 def set_mirror_tunnel(ferret_server_ip):
@@ -433,8 +455,13 @@ def remove_mirror_session():
 
 
 def remove_mirror_acl_rule():
-    config_db.set_entry('ACL_RULE', (MIRROR_ACL_TABLE_NAME, MIRROR_ACL_RULE_NAME), None)
-    config_db.set_entry('ACL_RULE', (MIRROR_ACL_TABLEV6_NAME, MIRROR_ACL_RULEV6_NAME), None)
+    (v4_table, v6_table) = find_mirror_table_name()
+
+    if v4_table:
+        config_db.set_entry('ACL_RULE', (v4_table, MIRROR_ACL_RULE_NAME), None)
+
+    if v6_table:
+        config_db.set_entry('ACL_RULE', (v6_table, MIRROR_ACL_RULEV6_NAME), None)
 
 
 def reset_mirror_tunnel():
