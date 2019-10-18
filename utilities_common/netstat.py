@@ -13,7 +13,7 @@ def ns_diff(newstr, oldstr):
         return STATUS_NA
     else:
         new, old = int(newstr), int(oldstr)
-        return '{:,}'.format(new - old)
+        return '{:,}'.format(max(0, new - old))
 
 def ns_brate(newstr, oldstr, delta):
     """
