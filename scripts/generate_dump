@@ -256,7 +256,7 @@ find_files() {
 #  None
 ###############################################################################
 disable_logrotate() {
-    sed -i '/logrotate/s/^/#/g' /etc/cron.d/logrotate
+    sed -i '/\/usr\/sbin\/logrotate/s/^/#/g' /etc/cron.d/logrotate
 }
 
 ###############################################################################
@@ -269,7 +269,7 @@ disable_logrotate() {
 #  None
 ###############################################################################
 enable_logrotate() {
-    sed -i '/logrotate/s/^#*//g' /etc/cron.d/logrotate
+    sed -i '/\/usr\/sbin\/logrotate/s/^#*//g' /etc/cron.d/logrotate
 }
 
 ###############################################################################
