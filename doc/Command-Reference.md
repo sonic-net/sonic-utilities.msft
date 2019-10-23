@@ -82,6 +82,7 @@
     * [VLAN Config commands](#vlan-config-commands)
   * [FDB](#fdb)
     * [FDB show commands](#fdb-show-commands)
+* [Warm Reboot](#warm-reboot)
 * [Warm Restart](#warm-restart)
   * [Warm Restart show commands](#warm-restart-show-commands)
   * [Warm Restart Config commands](#warm-restart-config-commands)
@@ -4066,6 +4067,55 @@ Clear the FDB table
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#vlan--FDB)
 
+## Warm Reboot
+
+warm-reboot command initiates a warm reboot of the device.
+
+warm-reboot command doesn't require setting warm restart configuration. The
+command will setup everything needed to perform warm reboot.
+
+This command requires root privilege. Example:
+
+- Usage:
+  ```
+  sudo warm-reboot
+  ```
+
+- Parameters:
+  ```
+    -h,-? : get this help
+    -v    : turn on verbose
+    -f    : force execution
+    -r    : reboot with /sbin/reboot
+    -k    : reboot with /sbin/kexec -e [default]
+    -x    : execute script with -x flag
+    -c    : specify control plane assistant IP list
+    -s    : strict mode: do not proceed without:
+            - control plane assistant IP list.
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo warm-reboot -v
+  Tue Oct 22 23:20:53 UTC 2019 Pausing orchagent ...
+  Tue Oct 22 23:20:53 UTC 2019 Stopping radv ...
+  Tue Oct 22 23:20:54 UTC 2019 Stopping bgp ...
+  Tue Oct 22 23:20:54 UTC 2019 Stopped bgp ...
+  Tue Oct 22 23:20:57 UTC 2019 Initialize pre-shutdown ...
+  Tue Oct 22 23:20:58 UTC 2019 Requesting pre-shutdown ...
+  Tue Oct 22 23:20:58 UTC 2019 Waiting for pre-shutdown ...
+  Tue Oct 22 23:20:59 UTC 2019 Pre-shutdown succeeded ...
+  Tue Oct 22 23:20:59 UTC 2019 Backing up database ...
+  Tue Oct 22 23:21:00 UTC 2019 Stopping teamd ...
+  Tue Oct 22 23:21:00 UTC 2019 Stopped teamd ...
+  Tue Oct 22 23:21:00 UTC 2019 Stopping syncd ...
+  Tue Oct 22 23:21:11 UTC 2019 Stopped syncd ...
+  Tue Oct 22 23:21:11 UTC 2019 Stopping all remaining containers ...
+  Tue Oct 22 23:21:13 UTC 2019 Stopped all remaining containers ...
+  Tue Oct 22 23:21:15 UTC 2019 Rebooting with /sbin/kexec -e to SONiC-OS-20191021.01 ...
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#Warm-Reboot)
 
 ## Warm Restart
 
