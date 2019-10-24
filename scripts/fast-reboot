@@ -414,7 +414,7 @@ debug "Stopped  bgp ..."
 # We call `docker kill lldp` to ensure the container stops as quickly as possible,
 # then immediately call `systemctl stop lldp` to prevent the service from
 # restarting the container automatically.
-docker kill lldp > /dev/null
+docker kill lldp &> /dev/null || debug "Docker lldp is not running ($?) ..."
 systemctl stop lldp
 
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
@@ -428,7 +428,7 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     while docker exec -i teamd pgrep teamd > /dev/null; do
       sleep 0.05
     done
-    docker kill teamd > /dev/null
+    docker kill teamd &> /dev/null || debug "Docker teamd is not running ($?) ..."
     systemctl stop teamd
     debug "Stopped teamd ..."
 fi
@@ -437,7 +437,7 @@ fi
 # We call `docker kill swss` to ensure the container stops as quickly as possible,
 # then immediately call `systemctl stop swss` to prevent the service from
 # restarting the container automatically.
-docker kill swss > /dev/null
+docker kill swss &> /dev/null || debug "Docker swss is not running ($?) ..."
 systemctl stop swss
 
 # Pre-shutdown syncd
