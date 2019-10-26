@@ -15,6 +15,7 @@ import argparse
 import syslog
 import traceback
 import subprocess
+import time
 import sonic_device_util
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
@@ -28,6 +29,7 @@ from netaddr import IPAddress, IPNetwork
 DEFAULT_DURATION = 300
 DEFAULT_REQUEST_TIMEOUT = 2
 DEFAULT_FERRET_QUERY_RETRIES = 3
+DEFAULT_CONFIG_DB_WAIT_TIME = 3 # seconds
 SYSLOG_IDENTIFIER = 'neighbor_advertiser'
 
 
@@ -442,6 +444,8 @@ def add_mirror_acl_rule():
 
 def set_mirror_tunnel(ferret_server_ip):
     add_mirror_session(ferret_server_ip)
+    # Ensure the mirror session is created before creating the rules
+    time.sleep(DEFAULT_CONFIG_DB_WAIT_TIME)
     add_mirror_acl_rule()
     log_info('Finish setting mirror tunnel; Ferret: {}'.format(ferret_server_ip))
 
@@ -466,6 +470,8 @@ def remove_mirror_acl_rule():
 
 def reset_mirror_tunnel():
     remove_mirror_acl_rule()
+    # Ensure the rules are removed before removing the mirror session
+    time.sleep(DEFAULT_CONFIG_DB_WAIT_TIME)
     remove_mirror_session()
     log_info('Finish resetting mirror tunnel')
 
