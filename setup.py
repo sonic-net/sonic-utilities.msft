@@ -56,6 +56,7 @@ setup(
         'scripts/asic_config_check',
         'scripts/boot_part',
         'scripts/coredump-compress',
+        'scripts/configlet',
         'scripts/db_migrator.py',
         'scripts/decode-syseeprom',
         'scripts/dropcheck',
