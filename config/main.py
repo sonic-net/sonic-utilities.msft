@@ -978,6 +978,104 @@ def vrf_del (ctx, vrfname):
     else:
         click.echo("Deletion of data vrf={} is not yet supported".format(vrfname))
 
+@config.group()
+@click.pass_context
+def snmpagentaddress(ctx):
+    """SNMP agent listening IP address, port, vrf configuration"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {'db': config_db}
+    pass
+
+@snmpagentaddress.command('add')
+@click.argument('agentip', metavar='<SNMP AGENT LISTENING IP Address>', required=True)
+@click.option('-p', '--port', help="SNMP AGENT LISTENING PORT")
+@click.option('-v', '--vrf', help="VRF Name mgmt/DataVrfName/None")
+@click.pass_context
+def add_snmp_agent_address(ctx, agentip, port, vrf):
+    """Add the SNMP agent listening IP:Port%Vrf configuration"""
+
+    #Construct SNMP_AGENT_ADDRESS_CONFIG table key in the format ip|<port>|<vrf>
+    key = agentip+'|'
+    if port:
+        key = key+port   
+    key = key+'|'
+    if vrf:
+        key = key+vrf
+    config_db = ctx.obj['db']
+    config_db.set_entry('SNMP_AGENT_ADDRESS_CONFIG', key, {})
+
+    #Restarting the SNMP service will regenerate snmpd.conf and rerun snmpd
+    cmd="systemctl restart snmp"
+    os.system (cmd)
+
+@snmpagentaddress.command('del')
+@click.argument('agentip', metavar='<SNMP AGENT LISTENING IP Address>', required=True)
+@click.option('-p', '--port', help="SNMP AGENT LISTENING PORT")
+@click.option('-v', '--vrf', help="VRF Name mgmt/DataVrfName/None")
+@click.pass_context
+def del_snmp_agent_address(ctx, agentip, port, vrf):
+    """Delete the SNMP agent listening IP:Port%Vrf configuration"""
+
+    key = agentip+'|'
+    if port:
+        key = key+port   
+    key = key+'|'
+    if vrf:
+        key = key+vrf
+    config_db = ctx.obj['db']
+    config_db.set_entry('SNMP_AGENT_ADDRESS_CONFIG', key, None)
+    cmd="systemctl restart snmp"
+    os.system (cmd)
+
+@config.group()
+@click.pass_context
+def snmptrap(ctx):
+    """SNMP Trap server configuration to send traps"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {'db': config_db}
+    pass
+
+@snmptrap.command('modify')
+@click.argument('ver', metavar='<SNMP Version>', type=click.Choice(['1', '2', '3']), required=True)
+@click.argument('serverip', metavar='<SNMP TRAP SERVER IP Address>', required=True)
+@click.option('-p', '--port', help="SNMP Trap Server port, default 162", default="162")
+@click.option('-v', '--vrf', help="VRF Name mgmt/DataVrfName/None", default="None")
+@click.option('-c', '--comm', help="Community", default="public")
+@click.pass_context
+def modify_snmptrap_server(ctx, ver, serverip, port, vrf, comm):
+    """Modify the SNMP Trap server configuration"""
+
+    #SNMP_TRAP_CONFIG for each SNMP version
+    config_db = ctx.obj['db']
+    if ver == "1":
+        #By default, v1TrapDest value in snmp.yml is "NotConfigured". Modify it.
+        config_db.mod_entry('SNMP_TRAP_CONFIG',"v1TrapDest",{"DestIp": serverip, "DestPort": port, "vrf": vrf, "Community": comm})
+    elif ver == "2":
+        config_db.mod_entry('SNMP_TRAP_CONFIG',"v2TrapDest",{"DestIp": serverip, "DestPort": port, "vrf": vrf, "Community": comm})
+    else:
+        config_db.mod_entry('SNMP_TRAP_CONFIG',"v3TrapDest",{"DestIp": serverip, "DestPort": port, "vrf": vrf, "Community": comm})
+
+    cmd="systemctl restart snmp"
+    os.system (cmd)
+
+@snmptrap.command('del')
+@click.argument('ver', metavar='<SNMP Version>', type=click.Choice(['1', '2', '3']), required=True)
+@click.pass_context
+def delete_snmptrap_server(ctx, ver):
+    """Delete the SNMP Trap server configuration"""
+
+    config_db = ctx.obj['db']
+    if ver == "1":
+        config_db.mod_entry('SNMP_TRAP_CONFIG',"v1TrapDest",None)
+    elif ver == "2":
+        config_db.mod_entry('SNMP_TRAP_CONFIG',"v2TrapDest",None)
+    else:
+        config_db.mod_entry('SNMP_TRAP_CONFIG',"v3TrapDest",None)
+    cmd="systemctl restart snmp"
+    os.system (cmd)
+
 @vlan.group('dhcp_relay')
 @click.pass_context
 def vlan_dhcp_relay(ctx):

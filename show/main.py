@@ -504,6 +504,49 @@ def address ():
         click.echo("Management Network Default Gateway = {0}".format(mgmt_ip_data[key]['gwaddr']))
 
 #
+# 'snmpagentaddress' group ("show snmpagentaddress ...")
+#
+
+@cli.group('snmpagentaddress', invoke_without_command=True)
+@click.pass_context
+def snmpagentaddress (ctx):
+    """Show SNMP agent listening IP address configuration"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    agenttable = config_db.get_table('SNMP_AGENT_ADDRESS_CONFIG')
+
+    header = ['ListenIP', 'ListenPort', 'ListenVrf']
+    body = []
+    for agent in agenttable.keys():
+        body.append([agent[0], agent[1], agent[2]])
+    click.echo(tabulate(body, header))
+
+#
+# 'snmptrap' group ("show snmptrap ...")
+#
+
+@cli.group('snmptrap', invoke_without_command=True)
+@click.pass_context
+def snmptrap (ctx):
+    """Show SNMP agent Trap server configuration"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    traptable = config_db.get_table('SNMP_TRAP_CONFIG')
+
+    header = ['Version', 'TrapReceiverIP', 'Port', 'VRF', 'Community']
+    body = []
+    for row in traptable.keys():
+        if row == "v1TrapDest":
+            ver=1
+        elif row == "v2TrapDest":
+            ver=2
+        else:
+            ver=3
+        body.append([ver, traptable[row]['DestIp'], traptable[row]['DestPort'], traptable[row]['vrf'], traptable[row]['Community']])
+    click.echo(tabulate(body, header))
+
+
+#
 # 'interfaces' group ("show interfaces ...")
 #
 
