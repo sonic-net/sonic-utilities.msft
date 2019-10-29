@@ -1342,6 +1342,9 @@ def remove(ctx, interface_name, ip_addr):
             config_db.set_entry("LOOPBACK_INTERFACE", (interface_name, ip_addr), None)
         else:
             ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+
+        command = "ip neigh flush {}".format(ip_addr)
+        run_command(command)
     except ValueError:
         ctx.fail("'ip_addr' is not valid.")
 
