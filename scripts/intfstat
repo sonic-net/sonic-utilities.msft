@@ -34,7 +34,6 @@ from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
 from utilities_common.netstat import ns_diff, ns_brate, ns_prate, table_as_json, STATUS_NA
-from utilities_common import get_uptime
 
 NStats = namedtuple("NStats", "rx_b_ok, rx_p_ok, tx_b_ok, tx_p_ok,\
                     rx_b_err, rx_p_err, tx_b_err, tx_p_err,")
@@ -131,6 +130,25 @@ class Intfstat(object):
         else:
             return STATUS_NA
 
+    def cnstat_print(self, cnstat_dict, use_json):
+        """
+            Print the cnstat.
+        """
+        table = []
+
+        for key, data in cnstat_dict.iteritems():
+            if key == 'time':
+                continue
+
+            table.append((key, data.rx_p_ok, STATUS_NA, STATUS_NA, data.rx_p_err,
+                               data.tx_p_ok, STATUS_NA, STATUS_NA, data.tx_p_err))
+
+        if use_json:
+            print table_as_json(table, header)
+
+        else:
+            print tabulate(table, header, tablefmt='simple', stralign='right')
+
     def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, use_json):
         """
             Print the difference between two cnstat results.
@@ -140,27 +158,33 @@ class Intfstat(object):
 
         for key, cntr in cnstat_new_dict.iteritems():
             if key == 'time':
-                if 'time' in cnstat_old_dict:
-                    time_gap = cnstat_new_dict.get('time') - cnstat_old_dict.get('time')
-                    time_gap = time_gap.total_seconds()
-                else:
-                    time_gap = get_uptime()
+                time_gap = cnstat_new_dict.get('time') - cnstat_old_dict.get('time')
+                time_gap = time_gap.total_seconds()
                 continue
-
+            old_cntr = None
             if key in cnstat_old_dict:
                 old_cntr = cnstat_old_dict.get(key)
-            else:
-                old_cntr = NStats._make([0] * (len(header) - 1))
 
-            table.append((key,
-                        ns_diff(cntr.rx_p_ok, old_cntr.rx_p_ok),
-                        ns_brate(cntr.rx_b_ok, old_cntr.rx_b_ok, time_gap),
-                        ns_prate(cntr.rx_p_ok, old_cntr.rx_p_ok, time_gap),
-                        ns_diff(cntr.rx_p_err, old_cntr.rx_p_err),
-                        ns_diff(cntr.tx_p_ok, old_cntr.tx_p_ok),
-                        ns_brate(cntr.tx_b_ok, old_cntr.tx_b_ok, time_gap),
-                        ns_prate(cntr.tx_p_ok, old_cntr.tx_p_ok, time_gap),
-                        ns_diff(cntr.tx_p_err, old_cntr.tx_p_err)))
+            if old_cntr is not None:
+                table.append((key,
+                            ns_diff(cntr.rx_p_ok, old_cntr.rx_p_ok),
+                            ns_brate(cntr.rx_b_ok, old_cntr.rx_b_ok, time_gap),
+                            ns_prate(cntr.rx_p_ok, old_cntr.rx_p_ok, time_gap),
+                            ns_diff(cntr.rx_p_err, old_cntr.rx_p_err),
+                            ns_diff(cntr.tx_p_ok, old_cntr.tx_p_ok),
+                            ns_brate(cntr.tx_b_ok, old_cntr.tx_b_ok, time_gap),
+                            ns_prate(cntr.tx_p_ok, old_cntr.tx_p_ok, time_gap),
+                            ns_diff(cntr.tx_p_err, old_cntr.tx_p_err)))
+            else:
+                table.append((key,
+                            cntr.rx_p_ok,
+                            STATUS_NA,
+                            STATUS_NA,
+                            cntr.rx_p_err,
+                            cntr.tx_p_ok,
+                            STATUS_NA,
+                            STATUS_NA,
+                            cntr.tx_p_err))
         if use_json:
             print table_as_json(table, header)
         else:
@@ -307,7 +331,7 @@ def main():
                 if interface_name:
                     intfstat.cnstat_single_interface(interface_name, cnstat_dict, None)
                 else:
-                    intfstat.cnstat_diff_print(cnstat_dict, {}, use_json)
+                    intfstat.cnstat_print(cnstat_dict, use_json)
     else:
         #wait for the specified time and then gather the new stats and output the difference.
         time.sleep(wait_time_in_seconds)

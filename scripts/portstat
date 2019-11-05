@@ -21,7 +21,6 @@ from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
 from utilities_common.netstat import ns_diff, ns_brate, ns_prate, ns_util, table_as_json
-from utilities_common import get_uptime
 
 PORT_RATE = 40
 
@@ -33,7 +32,6 @@ header_all = ['IFACE', 'STATE', 'RX_OK', 'RX_BPS', 'RX_PPS', 'RX_UTIL', 'RX_ERR'
 header = ['IFACE', 'STATE', 'RX_OK', 'RX_BPS', 'RX_UTIL', 'RX_ERR', 'RX_DRP', 'RX_OVR',
           'TX_OK', 'TX_BPS', 'TX_UTIL', 'TX_ERR', 'TX_DRP', 'TX_OVR']
 
-BUCKET_NUM = 10
 counter_bucket_dict = {
     'SAI_PORT_STAT_IF_IN_UCAST_PKTS': 0,
     'SAI_PORT_STAT_IF_IN_NON_UCAST_PKTS': 0,
@@ -132,7 +130,36 @@ class Portstat(object):
         else:
             return STATUS_NA
 
-    def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, use_json=False, print_all=False):
+    def cnstat_print(self, cnstat_dict, use_json, print_all):
+        """
+            Print the cnstat.
+        """
+        table = []
+
+        for key, data in cnstat_dict.iteritems():
+            if key == 'time':
+                continue
+
+            if print_all:
+                table.append((key, self.get_port_state(key),
+                              data.rx_ok, STATUS_NA, STATUS_NA, STATUS_NA, data.rx_err,
+                              data.rx_drop, data.rx_ovr,
+                              data.tx_ok, STATUS_NA, STATUS_NA, STATUS_NA, data.tx_err,
+                              data.tx_drop, data.tx_ovr))
+            else:
+                table.append((key, self.get_port_state(key),
+                              data.rx_ok, STATUS_NA, STATUS_NA, data.rx_err,
+                              data.rx_drop, data.rx_ovr,
+                              data.tx_ok, STATUS_NA, STATUS_NA, data.tx_err,
+                              data.tx_drop, data.tx_ovr))
+
+
+        if use_json:
+            table_as_json(table, header_all if print_all else header)
+        else:
+            print tabulate(table, header_all, tablefmt='simple', stralign='right') #  if print_all else header
+
+    def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, use_json, print_all):
         """
             Print the difference between two cnstat results.
         """
@@ -141,47 +168,76 @@ class Portstat(object):
 
         for key, cntr in cnstat_new_dict.iteritems():
             if key == 'time':
-                if 'time' in cnstat_old_dict:
-                    time_gap = cnstat_new_dict.get('time') - cnstat_old_dict.get('time')
-                    time_gap = time_gap.total_seconds()
-                else:
-                    time_gap = get_uptime()
+                time_gap = cnstat_new_dict.get('time') - cnstat_old_dict.get('time')
+                time_gap = time_gap.total_seconds()
                 continue
+            old_cntr = None
             if key in cnstat_old_dict:
                 old_cntr = cnstat_old_dict.get(key)
-            else:
-                old_cntr = NStats._make([0] * BUCKET_NUM)
+
             port_speed = self.get_port_speed(key)
             if print_all:
-                table.append((key, self.get_port_state(key),
-                              ns_diff(cntr.rx_ok, old_cntr.rx_ok),
-                              ns_brate(cntr.rx_byt, old_cntr.rx_byt, time_gap),
-                              ns_prate(cntr.rx_ok, old_cntr.rx_ok, time_gap),
-                              ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap, port_speed),
-                              ns_diff(cntr.rx_err, old_cntr.rx_err),
-                              ns_diff(cntr.rx_drop, old_cntr.rx_drop),
-                              ns_diff(cntr.rx_ovr, old_cntr.rx_ovr),
-                              ns_diff(cntr.tx_ok, old_cntr.tx_ok),
-                              ns_brate(cntr.tx_byt, old_cntr.tx_byt, time_gap),
-                              ns_prate(cntr.tx_ok, old_cntr.tx_ok, time_gap),
-                              ns_util(cntr.tx_byt, old_cntr.tx_byt, time_gap, port_speed),
-                              ns_diff(cntr.tx_err, old_cntr.tx_err),
-                              ns_diff(cntr.tx_drop, old_cntr.tx_drop),
-                              ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
+                if old_cntr is not None:
+                    table.append((key, self.get_port_state(key),
+                                  ns_diff(cntr.rx_ok, old_cntr.rx_ok),
+                                  ns_brate(cntr.rx_byt, old_cntr.rx_byt, time_gap),
+                                  ns_prate(cntr.rx_ok, old_cntr.rx_ok, time_gap),
+                                  ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap, port_speed),
+                                  ns_diff(cntr.rx_err, old_cntr.rx_err),
+                                  ns_diff(cntr.rx_drop, old_cntr.rx_drop),
+                                  ns_diff(cntr.rx_ovr, old_cntr.rx_ovr),
+                                  ns_diff(cntr.tx_ok, old_cntr.tx_ok),
+                                  ns_brate(cntr.tx_byt, old_cntr.tx_byt, time_gap),
+                                  ns_prate(cntr.tx_ok, old_cntr.tx_ok, time_gap),
+                                  ns_util(cntr.tx_byt, old_cntr.tx_byt, time_gap, port_speed),
+                                  ns_diff(cntr.tx_err, old_cntr.tx_err),
+                                  ns_diff(cntr.tx_drop, old_cntr.tx_drop),
+                                  ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
+                else:
+                    table.append((key, self.get_port_state(key),
+                                  cntr.rx_ok,
+                                  STATUS_NA,
+                                  STATUS_NA,
+                                  STATUS_NA,
+                                  cntr.rx_err,
+                                  cntr.rx_drop,
+                                  cntr.rx_ovr,
+                                  cntr.tx_ok,
+                                  STATUS_NA,
+                                  STATUS_NA,
+                                  STATUS_NA,
+                                  cntr.tx_err,
+                                  cntr.tx_drop,
+                                  cntr.tx_err))
             else:
-                table.append((key, self.get_port_state(key),
-                              ns_diff(cntr.rx_ok, old_cntr.rx_ok),
-                              ns_brate(cntr.rx_byt, old_cntr.rx_byt, time_gap),
-                              ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap, port_speed),
-                              ns_diff(cntr.rx_err, old_cntr.rx_err),
-                              ns_diff(cntr.rx_drop, old_cntr.rx_drop),
-                              ns_diff(cntr.rx_ovr, old_cntr.rx_ovr),
-                              ns_diff(cntr.tx_ok, old_cntr.tx_ok),
-                              ns_brate(cntr.tx_byt, old_cntr.tx_byt, time_gap),
-                              ns_util(cntr.tx_byt, old_cntr.tx_byt, time_gap, port_speed),
-                              ns_diff(cntr.tx_err, old_cntr.tx_err),
-                              ns_diff(cntr.tx_drop, old_cntr.tx_drop),
-                              ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
+                if old_cntr is not None:
+                    table.append((key, self.get_port_state(key),
+                                      ns_diff(cntr.rx_ok, old_cntr.rx_ok),
+                                      ns_brate(cntr.rx_byt, old_cntr.rx_byt, time_gap),
+                                      ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap),
+                                      ns_diff(cntr.rx_err, old_cntr.rx_err),
+                                      ns_diff(cntr.rx_drop, old_cntr.rx_drop),
+                                      ns_diff(cntr.rx_ovr, old_cntr.rx_ovr),
+                                      ns_diff(cntr.tx_ok, old_cntr.tx_ok),
+                                      ns_brate(cntr.tx_byt, old_cntr.tx_byt, time_gap),
+                                      ns_util(cntr.tx_byt, old_cntr.tx_byt, time_gap),
+                                      ns_diff(cntr.tx_err, old_cntr.tx_err),
+                                      ns_diff(cntr.tx_drop, old_cntr.tx_drop),
+                                      ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
+                else:
+                    table.append((key, self.get_port_state(key),
+                                  cntr.rx_ok,
+                                  STATUS_NA,
+                                  STATUS_NA,
+                                  cntr.rx_err,
+                                  cntr.rx_drop,
+                                  cntr.rx_ovr,
+                                  cntr.tx_ok,
+                                  STATUS_NA,
+                                  STATUS_NA,
+                                  cntr.tx_err,
+                                  cntr.tx_drop,
+                                  cntr.tx_err))
 
         if use_json:
             print table_as_json(table, header)
@@ -299,7 +355,7 @@ Examples:
                 print "\nFile '%s' does not exist" % cnstat_fqn_file
                 print "Did you run 'portstat -c -t %s' to record the counters via tag %s?\n" % (tag_name, tag_name)
             else:
-                portstat.cnstat_diff_print(cnstat_dict, {}, use_json, print_all)
+                portstat.cnstat_print(cnstat_dict, use_json, print_all)
     else:
         #wait for the specified time and then gather the new stats and output the difference.
         time.sleep(wait_time_in_seconds)
