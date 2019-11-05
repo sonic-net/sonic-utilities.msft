@@ -2024,6 +2024,92 @@ def policer(policer_name, verbose):
 
 
 #
+# 'sflow command ("show sflow ...")
+#
+@cli.group(invoke_without_command=True)
+@click.pass_context
+def sflow(ctx):
+    """Show sFlow related information"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {'db': config_db}
+    if ctx.invoked_subcommand is None:
+        show_sflow_global(config_db)
+
+#
+# 'sflow command ("show sflow interface ...")
+#
+@sflow.command('interface')
+@click.pass_context
+def sflow_interface(ctx):
+    """Show sFlow interface information"""
+    show_sflow_interface(ctx.obj['db'])
+
+def sflow_appDB_connect():
+    db = SonicV2Connector(host='127.0.0.1')
+    db.connect(db.APPL_DB, False)
+    return db
+
+def show_sflow_interface(config_db):
+    sess_db = sflow_appDB_connect()
+    if not sess_db:
+        click.echo("sflow AppDB error")
+        return
+
+    port_tbl = config_db.get_table('PORT')
+    if not port_tbl:
+        click.echo("No ports configured")
+        return
+
+    idx_to_port_map = {int(port_tbl[name]['index']): name for name in
+                       port_tbl.keys()}
+    click.echo("\nsFlow interface configurations")
+    header = ['Interface', 'Admin State', 'Sampling Rate']
+    body = []
+    for idx in sorted(idx_to_port_map.keys()):
+        pname = idx_to_port_map[idx]
+        intf_key = 'SFLOW_SESSION_TABLE:' + pname
+        sess_info = sess_db.get_all(sess_db.APPL_DB, intf_key)
+        if sess_info is None:
+            continue
+        body_info = [pname]
+        body_info.append(sess_info['admin_state'])
+        body_info.append(sess_info['sample_rate'])
+        body.append(body_info)
+    click.echo(tabulate(body, header, tablefmt='grid'))
+
+def show_sflow_global(config_db):
+
+    sflow_info = config_db.get_table('SFLOW')
+    global_admin_state = 'down'
+    if sflow_info:
+        global_admin_state = sflow_info['global']['admin_state']
+
+    click.echo("\nsFlow Global Information:")
+    click.echo("  sFlow Admin State:".ljust(30) + "{}".format(global_admin_state))
+
+
+    click.echo("  sFlow Polling Interval:".ljust(30), nl=False)
+    if (sflow_info and 'polling_interval' in sflow_info['global'].keys()):
+        click.echo("{}".format(sflow_info['global']['polling_interval']))
+    else:
+        click.echo("default")
+
+    click.echo("  sFlow AgentID:".ljust(30), nl=False)
+    if (sflow_info and 'agent_id' in sflow_info['global'].keys()):
+        click.echo("{}".format(sflow_info['global']['agent_id']))
+    else:
+        click.echo("default")
+
+    sflow_info = config_db.get_table('SFLOW_COLLECTOR')
+    click.echo("\n  {} Collectors configured:".format(len(sflow_info)))
+    for collector_name in sorted(sflow_info.keys()):
+        click.echo("    Name: {}".format(collector_name).ljust(30) +
+                   "IP addr: {}".format(sflow_info[collector_name]['collector_ip']).ljust(20) +
+                   "UDP port: {}".format(sflow_info[collector_name]['collector_port']))
+
+
+#
 # 'acl' group ###
 #
 
