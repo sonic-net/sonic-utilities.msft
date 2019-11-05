@@ -22,6 +22,8 @@ import mlnx
 
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 
+VLAN_SUB_INTERFACE_SEPARATOR = '.'
+
 try:
     # noinspection PyPep8Naming
     import ConfigParser as configparser
@@ -74,25 +76,42 @@ class InterfaceAliasConverter(object):
         """Return vendor interface alias if SONiC
            interface name is given as argument
         """
+        vlan_id = ''
+        sub_intf_sep_idx = -1
         if interface_name is not None:
+            sub_intf_sep_idx = interface_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
+            if sub_intf_sep_idx != -1:
+                vlan_id = interface_name[sub_intf_sep_idx + 1:]
+                # interface_name holds the parent port name
+                interface_name = interface_name[:sub_intf_sep_idx]
+
             for port_name in self.port_dict.keys():
                 if interface_name == port_name:
-                    return self.port_dict[port_name]['alias']
+                    return self.port_dict[port_name]['alias'] if sub_intf_sep_idx == -1 \
+                            else self.port_dict[port_name]['alias'] + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
         # interface_name not in port_dict. Just return interface_name
-        return interface_name
+        return interface_name if sub_intf_sep_idx == -1 else interface_name + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
     def alias_to_name(self, interface_alias):
         """Return SONiC interface name if vendor
            port alias is given as argument
         """
+        vlan_id = ''
+        sub_intf_sep_idx = -1
         if interface_alias is not None:
+            sub_intf_sep_idx = interface_alias.find(VLAN_SUB_INTERFACE_SEPARATOR)
+            if sub_intf_sep_idx != -1:
+                vlan_id = interface_alias[sub_intf_sep_idx + 1:]
+                # interface_alias holds the parent port alias
+                interface_alias = interface_alias[:sub_intf_sep_idx]
+
             for port_name in self.port_dict.keys():
                 if interface_alias == self.port_dict[port_name]['alias']:
-                    return port_name
+                    return port_name if sub_intf_sep_idx == -1 else port_name + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
         # interface_alias not in port_dict. Just return interface_alias
-        return interface_alias
+        return interface_alias if sub_intf_sep_idx == -1 else interface_alias + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
 
 # Global Config object
@@ -787,6 +806,37 @@ def rif(interface, period, verbose):
 def portchannel(verbose):
     """Show PortChannel information"""
     cmd = "sudo teamshow"
+    run_command(cmd, display_cmd=verbose)
+
+#
+# 'subinterfaces' group ("show subinterfaces ...")
+#
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def subinterfaces():
+    """Show details of the sub port interfaces"""
+    pass
+
+# 'subinterfaces' subcommand ("show subinterfaces status")
+@subinterfaces.command()
+@click.argument('subinterfacename', type=str, required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def status(subinterfacename, verbose):
+    """Show sub port interface status information"""
+    cmd = "intfutil status "
+
+    if subinterfacename is not None:
+        sub_intf_sep_idx = subinterfacename.find(VLAN_SUB_INTERFACE_SEPARATOR)
+        if sub_intf_sep_idx == -1:
+            print("Invalid sub port interface name")
+            return
+
+        if get_interface_mode() == "alias":
+            subinterfacename = iface_alias_converter.alias_to_name(subinterfacename)
+
+        cmd += subinterfacename
+    else:
+        cmd += "subport"
     run_command(cmd, display_cmd=verbose)
 
 #

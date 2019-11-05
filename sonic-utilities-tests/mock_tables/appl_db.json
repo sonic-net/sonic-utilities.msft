@@ -18,5 +18,8 @@
         "fec": "rs",
         "mtu": "9100",
         "pfc_asym": "off"
+    },
+    "INTF_TABLE:Ethernet0.10": {
+        "admin_status": "up"
     }
 }

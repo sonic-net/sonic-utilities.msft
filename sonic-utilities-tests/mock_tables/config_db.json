@@ -42,6 +42,9 @@
         "mtu": "9100",
         "speed": "40000"
     },
+    "VLAN_SUB_INTERFACE|Ethernet0.10": {
+        "admin_status": "up"
+    },
     "ACL_RULE|DATAACL|DEFAULT_RULE": {
             "PACKET_ACTION": "DROP",
             "PRIORITY": "1"
