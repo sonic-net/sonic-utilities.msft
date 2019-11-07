@@ -100,14 +100,27 @@ def init():
 
 def db_update(t, k, lst):
     init()
-    db.mod_entry(t, k, lst)
-
-def db_filtered_upd(t, k, lst):
-    init()
+    to_upd = False
     data = db.get_entry(t, k)
     for i in lst.keys():
-        data.pop(i)
-    db.set_entry(t, k, data)
+        if not data.has_key(i) or data[i] != lst[i]:
+            to_upd = True
+            break
+
+    if to_upd:
+        db.mod_entry(t, k, lst)
+
+def db_delete_fields(t, k, lst):
+    init()
+    to_set = False
+    data = db.get_entry(t, k)
+    for i in lst.keys():
+        if data.has_key(i):
+            data.pop(i)
+            to_set = True
+
+    if to_set:
+        db.set_entry(t, k, data)
 
 
 def db_delete_deep(t, k):
@@ -119,7 +132,7 @@ def db_delete_deep(t, k):
 def db_delete(t, k, lst):
     init()
     if lst:
-        db_filtered_upd(t, k, lst)
+        db_delete_fields(t, k, lst)
     else:
         db_delete_deep(t, k)
 
