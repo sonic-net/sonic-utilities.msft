@@ -797,6 +797,13 @@ def warm_restart_teamsyncd_timer(ctx, seconds):
         ctx.fail("teamsyncd warm restart timer must be in range 1-3600")
     db.mod_entry('WARM_RESTART', 'teamd', {'teamsyncd_timer': seconds})
 
+@warm_restart.command('bgp_eoiu')
+@click.argument('enable', metavar='<enable>', default='true', required=False, type=click.Choice(["true", "false"]))
+@click.pass_context
+def warm_restart_bgp_eoiu(ctx, enable):
+    db = ctx.obj['db']
+    db.mod_entry('WARM_RESTART', 'bgp', {'bgp_eoiu': enable})
+
 #
 # 'vlan' group ('config vlan ...')
 #
