@@ -77,7 +77,8 @@ class DBMigrator():
         if_tables = {
                      'INTERFACE',
                      'PORTCHANNEL_INTERFACE',
-                     'VLAN_INTERFACE'
+                     'VLAN_INTERFACE',
+                     'LOOPBACK_INTERFACE'
                     }
         for table in if_tables:
             data = self.configDB.get_table(table)
