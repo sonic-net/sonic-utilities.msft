@@ -35,7 +35,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_1_0_1'
+        self.CURRENT_VERSION = 'version_1_0_2'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -116,18 +116,26 @@ class DBMigrator():
         #       upgrade will take care of the subsequent migrations.
         self.migrate_pfc_wd_table()
         self.migrate_interface_table()
-        self.set_version('version_1_0_1')
-        return 'version_1_0_1'
-
+        self.set_version('version_1_0_2')
+        return 'version_1_0_2'
 
     def version_1_0_1(self):
         """
-        Current latest version. Nothing to do here.
+        Version 1_0_1.
         """
         log_info('Handling version_1_0_1')
 
+        self.migrate_interface_table()
+        self.set_version('version_1_0_2')
         return None
 
+    def version_1_0_2(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log_info('Handling version_1_0_2')
+
+        return None
 
     def get_version(self):
         version = self.configDB.get_entry(self.TABLE_NAME, self.TABLE_KEY)
