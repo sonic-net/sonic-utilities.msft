@@ -1,0 +1,48 @@
+#!/usr/bin/python
+
+import sys
+import os
+import subprocess
+import json
+import time
+
+progname = sys.argv[0]
+
+outfile = '/var/platform/system'
+tmpfile = '/var/platform/system.tmp'
+
+ticks_per_sec = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
+
+while True:
+    d = {}
+    d['hostname'] = subprocess.check_output(['hostname']).rstrip()
+    w = subprocess.check_output(['free']).split('\n')[1].split()
+    d['total'] = int(w[1])
+    d['used']  = int(w[2])
+    d['free']  = int(w[3])
+    btime = int(subprocess.check_output(['bash', '-c', "cat /proc/stat | grep '^btime'"]).split()[1])
+    cpus = []
+    for li in subprocess.check_output(['bash', '-c', "cat /proc/stat | grep '^cpu'"]).rstrip().split('\n'):
+        w = li.split()
+        cpus.append({'user': int(w[1]) + int(w[2]), 'system': int(w[3]), 'idle': int(w[4])})
+    d['cpus'] = cpus
+    procs = {}
+    for li in subprocess.check_output(['ps', 'aux']).rstrip().split('\n')[1:]:
+        w = li.split()
+        cmd = ' '.join(w[10:])
+        if progname in cmd:
+            continue
+        pid = w[1]
+        try:
+            w2 = subprocess.check_output(['bash', '-c', 'cat /proc/{}/stat 2>/dev/null'.format(pid)]).split()
+        except subprocess.CalledProcessError:
+            continue
+        procs[pid] = {'cmd': cmd, 'start': btime + int(w2[21]) / ticks_per_sec, 'user': int(w2[13]), 'system': int(w2[14]), 'mem': int(w[4]), 'cpuitil': float(w[2]), 'memutil': float(w[3])}
+    d['procs'] = procs
+
+    f = open(tmpfile, 'w')
+    json.dump(d, f)
+    f.close()
+    os.rename(tmpfile, outfile)
+
+    time.sleep(1)
