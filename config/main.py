@@ -835,11 +835,14 @@ def vlan(ctx, redis_unix_socket_path):
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.pass_context
 def add_vlan(ctx, vid):
-    db = ctx.obj['db']
-    vlan = 'Vlan{}'.format(vid)
-    if len(db.get_entry('VLAN', vlan)) != 0:
-        ctx.fail("{} already exists".format(vlan))
-    db.set_entry('VLAN', vlan, {'vlanid': vid})
+    if vid >= 1 and vid <= 4094:
+        db = ctx.obj['db']
+        vlan = 'Vlan{}'.format(vid)
+        if len(db.get_entry('VLAN', vlan)) != 0:
+            ctx.fail("{} already exists".format(vlan))
+        db.set_entry('VLAN', vlan, {'vlanid': vid})
+    else :
+        ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
 @vlan.command('del')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
