@@ -83,8 +83,6 @@ setup(
         'scripts/route_check.py',
         'scripts/route_check_test.sh',
         'scripts/sfpshow',
-        'scripts/syseeprom-to-json',
-        'scripts/syspoll',
         'scripts/teamshow',
         'scripts/warm-reboot',
         'scripts/watermarkstat',
