@@ -119,5 +119,22 @@
             "policy_desc": "SSH_ONLY",
             "services@": "SSH",
             "type": "CTRLPLANE"
-    }
+    },
+    "DEBUG_COUNTER|DEBUG_0": {
+        "type": "PORT_INGRESS_DROPS"
+    },
+    "DEBUG_COUNTER|DEBUG_1": {
+        "type": "SWITCH_EGRESS_DROPS",
+        "alias": "SWITCH_DROPS",
+        "group": "PACKET_DROPS",
+        "desc": "Outgoing packet drops, tracked at the switch level"
+    },
+    "DEBUG_COUNTER|DEBUG_2": {
+        "type": "PORT_INGRESS_DROPS",
+        "desc": ""
+    },
+    "DEBUG_COUNTER_DROP_REASON|DEBUG_0|IP_HEADER_ERROR": {},
+    "DEBUG_COUNTER_DROP_REASON|DEBUG_1|ACL_ANY": {},
+    "DEBUG_COUNTER_DROP_REASON|DEBUG_2|IP_HEADER_ERROR": {},
+    "DEBUG_COUNTER_DROP_REASON|DEBUG_2|NO_L3_HEADER": {}
 }

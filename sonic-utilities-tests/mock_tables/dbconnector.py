@@ -42,6 +42,8 @@ class SwssSyncClient(mockredis.MockRedis):
         db = kwargs.pop('db')
         if db == 0:
             fname = 'appl_db.json'
+        elif db == 1:
+            fname = 'asic_db.json'
         elif db == 2:
             fname = 'counters_db.json'
         elif db == 4:

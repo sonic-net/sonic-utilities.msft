@@ -1,0 +1,414 @@
+#!/usr/bin/env python
+
+#####################################################################
+#
+# dropconfig is a tool for configuring drop counters.
+#
+#####################################################################
+
+# FUTURE IMPROVEMENTS
+# - Add more filters to the show commands (e.g. filter by name, alias, etc.)
+# - Add the ability to change readonly attributes like group, description, etc.
+
+import swsssdk
+import argparse
+import os
+import sys
+
+from tabulate import tabulate
+
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        test_path = os.path.join(modules_path, "sonic-utilities-tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, test_path)
+        import mock_tables.dbconnector
+except KeyError:
+    pass
+
+# CONFIG_DB Tables
+DEBUG_COUNTER_CONFIG_TABLE = 'DEBUG_COUNTER'
+DROP_REASON_TABLE_PREFIX = 'DEBUG_COUNTER_DROP_REASON'
+
+# STATE_DB Tables
+DEBUG_COUNTER_CAPABILITY_TABLE = 'DEBUG_COUNTER_CAPABILITIES'
+
+# Drop Counter Configuration Headers
+drop_counter_config_header = ['Counter',
+                              'Alias',
+                              'Group',
+                              'Type',
+                              'Reasons',
+                              'Description']
+drop_counter_capability_header = ['Counter Type', 'Total']
+
+# Drop Reason Prefixes
+in_drop_reason_prefix = 'SAI_IN_DROP_REASON_'
+out_drop_reason_prefix = 'SAI_OUT_DROP_REASON_'
+
+
+class InvalidArgumentError(RuntimeError):
+    def __init__(self, msg):
+        self.message = msg
+
+
+class DropConfig(object):
+    def __init__(self):
+        self.config_db = swsssdk.ConfigDBConnector()
+        self.config_db.connect()
+
+        self.state_db = swsssdk.SonicV2Connector(host='127.0.0.1')
+        self.state_db.connect(self.state_db.STATE_DB)
+
+    # -c show_config
+    def print_counter_config(self, group):
+        """
+            Prints out the configuration for all counters that are currently
+            set up
+        """
+
+        table = []
+        for counter in self.get_config(group):
+            table.append((counter.get('name', ''),
+                          counter.get('alias', ''),
+                          counter.get('group', ''),
+                          counter.get('type', ''),
+                          counter.get('reason', ''),
+                          counter.get('description', '')))
+
+        print(tabulate(table,
+                       drop_counter_config_header,
+                       tablefmt='simple',
+                       stralign='left'))
+
+    def print_device_capabilities(self):
+        """
+            Prints out the capabilities that this device has
+        """
+
+        device_caps = self.get_device_capabilities()
+
+        if not device_caps:
+            print('Current device does not support drop counters')
+
+        table = []
+        for counter, capabilities in device_caps.iteritems():
+            table.append((counter, capabilities.get('count', 'N/A')))
+        print(tabulate(table,
+                       drop_counter_capability_header,
+                       tablefmt='simple',
+                       stralign='left'))
+
+        for counter, capabilities in device_caps.iteritems():
+            supported_reasons = deserialize_reason_list(capabilities.get('reasons', ''))
+            if supported_reasons and int(capabilities.get('count', 0)) > 0:
+                print('\n{}'.format(counter))
+                for reason in supported_reasons:
+                    if reason.startswith(in_drop_reason_prefix):
+                        reason = reason[len(in_drop_reason_prefix):]
+                    elif reason.startswith(out_drop_reason_prefix):
+                        reason = reason[len(out_drop_reason_prefix):]
+                    print('\t{}'.format(reason))
+
+    def create_counter(self, counter_name, alias, group, counter_type,
+                       description, reasons):
+        """
+            Creates a new counter configuration
+        """
+
+        if not counter_name:
+            raise InvalidArgumentError('Counter name not provided')
+
+        if not counter_type:
+            raise InvalidArgumentError('Counter type not provided')
+
+        if not reasons:
+            raise InvalidArgumentError('No drop reasons provided')
+
+        if self.counter_name_in_use(counter_name):
+            raise InvalidArgumentError('Counter name \'{}\' already in use'.format(counter_name))
+
+        available_counters = self.get_available_counters(counter_type)
+        if available_counters is None:
+            raise InvalidArgumentError('Counter type not supported on this device')
+        elif int(available_counters) <= len(self.config_db.get_keys(DEBUG_COUNTER_CONFIG_TABLE)):
+            raise InvalidArgumentError('All counters of this type are currently in use')
+
+        supported_reasons = self.get_supported_reasons(counter_type)
+        if supported_reasons is None:
+            raise InvalidArgumentError('No drop reasons found for this device')
+        elif not all(r in supported_reasons for r in reasons):
+            raise InvalidArgumentError('One or more provided drop reason not supported on this device')
+
+        for reason in reasons:
+            self.config_db.set_entry(self.config_db.serialize_key(
+                                     (DROP_REASON_TABLE_PREFIX, counter_name)),
+                                     reason,
+                                     {})
+
+        drop_counter_entry = {'type': counter_type}
+
+        if alias:
+            drop_counter_entry['alias'] = alias
+        if group:
+            drop_counter_entry['group'] = group
+        if description or description == '':
+            drop_counter_entry['desc'] = description
+
+        self.config_db.set_entry(DEBUG_COUNTER_CONFIG_TABLE,
+                                 counter_name,
+                                 drop_counter_entry)
+
+    def delete_counter(self, counter_name):
+        """
+            Deletes a given counter configuration
+        """
+
+        if not counter_name:
+            raise InvalidArgumentError('No counter name provided')
+
+        if not self.counter_name_in_use(counter_name):
+            raise InvalidArgumentError('Counter \'{}\' not found'.format(counter_name))
+
+        self.config_db.set_entry(DEBUG_COUNTER_CONFIG_TABLE,
+                                 counter_name,
+                                 None)
+        self.config_db.delete_table(self.config_db.serialize_key(
+                                    (DROP_REASON_TABLE_PREFIX, counter_name)))
+
+    def add_reasons(self, counter_name, reasons):
+        """
+            Add a drop reason to a given counter's configuration
+        """
+
+        if not counter_name:
+            raise InvalidArgumentError('No counter name provided')
+
+        if not reasons:
+            raise InvalidArgumentError('No drop reasons provided')
+
+        if not self.counter_name_in_use(counter_name):
+            raise InvalidArgumentError('Counter \'{}\' not found'.format(counter_name))
+
+        supported_reasons = self.get_supported_reasons(self.get_counter_type(counter_name))
+        if supported_reasons is None:
+            raise InvalidArgumentError('No drop reasons found for this device')
+        elif not all(r in supported_reasons for r in reasons):
+            raise InvalidArgumentError('One or more provided drop reason not supported on this device')
+
+        for reason in reasons:
+            self.config_db.set_entry(self.config_db.serialize_key(
+                                     (DROP_REASON_TABLE_PREFIX, counter_name)),
+                                     reason,
+                                     {})
+
+    def remove_reasons(self, counter_name, reasons):
+        """
+            Remove a drop reason from a given counter's configuration
+        """
+
+        if not counter_name:
+            raise InvalidArgumentError('No counter name provided')
+
+        if not reasons:
+            raise InvalidArgumentError('No drop reasons provided')
+
+        if not self.counter_name_in_use(counter_name):
+            raise InvalidArgumentError('Counter \'{}\' not found'.format(counter_name))
+
+        for reason in reasons:
+            self.config_db.set_entry(self.config_db.serialize_key(
+                                     (DROP_REASON_TABLE_PREFIX, counter_name)),
+                                     reason,
+                                     None)
+
+    def get_config(self, group):
+        """
+            Get the current counter configuration from CONFIG_DB
+        """
+
+        def get_counter_config(counter_name, counter_attributes):
+            """
+                Gets the configuration for a specific counter.
+            """
+
+            counter_metadata = {
+                'name':        counter_name,
+                'alias':       counter_attributes.get('alias', counter_name),
+                'group':       counter_attributes.get('group', 'N/A'),
+                'type':        counter_attributes.get('type', 'N/A'),
+                'description': counter_attributes.get('desc', 'N/A')
+            }
+
+            # Get the drop reasons for this counter
+            drop_reason_keys = sorted(self.config_db.get_keys(self.config_db.serialize_key((DROP_REASON_TABLE_PREFIX, counter_name))), key=lambda x: x[1])
+
+            # Fill in the first drop reason
+            num_reasons = len(drop_reason_keys)
+            if num_reasons == 0:
+                counter_metadata['reason'] = 'None'
+            else:
+                counter_metadata['reason'] = drop_reason_keys[0][1]
+
+            if num_reasons <= 1:
+                return [counter_metadata]
+
+            # Add additional rows for remaining drop reasons
+            counter_config = [counter_metadata]
+            for drop_reason in drop_reason_keys[1:]:
+                counter_config.append({'reason': drop_reason[1]})
+
+            return counter_config
+
+        config_table = self.config_db.get_table(DEBUG_COUNTER_CONFIG_TABLE)
+        config = []
+        for counter_name, counter_attributes in sorted(config_table.iteritems()):
+            if group and counter_attributes.get('group', '') != group:
+                continue
+
+            config += get_counter_config(counter_name, counter_attributes)
+        return config
+
+    def get_device_capabilities(self):
+        """
+            Get the device capabilities from STATE_DB
+        """
+
+        capability_query = self.state_db.keys(self.state_db.STATE_DB, '{}|*'.format(DEBUG_COUNTER_CAPABILITY_TABLE))
+
+        if not capability_query:
+            return None
+
+        counter_caps = {}
+        for counter_type in capability_query:
+            # Because keys returns the whole key, we trim off the DEBUG_COUNTER_CAPABILITY prefix here
+            counter_caps[counter_type[len(DEBUG_COUNTER_CAPABILITY_TABLE) + 1:]] = self.state_db.get_all(self.state_db.STATE_DB, counter_type)
+        return counter_caps
+
+    def counter_name_in_use(self, counter_name):
+        return self.config_db.get_entry(DEBUG_COUNTER_CONFIG_TABLE, counter_name) != {}
+
+    def get_counter_type(self, counter_name):
+        return self.config_db.get_entry(DEBUG_COUNTER_CONFIG_TABLE, counter_name).get('type', None)
+
+    def get_available_counters(self, counter_type):
+        if counter_type is None:
+            return None
+
+        cap_query = self.state_db.get_all(self.state_db.STATE_DB, '{}|{}'.format(DEBUG_COUNTER_CAPABILITY_TABLE, counter_type))
+
+        if not cap_query:
+            return None
+
+        return cap_query.get('count', 0)
+
+    def get_supported_reasons(self, counter_type):
+        if counter_type is None:
+            return None
+
+        cap_query = self.state_db.get_all(self.state_db.STATE_DB, '{}|{}'.format(DEBUG_COUNTER_CAPABILITY_TABLE, counter_type))
+
+        if not cap_query:
+            return None
+
+        reasons = []
+        for reason in deserialize_reason_list(cap_query.get('reasons', '')):
+            if reason.startswith(in_drop_reason_prefix):
+                reasons.append(reason[len(in_drop_reason_prefix):])
+            elif reason.startswith(out_drop_reason_prefix):
+                reasons.append(reason[len(out_drop_reason_prefix):])
+        return reasons
+
+
+def deserialize_reason_list(list_str):
+    if list_str is None:
+        return None
+
+    if '|' in list_str or ':' in list_str:
+        raise InvalidArgumentError('Malformed drop reason provided')
+
+    list_str = list_str.replace(' ', '')
+    list_str = list_str.strip('[')
+    list_str = list_str.strip(']')
+
+    if len(list_str) == 0:
+        return []
+    else:
+        return list_str.split(',')
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Manage drop counters',
+                                     version='1.0.0',
+                                     formatter_class=argparse.RawTextHelpFormatter,
+                                     epilog="""
+Examples:
+  dropconfig
+""")
+
+    # Actions
+    parser.add_argument('-c', '--command', type=str, help='Desired action to perform')
+
+    # Variables
+    parser.add_argument('-n', '--name',    type=str, help='The name of the target drop counter',                   default=None)
+    parser.add_argument('-a', '--alias',   type=str, help='The alias of the target drop counter',                  default=None)
+    parser.add_argument('-g', '--group',   type=str, help='The group of the target drop counter',                  default=None)
+    parser.add_argument('-t', '--type',    type=str, help='The type of the target drop counter',                   default=None)
+    parser.add_argument('-d', '--desc',    type=str, help='The description for the target drop counter',           default=None)
+    parser.add_argument('-r', '--reasons', type=str, help='The list of drop reasons for the target drop counter',  default=None)
+
+    args = parser.parse_args()
+
+    command = args.command
+
+    name = args.name
+    alias = args.alias
+    group = args.group
+    counter_type = args.type
+    description = args.desc
+    drop_reasons = args.reasons
+
+    reasons = deserialize_reason_list(drop_reasons)
+
+    dconfig = DropConfig()
+
+    if command == 'install':
+        try:
+            dconfig.create_counter(name,
+                                   alias,
+                                   group,
+                                   counter_type,
+                                   description,
+                                   reasons)
+        except InvalidArgumentError as err:
+            print('Encountered error trying to install counter: {}'.format(err.message))
+            exit(1)
+    elif command == 'uninstall':
+        try:
+            dconfig.delete_counter(name)
+        except InvalidArgumentError as err:
+            print('Encountered error trying to uninstall counter: {}'.format(err.message))
+            exit(1)
+    elif command == 'add':
+        try:
+            dconfig.add_reasons(name, reasons)
+        except InvalidArgumentError as err:
+            print('Encountered error trying to add reasons: {}'.format(err.message))
+            exit(1)
+    elif command == 'remove':
+        try:
+            dconfig.remove_reasons(name, reasons)
+        except InvalidArgumentError as err:
+            print('Encountered error trying to remove reasons: {}'.format(err.message))
+            exit(1)
+    elif command == 'show_config':
+        dconfig.print_counter_config(group)
+    elif command == 'show_capabilities':
+        dconfig.print_device_capabilities()
+    else:
+        print("Command not recognized")
+
+if __name__ == '__main__':
+    main()

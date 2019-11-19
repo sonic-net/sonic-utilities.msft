@@ -194,6 +194,12 @@ def pfccounters():
     command = "pfcstat -c"
     run_command(command)
 
+@cli.command()
+def dropcounters():
+    """Clear drop counters"""
+    command = "dropstat -c clear"
+    run_command(command)
+
 #
 # 'clear watermarks
 #
