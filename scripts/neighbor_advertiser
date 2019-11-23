@@ -16,10 +16,12 @@ import syslog
 import traceback
 import subprocess
 import time
+import warnings
 import sonic_device_util
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from netaddr import IPAddress, IPNetwork
+from requests.exceptions import ConnectTimeout
 
 
 #
@@ -263,7 +265,7 @@ def get_vlan_addresses(vlan_interface):
                 ipv6_addr.append(keys[1].split('/')[0])
             elif keys[0] == 'link/ether':
                 mac_addr = keys[1]
-    except Exception as e:
+    except Exception:
         log_error('failed to get %s addresses from o.s.' % vlan_interface)
         pass
 
@@ -338,17 +340,41 @@ def construct_neighbor_advertiser_slice():
 
     return slice_obj
 
+def wrapped_ferret_request(request_slice, https_endpoint, http_endpoint):
+    """
+        Attempts to reach ferret by first trying HTTPS, failing over to HTTP in
+        case of failure (e.g. timeout, endpoint not found, etc.).
+    """
+    response = None
+
+    # NOTE: While we transition to HTTPS we're disabling the verify field. We
+    # need to add a way to fetch certificates in this script ASAP.
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            response = requests.post(https_endpoint,
+                                     json=request_slice,
+                                     timeout=DEFAULT_REQUEST_TIMEOUT,
+                                     verify=False)
+    except ConnectTimeout:
+        log_info("HTTPS Ferret endpoint not found, trying HTTP...")
+        response = requests.post(http_endpoint,
+                                 json=request_slice,
+                                 timeout=DEFAULT_REQUEST_TIMEOUT)
+
+    return response
 
 def post_neighbor_advertiser_slice(ferret_service_vip):
     request_slice = construct_neighbor_advertiser_slice()
     save_as_json(request_slice, NEIGHBOR_ADVERTISER_REQUEST_SLICE_PATH)
 
-    url = 'http://{}:85{}{}'.format(ferret_service_vip, FERRET_NEIGHBOR_ADVERTISER_API_PREFIX, get_switch_name())
+    https_endpoint = 'https://{}:448{}{}'.format(ferret_service_vip, FERRET_NEIGHBOR_ADVERTISER_API_PREFIX, get_switch_name())
+    http_endpoint = 'http://{}:85{}{}'.format(ferret_service_vip, FERRET_NEIGHBOR_ADVERTISER_API_PREFIX, get_switch_name())
     response = None
 
     for retry in range(DEFAULT_FERRET_QUERY_RETRIES):
         try:
-            response = requests.post(url, json = request_slice, timeout = DEFAULT_REQUEST_TIMEOUT)
+            response = wrapped_ferret_request(request_slice, https_endpoint, http_endpoint)
         except Exception as e:
             log_error('The request failed, vip: {}, error: {}'.format(ferret_service_vip, e))
             return None
@@ -514,7 +540,7 @@ def remove_vxlan_tunnel():
 
 
 def remove_vxlan_tunnel_map():
-    for (index, vlan_intf_name) in enumerate(get_vlan_interfaces(), 1):
+    for (index, _) in enumerate(get_vlan_interfaces(), 1):
         config_db.set_entry('VXLAN_TUNNEL_MAP', (VXLAN_TUNNEL_NAME, VXLAN_TUNNEL_MAP_PREFIX + str(index)), None)
 
 
