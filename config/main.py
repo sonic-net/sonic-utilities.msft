@@ -8,6 +8,7 @@ import subprocess
 import netaddr
 import re
 import syslog
+import time
 import netifaces
 
 import sonic_device_util
@@ -156,6 +157,61 @@ def interface_name_to_alias(interface_name):
 
     return None
 
+def get_interface_table_name(interface_name):
+    """Get table name by interface_name prefix
+    """
+    if interface_name.startswith("Ethernet"):
+        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
+            return "VLAN_SUB_INTERFACE"
+        return "INTERFACE"
+    elif interface_name.startswith("PortChannel"):
+        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
+            return "VLAN_SUB_INTERFACE"
+        return "PORTCHANNEL_INTERFACE"
+    elif interface_name.startswith("Vlan"):
+        return "VLAN_INTERFACE"
+    elif interface_name.startswith("Loopback"):
+        return "LOOPBACK_INTERFACE"
+    else:
+        return ""
+
+def interface_ipaddr_dependent_on_interface(config_db, interface_name):
+    """Get table keys including ipaddress
+    """
+    data = []
+    table_name = get_interface_table_name(interface_name)
+    if table_name == "":
+        return data
+    keys = config_db.get_keys(table_name)
+    for key in keys:
+        if interface_name in key and len(key) == 2:
+            data.append(key)
+    return data
+
+def is_interface_bind_to_vrf(config_db, interface_name):
+    """Get interface if bind to vrf or not
+    """
+    table_name = get_interface_table_name(interface_name)
+    if table_name == "":
+        return False
+    entry = config_db.get_entry(table_name, interface_name)
+    if entry and entry.get("vrf_name"):
+        return True
+    return False
+
+def del_interface_bind_to_vrf(config_db, vrf_name):
+    """del interface bind to vrf
+    """
+    tables = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'VLAN_INTERFACE', 'LOOPBACK_INTERFACE']
+    for table_name in tables:
+        interface_dict = config_db.get_table(table_name)
+        if interface_dict:
+            for interface_name in interface_dict.keys():
+                if interface_dict[interface_name].has_key('vrf_name') and vrf_name == interface_dict[interface_name]['vrf_name']:
+                    interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
+                    for interface_del in interface_dependent:
+                        config_db.set_entry(table_name, interface_del, None)
+                    config_db.set_entry(table_name, interface_name, None)
 
 def set_interface_naming_mode(mode):
     """Modify SONIC_CLI_IFACE_MODE env variable in user .bashrc
@@ -1373,14 +1429,8 @@ def add(ctx, interface_name, ip_addr, gw):
 
     try:
         ipaddress.ip_network(unicode(ip_addr), strict=False)
-        if interface_name.startswith("Ethernet"):
-            if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-                config_db.set_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "up"})
-                config_db.set_entry("VLAN_SUB_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-            else:
-                config_db.set_entry("INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-                config_db.set_entry("INTERFACE", interface_name, {"NULL": "NULL"})
-        elif interface_name == 'eth0':
+
+        if interface_name == 'eth0':
 
             # Configuring more than 1 IPv4 or more than 1 IPv6 address fails.
             # Allow only one IPv4 and only one IPv6 address to be configured for IPv6.
@@ -1403,20 +1453,18 @@ def add(ctx, interface_name, ip_addr, gw):
                 config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), {"gwaddr": gw})
             mgmt_ip_restart_services()
 
-        elif interface_name.startswith("PortChannel"):
-            if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-                config_db.set_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "up"})
-                config_db.set_entry("VLAN_SUB_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-            else:
-                config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-                config_db.set_entry("PORTCHANNEL_INTERFACE", interface_name, {"NULL": "NULL"})
-        elif interface_name.startswith("Vlan"):
-            config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-            config_db.set_entry("VLAN_INTERFACE", interface_name, {"NULL": "NULL"})
-        elif interface_name.startswith("Loopback"):
-            config_db.set_entry("LOOPBACK_INTERFACE", (interface_name, ip_addr), {"NULL": "NULL"})
-        else:
+            return
+
+        table_name = get_interface_table_name(interface_name)
+        if table_name == "":
             ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+        interface_entry = config_db.get_entry(table_name, interface_name)
+        if len(interface_entry) == 0:
+            if table_name == "VLAN_SUB_INTERFACE":
+                config_db.set_entry(table_name, interface_name, {"admin_status": "up"})
+            else:
+                config_db.set_entry(table_name, interface_name, {"NULL": "NULL"})
+        config_db.set_entry(table_name, (interface_name, ip_addr), {"NULL": "NULL"})
     except ValueError:
         ctx.fail("'ip_addr' is not valid.")
 
@@ -1436,51 +1484,252 @@ def remove(ctx, interface_name, ip_addr):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if_table = ""
     try:
         ipaddress.ip_network(unicode(ip_addr), strict=False)
-        if interface_name.startswith("Ethernet"):
-            if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-                config_db.set_entry("VLAN_SUB_INTERFACE", (interface_name, ip_addr), None)
-                if_table = "VLAN_SUB_INTERFACE"
-            else:
-                config_db.set_entry("INTERFACE", (interface_name, ip_addr), None)
-                if_table = "INTERFACE"
-        elif interface_name == 'eth0':
+
+        if interface_name == 'eth0':
             config_db.set_entry("MGMT_INTERFACE", (interface_name, ip_addr), None)
             mgmt_ip_restart_services()
-        elif interface_name.startswith("PortChannel"):
-            if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-                config_db.set_entry("VLAN_SUB_INTERFACE", (interface_name, ip_addr), None)
-                if_table = "VLAN_SUB_INTERFACE"
-            else:
-                config_db.set_entry("PORTCHANNEL_INTERFACE", (interface_name, ip_addr), None)
-                if_table = "PORTCHANNEL_INTERFACE"
-        elif interface_name.startswith("Vlan"):
-            config_db.set_entry("VLAN_INTERFACE", (interface_name, ip_addr), None)
-            if_table = "VLAN_INTERFACE"
-        elif interface_name.startswith("Loopback"):
-            config_db.set_entry("LOOPBACK_INTERFACE", (interface_name, ip_addr), None)
-        else:
-            ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+            return
 
-        command = "ip neigh flush {}".format(ip_addr)
+        table_name = get_interface_table_name(interface_name)
+        if table_name == "":
+            ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+        config_db.set_entry(table_name, (interface_name, ip_addr), None)
+        interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
+        if len(interface_dependent) == 0 and is_interface_bind_to_vrf(config_db, interface_name) is False:
+            config_db.set_entry(table_name, interface_name, None)
+
+        command = "ip neigh flush dev {} {}".format(interface_name, ip_addr)
         run_command(command)
     except ValueError:
         ctx.fail("'ip_addr' is not valid.")
 
-    exists = False
-    if if_table:
-        interfaces = config_db.get_table(if_table)
-        for key in interfaces.keys():
-            if not isinstance(key, tuple):
-                continue
-            if interface_name in key:
-                exists = True
-                break
+#
+# 'vrf' subgroup ('config interface vrf ...')
+#
 
-    if not exists:
-        config_db.set_entry(if_table, interface_name, None)
+
+@interface.group()
+@click.pass_context
+def vrf(ctx):
+    """Bind or unbind VRF"""
+    pass
+
+#
+# 'bind' subcommand
+#
+@vrf.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('vrf_name', metavar='<vrf_name>', required=True)
+@click.pass_context
+def bind(ctx, interface_name, vrf_name):
+    """Bind the interface to VRF"""
+    config_db = ctx.obj["config_db"]
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    table_name = get_interface_table_name(interface_name)
+    if table_name == "":
+        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+    if is_interface_bind_to_vrf(config_db, interface_name) is True and \
+        config_db.get_entry(table_name, interface_name).get('vrf_name') == vrf_name:
+        return
+    # Clean ip addresses if interface configured
+    interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
+    for interface_del in interface_dependent:
+        config_db.set_entry(table_name, interface_del, None)
+    config_db.set_entry(table_name, interface_name, None)
+    # When config_db del entry and then add entry with same key, the DEL will lost.
+    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db.connect(state_db.STATE_DB, False)
+    _hash = '{}{}'.format('INTERFACE_TABLE|', interface_name)
+    while state_db.get(state_db.STATE_DB, _hash, "state") == "ok":
+        time.sleep(0.01)
+    state_db.close(state_db.STATE_DB)
+    config_db.set_entry(table_name, interface_name, {"vrf_name": vrf_name})
+
+#
+# 'unbind' subcommand
+#
+
+@vrf.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.pass_context
+def unbind(ctx, interface_name):
+    """Unbind the interface to VRF"""
+    config_db = ctx.obj["config_db"]
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("interface is None!")
+
+    table_name = get_interface_table_name(interface_name)
+    if table_name == "":
+        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+    if is_interface_bind_to_vrf(config_db, interface_name) is False:
+        return
+    interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
+    for interface_del in interface_dependent:
+        config_db.set_entry(table_name, interface_del, None)
+    config_db.set_entry(table_name, interface_name, None)
+
+
+#
+# 'vrf' group ('config vrf ...')
+#
+
+@config.group()
+@click.pass_context
+def vrf(ctx):
+    """VRF-related configuration tasks"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {}
+    ctx.obj['config_db'] = config_db
+    pass
+
+@vrf.command('add')
+@click.argument('vrf_name', metavar='<vrf_name>', required=True)
+@click.pass_context
+def add_vrf(ctx, vrf_name):
+    """Add vrf"""
+    config_db = ctx.obj['config_db']
+    if not vrf_name.startswith("Vrf"):
+        ctx.fail("'vrf_name' is not start with Vrf!")
+    if len(vrf_name) > 15:
+        ctx.fail("'vrf_name' is too long!")
+    config_db.set_entry('VRF', vrf_name, {"NULL": "NULL"})
+
+@vrf.command('del')
+@click.argument('vrf_name', metavar='<vrf_name>', required=True)
+@click.pass_context
+def del_vrf(ctx, vrf_name):
+    """Del vrf"""
+    config_db = ctx.obj['config_db']
+    if not vrf_name.startswith("Vrf"):
+        ctx.fail("'vrf_name' is not start with Vrf!")
+    if len(vrf_name) > 15:
+        ctx.fail("'vrf_name' is too long!")
+    del_interface_bind_to_vrf(config_db, vrf_name)
+    config_db.set_entry('VRF', vrf_name, None)
+
+
+#
+# 'route' group ('config route ...')
+#
+
+@config.group()
+@click.pass_context
+def route(ctx):
+    """route-related configuration tasks"""
+    pass
+
+@route.command('add',context_settings={"ignore_unknown_options":True})
+@click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
+@click.pass_context
+def add_route(ctx, command_str):
+    """Add route command"""
+    if len(command_str) < 4 or len(command_str) > 9:
+        ctx.fail("argument is not in pattern prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>!")
+    if "prefix" not in command_str:
+        ctx.fail("argument is incomplete, prefix not found!")
+    if "nexthop" not in command_str:
+        ctx.fail("argument is incomplete, nexthop not found!")
+    for i in range(0,len(command_str)):
+        if "nexthop" == command_str[i]:
+            prefix_str = command_str[:i]
+            nexthop_str = command_str[i:]
+    vrf_name = ""
+    cmd = 'sudo vtysh -c "configure terminal" -c "ip route'
+    if prefix_str:
+        if len(prefix_str) == 2:
+            prefix_mask = prefix_str[1]
+            cmd += ' {}'.format(prefix_mask)
+        elif len(prefix_str) == 4:
+            vrf_name = prefix_str[2]
+            prefix_mask = prefix_str[3]
+            cmd += ' {}'.format(prefix_mask)
+        else:
+            ctx.fail("prefix is not in pattern!")
+    if nexthop_str:
+        if len(nexthop_str) == 2:
+            ip = nexthop_str[1]
+            if vrf_name == "":
+                cmd += ' {}'.format(ip)
+            else:
+                cmd += ' {} vrf {}'.format(ip, vrf_name)
+        elif len(nexthop_str) == 3:
+            dev_name = nexthop_str[2]
+            if vrf_name == "":
+                cmd += ' {}'.format(dev_name)
+            else:
+                cmd += ' {} vrf {}'.format(dev_name, vrf_name)
+        elif len(nexthop_str) == 4:
+            vrf_name_dst = nexthop_str[2]
+            ip = nexthop_str[3]
+            if vrf_name == "":
+                cmd += ' {} nexthop-vrf {}'.format(ip, vrf_name_dst)
+            else:
+                cmd += ' {} vrf {} nexthop-vrf {}'.format(ip, vrf_name, vrf_name_dst)
+        else:
+            ctx.fail("nexthop is not in pattern!")
+    cmd += '"'
+    run_command(cmd)
+
+@route.command('del',context_settings={"ignore_unknown_options":True})
+@click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
+@click.pass_context
+def del_route(ctx, command_str):
+    """Del route command"""
+    if len(command_str) < 4 or len(command_str) > 9:
+        ctx.fail("argument is not in pattern prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>!")
+    if "prefix" not in command_str:
+        ctx.fail("argument is incomplete, prefix not found!")
+    if "nexthop" not in command_str:
+        ctx.fail("argument is incomplete, nexthop not found!")
+    for i in range(0,len(command_str)):
+        if "nexthop" == command_str[i]:
+            prefix_str = command_str[:i]
+            nexthop_str = command_str[i:]
+    vrf_name = ""
+    cmd = 'sudo vtysh -c "configure terminal" -c "no ip route'
+    if prefix_str:
+        if len(prefix_str) == 2:
+            prefix_mask = prefix_str[1]
+            cmd += ' {}'.format(prefix_mask)
+        elif len(prefix_str) == 4:
+            vrf_name = prefix_str[2]
+            prefix_mask = prefix_str[3]
+            cmd += ' {}'.format(prefix_mask)
+        else:
+            ctx.fail("prefix is not in pattern!")
+    if nexthop_str:
+        if len(nexthop_str) == 2:
+            ip = nexthop_str[1]
+            if vrf_name == "":
+                cmd += ' {}'.format(ip)
+            else:
+                cmd += ' {} vrf {}'.format(ip, vrf_name)
+        elif len(nexthop_str) == 3:
+            dev_name = nexthop_str[2]
+            if vrf_name == "":
+                cmd += ' {}'.format(dev_name)
+            else:
+                cmd += ' {} vrf {}'.format(dev_name, vrf_name)
+        elif len(nexthop_str) == 4:
+            vrf_name_dst = nexthop_str[2]
+            ip = nexthop_str[3]
+            if vrf_name == "":
+                cmd += ' {} nexthop-vrf {}'.format(ip, vrf_name_dst)
+            else:
+                cmd += ' {} vrf {} nexthop-vrf {}'.format(ip, vrf_name, vrf_name_dst)
+        else:
+            ctx.fail("nexthop is not in pattern!")
+    cmd += '"'
+    run_command(cmd)
 
 #
 # 'acl' group ('config acl ...')
