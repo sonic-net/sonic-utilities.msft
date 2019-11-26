@@ -2389,5 +2389,21 @@ def config(redis_unix_socket_path):
     click.echo(tabulate(tablelize(keys, data, enable_table_keys, prefix), header))
     state_db.close(state_db.STATE_DB)
 
+#
+# show features
+#
+
+@cli.command('features')
+def features():
+    """Show status of optional features"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    header = ['Feature', 'Status']
+    body = []
+    status_data = config_db.get_table('FEATURE')
+    for key in status_data.keys():
+        body.append([key, status_data[key]['status']])
+    click.echo(tabulate(body, header))
+
 if __name__ == '__main__':
     cli()
