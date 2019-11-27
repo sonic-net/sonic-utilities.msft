@@ -532,7 +532,7 @@ def reload(filename, yes, load_sysinfo):
     _stop_services()
     config_db = ConfigDBConnector()
     config_db.connect()
-    client = config_db.redis_clients[config_db.CONFIG_DB]
+    client = config_db.get_redis_client(config_db.CONFIG_DB)
     client.flushdb()
     if load_sysinfo:
         command = "{} -H -k {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku)
@@ -598,7 +598,7 @@ def load_minigraph():
 
     config_db = ConfigDBConnector()
     config_db.connect()
-    client = config_db.redis_clients[config_db.CONFIG_DB]
+    client = config_db.get_redis_client(config_db.CONFIG_DB)
     client.flushdb()
     if os.path.isfile('/etc/sonic/init_cfg.json'):
         command = "{} -H -m -j /etc/sonic/init_cfg.json --write-to-db".format(SONIC_CFGGEN_PATH)
