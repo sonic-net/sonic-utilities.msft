@@ -21,7 +21,6 @@ import sonic_device_util
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from netaddr import IPAddress, IPNetwork
-from requests.exceptions import ConnectTimeout
 
 
 #
@@ -356,8 +355,9 @@ def wrapped_ferret_request(request_slice, https_endpoint, http_endpoint):
                                      json=request_slice,
                                      timeout=DEFAULT_REQUEST_TIMEOUT,
                                      verify=False)
-    except ConnectTimeout:
-        log_info("HTTPS Ferret endpoint not found, trying HTTP...")
+            response.raise_for_status()
+    except Exception as e:
+        log_info("Connect HTTPS Ferret endpoint failed (error: {}), trying HTTP...".format(e))
         response = requests.post(http_endpoint,
                                  json=request_slice,
                                  timeout=DEFAULT_REQUEST_TIMEOUT)
