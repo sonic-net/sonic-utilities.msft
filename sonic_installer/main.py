@@ -312,8 +312,10 @@ def cli():
         expose_value=False, prompt='New image will be installed, continue?')
 @click.option('-f', '--force', is_flag=True,
         help="Force installation of an image of a type which differs from that of the current running image")
+@click.option('--skip_migration', is_flag=True,
+        help="Do not migrate current configuration to the newly installed image")
 @click.argument('url')
-def install(url, force):
+def install(url, force, skip_migration=False):
     """ Install image from local binary or URL"""
     cleanup_image = False
     if get_running_image_type() == IMAGE_TYPE_ABOOT:
@@ -361,9 +363,11 @@ def install(url, force):
         else:
             run_command("bash " + image_path)
             run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
-        run_command("rm -rf /host/old_config")
-        # copy directories and preserve original file structure, attributes and associated metadata
-        run_command("cp -ar /etc/sonic /host/old_config")
+        # Take a backup of current configuration
+        if skip_migration:
+            click.echo("Skipping configuration migration as requested in the command option.")
+        else:
+            run_command('config-setup backup')
 
     # Finally, sync filesystem
     run_command("sync;sync;sync")
