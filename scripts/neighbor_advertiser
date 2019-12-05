@@ -339,6 +339,7 @@ def construct_neighbor_advertiser_slice():
 
     return slice_obj
 
+
 def wrapped_ferret_request(request_slice, https_endpoint, http_endpoint):
     """
         Attempts to reach ferret by first trying HTTPS, failing over to HTTP in
@@ -355,6 +356,12 @@ def wrapped_ferret_request(request_slice, https_endpoint, http_endpoint):
                                      json=request_slice,
                                      timeout=DEFAULT_REQUEST_TIMEOUT,
                                      verify=False)
+
+            if not response:
+                raise RuntimeError("No response obtained from HTTPS endpoint")
+
+            # If the request is unsuccessful (e.g. has a non 2xx response code),
+            # we'll try HTTP
             response.raise_for_status()
     except Exception as e:
         log_info("Connect HTTPS Ferret endpoint failed (error: {}), trying HTTP...".format(e))
@@ -362,29 +369,29 @@ def wrapped_ferret_request(request_slice, https_endpoint, http_endpoint):
                                  json=request_slice,
                                  timeout=DEFAULT_REQUEST_TIMEOUT)
 
+        if not response:
+            raise RuntimeError("No response obtained from HTTP endpoint")
+
+        # If the request is unsuccessful (e.g. has a non 2xx response code),
+        # we'll consider it failed
+        response.raise_for_status()
+
     return response
+
 
 def post_neighbor_advertiser_slice(ferret_service_vip):
     request_slice = construct_neighbor_advertiser_slice()
     save_as_json(request_slice, NEIGHBOR_ADVERTISER_REQUEST_SLICE_PATH)
 
-    https_endpoint = 'https://{}:448{}{}'.format(ferret_service_vip, FERRET_NEIGHBOR_ADVERTISER_API_PREFIX, get_switch_name())
-    http_endpoint = 'http://{}:85{}{}'.format(ferret_service_vip, FERRET_NEIGHBOR_ADVERTISER_API_PREFIX, get_switch_name())
+    https_endpoint = "https://{}:448{}{}".format(ferret_service_vip, FERRET_NEIGHBOR_ADVERTISER_API_PREFIX, get_switch_name())
+    http_endpoint = "http://{}:85{}{}".format(ferret_service_vip, FERRET_NEIGHBOR_ADVERTISER_API_PREFIX, get_switch_name())
     response = None
 
     for retry in range(DEFAULT_FERRET_QUERY_RETRIES):
         try:
             response = wrapped_ferret_request(request_slice, https_endpoint, http_endpoint)
         except Exception as e:
-            log_error('The request failed, vip: {}, error: {}'.format(ferret_service_vip, e))
-            return None
-
-        # Handle response errors
-        if not response:
-            log_error('Failed to set up neighbor advertiser slice, vip: {}, no response obtained'.format(ferret_service_vip))
-            return None
-        if response and not response.ok:
-            log_error('Failed to set up neighbor advertiser slice, vip: {}, error_code: {}, error_content: {}'.format(ferret_service_vip, response.status_code, response.content))
+            log_error("The request failed, vip: {}, error: {}".format(ferret_service_vip, e))
             return None
 
         neighbor_advertiser_configuration = json.loads(response.content)
@@ -392,15 +399,15 @@ def post_neighbor_advertiser_slice(ferret_service_vip):
 
         # Retry the request if the provided DIP is in the device VLAN
         if is_dip_in_device_vlan(ferret_server_ipv4_addr):
-            log_info('Failed to set up neighbor advertiser slice, vip: {}, dip {} is in device VLAN (attempt {}/{})'.format(ferret_service_vip, ferret_server_ipv4_addr, retry + 1, DEFAULT_FERRET_QUERY_RETRIES))
+            log_info("Failed to set up neighbor advertiser slice, vip: {}, dip {} is in device VLAN (attempt {}/{})".format(ferret_service_vip, ferret_server_ipv4_addr, retry + 1, DEFAULT_FERRET_QUERY_RETRIES))
             continue
 
         # If all the proceeding checks pass, return the provided DIP
         save_as_json(neighbor_advertiser_configuration, NEIGHBOR_ADVERTISER_RESPONSE_CONFIG_PATH)
-        log_info('Successfully set up neighbor advertiser slice, vip: {}, dip: {}'.format(ferret_service_vip, ferret_server_ipv4_addr))
+        log_info("Successfully set up neighbor advertiser slice, vip: {}, dip: {}".format(ferret_service_vip, ferret_server_ipv4_addr))
         return ferret_server_ipv4_addr
 
-    log_error('Failed to set up neighbor advertiser slice, vip: {}, returned dips were in device VLAN'.format(ferret_service_vip))
+    log_error("Failed to set up neighbor advertiser slice, vip: {}, returned dips were in device VLAN".format(ferret_service_vip))
     return None
 
 
