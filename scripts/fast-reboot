@@ -13,6 +13,9 @@ STRICT=no
 REBOOT_METHOD="/sbin/kexec -e"
 ASSISTANT_IP_LIST=""
 ASSISTANT_SCRIPT="/usr/bin/neighbor_advertiser"
+DEVPATH="/usr/share/sonic/device"
+PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
+PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
 
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
@@ -511,6 +514,11 @@ sync
 # sync the current system time to CMOS
 if [ -x /sbin/hwclock ]; then
     /sbin/hwclock -w || /bin/true
+fi
+
+if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
+    debug "Running ${PLATFORM} specific plugin..."
+    ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN}
 fi
 
 # Reboot: explicity call Linux native reboot under sbin
