@@ -2048,13 +2048,13 @@ Subsequent pages explain each of these commands in detail.
 
 **show interfaces counters**
 
-This show command displays packet counters for all interfaces since the last time the counters were cleared. There is no facility to display counters for one specific interface. Optional argument "-a" does not have any significance in this command.
-Optional argument "-c" can be used to clear the counters for all interfaces.
+This show command displays packet counters for all interfaces since the last time the counters were cleared. To display l3 counters "rif" subcommand can be used. There is no facility to display counters for one specific l2 interface. For l3 interfaces a single interface output mode is present. Optional argument "-a" provides two additional columns - RX-PPS and TX_PPS.
 Optional argument "-p" specify a period (in seconds) with which to gather counters over.
 
 - Usage:
   ```
   show interfaces counters [-a|--printall] [-p|--period <period>]
+  show interfaces counters rif [-p|--period <period>] <interface_name>
   ```
 
 - Example:
@@ -2071,10 +2071,49 @@ Optional argument "-p" specify a period (in seconds) with which to gather counte
    Ethernet24        U   33,543,533,441   36.59 MB/s      0.71%         0     1,613         0   43,066,076,370   49.92 MB/s      0.97%         0         0         0
   ```
 
+The "rif" subcommand is used to display l3 interface counters. Layer 3 interfaces include router interfaces, portchannels and vlan interfaces.
+
+- Example:
+
+```
+  admin@sonic:~$ show interfaces counters rif
+          IFACE    RX_OK      RX_BPS    RX_PPS    RX_ERR    TX_OK    TX_BPS    TX_PPS    TX_ERR
+---------------  -------  ----------  --------  --------  -------  --------  --------  --------
+PortChannel0001   62,668  107.81 B/s    1.34/s         3        6  0.02 B/s    0.00/s         0
+PortChannel0002   62,645  107.77 B/s    1.34/s         3        2  0.01 B/s    0.00/s         0
+PortChannel0003   62,481  107.56 B/s    1.34/s         3        3  0.01 B/s    0.00/s         0
+PortChannel0004   62,732  107.88 B/s    1.34/s         2        3  0.01 B/s    0.00/s         0
+       Vlan1000        0    0.00 B/s    0.00/s         0        0  0.00 B/s    0.00/s         0
+```
+
+
+Optionally, you can specify a layer 3 interface name to display the counters in single interface mode.
+
+- Example:
+
+```
+  admin@sonic:~$ show interfaces counters rif PortChannel0001
+  PortChannel0001
+  ---------------
+
+          RX:
+                3269 packets
+              778494 bytesq
+                   3 error packets
+                 292 error bytes
+          TX:
+                   0 packets
+                   0 bytes
+                   0 error packets
+                   0 error bytes
+```
+
+
 Optionally, you can specify a period (in seconds) with which to gather counters over. Note that this function will take `<period>` seconds to execute.
 
 - Example:
-  ```
+
+```
   admin@sonic:~$ show interfaces counters -p 5
         IFACE    STATE    RX_OK       RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK       TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
   -----------  -------  -------  -----------  ---------  --------  --------  --------  -------  -----------  ---------  --------  --------  --------
@@ -2085,11 +2124,18 @@ Optionally, you can specify a period (in seconds) with which to gather counters 
   Ethernet16        U      377   32.64 KB/s      0.00%         0         0         0      214   18.01 KB/s      0.00%         0         0         0
   Ethernet20        U      284   36.81 KB/s      0.00%         0         0         0      138  8758.25 B/s      0.00%         0         0         0
   Ethernet24        U      173   16.09 KB/s      0.00%         0         0         0      169   11.39 KB/s      0.00%         0         0         0
-  ```
+```
 
 - NOTE: Interface counters can be cleared by the user with the following command:
+
   ```
   root@sonic:~# sonic-clear counters
+  ```
+
+- NOTE: Layer 3 interface counters can be cleared by the user with the following command:
+
+  ```
+  root@sonic:~# sonic-clear rifcounters
   ```
 
 **show interfaces description**
