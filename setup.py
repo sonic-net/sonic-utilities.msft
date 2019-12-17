@@ -90,6 +90,7 @@ setup(
         'scripts/route_check_test.sh',
         'scripts/sfpshow',
         'scripts/teamshow',
+        'scripts/update_json.py',
         'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg'
