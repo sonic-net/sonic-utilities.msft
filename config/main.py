@@ -2176,6 +2176,17 @@ def enable(ctx):
 
     config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
 
+    try:
+        proc = subprocess.Popen("systemctl is-active sflow", shell=True, stdout=subprocess.PIPE)
+        (out, err) = proc.communicate()
+    except SystemExit as e:
+        ctx.fail("Unable to check sflow status {}".format(e))
+
+    if out != "active":
+        log_info("sflow service is not enabled. Starting sflow docker...")
+        run_command("sudo systemctl enable sflow")
+        run_command("sudo systemctl start sflow")
+
 #
 # 'sflow' command ('config sflow disable')
 #
