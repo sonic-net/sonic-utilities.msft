@@ -155,9 +155,9 @@ class Portstat(object):
 
 
         if use_json:
-            table_as_json(table, header_all if print_all else header)
+            print table_as_json(table, header_all if print_all else header)
         else:
-            print tabulate(table, header_all, tablefmt='simple', stralign='right') #  if print_all else header
+            print tabulate(table, header_all if print_all else header, tablefmt='simple', stralign='right')
 
     def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, use_json, print_all):
         """
@@ -208,7 +208,7 @@ class Portstat(object):
                                   STATUS_NA,
                                   cntr.tx_err,
                                   cntr.tx_drop,
-                                  cntr.tx_err))
+                                  cntr.tx_ovr))
             else:
                 if old_cntr is not None:
                     table.append((key, self.get_port_state(key),
@@ -237,7 +237,7 @@ class Portstat(object):
                                   STATUS_NA,
                                   cntr.tx_err,
                                   cntr.tx_drop,
-                                  cntr.tx_err))
+                                  cntr.tx_ovr))
 
         if use_json:
             print table_as_json(table, header)
