@@ -1356,6 +1356,26 @@ This command displays the summary of all IPv4 & IPv6 bgp neighbors that are conf
 
 - Example:
   ```
+  admin@sonic-z9264f-9251:~# show ip bgp summary
+
+  IPv4 Unicast Summary:
+  BGP router identifier 10.1.0.32, local AS number 65100 vrf-id 0
+  BGP table version 6465
+  RIB entries 12807, using 2001 KiB of memory
+  Peers 4, using 83 KiB of memory
+  Peer groups 2, using 128 bytes of memory
+
+  Neighbor        V         AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd NeighborName
+  10.0.0.57       4      64600    3995    4001        0    0    0 00:39:32         6400 Lab-T1-01
+  10.0.0.59       4      64600    3995    3998        0    0    0 00:39:32         6400 Lab-T1-02
+  10.0.0.61       4      64600    3995    4001        0    0    0 00:39:32         6400 Lab-T1-03
+  10.0.0.63       4      64600    3995    3998        0    0    0 00:39:32         6400 NotAvailable
+
+  Total number of neighbors 4
+  ```
+
+- Example:
+  ```
   admin@sonic-z9264f-9251:~# show bgp summary
 
   IPv4 Unicast Summary:
@@ -1515,11 +1535,11 @@ This command displays the summary of all IPv6 bgp neighbors that are configured 
   Peers 4, using 83 KiB of memory
   Peer groups 2, using 128 bytes of memory
 
-  Neighbor        V         AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd
-  fc00::72        4      64600    3995    5208        0    0    0 00:39:30         6400
-  fc00::76        4      64600    3994    5208        0    0    0 00:39:30         6400
-  fc00::7a        4      64600    3993    5208        0    0    0 00:39:30         6400
-  fc00::7e        4      64600    3993    5208        0    0    0 00:39:30         6400
+  Neighbor        V         AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down State/PfxRcd NeighborName
+  fc00::72        4      64600    3995    5208        0    0    0 00:39:30         6400 Lab-T1-01
+  fc00::76        4      64600    3994    5208        0    0    0 00:39:30         6400 Lab-T1-02
+  fc00::7a        4      64600    3993    5208        0    0    0 00:39:30         6400 Lab-T1-03
+  fc00::7e        4      64600    3993    5208        0    0    0 00:39:30         6400 Lab-T1-04
 
   Total number of neighbors 4
   ```

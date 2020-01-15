@@ -19,7 +19,11 @@ def bgp():
 @bgp.command()
 def summary():
     """Show summarized information of IPv6 BGP state"""
-    run_command('sudo vtysh -c "show ipv6 bgp summary"')
+    try:
+        device_output = run_command('sudo vtysh -c "show ipv6 bgp summary"', return_cmd=True)
+        get_bgp_summary_extended(device_output)
+    except:
+        run_command('sudo vtysh -c "show ipv6 bgp summary"')
 
 
 # 'neighbors' subcommand ("show ipv6 bgp neighbors")
