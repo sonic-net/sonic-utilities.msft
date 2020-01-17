@@ -92,6 +92,7 @@ class DropConfig(object):
 
         if not device_caps:
             print('Current device does not support drop counters')
+            return
 
         table = []
         for counter, capabilities in device_caps.iteritems():
