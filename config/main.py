@@ -1004,11 +1004,9 @@ def mvrf_restart_services():
     cmd="service ntp start"
     os.system (cmd)
 
-def vrf_add_management_vrf():
+def vrf_add_management_vrf(config_db):
     """Enable management vrf in config DB"""
 
-    config_db = ConfigDBConnector()
-    config_db.connect()
     entry = config_db.get_entry('MGMT_VRF_CONFIG', "vrf_global")
     if entry and entry['mgmtVrfEnabled'] == 'true' :
         click.echo("ManagementVRF is already Enabled.")
@@ -1016,46 +1014,15 @@ def vrf_add_management_vrf():
     config_db.mod_entry('MGMT_VRF_CONFIG',"vrf_global",{"mgmtVrfEnabled": "true"})
     mvrf_restart_services()
 
-def vrf_delete_management_vrf():
+def vrf_delete_management_vrf(config_db):
     """Disable management vrf in config DB"""
 
-    config_db = ConfigDBConnector()
-    config_db.connect()
     entry = config_db.get_entry('MGMT_VRF_CONFIG', "vrf_global")
     if not entry or entry['mgmtVrfEnabled'] == 'false' :
         click.echo("ManagementVRF is already Disabled.")
         return None
     config_db.mod_entry('MGMT_VRF_CONFIG',"vrf_global",{"mgmtVrfEnabled": "false"})
     mvrf_restart_services()
-
-#
-# 'vrf' group ('config vrf ...')
-#
-
-@config.group('vrf')
-def vrf():
-    """VRF-related configuration tasks"""
-    pass
-
-@vrf.command('add')
-@click.argument('vrfname', metavar='<vrfname>. Type mgmt for management VRF', required=True)
-@click.pass_context
-def vrf_add (ctx, vrfname):
-    """Create management VRF and move eth0 into it"""
-    if vrfname == 'mgmt' or vrfname == 'management':
-        vrf_add_management_vrf()
-    else:
-        click.echo("Creation of data vrf={} is not yet supported".format(vrfname))
-
-@vrf.command('del')
-@click.argument('vrfname', metavar='<vrfname>. Type mgmt for management VRF', required=False)
-@click.pass_context
-def vrf_del (ctx, vrfname):
-    """Delete management VRF and move back eth0 to default VRF"""
-    if vrfname == 'mgmt' or vrfname == 'management':
-        vrf_delete_management_vrf()
-    else:
-        click.echo("Deletion of data vrf={} is not yet supported".format(vrfname))
 
 @config.group()
 @click.pass_context
@@ -1581,7 +1548,7 @@ def unbind(ctx, interface_name):
 # 'vrf' group ('config vrf ...')
 #
 
-@config.group()
+@config.group('vrf')
 @click.pass_context
 def vrf(ctx):
     """VRF-related configuration tasks"""
@@ -1597,11 +1564,14 @@ def vrf(ctx):
 def add_vrf(ctx, vrf_name):
     """Add vrf"""
     config_db = ctx.obj['config_db']
-    if not vrf_name.startswith("Vrf"):
-        ctx.fail("'vrf_name' is not start with Vrf!")
+    if not vrf_name.startswith("Vrf") and not (vrf_name == 'mgmt') and not (vrf_name == 'management'):
+        ctx.fail("'vrf_name' is not start with Vrf, mgmt or management!")
     if len(vrf_name) > 15:
         ctx.fail("'vrf_name' is too long!")
-    config_db.set_entry('VRF', vrf_name, {"NULL": "NULL"})
+    if (vrf_name == 'mgmt' or vrf_name == 'management'):
+        vrf_add_management_vrf(config_db)
+    else:
+        config_db.set_entry('VRF', vrf_name, {"NULL": "NULL"})
 
 @vrf.command('del')
 @click.argument('vrf_name', metavar='<vrf_name>', required=True)
@@ -1609,12 +1579,15 @@ def add_vrf(ctx, vrf_name):
 def del_vrf(ctx, vrf_name):
     """Del vrf"""
     config_db = ctx.obj['config_db']
-    if not vrf_name.startswith("Vrf"):
-        ctx.fail("'vrf_name' is not start with Vrf!")
+    if not vrf_name.startswith("Vrf") and not (vrf_name == 'mgmt') and not (vrf_name == 'management'):
+        ctx.fail("'vrf_name' is not start with Vrf, mgmt or management!")
     if len(vrf_name) > 15:
         ctx.fail("'vrf_name' is too long!")
-    del_interface_bind_to_vrf(config_db, vrf_name)
-    config_db.set_entry('VRF', vrf_name, None)
+    if (vrf_name == 'mgmt' or vrf_name == 'management'):
+        vrf_delete_management_vrf(config_db)
+    else:
+        del_interface_bind_to_vrf(config_db, vrf_name)
+        config_db.set_entry('VRF', vrf_name, None)
 
 
 #
