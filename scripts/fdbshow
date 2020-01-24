@@ -76,11 +76,18 @@ class FdbShow(object):
             if br_port_id not in self.if_br_oid_map:
                 continue
             port_id = self.if_br_oid_map[br_port_id]
-            if_name = self.if_oid_map[port_id]
+            if port_id in self.if_oid_map:
+                if_name = self.if_oid_map[port_id]
+            else:
+                if_name = port_id
             if 'vlan' in fdb:
                 vlan_id = fdb["vlan"]
             elif 'bvid' in fdb:
-                vlan_id = port_util.get_vlan_id_from_bvid(self.db, fdb["bvid"])
+                try:
+                    vlan_id = port_util.get_vlan_id_from_bvid(self.db, fdb["bvid"])
+                except:
+                    vlan_id = fdb["bvid"]
+                    print "Failed to get Vlan id for bvid {}\n".format(fdb["bvid"])
             self.bridge_mac_list.append((int(vlan_id),) + (fdb["mac"],) + (if_name,) + (fdb_type,))
 
         self.bridge_mac_list.sort(key = lambda x: x[0])
