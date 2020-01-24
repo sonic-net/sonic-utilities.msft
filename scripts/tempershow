@@ -1,0 +1,64 @@
+#!/usr/bin/python
+"""
+    Script to show fan status.
+"""
+from __future__ import print_function
+
+import argparse
+
+from tabulate import tabulate
+from swsssdk import SonicV2Connector
+
+
+header = ['NAME', 'Temperature', 'High Threshold', 'Low Threshold', 'Critical High Threshold', 'Critical Low Threshold', 'Warning Status', 'Timestamp']
+
+TEMPER_TABLE_NAME = 'TEMPERATURE_INFO'
+TEMPER_FIELD_NAME = 'temperature'
+TIMESTAMP_FIELD_NAME = 'timestamp'
+HIGH_THRESH_FIELD_NAME = 'high_threshold'
+LOW_THRESH_FIELD_NAME = 'low_threshold'
+CRIT_HIGH_THRESH_FIELD_NAME = 'critical_high_threshold'
+CRIT_LOW_THRESH_FIELD_NAME = 'critical_low_threshold'
+WARNING_STATUS_FIELD_NAME = 'warning_status'
+
+
+class TemperShow(object):
+    def __init__(self):
+        self.db = SonicV2Connector(host="127.0.0.1")
+        self.db.connect(self.db.STATE_DB)
+
+    def show(self):
+        keys = self.db.keys(self.db.STATE_DB, TEMPER_TABLE_NAME + '*')
+        if not keys:
+            print('Thermal Not detected\n')
+            return
+
+        table = []
+        for key in keys:
+            key_list = key.split('|')
+            if len(key_list) != 2: # error data in DB, log it and ignore
+                print('Warn: Invalid key in table {}: {}'.format(TEMPER_TABLE_NAME, key))
+                continue
+
+            name = key_list[1]
+            data_dict = self.db.get_all(self.db.STATE_DB, key)
+            table.append((name, 
+                          data_dict[TEMPER_FIELD_NAME], 
+                          data_dict[HIGH_THRESH_FIELD_NAME],
+                          data_dict[LOW_THRESH_FIELD_NAME],
+                          data_dict[CRIT_HIGH_THRESH_FIELD_NAME],
+                          data_dict[CRIT_LOW_THRESH_FIELD_NAME],
+                          data_dict[WARNING_STATUS_FIELD_NAME],
+                          data_dict[TIMESTAMP_FIELD_NAME]
+                          ))
+        
+        if table:
+            table.sort()
+            print(tabulate(table, header, tablefmt='simple', stralign='right'))
+        else:
+            print('No tempeature data available\n')
+
+
+if __name__ == "__main__":
+    temperShow = TemperShow()
+    temperShow.show()
