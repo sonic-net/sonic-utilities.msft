@@ -1,0 +1,632 @@
+#!/usr/bin/python
+'''
+Copyright 2019 Broadcom. The term "Broadcom" refers to Broadcom Inc.
+and/or its subsidiaries.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+'''
+
+import sys
+import argparse
+import shlex
+from argparse import RawTextHelpFormatter
+import os
+import subprocess
+import errno
+from swsssdk import ConfigDBConnector
+
+grub_cfg = "/host/grub/grub.cfg"
+kdump_cfg = "/etc/default/kdump-tools"
+
+## Same as print(), but output to stderr instead of stdout
+def print_err(*args):
+    sys.stderr.write(' '.join(map(str,args)) + '\n')
+
+## Run an external command, either from the shell or not
+#  The function capture the output of stdout and stderr,
+#  and return then a tupple with exit code, stdout, stderr
+#
+#  @param cmd   Command to execute (full path needed ig not using the shell)
+def run_command(cmd, use_shell=False):
+    '''!
+    Execute a given command
+
+    @param cmd (str) Command to execute. Since we execute the command directly, and not within the
+                     context of the shell, the full path needs to be provided ($PATH is not used).
+                     Command parameters are simply separated by a space.
+                     Should be either string or a list
+
+    @param use_shell (bool) Execute subprocess with shell access
+    '''
+
+    pid = None
+    try:
+        if isinstance(cmd, list):
+            if use_shell is False:
+                shcmd = cmd
+            else:
+                shcmd = ''
+                for c in cmd:
+                    shcmd += c + ' '
+        else:
+            if use_shell is False:
+                shcmd = shlex.split(cmd)
+            else:
+                shcmd = cmd
+        proc = subprocess.Popen(shcmd, shell=use_shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1, close_fds=True)
+        output_stdout, output_stderr = proc.communicate()
+        list_stdout = []
+        for l in output_stdout.splitlines():
+            list_stdout.append(str(l.decode()))
+        list_stderr = []
+        for l in output_stderr.splitlines():
+            list_stderr.append(str(l.decode()))
+        return (proc.returncode, list_stdout, list_stderr)
+    except (OSError, ValueError) as e:
+        print("!Exception [%s] encountered while processing the command : %s" % (str(e), str(cmd)))
+        return (1, None, None)
+
+## Search which SONiC image is the Current image
+def get_current_image():
+    (rc, img, err_str) = run_command("sonic_installer list | grep 'Current: ' | cut -d '-' -f 3-", use_shell=True);
+    if type(img) == list and len(img) == 1:
+        return img[0]
+    print_err("Unable to locate current SONiC image")
+    sys.exit(1)
+
+## Search which SONiC image is the Next image
+def get_next_image():
+    (rc, img, err_str) = run_command("sonic_installer list | grep 'Next: ' | cut -d '-' -f 3-", use_shell=True);
+    if type(img) == list and len(img) == 1:
+        return img[0]
+    print_err("Unable to locate current SONiC image")
+    sys.exit(1)
+
+## Search for Current/Next SONiC image in grub configuration
+#
+#  @param  lines Lines read from grub.cfg file
+#  @param  img   String we are looking for ("loop=image...")
+#  @return       Index in lines array wehere we found the string
+def locate_image(lines, img):
+    for num in range(len(lines)):
+        try:
+            lines[num].index(img)
+            return num
+        except Exception as exception:
+            pass
+    return -1
+
+## Rewrite grub configuration file
+#
+#  @param lines Lines read from grub.cfg file
+#  @param fname Grub configuration file
+def rewrite_grub_cfg(lines, fname):
+    fd = open(fname, "w")
+    for x in lines:
+        fd.writelines(x+'\n')
+    fd.close()
+
+## Search for "crashkernel=X" in string
+#
+#  @param where String should be in the form "crashkernel=X", X being a string
+#  @return      The value X as a string
+def search_for_crash_kernel(where):
+    expected_str = ' crashkernel='
+    p = where.find(expected_str)
+    if p == -1:
+        return None
+    next_space = where.find(" ", p+1)
+    if next_space == -1:
+        return where[p+len(expected_str):]
+    else:
+        return where[p+len(expected_str):next_space]
+
+## Search for "crashkernel=X" in /proc/cmdline
+#
+#  @return Return the X from "crashkernel=X" in /proc/cmdline 
+#          None in case "crashkernel=" is not found
+def search_for_crash_kernel_in_cmdline():
+    try:
+        cmdline = [line.rstrip('\n') for line in open("/proc/cmdline")]
+    except Exception as exception:
+        print_err(exception)
+        sys.exit(1)
+    return search_for_crash_kernel(cmdline[0])
+
+## Query current configuration to check if kdump is enabled or disabled
+#
+#  @return True if kdump is enable, False if kdump is not enabled
+#          We read the running configuration to check if kdump is enabled or not
+def get_kdump_administrative_mode():
+    kdump_is_enabled = False
+    config_db = ConfigDBConnector()
+    if config_db is not None:
+        config_db.connect()
+        table_data = config_db.get_table('KDUMP')
+        if table_data is not None:
+            config_data = table_data.get('config')
+            if config_data is not None:
+                is_enabled = config_data.get('enabled')
+                if is_enabled and is_enabled.lower() == 'true':
+                    kdump_is_enabled = True
+    if kdump_is_enabled:
+        return True
+    else:
+        return False
+
+## Query current configuration for kdump memory
+#
+#  @return The current memory string used for kdump (read from running configuration)
+def get_kdump_memory():
+    (rc, lines, err_str) = run_command("/usr/bin/show kdump memory", use_shell=False)
+    try:
+        if rc == 0 and len(lines) == 1:
+            p = lines[0].find(': ')
+            if p != -1:
+                #print('XXX')
+                #print(lines[0][p+2:])
+                #print('XXX')
+                return lines[0][p+2:]
+    except:
+        pass
+    return "0M-2G:256M,2G-4G:320M,4G-8G:384M,8G-:448M"
+
+## Query current configuration for kdump num_dumps
+#
+#  @return The maximum number of kernel dump files stored locally
+#          (read from running configuration)
+def get_kdump_num_dumps():
+    (rc, lines, err_str) = run_command("/usr/bin/show kdump num_dumps", use_shell=False)
+    try:
+        if rc == 0 and len(lines) == 1:
+            p = lines[0].find(': ')
+            if p != -1:
+                return int(lines[0][p+2:])
+    except:
+        pass
+    return 3
+
+## Read current value for USE_KDUMP in kdump config file
+#
+#  @return The integer value X from USE_KDUMP=X in /etc/default/kdump-tools
+def read_use_kdump():
+    (rc, lines, err_str) = run_command("grep 'USE_KDUMP=.*' %s | cut -d = -f 2" % kdump_cfg, use_shell=True);
+    if rc == 0 and type(lines) == list and len(lines) >= 1:
+        try:
+            return int(lines[0])
+        except Exception as e:
+            print('Error! Exception[%s] occured while reading from %s' %(str(e), kdump_cfg))
+            sys.exit(1)
+    else:
+        print_err("Unable to read USE_KDUMP from %s" % kdump_cfg)
+        sys.exit(1)
+
+## Rewrite value for USE_KDUMP in kdump config file /etc/default/kdump-tools
+#
+#  @param use_kdump 0 or 1
+def write_use_kdump(use_kdump):
+    (rc, lines, err_str) = run_command("/bin/sed -i -e 's/USE_KDUMP=.*/USE_KDUMP=%s/' %s" % (use_kdump, kdump_cfg), use_shell=False);
+    if rc == 0 and type(lines) == list and len(lines) == 0:
+        use_kdump_in_cfg = read_use_kdump()
+        if use_kdump_in_cfg != use_kdump:
+            print_err("Unable to write USE_KDUMP into %s" % kdump_cfg)
+            sys.exit(1)
+    else:
+        print_err("Error while writing USE_KDUMP into %s" % kdump_cfg)
+        sys.exit(1)
+
+## Read current value for KDUMP_NUM_DUMPS in kdump config file
+#
+#  @return The integer value X from KDUMP_NUM_DUMPS=X in /etc/default/kdump-tools
+def read_num_dumps():
+    (rc, lines, err_str) = run_command("grep '#*KDUMP_NUM_DUMPS=.*' %s | cut -d = -f 2" % kdump_cfg, use_shell=True);
+    if rc == 0 and type(lines) == list and len(lines) >= 1:
+        try:
+            return int(lines[0])
+        except Exception as e:
+            print_err('Error! Exception[%s] occured while reading from %s' %(str(e), kdump_cfg))
+            sys.exit(1)
+    else:
+        print_err("Unable to read KDUMP_NUM_DUMPS from %s" % kdump_cfg)
+        sys.exit(1)
+
+## Change the value for KDUMP_NUM_DUMPS in kdump config file /etc/default/kdump-tools
+#
+#  #param num_dumps Integer value for new value
+def write_num_dumps(num_dumps):
+    (rc, lines, err_str) = run_command("/bin/sed -i -e 's/#*KDUMP_NUM_DUMPS=.*/KDUMP_NUM_DUMPS=%d/' %s" % (num_dumps, kdump_cfg), use_shell=False);
+    if rc == 0 and type(lines) == list and len(lines) == 0:
+        num_dumps_in_cfg = read_num_dumps()
+        if num_dumps_in_cfg != num_dumps:
+            print_err("Unable to write KDUMP_NUM_DUMPS into %s" % kdump_cfg)
+            sys.exit(1)
+    else:
+        print_err("Error while writing KDUMP_NUM_DUMPS into %s" % kdump_cfg)
+        sys.exit(1)
+
+## Command: Enable kdump - Grub mode
+#
+#  @param verbose If True, the function will display a few additinal information
+#  @return        True is the grub configuration has changed, and False if it has not
+def kdump_enable_grub(verbose, kdump_enabled, memory, num_dumps):
+
+    current_img = get_current_image();
+    if verbose:
+        print("Current image=[%s]" % current_img)
+    try:
+        lines = [line.rstrip('\n') for line in open(grub_cfg)]
+    except Exception as exception:
+        print_err(exception)
+        sys.exit(1)
+    current_img_index = locate_image(lines, "loop=image-"+current_img)
+    if verbose:
+        print("Image index in grub.cfg=%d" % current_img_index)
+
+    changed = False
+    crash_kernel_in_cmdline = search_for_crash_kernel_in_cmdline()
+    if verbose:
+        print("crash_kernel_in_cmdline=[%s]" % crash_kernel_in_cmdline)
+    curr_crash_kernel_mem = search_for_crash_kernel(lines[current_img_index])
+    if verbose:
+        print("curr_crash_kernel_mem=[%s]" % curr_crash_kernel_mem)
+    if curr_crash_kernel_mem == None:
+        lines[current_img_index] += " crashkernel=%s" % memory
+        changed = True
+        if verbose:
+            print("Added to grub.cfg: [ crashkernel=%s ]" % memory)
+    else:
+        if curr_crash_kernel_mem == memory:
+            if curr_crash_kernel_mem == crash_kernel_in_cmdline:
+                print("kdump is already enabled")
+            else:
+                changed = True
+        else:
+            lines[current_img_index] = lines[current_img_index].replace(curr_crash_kernel_mem, memory)
+            changed = True
+            if verbose:
+                print("Replace [%s] with [%s] in grub.cfg" % (curr_crash_kernel_mem, memory))
+
+    if changed:
+        rewrite_grub_cfg(lines, grub_cfg)
+
+    write_use_kdump(1)
+
+    return changed
+
+## Command: Enable kdump
+#
+#  @param verbose If True, the function will display a few additinal information
+#  @return        True is the grub configuration has changed, and False if it has not
+def cmd_kdump_enable(verbose):
+
+    kdump_enabled = get_kdump_administrative_mode()
+    memory = get_kdump_memory()
+    num_dumps = get_kdump_num_dumps()
+    if verbose:
+        print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d" % (kdump_enabled, memory, num_dumps))
+
+    if os.path.exists(grub_cfg):
+        return kdump_enable_grub(verbose, kdump_enabled, memory, num_dumps)
+    else:
+        print("Feature not supported on this platform")
+        run_command("config kdump disable", use_shell=False);
+        return False
+
+## Command: Enable kdump on Next image only - Grub mode
+#
+#  @param verbose If True, the function will display a few additional information
+#  @return        True is the grub configuration has changed, and False if it has not
+def kdump_config_next_grub(verbose, kdump_enabled, memory, num_dumps):
+    next_img = get_next_image();
+    if verbose:
+        print("Next image=[%s]" % next_img)
+    try:
+        lines = [line.rstrip('\n') for line in open(grub_cfg)]
+    except Exception as exception:
+        print_err(exception)
+        sys.exit(1)
+    next_img_index = locate_image(lines, "loop=image-"+next_img)
+    if verbose:
+        print("Image index in grub.cfg=%d" % next_img_index)
+
+    changed = False
+    crash_kernel_in_cmdline = search_for_crash_kernel_in_cmdline()
+    if verbose:
+        print("crash_kernel_in_cmdline=[%s]" % crash_kernel_in_cmdline)
+    curr_crash_kernel_mem = search_for_crash_kernel(lines[next_img_index])
+    if verbose:
+        print("curr_crash_kernel_mem=[%s]" % curr_crash_kernel_mem)
+    if curr_crash_kernel_mem == None:
+        lines[next_img_index] += " crashkernel=%s" % memory
+        changed = True
+        if verbose:
+            print("Added to grub.cfg: [ crashkernel=%s ]" % memory)
+    else:
+        if curr_crash_kernel_mem == memory:
+            if curr_crash_kernel_mem == crash_kernel_in_cmdline:
+                print("kdump is already enabled")
+            else:
+                changed = True
+        else:
+            lines[next_img_index] = lines[next_img_index].replace(curr_crash_kernel_mem, memory)
+            changed = True
+            if verbose:
+                print("Replace [%s] with [%s] in grub.cfg" % (curr_crash_kernel_mem, memory))
+
+    if changed:
+        rewrite_grub_cfg(lines, grub_cfg)
+
+    write_use_kdump(1)
+
+    return changed
+
+## Command: Enable kdump on Next image only
+#
+#  @param verbose If True, the function will display a few additional information
+#  @return        True is the grub configuration has changed, and False if it has not
+def cmd_kdump_config_next(verbose):
+
+    kdump_enabled = get_kdump_administrative_mode()
+    memory = get_kdump_memory()
+    num_dumps = get_kdump_num_dumps()
+    if verbose:
+        print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d" % (kdump_enabled, memory, num_dumps))
+
+    if os.path.exists(grub_cfg):
+        return kdump_config_next_grub(verbose, kdump_enabled, memory, num_dumps)
+    else:
+        return False
+
+## Command: Disable kdump - Grub mode
+#
+#  @param verbose If True, the function will display a few additional information
+def kdump_disable_grub(verbose, kdump_enabled, memory, num_dumps):
+    write_use_kdump(0)
+
+    current_img = get_current_image();
+    if verbose:
+        print("Current image=[%s]\n" % current_img)
+    lines = [line.rstrip('\n') for line in open(grub_cfg)]
+    current_img_index = locate_image(lines, "loop=image-"+current_img)
+
+    changed = False
+    curr_crash_kernel_mem = search_for_crash_kernel(lines[current_img_index])
+    if curr_crash_kernel_mem == None:
+        print("kdump is already disabled")
+    else:
+        lines[current_img_index] = lines[current_img_index].replace("crashkernel="+curr_crash_kernel_mem, "")
+        changed = True
+        if verbose:
+            print("Removed [%s] in grub.cfg" % ("crashkernel="+curr_crash_kernel_mem))
+
+    if changed:
+        rewrite_grub_cfg(lines, grub_cfg)
+
+
+## Command: Disable kdump
+#
+#  @param verbose If True, the function will display a few additional information
+def cmd_kdump_disable(verbose):
+
+    kdump_enabled = get_kdump_administrative_mode()
+    memory = get_kdump_memory()
+    num_dumps = get_kdump_num_dumps()
+    if verbose:
+        print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d" % (kdump_enabled, memory, num_dumps))
+
+    if os.path.exists(grub_cfg):
+        return kdump_disable_grub(verbose, kdump_enabled, memory, num_dumps)
+    else:
+        return False
+
+## Command: Set / Get memory
+#
+#  @param verbose If True, the function will display a few additional information
+#  @param memory  If not None, new value to set. 
+#                 If None, display current value read from running configuration
+def cmd_kdump_memory(verbose, memory):
+    if memory == None:
+        (rc, lines, err_str) = run_command("/usr/bin/show kdump memory", use_shell=False);
+        print('\n'.join(lines))
+    else:
+        use_kdump_in_cfg = read_use_kdump()
+        if use_kdump_in_cfg:
+            crash_kernel_in_cmdline = search_for_crash_kernel_in_cmdline()
+            if memory != crash_kernel_in_cmdline:
+                cmd_kdump_enable(verbose, False)
+                print("kdump updated memory will be only operational after the system reboots")
+
+## Command: Set / Get num_dumps
+#
+#  @param verbose If True, the function will display a few additional information
+#  @param memory  If not None, new value to set. 
+#                 If None, display current value read from running configuration
+def cmd_kdump_num_dumps(verbose, num_dumps):
+    if num_dumps == None:
+        (rc, lines, err_str) = run_command("/usr/bin/show kdump num_dumps", use_shell=False);
+        print('\n'.join(lines))
+    else:
+        write_num_dumps(num_dumps)
+
+## Command: Display kdump status
+def cmd_kdump_status():
+    print 'Kdump Administrative Mode: ',
+    kdump_enabled = get_kdump_administrative_mode()
+    if kdump_enabled:
+        print('Enabled')
+    else:
+        print('Disabled')
+
+    print 'Kdump Operational State:   ',
+    (rc, lines, err_str) = run_command("/usr/sbin/kdump-config status", use_shell=False);
+    if len(lines) >= 1 and ": ready to kdump" in lines[0]:
+        use_kdump_in_cfg = read_use_kdump()
+        if use_kdump_in_cfg:
+            print('Ready')
+        else:
+            print('Not Ready')
+    elif not kdump_enabled:
+        print('Disabled')
+    else:
+        print('Ready after Reboot')
+
+## Get the current number of kernel dump files stored
+#
+#  @param The number of kdump files stored in /var/crash
+def get_nb_dumps_in_var_crash():
+    (rc, lines, err_str) = run_command("find /var/crash/ -name 'kdump.*'", use_shell=False);
+    if rc == 0:
+        return len(lines)
+    return 0
+
+## Command: Display kdump files
+def cmd_kdump_files():
+    nb_dumps = get_nb_dumps_in_var_crash()
+    if nb_dumps == 0:
+        print("No kernel core dump files")
+    else:
+        (rc1, lines1, err_str) = run_command("find /var/crash/ -name 'dmesg.*'", use_shell=False);
+        lines1.sort(reverse=True)
+        (rc2, lines2, err_str) = run_command("find /var/crash/ -name 'kdump.*'", use_shell=False);
+        lines2.sort(reverse=True)
+        print("Record Key           Filename")
+        print("-------------------------------------------------------------")
+        for n in range(len(lines1)):
+            print("%6d %s %s\n                    %s" % (n+1, lines1[n][11:23], lines1[n], lines2[n]))
+
+## Command: Display kdump file (kernel log)
+#
+#  @param num_lines Number of last lines displayed
+#  @param filename  Name or index of the kernel log file (dmesg)
+def cmd_kdump_file(num_lines, filename):
+    fname = None
+    nb_dumps = get_nb_dumps_in_var_crash()
+    if nb_dumps ==  0:
+        print("There is no kernel core file stored")
+    else:
+        (rc, lines, err_str) = run_command("find /var/crash/ -name 'dmesg.*'", use_shell=False);
+        if rc == 0 and nb_dumps == len(lines):
+            if filename.isdigit() and len(filename) <= 2:
+                num = int(filename)
+                if num < 1 or num > nb_dumps:
+                    if nb_dumps == 1:
+                        print("Invalid record number - Should be 1")
+                    else:
+                        print("Invalid record number - Should be between 1 and %d" % nb_dumps)
+                    sys.exit(1)
+                fname = lines[num-1]
+            else:
+                lines.sort(reverse=True)
+                for x in lines:
+                    if x.find(filename) != -1:
+                        fname = x
+                        break
+                if fname == None:
+                    print("Invalid key")
+                    sys.exit(1)
+            (rc, lines, err_str) = run_command("/usr/bin/tail -n %d %s" % (num_lines, fname), use_shell=False);
+            if rc == 0:
+                print('File: %s' % fname)
+                print('\n'.join(lines))
+
+def main():
+
+    # Only privileged users can execute this command
+    if os.geteuid() != 0:
+        sys.exit("Root privileges required for this operation")
+
+    # Add allowed arguments
+    parser = argparse.ArgumentParser(description="kdump configuration and status tool",
+                                     formatter_class=RawTextHelpFormatter)
+
+    # Enable kdump on Current image
+    parser.add_argument('--enable', action='store_true',
+        help='Enable kdump (Current image)')
+
+    # Enable kdump on the Next image only
+    parser.add_argument('--config-next', action='store_true',
+        help='Enable kdump (Next image)')
+
+    # Disable kdump on Current Image
+    parser.add_argument('--disable', action='store_true',
+        help='Disable kdump')
+
+    # kdump status on Current Image
+    parser.add_argument('--status', action='store_true',
+        help='Show kdump status')
+
+    # Maximum number of kernel core dumps
+    parser.add_argument('--num_dumps', nargs='?', type=int, action='store', default=False,
+        help='Maximum number of kernel dump files stored')
+
+    # Memory allocated for capture kernel on Current Image
+    parser.add_argument('--memory', nargs='?', type=str, action='store', default=False,
+        help='Amount of memory reserved for the capture kernel')
+
+    # Capture kernel files
+    parser.add_argument('--files', action='store_true',
+        help='Show stored capture kernel files')
+
+    # Capture kernel file
+    parser.add_argument('--file', nargs=1, type=str,
+        help='Show stored capture kernel file')
+
+    # Show more information (used for sonic-kdump-config status)
+    parser.add_argument("-v", "--verbose", action='store_true',
+        help='displays detailed kdump status information. Used with status command.')
+
+    # How many lines should we display from the kernel log
+    parser.add_argument("-l", "--lines", default=75, type=int,
+        help="Number of lines displayed from the kernel log")
+
+    # Validate input
+    if len(sys.argv[1:]) == 0:
+        parser.print_help()
+        sys.exit(1)
+
+    # Parse command arguments
+    options = parser.parse_args()
+
+    # Execute the command
+    changed = False
+    try:
+        if options.enable:
+            changed = cmd_kdump_enable(options.verbose)
+        elif options.config_next:
+            changed = cmd_kdump_config_next(options.verbose)
+        elif options.disable:
+            changed = cmd_kdump_disable(options.verbose)
+        elif options.memory != False:
+            cmd_kdump_memory(options.verbose, options.memory)
+        elif options.num_dumps != False:
+            cmd_kdump_num_dumps(options.verbose, options.num_dumps)
+        elif options.status:
+            cmd_kdump_status()
+        elif options.files != False:
+            cmd_kdump_files()
+        elif options.file:
+            cmd_kdump_file(options.lines, options.file[0])
+        else:
+            parser.print_help()
+            sys.exit(1)
+    except Exception as e:
+        print_err('Error! Exception[%s] occured while processing the command sonic-kdump-config %s.' %(str(e), sys.argv[1]))
+        sys.exit(1)
+
+    if changed:
+        print("Kdump configuration changes will be applied after the system reboots")
+
+    sys.exit(0)
+
+if __name__== "__main__":
+    main()

@@ -2007,6 +2007,87 @@ def vlan():
     """Show VLAN information"""
     pass
 
+#
+# 'kdump command ("show kdump ...")
+#
+@cli.group(cls=AliasedGroup, default_if_no_args=True, )
+def kdump():
+    """Show kdump configuration, status and information """
+    pass
+
+@kdump.command('enabled')
+def enabled():
+    """Show if kdump is enabled or disabled"""
+    kdump_is_enabled = False
+    config_db = ConfigDBConnector()
+    if config_db is not None:
+        config_db.connect()
+        table_data = config_db.get_table('KDUMP')
+        if table_data is not None:
+            config_data = table_data.get('config')
+            if config_data is not None:
+                if config_data.get('enabled').lower() == 'true':
+                    kdump_is_enabled = True
+    if kdump_is_enabled:
+        click.echo("kdump is enabled")
+    else:
+        click.echo("kdump is disabled")
+
+@kdump.command('status', default=True)
+def status():
+    """Show kdump status"""
+    run_command("sonic-kdump-config --status")
+    run_command("sonic-kdump-config --memory")
+    run_command("sonic-kdump-config --num_dumps")
+    run_command("sonic-kdump-config --files")
+
+@kdump.command('memory')
+def memory():
+    """Show kdump memory information"""
+    kdump_memory = "0M-2G:256M,2G-4G:320M,4G-8G:384M,8G-:448M"
+    config_db = ConfigDBConnector()
+    if config_db is not None:
+        config_db.connect()
+        table_data = config_db.get_table('KDUMP')
+        if table_data is not None:
+            config_data = table_data.get('config')
+            if config_data is not None:
+                kdump_memory_from_db = config_data.get('memory')
+                if kdump_memory_from_db is not None:
+                    kdump_memory = kdump_memory_from_db
+    click.echo("Memory Reserved: %s" % kdump_memory)
+
+@kdump.command('num_dumps')
+def num_dumps():
+    """Show kdump max number of dump files"""
+    kdump_num_dumps = "3"
+    config_db = ConfigDBConnector()
+    if config_db is not None:
+        config_db.connect()
+        table_data = config_db.get_table('KDUMP')
+        if table_data is not None:
+            config_data = table_data.get('config')
+            if config_data is not None:
+                kdump_num_dumps_from_db = config_data.get('num_dumps')
+                if kdump_num_dumps_from_db is not None:
+                    kdump_num_dumps = kdump_num_dumps_from_db
+    click.echo("Maximum number of Kernel Core files Stored: %s" % kdump_num_dumps)
+
+@kdump.command('files')
+def files():
+    """Show kdump kernel core dump files"""
+    run_command("sonic-kdump-config --files")
+
+@kdump.command()
+@click.argument('record', required=True)
+@click.argument('lines', metavar='<lines>', required=False)
+def log(record, lines):
+    """Show kdump kernel core dump file kernel log"""
+    if lines == None:
+        run_command("sonic-kdump-config --file %s" % record)
+    else:
+        run_command("sonic-kdump-config --file %s --lines %s" % (record, lines))
+
 @vlan.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def brief(verbose):
