@@ -67,11 +67,11 @@
         "ACL_ACTION|PACKET_ACTION": "FORWARD"
     },
     "DEBUG_COUNTER_CAPABILITIES|PORT_INGRESS_DROPS": {
-        "reasons": "[SAI_IN_DROP_REASON_IP_HEADER_ERROR,SAI_IN_DROP_REASON_NO_L3_HEADER]",
+        "reasons": "[IP_HEADER_ERROR,NO_L3_HEADER]",
         "count": "4"
     },
     "DEBUG_COUNTER_CAPABILITIES|SWITCH_EGRESS_DROPS": {
-        "reasons": "[SAI_IN_DROP_REASON_ACL_ANY,SAI_IN_DROP_REASON_L2_ANY,SAI_IN_DROP_REASON_L3_ANY]",
+        "reasons": "[ACL_ANY,L2_ANY,L3_ANY]",
         "count": "2"
     }
 }
