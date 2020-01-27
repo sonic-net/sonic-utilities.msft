@@ -340,37 +340,20 @@ def construct_neighbor_advertiser_slice():
     return slice_obj
 
 
-def wrapped_ferret_request(request_slice, https_endpoint, http_endpoint):
-    """
-        Attempts to reach ferret by first trying HTTPS, failing over to HTTP in
-        case of failure (e.g. timeout, endpoint not found, etc.).
-    """
+def wrapped_ferret_request(request_slice, https_endpoint):
     response = None
 
     # NOTE: While we transition to HTTPS we're disabling the verify field. We
     # need to add a way to fetch certificates in this script ASAP.
-    try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            response = requests.post(https_endpoint,
-                                     json=request_slice,
-                                     timeout=DEFAULT_REQUEST_TIMEOUT,
-                                     verify=False)
-
-            if not response:
-                raise RuntimeError("No response obtained from HTTPS endpoint")
-
-            # If the request is unsuccessful (e.g. has a non 2xx response code),
-            # we'll try HTTP
-            response.raise_for_status()
-    except Exception as e:
-        log_info("Connect HTTPS Ferret endpoint failed (error: {}), trying HTTP...".format(e))
-        response = requests.post(http_endpoint,
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        response = requests.post(https_endpoint,
                                  json=request_slice,
-                                 timeout=DEFAULT_REQUEST_TIMEOUT)
+                                 timeout=DEFAULT_REQUEST_TIMEOUT,
+                                 verify=False)
 
         if not response:
-            raise RuntimeError("No response obtained from HTTP endpoint")
+            raise RuntimeError("No response obtained from HTTPS endpoint")
 
         # If the request is unsuccessful (e.g. has a non 2xx response code),
         # we'll consider it failed
@@ -384,12 +367,11 @@ def post_neighbor_advertiser_slice(ferret_service_vip):
     save_as_json(request_slice, NEIGHBOR_ADVERTISER_REQUEST_SLICE_PATH)
 
     https_endpoint = "https://{}:448{}{}".format(ferret_service_vip, FERRET_NEIGHBOR_ADVERTISER_API_PREFIX, get_switch_name())
-    http_endpoint = "http://{}:85{}{}".format(ferret_service_vip, FERRET_NEIGHBOR_ADVERTISER_API_PREFIX, get_switch_name())
     response = None
 
     for retry in range(DEFAULT_FERRET_QUERY_RETRIES):
         try:
-            response = wrapped_ferret_request(request_slice, https_endpoint, http_endpoint)
+            response = wrapped_ferret_request(request_slice, https_endpoint)
         except Exception as e:
             log_error("The request failed, vip: {}, error: {}".format(ferret_service_vip, e))
             return None
