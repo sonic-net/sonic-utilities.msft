@@ -348,10 +348,10 @@ main() {
 
     save_vtysh "show ip bgp summary" "bgp.summary"
     save_vtysh "show ip bgp neighbors" "bgp.neighbors"
-    save_vtysh "show ip bgp" "bgp.table" true
+    save_vtysh "show ip bgp" "bgp.table"
     save_vtysh "show bgp ipv6 summary" "bgp.ipv6.summary"
     save_vtysh "show bgp ipv6 neighbors" "bgp.ipv6.neighbors"
-    save_vtysh "show bgp ipv6" "bgp.ipv6.table" true
+    save_vtysh "show bgp ipv6" "bgp.ipv6.table"
     save_bgp_neighbor
 
     save_cmd "show interface status" "interface.status"
@@ -375,14 +375,17 @@ main() {
     save_redis "0" "APP_DB"
     save_redis "1" "ASIC_DB"
     save_redis "2" "COUNTERS_DB"
+    save_redis "4" "CONFIG_DB"
+    save_redis "5" "FLEX_COUNTER_DB"
+    save_redis "6" "STATE_DB"
 
     save_cmd "docker ps -a" "docker.ps"
     save_cmd "docker top pmon" "docker.pmon"
 
     save_cmd "docker exec -it syncd saidump" "saidump"
 
-    local platform="$(/usr/local/bin/sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)"
-    if [[ $platform == *"mlnx"* ]]; then
+    local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
+    if [[ "$asic" = "mellanox" ]]; then
         local sai_dump_filename="/tmp/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
         ${CMD_PREFIX}docker exec -it syncd saisdkdump -f $sai_dump_filename
         ${CMD_PREFIX}docker exec syncd tar Ccf $(dirname $sai_dump_filename) - $(basename $sai_dump_filename) | tar Cxf /tmp/ -
@@ -396,7 +399,6 @@ main() {
         done
     fi
 
-    local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
     if [ "$asic" = "broadcom" ]; then
         save_cmd "bcmcmd -t5 version" "broadcom.version"
         save_cmd "bcmcmd -t5 soc" "broadcom.soc"
