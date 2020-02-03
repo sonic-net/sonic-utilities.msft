@@ -143,6 +143,26 @@ save_bgp_neighbor() {
 }
 
 ###############################################################################
+# Dump the nat config, iptables rules and conntrack nat entries
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_nat_info() {
+    save_cmd "iptables -t nat -nv -L" "nat.iptables"
+    save_cmd "conntrack -j -L" "nat.conntrack"
+    save_cmd "conntrack -j -L | wc" "nat.conntrackcount"
+    save_cmd "conntrack -L" "nat.conntrackall"
+    save_cmd "conntrack -L | wc" "nat.conntrackallcount"
+    save_cmd "show nat config" "nat.config"
+}
+
+###############################################################################
+
+###############################################################################
 # Given list of proc files, saves proc files to tar.
 # Globals:
 #  V
@@ -350,6 +370,8 @@ main() {
     save_cmd "df" "df"
     save_cmd "dmesg" "dmesg"
 
+    save_nat_info
+
     save_redis "0" "APP_DB"
     save_redis "1" "ASIC_DB"
     save_redis "2" "COUNTERS_DB"
@@ -379,6 +401,8 @@ main() {
         save_cmd "bcmcmd -t5 version" "broadcom.version"
         save_cmd "bcmcmd -t5 soc" "broadcom.soc"
         save_cmd "bcmcmd -t5 ps" "broadcom.ps"
+        save_cmd "bcmcmd \"l3 nat_ingress show\"" "broadcom.nat.ingress"
+        save_cmd "bcmcmd \"l3 nat_egress show\"" "broadcom.nat.egress"
     fi
 
     if $GREP -qi "aboot_platform=.*arista" /host/machine.conf; then

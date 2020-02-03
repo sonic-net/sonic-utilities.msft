@@ -405,6 +405,13 @@ fi
 # service will go down and we cannot recover from it.
 set +e
 
+# Kill nat docker after saving the conntrack table
+debug "Stopping nat ..."
+/usr/bin/dump_nat_entries.py
+docker kill nat > /dev/null || true
+systemctl stop nat
+debug "Stopped nat ..."
+
 # Kill radv before stopping BGP service to prevent annoucing our departure.
 debug "Stopping radv ..."
 docker kill radv &>/dev/null || [ $? == 1 ]

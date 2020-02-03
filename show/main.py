@@ -2686,6 +2686,111 @@ def config(redis_unix_socket_path):
     state_db.close(state_db.STATE_DB)
 
 #
+# 'nat' group ("show nat ...")
+#
+
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def nat():
+    """Show details of the nat """
+    pass
+
+# 'statistics' subcommand ("show nat statistics")
+@nat.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def statistics(verbose):
+    """ Show NAT statistics """
+
+    cmd = "sudo natshow -s"
+    run_command(cmd, display_cmd=verbose)
+
+# 'translations' subcommand ("show nat translations")
+@nat.group(invoke_without_command=True)
+@click.pass_context
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def translations(ctx, verbose):
+    """ Show NAT translations """
+
+    if ctx.invoked_subcommand is None:
+        cmd = "sudo natshow -t"
+        run_command(cmd, display_cmd=verbose)
+
+# 'count' subcommand ("show nat translations count")
+@translations.command()
+def count():
+    """ Show NAT translations count """
+
+    cmd = "sudo natshow -c"
+    run_command(cmd)
+
+# 'config' subcommand ("show nat config")
+@nat.group(invoke_without_command=True)
+@click.pass_context
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def config(ctx, verbose):
+    """Show NAT config related information"""
+    if ctx.invoked_subcommand is None:
+        click.echo("\nGlobal Values")
+        cmd = "sudo natconfig -g"
+        run_command(cmd, display_cmd=verbose)
+        click.echo("Static Entries")
+        cmd = "sudo natconfig -s"
+        run_command(cmd, display_cmd=verbose)
+        click.echo("Pool Entries")
+        cmd = "sudo natconfig -p"
+        run_command(cmd, display_cmd=verbose)
+        click.echo("NAT Bindings")
+        cmd = "sudo natconfig -b"
+        run_command(cmd, display_cmd=verbose)
+        click.echo("NAT Zones")
+        cmd = "sudo natconfig -z"
+        run_command(cmd, display_cmd=verbose)
+
+# 'static' subcommand  ("show nat config static")
+@config.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def static(verbose):
+    """Show static NAT configuration"""
+
+    cmd = "sudo natconfig -s"
+    run_command(cmd, display_cmd=verbose)
+
+# 'pool' subcommand  ("show nat config pool")
+@config.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def pool(verbose):
+    """Show NAT Pool configuration"""
+
+    cmd = "sudo natconfig -p"
+    run_command(cmd, display_cmd=verbose)
+
+
+# 'bindings' subcommand  ("show nat config bindings")
+@config.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def bindings(verbose):
+    """Show NAT binding configuration"""
+
+    cmd = "sudo natconfig -b"
+    run_command(cmd, display_cmd=verbose)
+
+# 'globalvalues' subcommand  ("show nat config globalvalues")
+@config.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def globalvalues(verbose):
+    """Show NAT Global configuration"""
+
+    cmd = "sudo natconfig -g"
+    run_command(cmd, display_cmd=verbose)
+
+# 'zones' subcommand  ("show nat config zones")
+@config.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def zones(verbose):
+    """Show NAT Zone configuration"""
+
+    cmd = "sudo natconfig -z"
+    run_command(cmd, display_cmd=verbose)
+
 # show features
 #
 

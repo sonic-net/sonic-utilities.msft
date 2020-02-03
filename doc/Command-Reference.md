@@ -63,6 +63,10 @@
 * [Mirroring](#mirroring)
   * [Mirroring Show commands](#mirroring-show-commands)
   * [Mirroring Config commands](#mirroring-config-commands)
+* [NAT](#nat)
+  * [NAT Show commands](#nat-show-commands)
+  * [NAT Config commands](#nat-config-commands)
+  * [NAT Clear commands](#nat-clear-commands)
 * [NTP](#ntp)
   * [NTP show commands](#ntp-show-commands)
   * [NTP config commands](#ntp-config-commands)
@@ -250,6 +254,7 @@ This command lists all the possible configuration commands at the top level.
     load_mgmt_config       Reconfigure hostname and mgmt interface based...
     load_minigraph         Reconfigure based on minigraph.
     mirror_session
+    nat                    NAT-related configuration tasks
     platform               Platform-related configuration tasks
     portchannel
     qos
@@ -298,6 +303,7 @@ This command displays the full list of show commands available in the software; 
     mac                   Show MAC (FDB) entries
     mirror_session        Show existing everflow sessions
     mmu                   Show mmu configuration
+    nat                   Show details of the nat
     ndp                   Show IPv6 Neighbour table
     ntp                   Show NTP information
     pfc                   Show details of the priority-flow-control...
@@ -379,6 +385,8 @@ This command displays relevant information as the SONiC and Linux kernel version
   docker-syncd-brcm          latest              434240daff6e        362MB
   docker-orchagent-brcm      HEAD.32-21ea29a     e4f9c4631025        287MB
   docker-orchagent-brcm      latest              e4f9c4631025        287MB
+  docker-nat                 HEAD.32-21ea29a     46075edc1c69        305MB
+  docker-nat                 latest              46075edc1c69        305MB
   docker-lldp-sv2            HEAD.32-21ea29a     9681bbfea3ac        275MB
   docker-lldp-sv2            latest              9681bbfea3ac        275MB
   docker-dhcp-relay          HEAD.32-21ea29a     2db34c7bc6f4        257MB
@@ -3312,6 +3320,349 @@ While adding a new session, users need to configure the following fields that ar
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#mirroring)
 
+## NAT
+
+### NAT Show commands
+
+**show nat config**
+
+This command displays the NAT configuration. 
+
+- Usage:
+  ```
+  show nat config [static | pool | bindings | globalvalues | zones]
+  ```
+
+With no optional arguments, the whole NAT configuration is displayed.
+
+- Example:
+  ```
+  root@sonic:/# show nat config static
+
+  Nat Type  IP Protocol Global IP      Global L4 Port  Local IP       Local L4 Port  Twice-Nat Id
+  --------  ----------- ------------   --------------  -------------  -------------  ------------
+  dnat      all         65.55.45.5     ---             10.0.0.1       ---            ---
+  dnat      all         65.55.45.6     ---             10.0.0.2       ---            ---
+  dnat      tcp         65.55.45.7     2000            20.0.0.1       4500           1
+  snat      tcp         20.0.0.2       4000            65.55.45.8     1030           1
+
+  root@sonic:/# show nat config pool
+
+  Pool Name      Global IP Range             Global L4 Port Range
+  ------------   -------------------------   --------------------
+  Pool1          65.55.45.5                  1024-65535
+  Pool2          65.55.45.6-65.55.45.8       ---
+  Pool3          65.55.45.10-65.55.45.15     500-1000
+
+  root@sonic:/# show nat config bindings
+
+  Binding Name   Pool Name      Access-List    Nat Type  Twice-Nat Id
+  ------------   ------------   ------------   --------  ------------
+  Bind1          Pool1          ---            snat      ---
+  Bind2          Pool2          1              snat      1
+  Bind3          Pool3          2              snat      --
+
+  root@sonic:/# show nat config globalvalues
+
+  Admin Mode     : enabled
+  Global Timeout : 600 secs
+  TCP Timeout    : 86400 secs
+  UDP Timeout    : 300 secs
+
+  root@sonic:/# show nat config zones
+
+  Port       Zone
+  ----       ----
+  Ethernet2  0
+  Vlan100    1
+  ```
+
+**show nat statistics**
+
+This command displays the NAT translation statistics for each entry. 
+
+- Usage:
+  ```
+  show nat statistics
+  ```
+
+- Example:
+  ```
+  root@sonic:/# show nat statistics
+
+  Protocol Source           Destination          Packets          Bytes
+  -------- ---------        --------------       -------------    -------------
+  all      10.0.0.1         ---                            802          1009280     
+  all      10.0.0.2         ---                             23             5590            
+  tcp      20.0.0.1:4500    ---                            110            12460         
+  udp      20.0.0.1:4000    ---                           1156           789028            
+  tcp      20.0.0.1:6000    ---                             30            34800         
+  tcp      20.0.0.1:5000    65.55.42.1:2000                128           110204     
+  tcp      20.0.0.1:5500    65.55.42.1:2000                  8             3806
+  ```
+
+**show nat translations**
+
+This command displays the NAT translation entries. 
+
+- Usage:
+  ```
+  show nat translations [count]
+  ```
+Giving the optional count argument displays only the details about the number of translation entries. 
+- Example:
+  ```
+  root@sonic:/# show nat translations
+
+  Static NAT Entries        ................. 4
+  Static NAPT Entries       ................. 2
+  Dynamic NAT Entries       ................. 0
+  Dynamic NAPT Entries      ................. 4
+  Static Twice NAT Entries  ................. 0
+  Static Twice NAPT Entries ................. 4
+  Dynamic Twice NAT Entries  ................ 0
+  Dynamic Twice NAPT Entries ................ 0
+  Total SNAT/SNAPT Entries   ................ 9
+  Total DNAT/DNAPT Entries   ................ 9
+  Total Entries              ................ 14
+
+  Protocol Source           Destination       Translated Source  Translated Destination
+  -------- ---------        --------------    -----------------  ----------------------
+  all      10.0.0.1         ---               65.55.42.2         ---
+  all      ---              65.55.42.2        ---                10.0.0.1
+  all      10.0.0.2         ---               65.55.42.3         ---
+  all      ---              65.55.42.3        ---                10.0.0.2
+  tcp      20.0.0.1:4500    ---               65.55.42.1:2000    ---
+  tcp      ---              65.55.42.1:2000   ---                20.0.0.1:4500
+  udp      20.0.0.1:4000    ---               65.55.42.1:1030    ---
+  udp      ---              65.55.42.1:1030   ---                20.0.0.1:4000
+  tcp      20.0.0.1:6000    ---               65.55.42.1:1024    ---
+  tcp      ---              65.55.42.1:1024   ---                20.0.0.1:6000
+  tcp      20.0.0.1:5000    65.55.42.1:2000   65.55.42.1:1025    20.0.0.1:4500
+  tcp      20.0.0.1:4500    65.55.42.1:1025   65.55.42.1:2000    20.0.0.1:5000
+  tcp      20.0.0.1:5500    65.55.42.1:2000   65.55.42.1:1026    20.0.0.1:4500
+  tcp      20.0.0.1:4500    65.55.42.1:1026   65.55.42.1:2000    20.0.0.1:5500
+
+  root@sonic:/# show nat translations count
+
+  Static NAT Entries        ................. 4
+  Static NAPT Entries       ................. 2
+  Dynamic NAT Entries       ................. 0
+  Dynamic NAPT Entries      ................. 4
+  Static Twice NAT Entries  ................. 0
+  Static Twice NAPT Entries ................. 4
+  Dynamic Twice NAT Entries  ................ 0
+  Dynamic Twice NAPT Entries ................ 0
+  Total SNAT/SNAPT Entries   ................ 9
+  Total DNAT/DNAPT Entries   ................ 9
+  Total Entries              ................ 14
+  ```
+
+### NAT Config commands
+
+**config nat add static**
+
+This command is used to add a static NAT or NAPT entry.
+When configuring the Static NAT entry, user has to specify the following fields with 'basic' keyword.
+
+1. Global IP address,
+2. Local IP address,
+3. NAT type (snat / dnat) to be applied on the Global IP address. Default value is dnat. This is optinoal argument.
+4. Twice NAT Id. This is optional argument used in case of twice nat configuration.
+
+When configuring the Static NAPT entry, user has to specify the following fields.
+
+1. IP protocol type (tcp / udp)
+2. Global IP address + Port
+3. Local IP address + Port
+4. NAT type (snat / dnat) to be applied on the Global IP address + Port. Default value is dnat. This is optional argument.
+5. Twicw NAT Id. This is optional argument used in case of twice nat configuration.
+
+- Usage:
+  ```
+  config nat add static {{basic (global-ip) (local-ip)} | {{tcp | udp} (global-ip) (global-port) (local-ip) (local-port)}} [-nat_type {snat | dnat}] [-twice_nat_id (value)]
+  ```
+
+To delete a static NAT or NAPT entry, use the command below. Giving the all argument deletes all the configured static NAT and NAPT entries.
+```
+config nat remove static {{basic (global-ip) (local-ip)} | {{tcp | udp} (global-ip) (global-port) (local-ip) (local-port)} | all}
+```
+- Example:
+  ```
+  root@sonic:/# config nat add static basic 65.55.45.1 12.12.12.14 -nat_type dnat
+  root@sonic:/# config nat add static tcp 65.55.45.2 100 12.12.12.15 200 -nat_type dnat
+
+  root@sonic:/# show nat translations
+
+  Static NAT Entries        ................. 2
+  Static NAPT Entries       ................. 2
+  Dynamic NAT Entries       ................. 0
+  Dynamic NAPT Entries      ................. 0
+  Static Twice NAT Entries  ................. 0
+  Static Twice NAPT Entries ................. 0
+  Dynamic Twice NAT Entries  ................ 0
+  Dynamic Twice NAPT Entries ................ 0
+  Total SNAT/SNAPT Entries   ................ 2
+  Total DNAT/DNAPT Entries   ................ 2
+  Total Entries              ................ 4
+
+  Protocol Source           Destination       Translated Source  Translated Destination
+  -------- ---------        --------------    -----------------  ----------------------
+  all      12.12.12.14      ---               65.55.42.1         ---
+  all      ---              65.55.42.1        ---                12.12.12.14
+  tcp      12.12.12.15:200  ---               65.55.42.2:100     ---
+  tcp      ---              65.55.42.2:100    ---                12.12.12.15:200
+  ```
+
+**config nat add pool**
+
+This command is used to create a NAT pool used for dynamic Source NAT or NAPT translations.
+Pool can be configured in one of the following combinations.
+
+1. Global IP address range (or)
+2. Global IP address + L4 port range (or)
+3. Global IP address range + L4 port range.
+
+- Usage:
+  ```
+  config nat add pool (pool-name) (global-ip-range) (global-port-range)
+  ```
+To delete a NAT pool, use the command. Pool cannot be removed if it is referenced by a NAT binding. Giving the pools argument removes all the configured pools.
+```
+config nat remove {pool (pool-name) | pools}
+```
+- Example:
+  ```
+  root@sonic:/# config nat add pool pool1 65.55.45.2-65.55.45.10
+  root@sonic:/# config nat add pool pool2 65.55.45.3 100-1024
+
+  root@sonic:/# show nat config pool
+
+  Pool Name    Global IP Range         Global Port Range
+  -----------  ----------------------  -------------------
+  pool1        65.55.45.2-65.55.45.10  ---
+  pool2        65.55.45.3              100-1024
+  ```
+
+**config nat add binding**
+
+This command is used to create a NAT binding between a pool and an ACL. The following fields are needed for configuring the binding.
+
+  1. ACL is an optional argument. If ACL argument is not given, the NAT binding is applicable to match all traffic.
+  2. NAT type is an optional argument. Only DNAT type is supoprted for binding.
+  3. Twice NAT Id is an optional argument. This Id is used to form a twice nat grouping with the static NAT/NAPT entry configured with the same Id.
+
+- Usage:
+  ```
+  config nat add binding (binding-name) [(pool-name)] [(acl-name)] [-nat_type {snat | dnat}] [-twice_nat_id (value)]
+  ```
+To delete a NAT binding, use the command below. Giving the bindings argument removes all the configured bindings.
+```
+config nat remove {binding (binding-name) | bindings}
+```
+- Example:
+  ```
+  root@sonic:/# config nat add binding bind1 pool1 acl1
+  root@sonic:/# config nat add binding bind2 pool2
+
+  root@sonic:/# show nat config bindings
+
+  Binding Name    Pool Name    Access-List    Nat Type    Twice-NAT Id
+  --------------  -----------  -------------  ----------  --------------
+  bind1           pool1        acl1           snat        ---
+  bind2           pool2                       snat        ---
+  ```  
+
+**config nat add interface**
+
+This command is used to configure NAT zone on an L3 interface. Default value of NAT zone on an L3 interface is 0. Valid range of zone values is 0-3.
+
+- Usage:
+  ```
+  config nat add interface (interface-name) -nat_zone (value)
+  ```
+To reset the NAT zone on an interface, use the command below. Giving the interfaces argument resets the NAT zone on all the L3 interfaces to 0.
+```
+config nat remove {interface (interface-name) | interfaces}
+```
+- Example:
+  ```
+  root@sonic:/# config nat add interface Ethernet28 -nat_zone 1
+
+  root@sonic:/# show nat config zones
+
+  Port          Zone
+  ----------  ------
+  Ethernet0        0
+  Ethernet28       1
+  Ethernet22       0
+  Vlan2091         0
+  ```  
+
+**config nat set**
+
+This command is used to set the NAT timeout values. Different timeout values can be configured for the NAT entry timeout, NAPT TCP entry timeout, NAPT UDP entry timeout.
+Range for Global NAT entry timeout is 300 sec to 432000 sec, default value is 600 sec.
+Range for TCP NAT/NAPT entry timeout is 300 sec to 432000 sec, default value is 86400 sec.
+Range for UDP NAT/NAPT entry timeout is 120 sec to 600 sec, default value is 300 sec.
+
+- Usage:
+  ```
+  config nat set {tcp-timeout (value) | timeout (value) | udp-timeout (value)}
+  ```
+To reset the timeout values to the default values, use the command
+```
+config nat reset {tcp-timeout | timeout | udp-timeout}
+```
+- Example:
+  ```
+  root@sonic:/# config nat add set tcp-timeout 3600
+
+  root@sonic:/# show nat config globalvalues 
+
+  Admin Mode     : enabled
+  Global Timeout : 600 secs
+  TCP Timeout    : 600 secs
+  UDP Timeout    : 300 secs
+  ```
+
+**config nat feature**
+
+This command is used to enable or disable the NAT feature.
+
+- Usage:
+  ```
+  config nat feature {enable | disable}
+  ```
+
+- Example:
+  ```
+  root@sonic:/# config nat feature enable
+  root@sonic:/# config nat feature disable
+  ```
+
+### NAT Clear commands
+
+**sonic-clear nat translations**
+
+This command is used to clear the dynamic NAT and NAPT translation entries.
+
+- Usage:
+  ```
+  sonic-clear nat translations
+  ```
+
+**sonic-clear nat statistics**
+
+This command is used to clear the statistics of all the NAT and NAPT entries.
+
+- Usage:
+  ```
+  sonic-clear nat statistics
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#nat)
+
 
 ## NTP
 
@@ -4177,6 +4528,14 @@ This command displays the state of all the SONiC processes running inside a dock
   root         1     0  0 05:26 ?        00:00:12 /usr/bin/python /usr/bin/supervi
   root        24     1  0 05:26 ?        00:00:00 /usr/sbin/rsyslogd -n
 
+  nat     docker
+  ---------------------------
+  USER       PID PPID  C STIME TTY          TIME CMD
+  root         1    0  0 05:26 ?        00:00:12 /usr/bin/python /usr/bin/supervisord
+  root        18    1  0 05:26 ?        00:00:00 /usr/sbin/rsyslogd -n               
+  root        23    1  0 05:26 ?        00:00:01 /usr/bin/natmgrd                    
+  root        34    1  0 05:26 ?        00:00:00 /usr/bin/natsyncd 
+
   snmp    docker
   ---------------------------
   UID        PID  PPID  C STIME TTY          TIME CMD
@@ -4630,6 +4989,7 @@ This command displays the warm_restart state.
   neighsyncd                0
   teamsyncd                 1
   syncd                     0
+  natsyncd                  0
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#warm-restart)
