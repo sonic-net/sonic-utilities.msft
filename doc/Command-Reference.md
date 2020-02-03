@@ -4946,6 +4946,36 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#Warm-R
 
 ## Warm Restart
 
+Besides device level warm reboot, SONiC also provides docker based warm restart. This feature is currently supported by following dockers: BGP, teamD,  and SWSS. A user can manage to restart a particular docker, with no interruption on packet forwarding and no effect on other services. This helps to reduce operational costs as well as development efforts. For example, to fix a bug in BGP routing stack, only the BGP docker image needs to be built, tested and upgraded.
+
+To achieve uninterrupted packet forwarding during the restarting stage and database reconciliation at the post restarting stage, warm restart enabled dockers with adjacency state machine facilitate standardized protocols. For example, a BGP restarting switch must have BGP "Graceful Restart" enabled, and its BGP neighbors must be "Graceful Restart Helper Capable", as specified in [IETF RFC4724](https://tools.ietf.org/html/rfc4724). 
+
+Before warm restart BGP docker, the following BGP commands should be enabled: 
+  ```
+  bgp graceful-restart
+  bgp graceful-restart preserve-fw-state
+  ```
+In current SONiC release, the above two commands are enabled by default.
+
+It should be aware that during a warm restart, certain BGP fast convergence feature and black hole avoidance feature should either be disabled or be set to a lower preference to avoid conflicts with BGP graceful restart.  
+
+For example, BGP BFD could be disabled via:
+
+  ```
+  no neighbor <A.B.C.D|X:X::X:X|WORD> bfd
+  ```
+  
+otherwise, the fast failure detection would cause packet drop during warm reboot.
+
+Another commonly deployed blackhole avoidance feature: dynamic route priority adjustment, could be disabled via:
+
+  ```
+  no bgp max-med on-peerup
+  ```
+
+to avoid large routes churn during BGP restart.
+
+
 ### Warm Restart show commands
 
 **show warm_restart config**
