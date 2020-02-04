@@ -2806,5 +2806,40 @@ def features():
         body.append([key, status_data[key]['status']])
     click.echo(tabulate(body, header))
 
+#
+# 'container' group (show container ...)
+#
+@cli.group(name='container', invoke_without_command=False)
+def container():
+    """Show container"""
+    pass
+
+#
+# 'feature' group (show container feature ...)
+#
+@container.group(name='feature', invoke_without_command=False)
+def feature():
+    """Show container feature"""
+    pass
+
+#
+# 'autorestart' subcommand (show container feature autorestart)
+#
+@feature.command('autorestart', short_help="Show whether the auto-restart feature for container(s) is enabled or disabled")
+@click.argument('container_name', required=False)
+def autorestart(container_name):
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    header = ['Container Name', 'Status']
+    body = []
+    container_feature_table = config_db.get_table('CONTAINER_FEATURE')
+    if container_name:
+        if container_feature_table and container_feature_table.has_key(container_name):
+            body.append([container_name, container_feature_table[container_name]['auto_restart']])
+    else:
+        for name in container_feature_table.keys():
+            body.append([name, container_feature_table[name]['auto_restart']])
+    click.echo(tabulate(body, header))
+
 if __name__ == '__main__':
     cli()
