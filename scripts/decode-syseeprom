@@ -36,9 +36,6 @@ def main():
 
     platform_path = '/'.join([PLATFORM_ROOT, platform])
 
-    # Currently, don't support eeprom db on Arista platform
-    if 'arista' in platform_path:
-        support_eeprom_db = False
     #
     # Currently we only support board eeprom decode.
     #
@@ -54,6 +51,12 @@ def main():
 
     class_ = getattr(m, 'board')
     t = class_('board', '','','')
+
+    # Currently, don't support eeprom db on Arista platform
+    platforms_without_eeprom_db = ['arista', 'kvm']
+    if any(platform in platform_path for platform in platforms_without_eeprom_db)\
+            or t.getattr('read_eeprom_db', None) == None:
+        support_eeprom_db = False
 
     #
     # execute the command
