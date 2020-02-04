@@ -343,6 +343,20 @@ def get_container_image_id_all(image_name):
     image_id_all = set(image_id_all)
     return image_id_all
 
+def hget_warm_restart_table(db_name, table_name, warm_app_name, key):
+    db = SonicV2Connector()
+    db.connect(db_name, False)
+    _hash = table_name + db.get_db_separator(db_name) + warm_app_name
+    client = db.get_redis_client(db_name)
+    return client.hget(_hash, key)
+
+def hdel_warm_restart_table(db_name, table_name, warm_app_name, key):
+    db = SonicV2Connector()
+    db.connect(db_name, False)
+    _hash = table_name + db.get_db_separator(db_name) + warm_app_name
+    client = db.get_redis_client(db_name)
+    return  client.hdel(_hash, key)
+
 # Main entrypoint
 @click.group()
 def cli():
@@ -622,8 +636,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
 
         # clean app reconcilation state from last warm start if exists
         for warm_app_name in warm_app_names:
-            cmd = "docker exec -i database redis-cli -n 6 hdel 'WARM_RESTART_TABLE|" + warm_app_name + "' state"
-            run_command(cmd)
+            hdel_warm_restart_table("STATE_DB", "WARM_RESTART_TABLE", warm_app_name, "state")
 
     run_command("docker kill %s > /dev/null" % container_name)
     run_command("docker rm %s " % container_name)
@@ -653,7 +666,6 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
         count = 0
         for warm_app_name in warm_app_names:
             state = ""
-            cmd = "docker exec -i database redis-cli -n 6 hget 'WARM_RESTART_TABLE|" + warm_app_name + "' state"
             # Wait up to 180 seconds for reconciled state
             while state != exp_state and count < 90:
                 sys.stdout.write("\r  {}: ".format(warm_app_name))
@@ -661,8 +673,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
                 sys.stdout.flush()
                 count += 1
                 time.sleep(2)
-                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                state = proc.stdout.read().rstrip()
+                state = hget_warm_restart_table("STATE_DB", "WARM_RESTART_TABLE", warm_app_name, "state")
                 syslog.syslog("%s reached %s state"%(warm_app_name, state))
             sys.stdout.write("]\n\r")
             if state != exp_state:
