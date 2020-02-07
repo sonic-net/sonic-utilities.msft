@@ -2468,5 +2468,41 @@ def feature_status(name, state):
 
     config_db.mod_entry('FEATURE', name, {'status': state})
 
+#
+# 'container' group ('config container ...')
+#
+@config.group(name='container', invoke_without_command=False)
+def container():
+    """Modify configuration of containers"""
+    pass
+
+#
+# 'feature' group ('config container feature ...')
+#
+@container.group(name='feature', invoke_without_command=False)
+def feature():
+    """Modify configuration of container features"""
+    pass
+
+#
+# 'autorestart' subcommand ('config container feature autorestart ...')
+#
+@feature.command(name='autorestart', short_help="Configure the status of autorestart feature for specific container")
+@click.argument('container_name', metavar='<container_name>', required=True)
+@click.argument('autorestart_status', metavar='<autorestart_status>', required=True, type=click.Choice(["enabled", "disabled"]))
+def autorestart(container_name, autorestart_status):
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    container_feature_table = config_db.get_table('CONTAINER_FEATURE')
+    if not container_feature_table:
+        click.echo("Unable to retrieve container feature table from Config DB.")
+        return
+
+    if not container_feature_table.has_key(container_name):
+        click.echo("Unable to retrieve features for container '{}'".format(container_name))
+        return
+
+    config_db.mod_entry('CONTAINER_FEATURE', container_name, {'auto_restart': autorestart_status})
+
 if __name__ == '__main__':
     config()
