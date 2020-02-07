@@ -31,6 +31,9 @@
 * [BGP](#bgp)
   * [BGP show commands](#bgp-show-commands)
   * [BGP config commands](#bgp-config-commands)
+* [Container Auto-restart](#container-autorestart-commands)
+  * [Container Auto-restart show commands](#container-autorestart-show-commands)
+  * [Container Auto-restart config command](#container-autorestart-config-command)
 * [DHCP Relay](#dhcp-relay)
   * [DHCP Relay config commands](#dhcp-relay-config-commands)
 * [Drop Counters](#drop-counters)
@@ -105,7 +108,6 @@
 * [Troubleshooting Commands](#troubleshooting-commands)
 * [Routing Stack](#routing-stack)
 * [Quagga BGP Show Commands](#Quagga-BGP-Show-Commands)
-
 
 ## Document History
 
@@ -264,6 +266,7 @@ This command lists all the possible configuration commands at the top level.
     vlan                   VLAN-related configuration tasks
     warm_restart           warm_restart-related configuration tasks
     watermark              Configure watermark
+    container              Modify configuration of containers
   ```
 Go Back To [Beginning of the document](#) or [Beginning of this section](#getting-help)
 
@@ -325,6 +328,7 @@ This command displays the full list of show commands available in the software; 
     vlan                  Show VLAN information
     warm_restart          Show warm restart configuration and state
     watermark             Show details of watermark
+    container             Show details of container
   ```
 
 The same syntax applies to all subgroups of `show` which themselves contain subcommands, and subcommands which accept options/arguments.
@@ -1729,6 +1733,63 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
+
+## Container Auto-restart
+SONiC includes a feature in which Docker containers can be automatically shut
+down and restarted if one of critical processes running in the container exits
+unexpectedly. Restarting the entire container ensures that configureation is 
+reloaded and all processes in the container get restarted, thus increasing the
+likelihood of entering a healthy state.
+
+### Container Auto-restart show commands
+
+**show container feature autorestart**
+
+This command will display the status of auto-restart feature for containers.
+
+- Usage:
+  ```
+  show container feature autorestart [<container_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show container feature autorestart
+  Container Name    Status
+  --------------    --------
+  database          enabled
+  syncd             enabled
+  teamd             disabled
+  dhcp_relay        enabled
+  lldp              enabled
+  pmon              enabled
+  bgp               enabled
+  swss              disabled
+  telemetry         enabled
+  sflow             enabled
+  snmp              enabled
+  radv              disabled
+  ```
+
+Optionally, you can specify a container name in order to display the auto-restart
+feature status for that container only.
+
+### Container Auto-restart config command
+
+**config container feature autorestart <container_name> <autorestart_status>**
+
+This command will configure the status of auto-restart feature for a specific container.
+
+- Usage:
+  ```
+  sudo config container feature autorestart <container_name> (enabled | disabled)
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config container feature autorestart database disabled
+  ``` 
+Go Back To [Beginning of the document](#) or [Beginning of this section](#container-autorestart-commands)
 
 ## DHCP Relay
 
@@ -5603,5 +5664,4 @@ This command displays the routing policy that takes precedence over the other ro
     Action:
       Exit routemap
   ```
-
 Go Back To [Beginning of the document](#) or [Beginning of this section](#quagga-bgp-show-commands)
