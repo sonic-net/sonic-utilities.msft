@@ -31,9 +31,9 @@
 * [BGP](#bgp)
   * [BGP show commands](#bgp-show-commands)
   * [BGP config commands](#bgp-config-commands)
-* [Container Auto-restart](#container-autorestart-commands)
-  * [Container Auto-restart show commands](#container-autorestart-show-commands)
-  * [Container Auto-restart config command](#container-autorestart-config-command)
+* [Container Auto-restart](#container-auto-restart)
+  * [Container Auto-restart show commands](#container-auto-restart-show-commands)
+  * [Container Auto-restart config command](#container-auto-restart-config-command)
 * [DHCP Relay](#dhcp-relay)
   * [DHCP Relay config commands](#dhcp-relay-config-commands)
 * [Drop Counters](#drop-counters)
@@ -1735,9 +1735,10 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
 
 ## Container Auto-restart
+
 SONiC includes a feature in which Docker containers can be automatically shut
 down and restarted if one of critical processes running in the container exits
-unexpectedly. Restarting the entire container ensures that configureation is 
+unexpectedly. Restarting the entire container ensures that configuration is 
 reloaded and all processes in the container get restarted, thus increasing the
 likelihood of entering a healthy state.
 
@@ -1789,7 +1790,8 @@ This command will configure the status of auto-restart feature for a specific co
   ```
   admin@sonic:~$ sudo config container feature autorestart database disabled
   ``` 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#container-autorestart-commands)
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#container-auto-restart)
 
 ## DHCP Relay
 
