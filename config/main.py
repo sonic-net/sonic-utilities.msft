@@ -27,6 +27,8 @@ SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
+INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
+
 # ========================== Syslog wrappers ==========================
 
 def log_debug(msg):
@@ -544,7 +546,11 @@ def reload(filename, yes, load_sysinfo):
         command = "{} -H -k {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku)
         run_command(command, display_cmd=True)
 
-    command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
+    if os.path.isfile(INIT_CFG_FILE):
+        command = "{} -j {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, filename)
+    else:
+        command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
+
     run_command(command, display_cmd=True)
     client.set(config_db.INIT_INDICATOR, 1)
 
