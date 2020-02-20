@@ -73,6 +73,9 @@
 * [NTP](#ntp)
   * [NTP show commands](#ntp-show-commands)
   * [NTP config commands](#ntp-config-commands)
+* [Platform Component Firmware](#platform-component-firmware)
+  * [Platform Component Firmware show commands](#platform-component-firmware-show-commands)
+  * [Platform Component Firmware config commands](#platform-component-firmware-config-commands)
 * [Platform Specific Commands](#platform-specific-commands)
 * [PortChannels](#portchannels)
   * [PortChannel Show commands](#portchannel-show-commands)
@@ -3786,6 +3789,172 @@ This command is used to delete a configured NTP server IP address.
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#NTP)
+
+
+## Platform Component Firmware
+
+### Platform Component Firmware show commands
+
+**show platform firmware**
+
+This command displays platform components firmware status information.
+
+- Usage:
+```bash
+show platform firmware
+```
+
+- Example:
+```bash
+root@sonic:/home/admin# show platform firmware
+Chassis    Module    Component    Version                  Description
+---------  --------  -----------  -----------------------  ---------------------------------------
+Chassis1   N/A       BIOS         0ACLH004_02.02.007_9600  BIOS - Basic Input/Output System
+                     CPLD         5.3.3.1                  CPLD - includes all CPLDs in the switch
+```
+
+### Platform Component Firmware config commands
+
+**config platform firmware install**
+
+This command is used to install a platform component firmware.  
+Both modular and non modular chassis platforms are supported.
+
+- Usage:
+```bash
+config platform firmware install chassis component <component_name> fw <fw_path> [-y|--yes]
+config platform firmware install module <module_name> component <component_name> fw <fw_path> [-y|--yes]
+```
+
+- Example:
+```bash
+root@sonic:/home/admin# config platform firmware install chassis component BIOS fw /etc/mlnx/fw/sn3800/chassis1/bios.bin
+New firmware will be installed, continue? [y/N]: y
+Installing firmware:
+    /etc/mlnx/fw/sn3800/chassis1/bios.bin
+
+root@sonic:/home/admin# config platform firmware install module Module1 component BIOS fw http://mellanox.com/fw/sn3800/module1/bios.bin
+New firmware will be installed, continue? [y/N]: y
+Downloading firmware:
+    [##################################################]  100%
+Installing firmware:
+    /tmp/bios.bin
+```
+
+Supported options:
+1. -y|--yes - automatic yes to prompts. Assume "yes" as answer to all prompts and run non-interactively
+
+**config platform firmware update**
+
+This command is used for automatic FW update of all available platform components.  
+Both modular and non modular chassis platforms are supported.
+
+Automatic FW update requires `platform_components.json` to be created and placed at:  
+sonic-buildimage/device/<platform_name>/<onie_platform>/platform_components.json
+
+Example:
+1. Non modular chassis platform
+```json
+{
+    "chassis": {
+        "Chassis1": {
+            "component": {
+                "BIOS": {
+                    "firmware": "/etc/<platform_name>/fw/<onie_platform>/chassis1/bios.bin",
+                    "version": "0ACLH003_02.02.010",
+                    "info": "Cold reboot is required"
+                },
+                "CPLD": {
+                    "firmware": "/etc/<platform_name>/fw/<onie_platform>/chassis1/cpld.bin",
+                    "version": "10",
+                    "info": "Power cycle is required"
+                },
+                "FPGA": {
+                    "firmware": "/etc/<platform_name>/fw/<onie_platform>/chassis1/fpga.bin",
+                    "version": "5",
+                    "info": "Power cycle is required"
+                }
+            }
+        }
+    }
+}
+```
+
+2. Modular chassis platform
+```json
+{
+    "chassis": {
+        "Chassis1": {
+            "component": {
+                "BIOS": {
+                    "firmware": "/etc/<platform_name>/fw/<onie_platform>/chassis1/bios.bin",
+                    "version": "0ACLH003_02.02.010",
+                    "info": "Cold reboot is required"
+                },
+                "CPLD": {
+                    "firmware": "/etc/<platform_name>/fw/<onie_platform>/chassis1/cpld.bin",
+                    "version": "10",
+                    "info": "Power cycle is required"
+                },
+                "FPGA": {
+                    "firmware": "/etc/<platform_name>/fw/<onie_platform>/chassis1/fpga.bin",
+                    "version": "5",
+                    "info": "Power cycle is required"
+                }
+            }
+        }
+    },
+    "module": {
+        "Module1": {
+            "component": {
+                "CPLD": {
+                    "firmware": "/etc/<platform_name>/fw/<onie_platform>/module1/cpld.bin",
+                    "version": "10",
+                    "info": "Power cycle is required"
+                },
+                "FPGA": {
+                    "firmware": "/etc/<platform_name>/fw/<onie_platform>/module1/fpga.bin",
+                    "version": "5",
+                    "info": "Power cycle is required"
+                }
+            }
+        }
+    }
+}
+```
+
+Note: FW update will be skipped if component definition is not provided (e.g., 'BIOS': { })
+
+- Usage:
+```bash
+config platform firmware update [-y|--yes] [-f|--force] [-i|--image=current|next]
+```
+
+- Example:
+```bash
+root@sonic:/home/admin# config platform firmware update
+Chassis    Module    Component    Firmware                               Version                                            Status              Info
+---------  --------  -----------  -------------------------------------  -------------------------------------------------  ------------------  -----------------------
+Chassis1   N/A       BIOS         /etc/mlnx/fw/sn3800/chassis1/bios.bin  0ACLH004_02.02.007_9600 / 0ACLH004_02.02.007_9600  up-to-date          Cold reboot is required
+                     CPLD         /etc/mlnx/fw/sn3800/chassis1/cpld.bin  5.3.3.1 / 5.3.3.2                                  update is required  Power cycle is required
+New firmware will be installed, continue? [y/N]: y
+
+Summary:
+
+Chassis    Module    Component    Status
+---------  --------  -----------  ----------
+Chassis1   N/A       BIOS         up-to-date
+                     CPLD         success
+```
+
+Supported options:
+1. -y|--yes - automatic yes to prompts. Assume "yes" as answer to all prompts and run non-interactively
+2. -f|--force - install FW regardless the current version
+3. -i|--image - update FW using current/next SONiC image
+
+Note: the default option is --image=current
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#platform-component-firmware)
 
 
 ## Platform Specific Commands

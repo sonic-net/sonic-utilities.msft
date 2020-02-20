@@ -2030,6 +2030,48 @@ def platform():
 if asic_type == 'mellanox':
     platform.add_command(mlnx.mlnx)
 
+# 'firmware' subgroup ("config platform firmware ...")
+@platform.group()
+def firmware():
+    """Firmware configuration tasks"""
+    pass
+
+# 'install' subcommand ("config platform firmware install")
+@firmware.command(
+    context_settings=dict(
+        ignore_unknown_options=True,
+        allow_extra_args=True
+    ),
+    add_help_option=False
+)
+@click.argument('args', nargs=-1, type=click.UNPROCESSED)
+def install(args):
+    """Install platform firmware"""
+    cmd = "fwutil install {}".format(" ".join(args))
+
+    try:
+        subprocess.check_call(cmd, shell=True)
+    except subprocess.CalledProcessError as e:
+        sys.exit(e.returncode)
+
+# 'update' subcommand ("config platform firmware update")
+@firmware.command(
+    context_settings=dict(
+        ignore_unknown_options=True,
+        allow_extra_args=True
+    ),
+    add_help_option=False
+)
+@click.argument('args', nargs=-1, type=click.UNPROCESSED)
+def update(args):
+    """Update platform firmware"""
+    cmd = "fwutil update {}".format(" ".join(args))
+
+    try:
+        subprocess.check_call(cmd, shell=True)
+    except subprocess.CalledProcessError as e:
+        sys.exit(e.returncode)
+
 #
 # 'watermark' group ("show watermark telemetry interval")
 #
