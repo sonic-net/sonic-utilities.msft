@@ -2563,6 +2563,22 @@ Dynamic breakout feature is yet to be supported in SONiC and hence uses cannot c
   admin@sonic:~$ sudo config interface Ethernet63 speed 40000
   ```
 
+**config interface mtu <interface_name> (Versions >= 201904)**
+
+This command is used to configure the mtu for the Physical interface. Use the value 1500 for setting max transfer unit size to 1500 bytes.
+
+- Usage:
+
+  *Versions >= 201904*
+  ```
+  config interface mtu <interface_name> <mtu_value>
+  ```
+
+- Example (Versions >= 201904):
+  ```
+  admin@sonic:~$ sudo config interface mtu Ethernet64 1500
+  ```
+
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
 

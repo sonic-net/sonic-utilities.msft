@@ -1425,6 +1425,27 @@ def mgmt_ip_restart_services():
     os.system (cmd)
 
 #
+# 'mtu' subcommand
+#
+
+@interface.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('interface_mtu', metavar='<interface_mtu>', required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def mtu(ctx, interface_name, interface_mtu, verbose):
+    """Set interface mtu"""
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    command = "portconfig -p {} -m {}".format(interface_name, interface_mtu)
+    if verbose:
+        command += " -vv"
+    run_command(command, display_cmd=verbose)
+
+#
 # 'ip' subgroup ('config interface ip ...')
 #
 
