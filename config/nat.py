@@ -283,7 +283,7 @@ def add_basic(ctx, global_ip, local_ip, nat_type, twice_nat_id):
         ctx.fail("Given entry is overlapping with existing Dynamic entry !!")
 
     if entryFound is False:
-        counters_db = SonicV2Connector(host="127.0.0.1")
+        counters_db = SonicV2Connector()
         counters_db.connect(counters_db.COUNTERS_DB)
         snat_entries = 0
         max_entries = 0
@@ -363,7 +363,7 @@ def add_tcp(ctx, global_ip, global_port, local_ip, local_port, nat_type, twice_n
         ctx.fail("Given entry is overlapping with existing NAT entry !!")
 
     if entryFound is False:
-        counters_db = SonicV2Connector(host="127.0.0.1")
+        counters_db = SonicV2Connector()
         counters_db.connect(counters_db.COUNTERS_DB)
         snat_entries = 0
         max_entries = 0
@@ -443,7 +443,7 @@ def add_udp(ctx, global_ip, global_port, local_ip, local_port, nat_type, twice_n
         ctx.fail("Given entry is overlapping with existing NAT entry !!")
 
     if entryFound is False:
-        counters_db = SonicV2Connector(host="127.0.0.1")
+        counters_db = SonicV2Connector()
         counters_db.connect(counters_db.COUNTERS_DB)
         snat_entries = 0
         max_entries = 0

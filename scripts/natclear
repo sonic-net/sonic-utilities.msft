@@ -22,7 +22,7 @@ class NatClear(object):
 
     def __init__(self):
         super(NatClear,self).__init__()
-        self.db = SonicV2Connector(host="127.0.0.1")
+        self.db = SonicV2Connector()
         self.db.connect(self.db.APPL_DB)
         return
 

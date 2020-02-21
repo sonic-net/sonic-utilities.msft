@@ -69,9 +69,9 @@ class NatShow(object):
 
     def __init__(self):
         super(NatShow,self).__init__()
-        self.asic_db = SonicV2Connector(host="127.0.0.1")
-        self.appl_db = SonicV2Connector(host="127.0.0.1")
-        self.counters_db = SonicV2Connector(host="127.0.0.1")
+        self.asic_db = SonicV2Connector()
+        self.appl_db = SonicV2Connector()
+        self.counters_db = SonicV2Connector()
         return
 
     def fetch_count(self):
