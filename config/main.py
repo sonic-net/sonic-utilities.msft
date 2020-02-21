@@ -23,6 +23,7 @@ import nat
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
+SONIC_GENERATED_SERVICE_PATH = '/etc/sonic/generated_services.conf'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
@@ -394,6 +395,15 @@ def _get_platform():
                 return tokens[1].strip()
     return ''
 
+def _get_sonic_generated_services():
+    if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
+        return None
+    generated_services_list = []
+    with open(SONIC_GENERATED_SERVICE_PATH) as generated_service_file:
+        for line in generated_service_file:
+            generated_services_list.append(line.rstrip('\n'))
+    return None if not generated_services_list else generated_services_list
+
 # Callback for confirmation prompt. Aborts if user enters "n"
 def _abort_if_false(ctx, param, value):
     if not value:
@@ -409,10 +419,18 @@ def _stop_services():
         'hostcfgd',
         'nat'
     ]
+    generated_services_list = _get_sonic_generated_services()
+
+    if generated_services_list is None:
+        log_error("Failed to get generated services")
+        return
+
     if asic_type == 'mellanox' and 'pmon' in services_to_stop:
         services_to_stop.remove('pmon')
 
     for service in services_to_stop:
+        if service + '.service' not in generated_services_list:
+            continue
         try:
             click.echo("Stopping service {} ...".format(service))
             run_command("systemctl stop {}".format(service))
@@ -440,7 +458,15 @@ def _reset_failed_services():
         'nat'
     ]
 
+    generated_services_list = _get_sonic_generated_services()
+
+    if generated_services_list is None:
+        log_error("Failed to get generated services")
+        return
+
     for service in services_to_reset:
+        if service + '.service' not in generated_services_list:
+            continue
         try:
             click.echo("Resetting failed status for service {} ...".format(service))
             run_command("systemctl reset-failed {}".format(service))
@@ -463,10 +489,18 @@ def _restart_services():
         'nat',
         'sflow',
     ]
+    generated_services_list = _get_sonic_generated_services()
+
+    if generated_services_list is None:
+        log_error("Failed to get generated services")
+        return
+
     if asic_type == 'mellanox' and 'pmon' in services_to_restart:
         services_to_restart.remove('pmon')
 
     for service in services_to_restart:
+        if service + '.service' not in generated_services_list:
+            continue
         try:
             click.echo("Restarting service {} ...".format(service))
             run_command("systemctl restart {}".format(service))
