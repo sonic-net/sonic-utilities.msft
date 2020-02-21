@@ -1193,7 +1193,8 @@ def add_vlan_dhcp_relay_destination(ctx, vid, dhcp_relay_destination_ip):
         return
     else:
         dhcp_relay_dests.append(dhcp_relay_destination_ip)
-        db.set_entry('VLAN', vlan_name, {"dhcp_servers":dhcp_relay_dests})
+        vlan['dhcp_servers'] = dhcp_relay_dests
+        db.set_entry('VLAN', vlan_name, vlan)
         click.echo("Added DHCP relay destination address {} to {}".format(dhcp_relay_destination_ip, vlan_name))
         try:
             click.echo("Restarting DHCP relay service...")
@@ -1218,7 +1219,11 @@ def del_vlan_dhcp_relay_destination(ctx, vid, dhcp_relay_destination_ip):
     dhcp_relay_dests = vlan.get('dhcp_servers', [])
     if dhcp_relay_destination_ip in dhcp_relay_dests:
         dhcp_relay_dests.remove(dhcp_relay_destination_ip)
-        db.set_entry('VLAN', vlan_name, {"dhcp_servers":dhcp_relay_dests})
+        if len(dhcp_relay_dests) == 0:
+            del vlan['dhcp_servers']
+        else:
+            vlan['dhcp_servers'] = dhcp_relay_dests
+        db.set_entry('VLAN', vlan_name, vlan)
         click.echo("Removed DHCP relay destination address {} from {}".format(dhcp_relay_destination_ip, vlan_name))
         try:
             click.echo("Restarting DHCP relay service...")
