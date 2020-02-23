@@ -134,11 +134,19 @@ fi
 if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
     VERBOSE=yes debug "Rebooting with platform ${PLATFORM} specific tool ..."
     exec ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} $@
-else
-    # If no platform-specific reboot tool, just run /sbin/reboot
-    exec /sbin/reboot $@
+
+    # There are a couple reasons execution reaches here:
+    #
+    # 1. The vendor platform reboot returned after scheduled the platform specific reboot.
+    #    This is a vendor platform reboot code bug but it happens.
+    # 2. The vendor platform reboot failed. e.g. due to platform driver didn't load properly.
+    #
+    # As result if the reboot script reaches here. We should make the reboot happen.
+    # Sleep 1 second before calling /sbin/reboot to accommodate situation #1 above.
+    sleep 1
+
+    VERBOSE=yes debug "Platform specific reboot failed!" >&2
 fi
 
-# Should never reach here
-VERBOSE=yes debug "Reboot failed!" >&2
-exit 1
+VERBOSE=yes debug "Issuing OS-level reboot ..." >&2
+exec /sbin/reboot $@
