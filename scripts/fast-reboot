@@ -431,6 +431,24 @@ docker kill lldp &> /dev/null || debug "Docker lldp is not running ($?) ..."
 systemctl stop lldp
 
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
+    if echo $(docker ps) | grep -q iccpd; then
+        docker kill iccpd > /dev/null || [ $? == 1 ]
+    fi
+fi
+
+# Stop iccpd gracefully
+if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+    if echo $(docker ps) | grep -q iccpd; then
+        debug "Stopping iccpd ..."
+        # Send USR1 signal to iccpd to stop it
+        # It will prepare iccpd for warm-reboot
+        # Note: We must send USR1 signal before syncd, or some state of iccpd maybe lost
+        docker exec -i iccpd pkill -USR1 iccpd || [ $? == 1 ] > /dev/null
+        debug "Stopped  iccpd ..."
+    fi
+fi
+
+if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Kill teamd processes inside of teamd container with SIGUSR2 to allow them to send last LACP frames
     # We call `docker kill teamd` to ensure the container stops as quickly as possible,
     # then immediately call `systemctl stop teamd` to prevent the service from

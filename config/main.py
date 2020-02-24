@@ -409,6 +409,14 @@ def _abort_if_false(ctx, param, value):
     if not value:
         ctx.abort()
 
+def _get_optional_services():
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    optional_services_dict = config_db.get_table('FEATURE')
+    if not optional_services_dict:
+        return None
+    return optional_services_dict.keys()
+
 def _stop_services():
     # on Mellanox platform pmon is stopped by syncd
     services_to_stop = [
@@ -438,6 +446,17 @@ def _stop_services():
         except SystemExit as e:
             log_error("Stopping {} failed with error {}".format(service, e))
             raise
+
+    # For optional services they don't start by default
+    for service in _get_optional_services():
+        (out, err) = run_command("systemctl status {}".format(service), return_output = True)
+        if not err and 'Active: active (running)' in out:
+            try:
+                click.echo("Stopping service {} ...".format(service))
+                run_command("systemctl stop {}".format(service))
+            except SystemExit as e:
+                log_error("Stopping {} failed with error {}".format(service, e))
+                raise
 
 def _reset_failed_services():
     services_to_reset = [
@@ -474,6 +493,17 @@ def _reset_failed_services():
             log_error("Failed to reset failed status for service {}".format(service))
             raise
 
+    # For optional services they don't start by default
+    for service in _get_optional_services():
+        (out, err) = run_command("systemctl is-enabled {}".format(service), return_output = True)
+        if not err and 'enabled' in out:
+            try:
+                click.echo("Resetting failed status for service {} ...".format(service))
+                run_command("systemctl reset-failed {}".format(service))
+            except SystemExit as e:
+                log_error("Failed to reset failed status for service {}".format(service))
+                raise
+
 def _restart_services():
     # on Mellanox platform pmon is started by syncd
     services_to_restart = [
@@ -507,6 +537,17 @@ def _restart_services():
         except SystemExit as e:
             log_error("Restart {} failed with error {}".format(service, e))
             raise
+
+    # For optional services they don't start by default
+    for service in _get_optional_services():
+        (out, err) = run_command("systemctl is-enabled {}".format(service), return_output = True)
+        if not err and 'enabled' in out:
+            try:
+                click.echo("Restarting service {} ...".format(service))
+                run_command("systemctl restart {}".format(service))
+            except SystemExit as e:
+                log_error("Restart {} failed with error {}".format(service, e))
+                raise
 
 def is_ipaddress(val):
     """ Validate if an entry is a valid IP """
