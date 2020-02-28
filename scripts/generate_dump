@@ -190,15 +190,13 @@ save_proc() {
 ###############################################################################
 # Dumps all fields and values from given Redis DB.
 # Arguments:
-#  DB id: id of DB for redis-cli
 #  DB name: filename to which output will be saved
 # Returns:
 #  None
 ###############################################################################
 save_redis() {
-    local db=$1
-    local db_name=$2
-    save_cmd "redis-dump -d $db -s /var/run/redis/redis.sock -y" "$db_name.json"
+    local db_name=$1
+    save_cmd "sonic-db-dump -n '$db_name' -y" "$db_name.json"
 }
 
 ###############################################################################
@@ -372,12 +370,12 @@ main() {
 
     save_nat_info
 
-    save_redis "0" "APP_DB"
-    save_redis "1" "ASIC_DB"
-    save_redis "2" "COUNTERS_DB"
-    save_redis "4" "CONFIG_DB"
-    save_redis "5" "FLEX_COUNTER_DB"
-    save_redis "6" "STATE_DB"
+    save_redis "APPL_DB"
+    save_redis "ASIC_DB"
+    save_redis "COUNTERS_DB"
+    save_redis "CONFIG_DB"
+    save_redis "FLEX_COUNTER_DB"
+    save_redis "STATE_DB"
 
     save_cmd "docker ps -a" "docker.ps"
     save_cmd "docker top pmon" "docker.pmon"
