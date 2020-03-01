@@ -9,6 +9,7 @@ try:
     import click
     import os
     import json
+    import socket
     import urllib
     import subprocess
     import sonic_device_util
@@ -45,7 +46,8 @@ class URL(object):
     PB_INFO_SEPARATOR = " | "
     PB_FULL_TERMINAL_WIDTH = 0
 
-    TMP_PATH = "/tmp"
+    DOWNLOAD_TIMEOUT = 30
+    DOWNLOAD_PATH_TEMPLATE = "/tmp/{}"
 
     def __init__(self, url):
         self.__url = url
@@ -115,13 +117,21 @@ class URL(object):
         if not extension:
             raise RuntimeError("Filename is malformed: did not find an extension")
 
+        default_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(self.DOWNLOAD_TIMEOUT)
+
         try:
             filename, headers = urllib.urlretrieve(
                 self.__url,
-                "{}/{}".format(self.TMP_PATH, basename),
+                self.DOWNLOAD_PATH_TEMPLATE.format(basename),
                 self.__reporthook
             )
+        except:
+            if os.path.exists(self.DOWNLOAD_PATH_TEMPLATE.format(basename)):
+                os.remove(self.DOWNLOAD_PATH_TEMPLATE.format(basename))
+            raise
         finally:
+            socket.setdefaulttimeout(default_timeout)
             self.__pb_reset()
 
         return filename, headers
