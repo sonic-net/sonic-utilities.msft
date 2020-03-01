@@ -73,6 +73,7 @@
 * [NTP](#ntp)
   * [NTP show commands](#ntp-show-commands)
   * [NTP config commands](#ntp-config-commands)
+* [PFC Watchdog Commands](#pfc-watchdog-commands)
 * [Platform Component Firmware](#platform-component-firmware)
   * [Platform Component Firmware show commands](#platform-component-firmware-show-commands)
   * [Platform Component Firmware config commands](#platform-component-firmware-config-commands)
@@ -3784,6 +3785,93 @@ This command is used to delete a configured NTP server IP address.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#NTP)
 
+# PFC Watchdog Commands
+Detailed description of the PFC Watchdog could be fount on the [this wiki page](https://github.com/Azure/SONiC/wiki/PFC-Watchdog)
+
+**config pfcwd start \<arguments\>**
+
+This command starts PFC Watchdog
+
+- Usage:
+  ```
+  config pfcwd start --action drop ports all detection-time 400 --restoration-time 400
+  config pfcwd start --action forward ports Ethernet0 Ethernet8 detection-time 400
+  ```
+
+**config pfcwd stop**
+
+This command stops PFC Watchdog
+
+- Usage:
+  ```
+  config pfcwd stop
+  ```
+
+**config pfcwd interval \<interval_in_ms\>**
+
+This command sets PFC Watchdog counter polling interval (in ms)
+
+- Usage:
+  ```
+  config pfcwd interval 200
+  ```
+
+**config pfcwd counter_poll \<enable/disable\>**
+
+This command enables or disables PFCWD related counters polling
+
+- Usage:
+  ```
+  config pfcwd counter_poll disable
+  ```
+
+**config pfcwd big_red_switch \<enable/disable\>**
+
+This command enables or disables PFCWD's "BIG RED SWITCH"(BRS). After enabling BRS PFC Watchdog will be activated on all ports/queues it is configured for no matter whether the storm was detected or not
+
+- Usage:
+  ```
+  config pfcwd big_red_switch enable
+  ```
+
+**config pfcwd start_default**
+
+This command starts PFC Watchdog with the default settings.
+
+- Usage:
+  ```
+  config pfcwd start_default
+  ```
+
+Default values are the following:  
+
+   - detection time - 200ms
+   - restoration time - 200ms
+   - polling interval - 200ms
+   - action - 'drop'
+
+Additionally if number of ports in the system exceeds 32, all times will be multiplied by roughly <num_ports\>/32.
+
+
+**show pfcwd config**
+
+This command shows current PFC Watchdog configuration
+
+- Usage:
+  ```
+  show pfcwd config
+  ```
+
+**show pfcwd stats**
+
+This command shows current PFC Watchdog statistics (storms detected, packets dropped, etc)
+
+- Usage:
+  ```
+  show pfcwd stats
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#pfc-watchdog-commands)
 
 ## Platform Component Firmware
 

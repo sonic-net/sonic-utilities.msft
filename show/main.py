@@ -1043,6 +1043,30 @@ def counters(verbose):
 
     run_command(cmd, display_cmd=verbose)
 
+# 'pfcwd' subcommand ("show pfcwd...")
+@cli.group(cls=AliasedGroup, default_if_no_args=False)
+def pfcwd():
+    """Show details of the pfc watchdog """
+    pass
+
+@pfcwd.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def config(verbose):
+    """Show pfc watchdog config"""
+
+    cmd = "pfcwd show config"
+
+    run_command(cmd, display_cmd=verbose)
+
+@pfcwd.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def stats(verbose):
+    """Show pfc watchdog stats"""
+
+    cmd = "pfcwd show stats"
+
+    run_command(cmd, display_cmd=verbose)
+
 # 'naming_mode' subcommand ("show interfaces naming_mode")
 @interfaces.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
