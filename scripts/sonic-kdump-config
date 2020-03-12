@@ -25,8 +25,10 @@ import subprocess
 import errno
 from swsssdk import ConfigDBConnector
 
+aboot_cfg_template ="/host/image-%s/kernel-cmdline"
 grub_cfg = "/host/grub/grub.cfg"
 kdump_cfg = "/etc/default/kdump-tools"
+machine_cfg = "/host/machine.conf"
 
 ## Same as print(), but output to stderr instead of stdout
 def print_err(*args):
@@ -94,7 +96,7 @@ def get_next_image():
 
 ## Search for Current/Next SONiC image in grub configuration
 #
-#  @param  lines Lines read from grub.cfg file
+#  @param  lines Lines read from grub.cfg/cmdline file
 #  @param  img   String we are looking for ("loop=image...")
 #  @return       Index in lines array wehere we found the string
 def locate_image(lines, img):
@@ -106,11 +108,11 @@ def locate_image(lines, img):
             pass
     return -1
 
-## Rewrite grub configuration file
+## Rewrite grub/cmdline configuration file
 #
-#  @param lines Lines read from grub.cfg file
-#  @param fname Grub configuration file
-def rewrite_grub_cfg(lines, fname):
+#  @param lines Lines read from grub/cmdline config file
+#  @param fname Grub/cmdline configuration file
+def rewrite_cfg(lines, fname):
     fd = open(fname, "w")
     for x in lines:
         fd.writelines(x+'\n')
@@ -254,50 +256,49 @@ def write_num_dumps(num_dumps):
         print_err("Error while writing KDUMP_NUM_DUMPS into %s" % kdump_cfg)
         sys.exit(1)
 
-## Command: Enable kdump - Grub mode
+## Enable kdump
 #
 #  @param verbose If True, the function will display a few additinal information
-#  @return        True is the grub configuration has changed, and False if it has not
-def kdump_enable_grub(verbose, kdump_enabled, memory, num_dumps):
+#  @return        True if the grub/cmdline cfg has changed, and False if it has not
+def kdump_enable(verbose, kdump_enabled, memory, num_dumps, image, cmdline_file):
 
-    current_img = get_current_image();
     if verbose:
-        print("Current image=[%s]" % current_img)
+        print("Enabling kdump for image=[%s]" % image)
     try:
-        lines = [line.rstrip('\n') for line in open(grub_cfg)]
+        lines = [line.rstrip('\n') for line in open(cmdline_file)]
     except Exception as exception:
         print_err(exception)
         sys.exit(1)
-    current_img_index = locate_image(lines, "loop=image-"+current_img)
+    img_index = locate_image(lines, "loop=image-"+image)
     if verbose:
-        print("Image index in grub.cfg=%d" % current_img_index)
+        print("Image index in %s=%d" % (cmdline_file, img_index))
 
     changed = False
     crash_kernel_in_cmdline = search_for_crash_kernel_in_cmdline()
     if verbose:
         print("crash_kernel_in_cmdline=[%s]" % crash_kernel_in_cmdline)
-    curr_crash_kernel_mem = search_for_crash_kernel(lines[current_img_index])
+    crash_kernel_mem = search_for_crash_kernel(lines[img_index])
     if verbose:
-        print("curr_crash_kernel_mem=[%s]" % curr_crash_kernel_mem)
-    if curr_crash_kernel_mem == None:
-        lines[current_img_index] += " crashkernel=%s" % memory
+        print("crash_kernel_mem=[%s]" % crash_kernel_mem)
+    if crash_kernel_mem == None:
+        lines[img_index] += " crashkernel=%s" % memory
         changed = True
         if verbose:
-            print("Added to grub.cfg: [ crashkernel=%s ]" % memory)
+            print("Added to %s: [ crashkernel=%s ]" % (cmdline_file, memory))
     else:
-        if curr_crash_kernel_mem == memory:
-            if curr_crash_kernel_mem == crash_kernel_in_cmdline:
+        if crash_kernel_mem == memory:
+            if crash_kernel_mem == crash_kernel_in_cmdline:
                 print("kdump is already enabled")
             else:
                 changed = True
         else:
-            lines[current_img_index] = lines[current_img_index].replace(curr_crash_kernel_mem, memory)
+            lines[img_index] = lines[img_index].replace(crash_kernel_mem, memory)
             changed = True
             if verbose:
-                print("Replace [%s] with [%s] in grub.cfg" % (curr_crash_kernel_mem, memory))
+                print("Replace [%s] with [%s] in %s" % (crash_kernel_mem, memory, cmdline_file))
 
     if changed:
-        rewrite_grub_cfg(lines, grub_cfg)
+        rewrite_cfg(lines, cmdline_file)
 
     write_use_kdump(1)
 
@@ -306,8 +307,9 @@ def kdump_enable_grub(verbose, kdump_enabled, memory, num_dumps):
 ## Command: Enable kdump
 #
 #  @param verbose If True, the function will display a few additinal information
-#  @return        True is the grub configuration has changed, and False if it has not
-def cmd_kdump_enable(verbose):
+#  @param image   The image on which kdump settings are changed
+#  @return        True if the grub/cmdline cfg has changed, and False if it has not
+def cmd_kdump_enable(verbose, image=get_current_image()):
 
     kdump_enabled = get_kdump_administrative_mode()
     memory = get_kdump_memory()
@@ -316,107 +318,51 @@ def cmd_kdump_enable(verbose):
         print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d" % (kdump_enabled, memory, num_dumps))
 
     if os.path.exists(grub_cfg):
-        return kdump_enable_grub(verbose, kdump_enabled, memory, num_dumps)
+        return kdump_enable(verbose, kdump_enabled, memory, num_dumps, image, grub_cfg)
+    elif open(machine_cfg, 'r').read().find('aboot_platform') >= 0:
+        aboot_cfg = aboot_cfg_template % image
+        return kdump_enable(verbose, kdump_enabled, memory, num_dumps, image, aboot_cfg)
     else:
         print("Feature not supported on this platform")
-        run_command("config kdump disable", use_shell=False);
         return False
-
-## Command: Enable kdump on Next image only - Grub mode
-#
-#  @param verbose If True, the function will display a few additional information
-#  @return        True is the grub configuration has changed, and False if it has not
-def kdump_config_next_grub(verbose, kdump_enabled, memory, num_dumps):
-    next_img = get_next_image();
-    if verbose:
-        print("Next image=[%s]" % next_img)
-    try:
-        lines = [line.rstrip('\n') for line in open(grub_cfg)]
-    except Exception as exception:
-        print_err(exception)
-        sys.exit(1)
-    next_img_index = locate_image(lines, "loop=image-"+next_img)
-    if verbose:
-        print("Image index in grub.cfg=%d" % next_img_index)
-
-    changed = False
-    crash_kernel_in_cmdline = search_for_crash_kernel_in_cmdline()
-    if verbose:
-        print("crash_kernel_in_cmdline=[%s]" % crash_kernel_in_cmdline)
-    curr_crash_kernel_mem = search_for_crash_kernel(lines[next_img_index])
-    if verbose:
-        print("curr_crash_kernel_mem=[%s]" % curr_crash_kernel_mem)
-    if curr_crash_kernel_mem == None:
-        lines[next_img_index] += " crashkernel=%s" % memory
-        changed = True
-        if verbose:
-            print("Added to grub.cfg: [ crashkernel=%s ]" % memory)
-    else:
-        if curr_crash_kernel_mem == memory:
-            if curr_crash_kernel_mem == crash_kernel_in_cmdline:
-                print("kdump is already enabled")
-            else:
-                changed = True
-        else:
-            lines[next_img_index] = lines[next_img_index].replace(curr_crash_kernel_mem, memory)
-            changed = True
-            if verbose:
-                print("Replace [%s] with [%s] in grub.cfg" % (curr_crash_kernel_mem, memory))
-
-    if changed:
-        rewrite_grub_cfg(lines, grub_cfg)
-
-    write_use_kdump(1)
-
-    return changed
 
 ## Command: Enable kdump on Next image only
 #
 #  @param verbose If True, the function will display a few additional information
-#  @return        True is the grub configuration has changed, and False if it has not
+#  @param image   The image on which kdump settings are changed
+#  @return        True if the grub/cmdline cfg has changed, and False if it has not
 def cmd_kdump_config_next(verbose):
+    return cmd_kdump_enable(verbose, image=get_next_image())
 
-    kdump_enabled = get_kdump_administrative_mode()
-    memory = get_kdump_memory()
-    num_dumps = get_kdump_num_dumps()
-    if verbose:
-        print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d" % (kdump_enabled, memory, num_dumps))
-
-    if os.path.exists(grub_cfg):
-        return kdump_config_next_grub(verbose, kdump_enabled, memory, num_dumps)
-    else:
-        return False
-
-## Command: Disable kdump - Grub mode
+## Disable kdump
 #
 #  @param verbose If True, the function will display a few additional information
-def kdump_disable_grub(verbose, kdump_enabled, memory, num_dumps):
+def kdump_disable(verbose, kdump_enabled, memory, num_dumps, image, cmdline_file):
     write_use_kdump(0)
 
-    current_img = get_current_image();
     if verbose:
-        print("Current image=[%s]\n" % current_img)
-    lines = [line.rstrip('\n') for line in open(grub_cfg)]
-    current_img_index = locate_image(lines, "loop=image-"+current_img)
+        print("Disabling kdump for image=[%s]\n" % image)
+    lines = [line.rstrip('\n') for line in open(cmdline_file)]
+    img_index = locate_image(lines, "loop=image-"+image)
 
     changed = False
-    curr_crash_kernel_mem = search_for_crash_kernel(lines[current_img_index])
-    if curr_crash_kernel_mem == None:
+    crash_kernel_mem = search_for_crash_kernel(lines[img_index])
+    if crash_kernel_mem == None:
         print("kdump is already disabled")
     else:
-        lines[current_img_index] = lines[current_img_index].replace("crashkernel="+curr_crash_kernel_mem, "")
+        lines[img_index] = lines[img_index].replace("crashkernel="+crash_kernel_mem, "")
         changed = True
         if verbose:
-            print("Removed [%s] in grub.cfg" % ("crashkernel="+curr_crash_kernel_mem))
+            print("Removed [%s] in %s" % ("crashkernel="+crash_kernel_mem, cmdline_file))
 
     if changed:
-        rewrite_grub_cfg(lines, grub_cfg)
-
+        rewrite_cfg(lines, cmdline_file)
 
 ## Command: Disable kdump
 #
 #  @param verbose If True, the function will display a few additional information
-def cmd_kdump_disable(verbose):
+#  @param image   The image on which kdump settings are changed
+def cmd_kdump_disable(verbose, image=get_current_image()):
 
     kdump_enabled = get_kdump_administrative_mode()
     memory = get_kdump_memory()
@@ -425,8 +371,12 @@ def cmd_kdump_disable(verbose):
         print("configDB: kdump_enabled=%d memory=[%s] num_nums=%d" % (kdump_enabled, memory, num_dumps))
 
     if os.path.exists(grub_cfg):
-        return kdump_disable_grub(verbose, kdump_enabled, memory, num_dumps)
+        return kdump_disable(verbose, kdump_enabled, memory, num_dumps, image, grub_cfg)
+    elif open(machine_cfg, 'r').read().find('aboot_platform') >= 0:
+        aboot_cfg = aboot_cfg_template % image
+        return kdump_disable(verbose, kdump_enabled, memory, num_dumps, image, aboot_cfg)
     else:
+        print("Feature not supported on this platform")
         return False
 
 ## Command: Set / Get memory
