@@ -276,7 +276,7 @@ def po_speed_dict(po_int_dict, appl_db):
             elif len(value) > 1:
                 for intf in value:
                     temp_speed = appl_db.get(appl_db.APPL_DB, "PORT_TABLE:" + intf, "speed")
-                    temp_speed = int(temp_speed)
+                    temp_speed = int(temp_speed) if temp_speed else 0
                     agg_speed_list.append(temp_speed)
                     interface_speed = sum(agg_speed_list)
                     interface_speed = str(interface_speed)
