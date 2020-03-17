@@ -708,6 +708,86 @@ This command displays the status of the device's power supply units
   PSU 2  OK
   ```
 
+**show platform fan**
+
+This command displays the status of the device's fans
+
+- Usage:
+  ```
+  show platform fan
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show platform fan
+          FAN     Speed    Direction    Presence    Status          Timestamp
+  -----------  --------  -----------  ----------  --------  -----------------
+         fan1       34%       intake     Present        OK  20200302 06:58:56
+         fan2       43%       intake     Present        OK  20200302 06:58:56
+         fan3       38%       intake     Present        OK  20200302 06:58:56
+         fan4       49%       intake     Present        OK  20200302 06:58:57
+         fan5       38%      exhaust     Present        OK  20200302 06:58:57
+         fan6       48%      exhaust     Present        OK  20200302 06:58:57
+         fan7       39%      exhaust     Present        OK  20200302 06:58:57
+         fan8       48%      exhaust     Present        OK  20200302 06:58:57
+  ```
+
+**show platform temperature**
+
+This command displays the status of the device's thermal sensors
+
+- Usage:
+  ```
+  show platform temperature
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show platform temperature
+                    NAME    Temperature    High Th    Low Th    Crit High Th    Crit Low Th    Warning          Timestamp
+  ----------------------  -------------  ---------  --------  --------------  -------------  ---------  -----------------
+       Ambient ASIC Temp           37.0      100.0       N/A           120.0            N/A      False  20200302 06:58:57
+   Ambient Fan Side Temp           28.5      100.0       N/A           120.0            N/A      False  20200302 06:58:57
+  Ambient Port Side Temp           31.0      100.0       N/A           120.0            N/A      False  20200302 06:58:57
+         CPU Core 0 Temp           36.0       87.0       N/A           105.0            N/A      False  20200302 06:59:57
+         CPU Core 1 Temp           38.0       87.0       N/A           105.0            N/A      False  20200302 06:59:57
+           CPU Pack Temp           38.0       87.0       N/A           105.0            N/A      False  20200302 06:59:57
+              PSU-1 Temp           28.0      100.0       N/A           120.0            N/A      False  20200302 06:59:58
+              PSU-2 Temp           28.0      100.0       N/A           120.0            N/A      False  20200302 06:59:58
+      xSFP module 1 Temp           31.5       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+      xSFP module 2 Temp           35.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+      xSFP module 3 Temp           32.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+      xSFP module 4 Temp           33.5       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+      xSFP module 5 Temp           34.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+      xSFP module 6 Temp           36.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+      xSFP module 7 Temp           33.5       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+      xSFP module 8 Temp           33.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+      xSFP module 9 Temp           32.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 10 Temp           38.5       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 11 Temp           38.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 12 Temp           39.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 13 Temp           35.5       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 14 Temp           37.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 15 Temp           36.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 16 Temp           36.5       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 17 Temp           32.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 18 Temp           34.5       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 19 Temp           30.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 20 Temp           31.5       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 21 Temp           34.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 22 Temp           34.4       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 23 Temp           34.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 24 Temp           35.6       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 25 Temp           38.0       70.0       N/A            90.0            N/A      False  20200302 06:59:57
+     xSFP module 26 Temp           32.2       70.0       N/A            90.0            N/A      False  20200302 06:59:58
+     xSFP module 27 Temp           39.0       70.0       N/A            90.0            N/A      False  20200302 06:59:58
+     xSFP module 28 Temp           30.1       70.0       N/A            90.0            N/A      False  20200302 06:59:58
+     xSFP module 29 Temp           32.0       70.0       N/A            90.0            N/A      False  20200302 06:59:58
+     xSFP module 30 Temp           35.3       70.0       N/A            90.0            N/A      False  20200302 06:59:58
+     xSFP module 31 Temp           31.0       70.0       N/A            90.0            N/A      False  20200302 06:59:58
+     xSFP module 32 Temp           39.5       70.0       N/A            90.0            N/A      False  20200302 06:59:58
+  ```
+
 #### Transceivers
 Displays diagnostic monitoring information of the transceivers
 
