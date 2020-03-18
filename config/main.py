@@ -612,6 +612,7 @@ def reload(filename, yes, load_sysinfo):
             cfg_hwsku = cfg_hwsku.strip()
 
     #Stop services before config push
+    log_info("'reload' stopping services...")
     _stop_services()
     config_db = ConfigDBConnector()
     config_db.connect()
@@ -637,6 +638,7 @@ def reload(filename, yes, load_sysinfo):
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     _reset_failed_services()
+    log_info("'reload' restarting services...")
     _restart_services()
 
 @config.command()
@@ -681,6 +683,7 @@ def load_minigraph():
         device_type = device_type.strip()
 
     #Stop services before config push
+    log_info("'load_minigraph' stopping services...")
     _stop_services()
 
     config_db = ConfigDBConnector()
@@ -708,6 +711,7 @@ def load_minigraph():
     # status from all services before we attempt to restart them
     _reset_failed_services()
     #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
+    log_info("'load_minigraph' restarting services...")
     _restart_services()
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
 
