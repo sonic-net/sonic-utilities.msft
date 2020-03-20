@@ -5,6 +5,10 @@ import sys
 import argparse
 import syslog
 from swsssdk import ConfigDBConnector
+import sonic_device_util
+import os
+import subprocess
+import json
 
 
 SYSLOG_IDENTIFIER = 'db_migrator'
@@ -35,7 +39,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_1_0_2'
+        self.CURRENT_VERSION = 'version_1_0_3'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -96,6 +100,100 @@ class DBMigrator():
                 self.configDB.set_entry(table, key[0], data[key])
                 if_db.append(key[0])
 
+    def mlnx_migrate_buffer_pool_size(self):
+        """
+        On Mellanox platform the buffer pool size changed since 
+        version with new SDK 4.3.3052, SONiC to SONiC update 
+        from version with old SDK will be broken without migration.
+        This migration is specifically for Mellanox platform. 
+        """
+        # Buffer pools defined in version 1_0_2
+        buffer_pools = ['ingress_lossless_pool', 'egress_lossless_pool', 'ingress_lossy_pool', 'egress_lossy_pool']
+
+        # Old default buffer pool values on Mellanox platform 
+        spc1_t0_default_value = [{'ingress_lossless_pool': '4194304'}, {'egress_lossless_pool': '16777152'}, {'ingress_lossy_pool': '7340032'}, {'egress_lossy_pool': '7340032'}]
+        spc1_t1_default_value = [{'ingress_lossless_pool': '2097152'}, {'egress_lossless_pool': '16777152'}, {'ingress_lossy_pool': '5242880'}, {'egress_lossy_pool': '5242880'}]
+        spc2_t0_default_value = [{'ingress_lossless_pool': '8224768'}, {'egress_lossless_pool': '35966016'}, {'ingress_lossy_pool': '8224768'}, {'egress_lossy_pool': '8224768'}]
+        spc2_t1_default_value = [{'ingress_lossless_pool': '12042240'}, {'egress_lossless_pool': '35966016'}, {'ingress_lossy_pool': '12042240'}, {'egress_lossy_pool': '12042240'}]
+
+        # New default buffer pool configuration on Mellanox platform
+        spc1_t0_default_config = {"ingress_lossless_pool": { "size": "5029836", "type": "ingress", "mode": "dynamic" },
+                                  "ingress_lossy_pool": { "size": "5029836", "type": "ingress", "mode": "dynamic" },
+                                  "egress_lossless_pool": { "size": "14024599", "type": "egress", "mode": "dynamic" },
+                                  "egress_lossy_pool": {"size": "5029836", "type": "egress", "mode": "dynamic" } }
+        spc1_t1_default_config = {"ingress_lossless_pool": { "size": "2097100", "type": "ingress", "mode": "dynamic" },
+                                  "ingress_lossy_pool": { "size": "2097100", "type": "ingress", "mode": "dynamic" },
+                                  "egress_lossless_pool": { "size": "14024599", "type": "egress", "mode": "dynamic" },
+                                  "egress_lossy_pool": {"size": "2097100", "type": "egress", "mode": "dynamic" } }
+        spc2_t0_default_config = {"ingress_lossless_pool": { "size": "14983147", "type": "ingress", "mode": "dynamic" },
+                                  "ingress_lossy_pool": { "size": "14983147", "type": "ingress", "mode": "dynamic" },
+                                  "egress_lossless_pool": { "size": "34340822", "type": "egress", "mode": "dynamic" },
+                                  "egress_lossy_pool": {"size": "14983147", "type": "egress", "mode": "dynamic" } }
+        spc2_t1_default_config = {"ingress_lossless_pool": { "size": "9158635", "type": "ingress", "mode": "dynamic" },
+                                  "ingress_lossy_pool": { "size": "9158635", "type": "ingress", "mode": "dynamic" },
+                                  "egress_lossless_pool": { "size": "34340822", "type": "egress", "mode": "dynamic" },
+                                  "egress_lossy_pool": {"size": "9158635", "type": "egress", "mode": "dynamic" } }
+        # 3800 platform has gearbox installed so the buffer pool size is different with other Spectrum2 platform
+        spc2_3800_t0_default_config = {"ingress_lossless_pool": { "size": "28196784", "type": "ingress", "mode": "dynamic" },
+                                  "ingress_lossy_pool": { "size": "28196784", "type": "ingress", "mode": "dynamic" },
+                                  "egress_lossless_pool": { "size": "34340832", "type": "egress", "mode": "dynamic" },
+                                  "egress_lossy_pool": {"size": "28196784", "type": "egress", "mode": "dynamic" } }
+        spc2_3800_t1_default_config = {"ingress_lossless_pool": { "size": "17891280", "type": "ingress", "mode": "dynamic" },
+                                  "ingress_lossy_pool": { "size": "17891280", "type": "ingress", "mode": "dynamic" },
+                                  "egress_lossless_pool": { "size": "34340832", "type": "egress", "mode": "dynamic" },
+                                  "egress_lossy_pool": {"size": "17891280", "type": "egress", "mode": "dynamic" } }
+ 
+        # Try to get related info from DB
+        buffer_pool_conf = {}
+        device_data = self.configDB.get_table('DEVICE_METADATA')
+        if 'localhost' in device_data.keys():
+            hwsku = device_data['localhost']['hwsku']
+            platform = device_data['localhost']['platform']
+        else:
+            log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
+            return False
+        buffer_pool_conf = self.configDB.get_table('BUFFER_POOL')
+
+        # Get current buffer pool configuration, only migrate configuration which 
+        # with default values, if it's not default, leave it as is.
+        pool_size_in_db_list = []
+        pools_in_db = buffer_pool_conf.keys()
+
+        # Buffer pool numbers is different with default, don't need migrate
+        if len(pools_in_db) != len(buffer_pools):
+            return True
+
+        # If some buffer pool is not default ones, don't need migrate
+        for buffer_pool in buffer_pools:
+            if buffer_pool not in pools_in_db:
+                return True
+            pool_size_in_db_list.append({buffer_pool: buffer_pool_conf[buffer_pool]['size']})
+        
+        # To check if the buffer pool size is equal to old default values
+        new_buffer_pool_conf = None
+        if pool_size_in_db_list == spc1_t0_default_value:
+            new_buffer_pool_conf = spc1_t0_default_config
+        elif pool_size_in_db_list == spc1_t1_default_value:
+            new_buffer_pool_conf = spc1_t1_default_config
+        elif pool_size_in_db_list == spc2_t0_default_value:
+            if platform == 'x86_64-mlnx_msn3800-r0':
+                new_buffer_pool_conf = spc2_3800_t0_default_config
+            else:
+                new_buffer_pool_conf = spc2_t0_default_config
+        elif pool_size_in_db_list == spc2_t1_default_value:
+            if platform == 'x86_64-mlnx_msn3800-r0':
+                new_buffer_pool_conf = spc2_3800_t1_default_config
+            else:
+                new_buffer_pool_conf = spc2_t1_default_config
+        else:
+            # It's not using default buffer pool configuration, no migration needed.
+            log_info("buffer pool size is not old default value, no need to migrate")
+            return True
+        # Migrate old buffer conf to latest.
+        for pool in buffer_pools:
+            self.configDB.set_entry('BUFFER_POOL', pool, new_buffer_pool_conf[pool])
+        log_info("Successfully migrate mlnx buffer pool size to the latest.")
+        return True
 
     def version_unknown(self):
         """
@@ -127,13 +225,27 @@ class DBMigrator():
 
         self.migrate_interface_table()
         self.set_version('version_1_0_2')
-        return None
+        return 'version_1_0_2'
 
     def version_1_0_2(self):
         """
-        Current latest version. Nothing to do here.
+        Version 1_0_2.
         """
         log_info('Handling version_1_0_2')
+        # Check ASIC type, if Mellanox platform then need DB migration
+        version_info = sonic_device_util.get_sonic_version_info()
+        if version_info['asic_type'] == "mellanox":
+            if self.mlnx_migrate_buffer_pool_size():
+                self.set_version('version_1_0_3')
+        else:
+            self.set_version('version_1_0_3')
+        return None
+
+    def version_1_0_3(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log_info('Handling version_1_0_3')
 
         return None
 
