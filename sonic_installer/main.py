@@ -26,7 +26,7 @@ ABOOT_BOOT_CONFIG = '/boot-config'
 BOOTLOADER_TYPE_GRUB = 'grub'
 BOOTLOADER_TYPE_UBOOT = 'uboot'
 ARCH = platform.machine()
-BOOTLOADER = BOOTLOADER_TYPE_UBOOT if "arm" in ARCH else BOOTLOADER_TYPE_GRUB
+BOOTLOADER = BOOTLOADER_TYPE_UBOOT if ("arm" in ARCH) or ("aarch64" in ARCH) else BOOTLOADER_TYPE_GRUB
 
 #
 # Helper functions
