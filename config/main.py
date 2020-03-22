@@ -413,8 +413,6 @@ def _get_optional_services():
     config_db = ConfigDBConnector()
     config_db.connect()
     optional_services_dict = config_db.get_table('FEATURE')
-    if not optional_services_dict:
-        return None
     return optional_services_dict.keys()
 
 def _stop_services():
