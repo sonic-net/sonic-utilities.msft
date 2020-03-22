@@ -529,6 +529,13 @@ then
   systemctl stop nps-modules-`uname -r`.service || debug "Ignore stopping nps service error $?"
 fi
 
+# Stop opennsl modules for Broadcom platform
+if [[ "$sonic_asic_type" = 'broadcom' ]];
+then
+  service_name=$(systemctl list-units --plain --no-pager --no-legend --type=service | grep opennsl | cut -f 1 -d' ')
+  systemctl stop "$service_name"
+fi
+
 # Update the reboot cause file to reflect that user issued this script
 # Upon next boot, the contents of this file will be used to determine the
 # cause of the previous reboot
