@@ -641,7 +641,7 @@ def reload(filename, yes, load_sysinfo):
     log_info("'reload' restarting services...")
     _restart_services()
 
-@config.command()
+@config.command("load_mgmt_config")
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Reload mgmt config?')
 @click.argument('filename', default='/etc/sonic/device_desc.xml', type=click.Path(exists=True))
@@ -665,7 +665,7 @@ def load_mgmt_config(filename):
     run_command(command, display_cmd=True, ignore_error=True)
     click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
 
-@config.command()
+@config.command("load_minigraph")
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Reload config from minigraph?')
 def load_minigraph():

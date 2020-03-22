@@ -221,7 +221,7 @@ def stop(ports):
         configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, port, None)
 
 # Set WD default configuration on server facing ports when enable flag is on
-@cli.command()
+@cli.command("start_default")
 def start_default():
     """ Start PFC WD by default configurations  """
     if os.geteuid() != 0:
