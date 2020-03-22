@@ -55,7 +55,7 @@ def main():
     # Currently, don't support eeprom db on Arista platform
     platforms_without_eeprom_db = ['arista', 'kvm']
     if any(platform in platform_path for platform in platforms_without_eeprom_db)\
-            or t.getattr('read_eeprom_db', None) == None:
+            or getattr(t, 'read_eeprom_db', None) == None:
         support_eeprom_db = False
 
     #
