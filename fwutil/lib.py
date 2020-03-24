@@ -552,6 +552,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
 
         append_chassis_name = self.is_chassis_has_components()
         append_module_na = not self.is_modular_chassis()
+        module_name = NA
 
         for chassis_name, chassis_component_map in self.chassis_component_map.items():
             for chassis_component_name, chassis_component in chassis_component_map.items():
@@ -564,17 +565,6 @@ class ComponentUpdateProvider(PlatformDataProvider):
 
                 status = self.FW_STATUS_UP_TO_DATE
                 info = NA
-
-                if append_chassis_name:
-                    append_chassis_name = False
-                else:
-                    chassis_name = EMPTY
-
-                if append_module_na:
-                    module_name = NA
-                    append_module_na = False
-                else:
-                    module_name = EMPTY
 
                 if component:
                     firmware_path = component[self.__pcp.FIRMWARE_KEY]
@@ -590,8 +580,8 @@ class ComponentUpdateProvider(PlatformDataProvider):
 
                 status_table.append(
                     [
-                        chassis_name,
-                        module_name,
+                        chassis_name if append_chassis_name else EMPTY,
+                        module_name if append_module_na else EMPTY,
                         chassis_component_name,
                         firmware_path,
                         firmware_version,
@@ -600,11 +590,19 @@ class ComponentUpdateProvider(PlatformDataProvider):
                     ]
                 )
 
+                if append_chassis_name:
+                    append_chassis_name = False
+
+                if append_module_na:
+                    append_module_na = False
+
         append_chassis_name = not self.is_chassis_has_components()
+        chassis_name = self.chassis.get_name()
 
         if self.is_modular_chassis():
             for module_name, module_component_map in self.module_component_map.items():
                 append_module_name = True
+
                 for module_component_name, module_component in module_component_map.items():
                     component = self.__pcp.module_component_map[module_name][module_component_name]
 
@@ -615,17 +613,6 @@ class ComponentUpdateProvider(PlatformDataProvider):
 
                     status = self.FW_STATUS_UP_TO_DATE
                     info = NA
-
-                    if append_chassis_name:
-                        chassis_name = self.chassis.get_name()
-                        append_chassis_name = False
-                    else:
-                        chassis_name = EMPTY
-
-                    if append_module_name:
-                        append_module_name = False
-                    else:
-                        module_name = EMPTY
 
                     if component:
                         firmware_path = component[self.__pcp.FIRMWARE_KEY]
@@ -641,8 +628,8 @@ class ComponentUpdateProvider(PlatformDataProvider):
 
                     status_table.append(
                         [
-                            chassis_name,
-                            module_name,
+                            chassis_name if append_chassis_name else EMPTY,
+                            module_name if append_module_name else EMPTY,
                             module_component_name,
                             firmware_path,
                             firmware_version,
@@ -651,6 +638,12 @@ class ComponentUpdateProvider(PlatformDataProvider):
                         ]
                     )
 
+                    if append_chassis_name:
+                        append_chassis_name = False
+
+                    if append_module_name:
+                        append_module_name = False
+
         return tabulate(status_table, self.STATUS_HEADER, tablefmt=self.FORMAT)
 
     def update_firmware(self, force):
@@ -658,6 +651,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
 
         append_chassis_name = self.is_chassis_has_components()
         append_module_na = not self.is_modular_chassis()
+        module_name = NA
 
         for chassis_name, chassis_component_map in self.chassis_component_map.items():
             for chassis_component_name, chassis_component in chassis_component_map.items():
@@ -671,17 +665,6 @@ class ComponentUpdateProvider(PlatformDataProvider):
                 firmware_version_available = NA
 
                 status = self.FW_STATUS_UP_TO_DATE
-
-                if append_chassis_name:
-                    append_chassis_name = False
-                else:
-                    chassis_name = EMPTY
-
-                if append_module_na:
-                    module_name = NA
-                    append_module_na = False
-                else:
-                    module_name = EMPTY
 
                 if component:
                     firmware_path = component[self.__pcp.FIRMWARE_KEY]
@@ -712,14 +695,21 @@ class ComponentUpdateProvider(PlatformDataProvider):
 
                 status_table.append(
                     [
-                        chassis_name,
-                        module_name,
+                        chassis_name if append_chassis_name else EMPTY,
+                        module_name if append_module_na else EMPTY,
                         chassis_component_name,
                         status,
                     ]
                 )
 
+                if append_chassis_name:
+                    append_chassis_name = False
+
+                if append_module_na:
+                    append_module_na = False
+
         append_chassis_name = not self.is_chassis_has_components()
+        chassis_name = self.chassis.get_name()
 
         if self.is_modular_chassis():
             for module_name, module_component_map in self.module_component_map.items():
@@ -737,17 +727,6 @@ class ComponentUpdateProvider(PlatformDataProvider):
                     firmware_version_available = NA
 
                     status = self.FW_STATUS_UP_TO_DATE
-
-                    if append_chassis_name:
-                        chassis_name = self.chassis.get_name()
-                        append_chassis_name = False
-                    else:
-                        chassis_name = EMPTY
-
-                    if append_module_name:
-                        append_module_name = False
-                    else:
-                        module_name = EMPTY
 
                     if component:
                         firmware_path = component[self.__pcp.FIRMWARE_KEY]
@@ -778,12 +757,18 @@ class ComponentUpdateProvider(PlatformDataProvider):
 
                     status_table.append(
                         [
-                            chassis_name,
-                            module_name,
+                            chassis_name if append_chassis_name else EMPTY,
+                            module_name if append_module_name else EMPTY,
                             module_component_name,
                             status,
                         ]
                     )
+
+                    if append_chassis_name:
+                        append_chassis_name = False
+
+                    if append_module_name:
+                        append_module_name = False
 
         return tabulate(status_table, self.RESULT_HEADER, tablefmt=self.FORMAT)
 
@@ -803,34 +788,31 @@ class ComponentStatusProvider(PlatformDataProvider):
 
         append_chassis_name = self.is_chassis_has_components()
         append_module_na = not self.is_modular_chassis()
+        module_name = NA
 
         for chassis_name, chassis_component_map in self.chassis_component_map.items():
             for chassis_component_name, chassis_component in chassis_component_map.items():
                 firmware_version = chassis_component.get_firmware_version()
                 description = chassis_component.get_description()
 
-                if append_chassis_name:
-                    append_chassis_name = False
-                else:
-                    chassis_name = EMPTY
-
-                if append_module_na:
-                    module_name = NA
-                    append_module_na = False
-                else:
-                    module_name = EMPTY
-
                 status_table.append(
                     [
-                        chassis_name,
-                        module_name,
+                        chassis_name if append_chassis_name else EMPTY,
+                        module_name if append_module_na else EMPTY,
                         chassis_component_name,
                         firmware_version,
                         description
                     ]
                 )
 
+                if append_chassis_name:
+                    append_chassis_name = False
+
+                if append_module_na:
+                    append_module_na = False
+
         append_chassis_name = not self.is_chassis_has_components()
+        chassis_name = self.chassis.get_name()
 
         if self.is_modular_chassis():
             for module_name, module_component_map in self.module_component_map.items():
@@ -840,25 +822,20 @@ class ComponentStatusProvider(PlatformDataProvider):
                     firmware_version = module_component.get_firmware_version()
                     description = module_component.get_description()
 
-                    if append_chassis_name:
-                        chassis_name = self.chassis.get_name()
-                        append_chassis_name = False
-                    else:
-                        chassis_name = EMPTY
-
-                    if append_module_name:
-                        append_module_name = False
-                    else:
-                        module_name = EMPTY
-
                     status_table.append(
                         [
-                            chassis_name,
-                            module_name,
+                            chassis_name if append_chassis_name else EMPTY,
+                            module_name if append_module_name else EMPTY,
                             module_component_name,
                             firmware_version,
                             description
                         ]
                     )
+
+                    if append_chassis_name:
+                        append_chassis_name = False
+
+                    if append_module_name:
+                        append_module_name = False
 
         return tabulate(status_table, self.HEADER, tablefmt=self.FORMAT)
