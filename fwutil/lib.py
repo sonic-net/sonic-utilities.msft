@@ -201,49 +201,76 @@ class SquashFs(object):
     OS_PREFIX = "SONiC-OS-"
 
     FS_PATH_TEMPLATE = "/host/image-{}/fs.squashfs"
+    FS_RW_TEMPLATE = "/host/image-{}/rw"
+    FS_WORK_TEMPLATE = "/host/image-{}/work"
     FS_MOUNTPOINT_TEMPLATE = "/tmp/image-{}-fs"
 
+    OVERLAY_MOUNTPOINT_TEMPLATE = "/tmp/image-{}-overlay"
+
     def __init__(self):
-        current_image = self.__get_current_image()
-        next_image = self.__get_next_image()
-
-        if current_image == next_image:
-            raise RuntimeError("Next boot image is not set")
-
-        image_stem = next_image.lstrip(self.OS_PREFIX)
+        image_stem = self.next_image.lstrip(self.OS_PREFIX)
 
         self.fs_path = self.FS_PATH_TEMPLATE.format(image_stem)
+        self.fs_rw = self.FS_RW_TEMPLATE.format(image_stem)
+        self.fs_work = self.FS_WORK_TEMPLATE.format(image_stem)
         self.fs_mountpoint = self.FS_MOUNTPOINT_TEMPLATE.format(image_stem)
 
-    def __get_current_image(self):
+        self.overlay_mountpoint = self.OVERLAY_MOUNTPOINT_TEMPLATE.format(image_stem)
+
+    def get_current_image(self):
         cmd = "sonic_installer list | grep 'Current: ' | cut -f2 -d' '"
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
 
         return output.rstrip(NEWLINE)
 
-    def __get_next_image(self):
+    def get_next_image(self):
         cmd = "sonic_installer list | grep 'Next: ' | cut -f2 -d' '"
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
 
         return output.rstrip(NEWLINE)
 
+    def is_next_boot_set(self):
+        return self.current_image != self.next_image
+
     def mount_next_image_fs(self):
-        if os.path.ismount(self.fs_mountpoint):
+        if os.path.ismount(self.fs_mountpoint) or os.path.ismount(self.overlay_mountpoint):
             self.umount_next_image_fs()
 
         os.mkdir(self.fs_mountpoint)
-        cmd = "mount -t squashfs {} {}".format(self.fs_path, self.fs_mountpoint)
+        cmd = "mount -t squashfs {} {}".format(
+            self.fs_path,
+            self.fs_mountpoint
+        )
         subprocess.check_call(cmd, shell=True)
 
-        return self.fs_mountpoint
+        os.mkdir(self.overlay_mountpoint)
+        cmd = "mount -n -r -t overlay -o lowerdir={},upperdir={},workdir={} overlay {}".format(
+            self.fs_mountpoint,
+            self.fs_rw,
+            self.fs_work,
+            self.overlay_mountpoint
+        )
+        subprocess.check_call(cmd, shell=True)
+
+        return self.overlay_mountpoint
 
     def umount_next_image_fs(self):
+        if os.path.ismount(self.overlay_mountpoint):
+            cmd = "umount -rf {}".format(self.overlay_mountpoint)
+            subprocess.check_call(cmd, shell=True)
+
+        if os.path.exists(self.overlay_mountpoint):
+            os.rmdir(self.overlay_mountpoint)
+
         if os.path.ismount(self.fs_mountpoint):
             cmd = "umount -rf {}".format(self.fs_mountpoint)
             subprocess.check_call(cmd, shell=True)
 
         if os.path.exists(self.fs_mountpoint):
             os.rmdir(self.fs_mountpoint)
+
+    current_image = property(fget=get_current_image)
+    next_image = property(fget=get_next_image)
 
 
 class PlatformComponentsParser(object):

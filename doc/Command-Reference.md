@@ -4117,7 +4117,7 @@ Supported options:
 2. -f|--force - install FW regardless the current version
 3. -i|--image - update FW using current/next SONiC image
 
-Note: the default option is --image=current
+Note: the default option is --image=current (current/next values are taken from `sonic_installer list`)
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#platform-component-firmware)
 

@@ -124,3 +124,6 @@ class LogHelper(object):
 
     def print_error(self, msg):
         click.echo("Error: {}.".format(msg))
+
+    def print_warning(self, msg):
+        click.echo("Warning: {}.".format(msg))
