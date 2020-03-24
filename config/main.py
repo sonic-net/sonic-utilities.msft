@@ -1065,6 +1065,7 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
     db = ctx.obj['db']
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
+    interface_table = db.get_table('INTERFACE')
 
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
@@ -1084,6 +1085,10 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
         else:
             ctx.fail("{} is already a member of {}".format(interface_name,
                                                         vlan_name))
+    for entry in interface_table:
+        if (interface_name == entry[0]):
+            ctx.fail("{} is a L3 interface!".format(interface_name))
+            
     members.append(interface_name)
     vlan['members'] = members
     db.set_entry('VLAN', vlan_name, vlan)
