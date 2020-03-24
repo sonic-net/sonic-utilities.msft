@@ -455,7 +455,8 @@ def _reset_failed_services():
         'swss',
         'syncd',
         'teamd',
-        'nat'
+        'nat',
+        'sflow'
     ]
 
     generated_services_list = _get_sonic_generated_services()
