@@ -8,9 +8,10 @@ import argparse
 
 from tabulate import tabulate
 from swsssdk import SonicV2Connector
+from natsort import natsorted
 
 
-header = ['NAME', 'Temperature', 'High Threshold', 'Low Threshold', 'Critical High Threshold', 'Critical Low Threshold', 'Warning Status', 'Timestamp']
+header = ['Sensor', 'Temperature', 'High TH', 'Low TH', 'Crit High TH', 'Crit Low TH', 'Warning', 'Timestamp']
 
 TEMPER_TABLE_NAME = 'TEMPERATURE_INFO'
 TEMPER_FIELD_NAME = 'temperature'
@@ -34,7 +35,7 @@ class TemperShow(object):
             return
 
         table = []
-        for key in keys:
+        for key in natsorted(keys):
             key_list = key.split('|')
             if len(key_list) != 2: # error data in DB, log it and ignore
                 print('Warn: Invalid key in table {}: {}'.format(TEMPER_TABLE_NAME, key))
@@ -53,7 +54,6 @@ class TemperShow(object):
                           ))
         
         if table:
-            table.sort()
             print(tabulate(table, header, tablefmt='simple', stralign='right'))
         else:
             print('No tempeature data available\n')

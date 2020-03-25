@@ -8,6 +8,7 @@ import argparse
 
 from tabulate import tabulate
 from swsssdk import SonicV2Connector
+from natsort import natsorted
 
 
 header = ['FAN', 'Speed', 'Direction', 'Presence', 'Status', 'Timestamp']
@@ -32,7 +33,7 @@ class FanShow(object):
             return
 
         table = []
-        for key in keys:
+        for key in natsorted(keys):
             key_list = key.split('|')
             if len(key_list) != 2: # error data in DB, log it and ignore
                 print('Warn: Invalid key in table FAN_INFO: {}'.format(key))
@@ -47,18 +48,21 @@ class FanShow(object):
                 else:
                     speed = '{}%'.format(data_dict[SPEED_FIELD_NAME])
             except ValueError as e:
-                print('Warn: cannot convert speed value from {}'.format(data_dict[SPEED_FIELD_NAME]))
                 speed = data_dict[SPEED_FIELD_NAME]
 
             presence = data_dict[PRESENCE_FIELD_NAME].lower()
             presence = 'Present' if presence == 'true' else 'Not Present'
             status = data_dict[STATUS_FIELD_NAME].lower()
-            status = 'OK' if status == 'true' else 'Not OK'
+            if status == 'true':
+                status = 'OK'
+            elif status == 'false':
+                status = 'Not OK'
+            else:
+                status = 'N/A'
 
             table.append((name, speed, data_dict[DIRECTION_FIELD_NAME], presence, status, data_dict[TIMESTAMP_FIELD_NAME]))
         
         if table:
-            table.sort()
             print(tabulate(table, header, tablefmt='simple', stralign='right'))
         else:
             print('No fan status data available\n')
