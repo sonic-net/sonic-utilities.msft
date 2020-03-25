@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 import ipaddress
+from pkg_resources import parse_version
 
 import click
 from click_default_group import DefaultGroup
@@ -2002,8 +2003,14 @@ def ntp(ctx, verbose):
     """Show NTP information"""
     ntpcmd = "ntpq -p -n"
     if is_mgmt_vrf_enabled(ctx) is True:
-        #ManagementVRF is enabled. Call ntpq using cgexec
-        ntpcmd = "cgexec -g l3mdev:mgmt ntpq -p -n"
+        #ManagementVRF is enabled. Call ntpq using "ip vrf exec" or cgexec based on linux version 
+        os_info =  os.uname()
+        release = os_info[2].split('-')
+        if parse_version(release[0]) > parse_version("4.9.0"):
+            ntpcmd = "ip vrf exec mgmt ntpq -p -n"
+        else:
+            ntpcmd = "cgexec -g l3mdev:mgmt ntpq -p -n"
+
     run_command(ntpcmd, display_cmd=verbose)
 
 
