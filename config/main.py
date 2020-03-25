@@ -27,8 +27,13 @@ SONIC_GENERATED_SERVICE_PATH = '/etc/sonic/generated_services.conf'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 SYSLOG_IDENTIFIER = "config"
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
+ASIC_CONF_FILENAME = 'asic.conf'
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
+
+SYSTEMCTL_ACTION_STOP="stop"
+SYSTEMCTL_ACTION_RESTART="restart"
+SYSTEMCTL_ACTION_RESET_FAILED="reset-failed"
 
 # ========================== Syslog wrappers ==========================
 
@@ -69,6 +74,31 @@ except KeyError, TypeError:
 # Helper functions
 #
 
+# Execute action on list of systemd services
+def execute_systemctl(list_of_services, action):
+    num_asic = _get_num_asic()
+    generated_services_list, generated_multi_instance_services = _get_sonic_generated_services(num_asic)
+    if ((generated_services_list == []) and
+        (generated_multi_instance_services == [])):
+        log_error("Failed to get generated services")
+        return
+
+    for service in list_of_services:
+        if (service + '.service' in generated_services_list):
+            try:
+                click.echo("Executing {} of service {}...".format(action, service))
+                run_command("systemctl {} {}".format(action, service))
+            except SystemExit as e:
+                log_error("Failed to execute {} of service {} with error {}".format(action, service, e))
+                raise
+        if (service + '.service' in generated_multi_instance_services):
+            for inst in range(num_asic):
+                try:
+                    click.echo("Executing {} of service {}@{}...".format(action, service, inst))
+                    run_command("systemctl {} {}@{}.service".format(action, service, inst))
+                except SystemExit as e:
+                    log_error("Failed to execute {} of service {}@{} with error {}".format(action, service, inst, e))
+                    raise
 
 def run_command(command, display_cmd=False, ignore_error=False):
     """Run bash command and print output to stdout
@@ -395,14 +425,34 @@ def _get_platform():
                 return tokens[1].strip()
     return ''
 
-def _get_sonic_generated_services():
+def _get_num_asic():
+    platform = _get_platform()
+    num_asic = 1
+    asic_conf_file = os.path.join('/usr/share/sonic/device/', platform, ASIC_CONF_FILENAME)
+    if os.path.isfile(asic_conf_file):
+        with open(asic_conf_file) as conf_file:
+            for line in conf_file:
+                line_info = line.split('=')
+                if line_info[0].lower() == "num_asic":
+                    num_asic = int(line_info[1])
+    return num_asic
+
+def _get_sonic_generated_services(num_asic):
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
         return None
     generated_services_list = []
+    generated_multi_instance_services = []
     with open(SONIC_GENERATED_SERVICE_PATH) as generated_service_file:
         for line in generated_service_file:
-            generated_services_list.append(line.rstrip('\n'))
-    return None if not generated_services_list else generated_services_list
+            if '@' in line:
+                line = line.replace('@', '')
+                if num_asic > 1:
+                    generated_multi_instance_services.append(line.rstrip('\n'))
+                else:
+                    generated_services_list.append(line.rstrip('\n'))
+            else:
+                generated_services_list.append(line.rstrip('\n'))
+    return generated_services_list, generated_multi_instance_services
 
 # Callback for confirmation prompt. Aborts if user enters "n"
 def _abort_if_false(ctx, param, value):
@@ -419,25 +469,11 @@ def _stop_services():
         'hostcfgd',
         'nat'
     ]
-    generated_services_list = _get_sonic_generated_services()
-
-    if generated_services_list is None:
-        log_error("Failed to get generated services")
-        return
 
     if asic_type == 'mellanox' and 'pmon' in services_to_stop:
         services_to_stop.remove('pmon')
 
-    for service in services_to_stop:
-        if service + '.service' not in generated_services_list:
-            continue
-        try:
-            click.echo("Stopping service {} ...".format(service))
-            run_command("systemctl stop {}".format(service))
-
-        except SystemExit as e:
-            log_error("Stopping {} failed with error {}".format(service, e))
-            raise
+    execute_systemctl(services_to_stop, SYSTEMCTL_ACTION_STOP)
 
 def _reset_failed_services():
     services_to_reset = [
@@ -458,22 +494,9 @@ def _reset_failed_services():
         'nat',
         'sflow'
     ]
+    execute_systemctl(services_to_reset, SYSTEMCTL_ACTION_RESET_FAILED)
 
-    generated_services_list = _get_sonic_generated_services()
 
-    if generated_services_list is None:
-        log_error("Failed to get generated services")
-        return
-
-    for service in services_to_reset:
-        if service + '.service' not in generated_services_list:
-            continue
-        try:
-            click.echo("Resetting failed status for service {} ...".format(service))
-            run_command("systemctl reset-failed {}".format(service))
-        except SystemExit as e:
-            log_error("Failed to reset failed status for service {}".format(service))
-            raise
 
 def _restart_services():
     # on Mellanox platform pmon is started by syncd
@@ -490,24 +513,12 @@ def _restart_services():
         'nat',
         'sflow',
     ]
-    generated_services_list = _get_sonic_generated_services()
-
-    if generated_services_list is None:
-        log_error("Failed to get generated services")
-        return
 
     if asic_type == 'mellanox' and 'pmon' in services_to_restart:
         services_to_restart.remove('pmon')
 
-    for service in services_to_restart:
-        if service + '.service' not in generated_services_list:
-            continue
-        try:
-            click.echo("Restarting service {} ...".format(service))
-            run_command("systemctl restart {}".format(service))
-        except SystemExit as e:
-            log_error("Restart {} failed with error {}".format(service, e))
-            raise
+    execute_systemctl(services_to_restart, SYSTEMCTL_ACTION_RESTART)
+
 
 def is_ipaddress(val):
     """ Validate if an entry is a valid IP """
