@@ -770,7 +770,7 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
 #
 # 'mirror_session' group ('config mirror_session ...')
 #
-@config.group()
+@config.group('mirror_session')
 def mirror_session():
     pass
 
@@ -875,7 +875,7 @@ def interval(poll_interval, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
-@pfcwd.command()
+@pfcwd.command('counter_poll')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.argument('counter_poll', type=click.Choice(['enable', 'disable']))
 def counter_poll(counter_poll, verbose):
@@ -885,7 +885,7 @@ def counter_poll(counter_poll, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
-@pfcwd.command()
+@pfcwd.command('big_red_switch')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.argument('big_red_switch', type=click.Choice(['enable', 'disable']))
 def big_red_switch(big_red_switch, verbose):
@@ -895,7 +895,7 @@ def big_red_switch(big_red_switch, verbose):
 
     run_command(cmd, display_cmd=verbose)
 
-@pfcwd.command()
+@pfcwd.command('start_default')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def start_default(verbose):
     """ Start PFC WD by default configurations  """
@@ -945,7 +945,7 @@ def reload():
 #
 # 'warm_restart' group ('config warm_restart ...')
 #
-@config.group()
+@config.group('warm_restart')
 @click.pass_context
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def warm_restart(ctx, redis_unix_socket_path):
@@ -1392,7 +1392,7 @@ def memory(kdump_memory):
         config_db.mod_entry("KDUMP", "config", {"memory": kdump_memory})
         run_command("sonic-kdump-config --memory %s" % kdump_memory)
 
-@kdump.command()
+@kdump.command('num-dumps')
 @click.argument('kdump_num_dumps', metavar='<kdump_num_dumps>', required=True, type=int)
 def num_dumps(kdump_num_dumps):
     """Set max number of dump files for kdump"""
@@ -2109,7 +2109,7 @@ def delete(counter_name, verbose):
 #
 # 'add_reasons' subcommand ('config dropcounters add_reasons')
 #
-@dropcounters.command()
+@dropcounters.command('add-reasons')
 @click.argument("counter_name", type=str, required=True)
 @click.argument("reasons",      type=str, required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
@@ -2122,7 +2122,7 @@ def add_reasons(counter_name, reasons, verbose):
 #
 # 'remove_reasons' subcommand ('config dropcounters remove_reasons')
 #
-@dropcounters.command()
+@dropcounters.command('remove-reasons')
 @click.argument("counter_name", type=str, required=True)
 @click.argument("reasons",      type=str, required=True)
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")

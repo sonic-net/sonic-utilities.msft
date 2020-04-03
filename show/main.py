@@ -687,7 +687,7 @@ def mgmt_vrf(ctx,routes):
 # 'management_interface' group ("show management_interface ...")
 #
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(name='management_interface', cls=AliasedGroup, default_if_no_args=False)
 def management_interface():
     """Show management interface parameters"""
     pass
@@ -1095,7 +1095,7 @@ def stats(verbose):
     run_command(cmd, display_cmd=verbose)
 
 # 'naming_mode' subcommand ("show interfaces naming_mode")
-@interfaces.command()
+@interfaces.command('naming_mode')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def naming_mode(verbose):
     """Show interface naming_mode status"""
@@ -2354,7 +2354,7 @@ def tacacs():
 #
 # 'mirror_session' command  ("show mirror_session ...")
 #
-@cli.command()
+@cli.command('mirror_session')
 @click.argument('session_name', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def mirror_session(session_name, verbose):
@@ -2626,7 +2626,7 @@ def line():
     return
 
 
-@cli.group(cls=AliasedGroup, default_if_no_args=False)
+@cli.group(name='warm_restart', cls=AliasedGroup, default_if_no_args=False)
 def warm_restart():
     """Show warm restart configuration and state"""
     pass

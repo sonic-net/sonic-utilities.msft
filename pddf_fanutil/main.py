@@ -178,7 +178,7 @@ def debug():
     """pddf_fanutil debug commands"""
     pass
 
-@debug.command()
+@debug.command('dump-sysfs')
 def dump_sysfs():
     """Dump all Fan related SysFS paths"""
     status = platform_fanutil.dump_sysfs()

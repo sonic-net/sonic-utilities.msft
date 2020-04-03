@@ -180,7 +180,7 @@ def debug():
     """pddf_psuutil debug commands"""
     pass
 
-@debug.command()
+@debug.command('dump-sysfs')
 def dump_sysfs():
     """Dump all PSU related SysFS paths"""
     status = platform_psuutil.dump_sysfs()

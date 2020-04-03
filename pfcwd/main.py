@@ -254,7 +254,7 @@ def start_default():
     configdb.mod_entry(CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL", pfcwd_info)
 
 # Enable/disable PFC WD counter polling
-@cli.command()
+@cli.command('counter_poll')
 @click.argument('counter_poll', type=click.Choice(['enable', 'disable']))
 def counter_poll(counter_poll):
     """ Enable/disable counter polling """
@@ -267,7 +267,7 @@ def counter_poll(counter_poll):
     configdb.mod_entry("FLEX_COUNTER_TABLE", "PFCWD", pfcwd_info)
 
 # Enable/disable PFC WD BIG_RED_SWITCH mode
-@cli.command()
+@cli.command('big_red_switch')
 @click.argument('big_red_switch', type=click.Choice(['enable', 'disable']))
 def big_red_switch(big_red_switch):
     """ Enable/disable BIG_RED_SWITCH mode """

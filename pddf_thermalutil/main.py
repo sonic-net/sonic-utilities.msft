@@ -105,7 +105,7 @@ def debug():
     """pddf_thermalutil debug commands"""
     pass
 
-@debug.command()
+@debug.command('dump-sysfs')
 def dump_sysfs():
     """Dump all Temp Sensor related SysFS paths"""
     status = platform_thermalutil.dump_sysfs()
