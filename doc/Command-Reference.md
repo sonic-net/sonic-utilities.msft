@@ -2520,6 +2520,34 @@ VLAN interface names take the form of `vlan<vlan_id>`. E.g., VLAN 100 will be na
   admin@sonic:~$ sudo config interface vlan100 ip remove 10.11.12.13/24
   ```
 
+**config interface pfc priority <interface_name> <priority> (on | off)**
+
+This command is used to set PFC on a given priority of a given interface to either "on" or "off". Once it is successfully configured, it will show current losses priorities on the given interface. Otherwise, it will show error information 
+
+- Example: 
+  *Versions >= 201904*
+  ```
+  admin@sonic:~$ sudo config interface pfc priority Ethernet0 3 off
+
+  Interface      Lossless priorities
+  -----------  ---------------------
+  Ethernet0                        4
+
+  admin@sonic:~$ sudo config interface pfc priority Ethernet0 8 off
+  Usage: pfc config priority [OPTIONS] STATUS INTERFACE PRIORITY
+
+  Error: Invalid value for "priority": invalid choice: 8. (choose from 0, 1, 2, 3, 4, 5, 6, 7)
+
+  admin@sonic:~$ sudo config interface pfc priority Ethernet101 3 off
+  Cannot find interface Ethernet101
+
+  admin@sonic:~$ sudo config interface pfc priority Ethernet0 3 on
+  
+  Interface    Lossless priorities
+  -----------  ---------------------
+  Ethernet0    3,4
+  ```
+
 **config interface pfc asymmetric <interface_name> (Versions >= 201904)**
 
 **config interface <interface_name> pfc asymmetric (Versions <= 201811)**
@@ -4305,6 +4333,65 @@ This command displays the details of Rx & Tx priority-flow-control (pfc) for all
 - NOTE: PFC counters can be cleared by the user with the following command:
   ```
   admin@sonic:~$ sonic-clear pfccounters
+  ```
+
+**show pfc asymmetric**
+
+This command displays the status of asymmetric PFC for all interfaces or a given interface.
+
+- Usage:
+  ```
+  show pfc asymmetric [<interface>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show pfc asymmetric
+  
+  Interface    Asymmetric
+  -----------  ------------
+  Ethernet0    off
+  Ethernet2    off
+  Ethernet4    off
+  Ethernet6    off
+  Ethernet8    off
+  Ethernet10   off
+  Ethernet12   off
+  Ethernet14   off
+
+  admin@sonic:~$ show pfc asymmetric Ethernet0
+
+  Interface    Asymmetric
+  -----------  ------------
+  Ethernet0    off
+  ```
+
+**show pfc priority**
+
+This command displays the lossless priorities for all interfaces or a given interface.
+
+- Usage:
+  ```
+  show pfc priority [<interface>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show pfc priority
+  
+  Interface    Lossless priorities
+  -----------  ---------------------
+  Ethernet0    3,4
+  Ethernet2    3,4
+  Ethernet8    3,4
+  Ethernet10   3,4
+  Ethernet16   3,4
+
+  admin@sonic:~$ show pfc priority Ethernet0
+  
+  Interface    Lossless priorities
+  -----------  ---------------------
+  Ethernet0    3,4
   ```
 
 #### Queue And Priority-Group

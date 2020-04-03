@@ -1044,6 +1044,32 @@ def counters(verbose):
 
     run_command(cmd, display_cmd=verbose)
 
+@pfc.command()
+@click.argument('interface', type=click.STRING, required=False)
+def priority(interface):
+    """Show pfc priority"""
+    cmd = 'pfc show priority'
+    if interface is not None and get_interface_mode() == "alias":
+        interface = iface_alias_converter.alias_to_name(interface)
+                
+    if interface is not None:    
+        cmd += ' {0}'.format(interface)
+
+    run_command(cmd)
+
+@pfc.command()
+@click.argument('interface', type=click.STRING, required=False)
+def asymmetric(interface):
+    """Show asymmetric pfc"""
+    cmd = 'pfc show asymmetric'
+    if interface is not None and get_interface_mode() == "alias":
+        interface = iface_alias_converter.alias_to_name(interface)
+                
+    if interface is not None:    
+        cmd += ' {0}'.format(interface)
+
+    run_command(cmd)
+
 # 'pfcwd' subcommand ("show pfcwd...")
 @cli.group(cls=AliasedGroup, default_if_no_args=False)
 def pfcwd():
