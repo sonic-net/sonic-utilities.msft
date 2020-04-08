@@ -12,11 +12,8 @@
 import argparse
 import json
 import sys
-import subprocess
 
-from natsort import natsorted
 from swsssdk import SonicV2Connector
-from tabulate import tabulate
 
 class NatClear(object):
 

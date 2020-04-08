@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import os
 import click
 import swsssdk
 from tabulate import tabulate

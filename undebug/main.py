@@ -2,10 +2,8 @@
 # date: 07/12/17
 
 import click
-import os
 import subprocess
 from click_default_group import DefaultGroup
-from pprint import pprint
 
 def run_command(command, pager=False):
     click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))

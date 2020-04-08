@@ -15,9 +15,7 @@ import argparse
 import json
 import sys
 
-from natsort import natsorted
-from swsssdk import SonicV2Connector, port_util
-from tabulate import tabulate
+from swsssdk import SonicV2Connector
 
 class FdbClear(object):
 

@@ -5,17 +5,11 @@
 # This is the main script that handles eeprom encoding and decoding
 #
 try:
-    import exceptions
-    import binascii
-    import time
     import optparse
     import warnings
     import os
-    import subprocess
     import sys
-    from array import array
     import imp
-    from sonic_eeprom import eeprom_dts
     import glob
     from sonic_device_util import get_machine_info
     from sonic_device_util import get_platform_info
@@ -55,7 +49,7 @@ def main():
     # Currently, don't support eeprom db on Arista platform
     platforms_without_eeprom_db = ['arista', 'kvm']
     if any(platform in platform_path for platform in platforms_without_eeprom_db)\
-            or getattr(t, 'read_eeprom_db', None) == None:
+            or getattr(t, 'read_eeprom_db', None) is None:
         support_eeprom_db = False
 
     #

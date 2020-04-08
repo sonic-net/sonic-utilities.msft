@@ -3,7 +3,6 @@
 import sys
 import os
 import click
-import json
 import subprocess
 import netaddr
 import re

@@ -9,8 +9,6 @@ try:
     import click
     import os
     import pexpect
-    import re
-    import subprocess
     import sys
     from tabulate import tabulate
     from lib import *

@@ -76,13 +76,9 @@ A sample for update:
 """
 
 from __future__ import print_function
-import sys
-import os.path
 import argparse
 import json
 import time
-from collections import OrderedDict
-from natsort import natsorted
 from swsssdk import ConfigDBConnector
 
 test_only = False

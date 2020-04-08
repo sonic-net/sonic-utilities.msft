@@ -9,8 +9,6 @@ try:
     import sys
     import subprocess
     import click
-    import sonic_device_util
-    from swsssdk import ConfigDBConnector
     import xml.etree.ElementTree as ET
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))

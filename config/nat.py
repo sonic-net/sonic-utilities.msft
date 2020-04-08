@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
 import click
-import socket
-import netaddr
 import ipaddress
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector

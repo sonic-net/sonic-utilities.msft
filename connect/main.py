@@ -1,11 +1,8 @@
 #! /usr/bin/python -u
 
 import click
-import errno
 import os
 import pexpect
-import subprocess
-import sys
 from click_default_group import DefaultGroup
 
 try:

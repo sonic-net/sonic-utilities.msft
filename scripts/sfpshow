@@ -3,8 +3,6 @@
     Script to show sfp eeprom and presence status.
     Not like sfputil this scripts get the sfp data from DB directly.  
 """
-import argparse
-import json
 import sys
 import click
 import re
@@ -12,7 +10,7 @@ import operator
 import os
 
 from natsort import natsorted
-from swsssdk import SonicV2Connector, port_util
+from swsssdk import SonicV2Connector
 from tabulate import tabulate
 
 # Mock the redis for unit test purposes #

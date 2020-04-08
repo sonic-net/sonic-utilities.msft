@@ -3,14 +3,12 @@
 import os
 import re
 import signal
-import stat
 import sys
 import time
 import click
 import urllib
 import syslog
 import subprocess
-from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 import collections
 import platform

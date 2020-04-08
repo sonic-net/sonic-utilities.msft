@@ -61,7 +61,6 @@ import json
 import sys
 import re
 
-from natsort import natsorted
 from swsssdk import SonicV2Connector
 from tabulate import tabulate
 

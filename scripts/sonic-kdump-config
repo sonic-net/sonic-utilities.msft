@@ -19,10 +19,8 @@ limitations under the License.
 import sys
 import argparse
 import shlex
-from argparse import RawTextHelpFormatter
 import os
 import subprocess
-import errno
 from swsssdk import ConfigDBConnector
 
 aboot_cfg_template ="/host/image-%s/kernel-cmdline"
@@ -280,7 +278,7 @@ def kdump_enable(verbose, kdump_enabled, memory, num_dumps, image, cmdline_file)
     crash_kernel_mem = search_for_crash_kernel(lines[img_index])
     if verbose:
         print("crash_kernel_mem=[%s]" % crash_kernel_mem)
-    if crash_kernel_mem == None:
+    if crash_kernel_mem is None:
         lines[img_index] += " crashkernel=%s" % memory
         changed = True
         if verbose:
@@ -348,7 +346,7 @@ def kdump_disable(verbose, kdump_enabled, memory, num_dumps, image, cmdline_file
 
     changed = False
     crash_kernel_mem = search_for_crash_kernel(lines[img_index])
-    if crash_kernel_mem == None:
+    if crash_kernel_mem is None:
         print("kdump is already disabled")
     else:
         lines[img_index] = lines[img_index].replace("crashkernel="+crash_kernel_mem, "")
@@ -388,7 +386,7 @@ def cmd_kdump_disable(verbose, image=get_current_image()):
 #  @param memory  If not None, new value to set. 
 #                 If None, display current value read from running configuration
 def cmd_kdump_memory(verbose, memory):
-    if memory == None:
+    if memory is None:
         (rc, lines, err_str) = run_command("/usr/bin/show kdump memory", use_shell=False);
         print('\n'.join(lines))
     else:
@@ -405,7 +403,7 @@ def cmd_kdump_memory(verbose, memory):
 #  @param memory  If not None, new value to set. 
 #                 If None, display current value read from running configuration
 def cmd_kdump_num_dumps(verbose, num_dumps):
-    if num_dumps == None:
+    if num_dumps is None:
         (rc, lines, err_str) = run_command("/usr/bin/show kdump num_dumps", use_shell=False);
         print('\n'.join(lines))
     else:
@@ -484,7 +482,7 @@ def cmd_kdump_file(num_lines, filename):
                     if x.find(filename) != -1:
                         fname = x
                         break
-                if fname == None:
+                if fname is None:
                     print("Invalid key")
                     sys.exit(1)
             (rc, lines, err_str) = run_command("/usr/bin/tail -n %d %s" % (num_lines, fname), use_shell=False);
@@ -500,7 +498,7 @@ def main():
 
     # Add allowed arguments
     parser = argparse.ArgumentParser(description="kdump configuration and status tool",
-                                     formatter_class=RawTextHelpFormatter)
+                                     formatter_class=argparse.RawTextHelpFormatter)
 
     # Enable kdump on Current image
     parser.add_argument('--enable', action='store_true',

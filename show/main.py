@@ -1,6 +1,5 @@
 #! /usr/bin/python -u
 
-import errno
 import json
 import netaddr
 import netifaces
@@ -2147,7 +2146,7 @@ def files():
 @click.argument('lines', metavar='<lines>', required=False)
 def log(record, lines):
     """Show kdump kernel core dump file kernel log"""
-    if lines == None:
+    if lines is None:
         run_command("sonic-kdump-config --file %s" % record)
     else:
         run_command("sonic-kdump-config --file %s --lines %s" % (record, lines))
@@ -2270,7 +2269,7 @@ def config(redis_unix_socket_path):
 
                 entry = config_db.get_entry('VLAN_MEMBER', (k, m))
                 mode = entry.get('tagging_mode')
-                if mode == None:
+                if mode is None:
                     r.append('?')
                 else:
                     r.append(mode)

@@ -9,12 +9,8 @@
 import argparse
 import cPickle as pickle
 import datetime
-import getopt
 import sys
 import os
-import json
-import re
-import subprocess
 import swsssdk
 import sys
 import time

@@ -8,7 +8,6 @@
 try:
     import click
     import re
-    import swsssdk
     import subprocess
     import sys
 except ImportError as e:

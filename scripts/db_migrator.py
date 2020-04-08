@@ -6,9 +6,6 @@ import argparse
 import syslog
 from swsssdk import ConfigDBConnector
 import sonic_device_util
-import os
-import subprocess
-import json
 
 
 SYSLOG_IDENTIFIER = 'db_migrator'

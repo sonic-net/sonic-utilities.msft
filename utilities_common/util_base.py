@@ -2,10 +2,8 @@
 
 try:
     import imp
-    import signal
     import subprocess
     import os
-    import sys
     import syslog
 except ImportError as e:
     raise ImportError (str(e) + " - required module not found")

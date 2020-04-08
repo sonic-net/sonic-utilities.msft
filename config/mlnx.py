@@ -10,12 +10,8 @@ try:
     import os
     import subprocess
     import click
-    import imp
     import syslog
-    import types
-    import traceback
     import time
-    from tabulate import tabulate
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 

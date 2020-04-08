@@ -1,8 +1,5 @@
 import sys
 import os
-import pytest
-import click
-import swsssdk
 from click.testing import CliRunner
 
 test_path = os.path.dirname(os.path.abspath(__file__))

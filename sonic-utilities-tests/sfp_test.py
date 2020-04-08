@@ -113,6 +113,7 @@ Ethernet200  Not present
         expected = "Ethernet200: SFP EEPROM Not detected"
         assert result_lines == expected
 
+    @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])

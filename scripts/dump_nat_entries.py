@@ -5,7 +5,6 @@ Description: dump_nat_entries.py -- dump conntrack nat entries from kernel into 
              so as to restore them during warm reboot
 """
 
-import sys
 import subprocess
 
 def main():

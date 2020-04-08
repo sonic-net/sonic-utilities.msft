@@ -39,10 +39,8 @@
 """
 
 import argparse
-import json
 import sys
 
-from natsort import natsorted
 from tabulate import tabulate
 from swsssdk import ConfigDBConnector
 

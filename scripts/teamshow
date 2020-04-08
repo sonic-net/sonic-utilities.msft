@@ -21,14 +21,11 @@
 
 import json
 import os
-import re
 import swsssdk
 import subprocess
 import sys
 from tabulate import tabulate
 from natsort import natsorted
-from sonic_device_util import get_machine_info
-from sonic_device_util import get_platform_info
 
 PORT_CHANNEL_APPL_TABLE_PREFIX = "LAG_TABLE:"
 PORT_CHANNEL_CFG_TABLE_PREFIX = "PORTCHANNEL|"

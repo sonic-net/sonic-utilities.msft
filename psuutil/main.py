@@ -12,8 +12,6 @@ try:
     import click
     import imp
     import syslog
-    import types
-    import traceback
     from tabulate import tabulate
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
