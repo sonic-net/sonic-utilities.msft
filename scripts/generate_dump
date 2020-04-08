@@ -331,6 +331,7 @@ main() {
     save_cmd "show platform summary" "platform.summary"
     save_cmd "show platform syseeprom" "platform.syseeprom"
     save_cmd "cat /host/machine.conf" "machine.conf"
+    save_cmd "docker stats --no-stream" "docker.stats"
 
     save_cmd "sensors" "sensors"
     save_cmd "show platform psustatus" "platform.psustatus"
