@@ -62,12 +62,13 @@ def get_boot_partition(blkdev):
     ## Parse command output and return the current boot partition index
     for line in out.splitlines():
         m = re.match(r'{0}(\d+) / .*'.format(blkdev), line)
-        if not m: continue
+        if not m:
+            continue
         index = m.group(1)
         return int(index)
-    else:
-        logger.error('Unexpected /proc/mounts output: %s', out)
-        return None
+
+    logger.error('Unexpected /proc/mounts output: %s', out)
+    return None
 
 def set_boot_partition(blkdev, index):
     ## Mount the partition

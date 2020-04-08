@@ -64,7 +64,7 @@ def get_platform_and_hwsku():
         stdout = proc.communicate()[0]
         proc.wait()
         hwsku = stdout.rstrip('\n')
-    except OSError, e:
+    except OSError as e:
         raise OSError("Cannot detect platform")
 
     return (platform, hwsku)

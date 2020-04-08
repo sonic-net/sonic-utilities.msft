@@ -109,7 +109,7 @@ class Portstat(object):
         if speed is None:
             speed = PORT_RATE
         else:
-            speed = int(speed)/1000
+            speed = int(speed)//1000
         return speed
 
     def get_port_state(self, port_name):

@@ -266,7 +266,6 @@ def get_vlan_addresses(vlan_interface):
                 mac_addr = keys[1]
     except Exception:
         log_error('failed to get %s addresses from o.s.' % vlan_interface)
-        pass
 
     if not mac_addr:
         mac_addr = get_vlan_interface_mac_address(vlan_interface)

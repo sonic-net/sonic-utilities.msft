@@ -84,7 +84,7 @@ def get_platform_and_hwsku():
         stdout = proc.communicate()[0]
         proc.wait()
         hwsku = stdout.rstrip('\n')
-    except OSError, e:
+    except OSError as e:
         raise OSError("Cannot detect platform")
 
     return (platform, hwsku)
@@ -108,14 +108,14 @@ def load_platform_psuutil():
     try:
         module_file = "/".join([platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py"])
         module = imp.load_source(PLATFORM_SPECIFIC_MODULE_NAME, module_file)
-    except IOError, e:
+    except IOError as e:
         log_error("Failed to load platform module '%s': %s" % (PLATFORM_SPECIFIC_MODULE_NAME, str(e)), True)
         return -1
 
     try:
         platform_psuutil_class = getattr(module, PLATFORM_SPECIFIC_CLASS_NAME)
         platform_psuutil = platform_psuutil_class()
-    except AttributeError, e:
+    except AttributeError as e:
         log_error("Failed to instantiate '%s' class: %s" % (PLATFORM_SPECIFIC_CLASS_NAME, str(e)), True)
         return -2
 

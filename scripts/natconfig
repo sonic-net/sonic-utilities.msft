@@ -67,9 +67,7 @@ class NatConfig(object):
 
         for key,values in static_nat_dict.items():
             ip_protocol = "all"
-            global_ip = "---"
             global_port = "---"
-            local_ip = "---"
             local_port = "---"
             nat_type = "dnat"
             twice_nat_id = "---"
@@ -106,10 +104,6 @@ class NatConfig(object):
             return
 
         for key,values in static_napt_dict.items():
-            ip_protocol = "all"
-            global_ip = "---"
-            global_port = "---"
-            local_ip = "---"
             local_port = "---"
             nat_type = "dnat"
             twice_nat_id = "---"
@@ -151,8 +145,6 @@ class NatConfig(object):
             return
 
         for key,values in nat_pool_dict.items():
-            pool_name = "---"
-            global_ip = "---"
             global_port = "---"
 
             if isinstance(key, unicode) is True:
@@ -182,8 +174,6 @@ class NatConfig(object):
             return
 
         for key,values in nat_binding_dict.items():
-            binding_name = "---"
-            pool_name = "---"
             access_list = "---"
             nat_type = "snat"
             twice_nat_id = "---"

@@ -11,7 +11,7 @@ def is_ipaddress(val):
         return False
     try:
         netaddr.IPAddress(str(val))
-    except:
+    except ValueError:
         return False
     return True
 

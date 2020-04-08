@@ -387,7 +387,7 @@ def install(url, force, skip_migration=False):
         validate_url_or_abort(url)
         try:
             urllib.urlretrieve(url, DEFAULT_IMAGE_PATH, reporthook)
-        except Exception, e:
+        except Exception as e:
             click.echo("Download error", e)
             raise click.Abort()
         image_path = DEFAULT_IMAGE_PATH
@@ -553,7 +553,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
         validate_url_or_abort(url)
         try:
             urllib.urlretrieve(url, DEFAULT_IMAGE_PATH, reporthook)
-        except Exception, e:
+        except Exception as e:
             click.echo("Download error", e)
             raise click.Abort()
         image_path = DEFAULT_IMAGE_PATH

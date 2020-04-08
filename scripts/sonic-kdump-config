@@ -179,7 +179,7 @@ def get_kdump_memory():
                 #print(lines[0][p+2:])
                 #print('XXX')
                 return lines[0][p+2:]
-    except:
+    except Exception:
         pass
     return "0M-2G:256M,2G-4G:320M,4G-8G:384M,8G-:448M"
 
@@ -194,7 +194,7 @@ def get_kdump_num_dumps():
             p = lines[0].find(': ')
             if p != -1:
                 return int(lines[0][p+2:])
-    except:
+    except Exception:
         pass
     return 3
 
@@ -337,6 +337,7 @@ def cmd_kdump_config_next(verbose):
 ## Disable kdump
 #
 #  @param verbose If True, the function will display a few additional information
+#  @return        True if the grub/cmdline cfg has changed, and False if it has not
 def kdump_disable(verbose, kdump_enabled, memory, num_dumps, image, cmdline_file):
     write_use_kdump(0)
 
@@ -357,6 +358,8 @@ def kdump_disable(verbose, kdump_enabled, memory, num_dumps, image, cmdline_file
 
     if changed:
         rewrite_cfg(lines, cmdline_file)
+
+    return changed
 
 ## Command: Disable kdump
 #

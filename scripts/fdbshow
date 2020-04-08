@@ -85,7 +85,7 @@ class FdbShow(object):
             elif 'bvid' in fdb:
                 try:
                     vlan_id = port_util.get_vlan_id_from_bvid(self.db, fdb["bvid"])
-                except:
+                except Exception:
                     vlan_id = fdb["bvid"]
                     print "Failed to get Vlan id for bvid {}\n".format(fdb["bvid"])
             self.bridge_mac_list.append((int(vlan_id),) + (fdb["mac"],) + (if_name,) + (fdb_type,))

@@ -120,7 +120,7 @@ def create_socket(interface, portchannel):
             if iface == interface:
                 exp_socket = s
             sockets.append(s)
-    except:
+    except Exception:
         sys.stderr.write("Unable to create socket. Check your permissions\n")
         sys.exit(1)
     return sockets, exp_socket

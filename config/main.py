@@ -526,7 +526,7 @@ def is_ipaddress(val):
         return False
     try:
         netaddr.IPAddress(str(val))
-    except:
+    except ValueError:
         return False
     return True
 
@@ -715,7 +715,6 @@ def portchannel(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
-    pass
 
 @portchannel.command('add')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -962,7 +961,6 @@ def warm_restart(ctx, redis_unix_socket_path):
     TABLE_NAME_SEPARATOR = '|'
     prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
     ctx.obj = {'db': config_db, 'state_db': state_db, 'prefix': prefix}
-    pass
 
 @warm_restart.command('enable')
 @click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss", "bgp", "teamd"]))
@@ -1032,7 +1030,6 @@ def vlan(ctx, redis_unix_socket_path):
     config_db = ConfigDBConnector(**kwargs)
     config_db.connect(wait_for_init=False)
     ctx.obj = {'db': config_db}
-    pass
 
 @vlan.command('add')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
@@ -1183,7 +1180,6 @@ def snmpagentaddress(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
-    pass
 
 @snmpagentaddress.command('add')
 @click.argument('agentip', metavar='<SNMP AGENT LISTENING IP Address>', required=True)
@@ -1233,7 +1229,6 @@ def snmptrap(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
-    pass
 
 @snmptrap.command('modify')
 @click.argument('ver', metavar='<SNMP Version>', type=click.Choice(['1', '2', '3']), required=True)
@@ -1362,7 +1357,6 @@ def kdump():
     """ Configure kdump """
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
-    pass
 
 @kdump.command()
 def disable():
@@ -1779,7 +1773,6 @@ def vrf(ctx):
     config_db.connect()
     ctx.obj = {}
     ctx.obj['config_db'] = config_db
-    pass
 
 @vrf.command('add')
 @click.argument('vrf_name', metavar='<vrf_name>', required=True)
@@ -2342,7 +2335,6 @@ def syslog_group(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
-    pass
 
 @syslog_group.command('add')
 @click.argument('syslog_ip_address', metavar='<syslog_ip_address>', required=True)
@@ -2395,7 +2387,6 @@ def ntp(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
-    pass
 
 @ntp.command('add')
 @click.argument('ntp_ip_address', metavar='<ntp_ip_address>', required=True)
@@ -2448,7 +2439,6 @@ def sflow(ctx):
     config_db = ConfigDBConnector()
     config_db.connect()
     ctx.obj = {'db': config_db}
-    pass
 
 #
 # 'sflow' command ('config sflow enable')
