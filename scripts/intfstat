@@ -312,7 +312,6 @@ def main():
             sys.exit(0)
 
     if wait_time_in_seconds == 0:
-        cnstat_cached_dict = OrderedDict()
         if os.path.isfile(cnstat_fqn_file):
             try:
                 cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'r'))

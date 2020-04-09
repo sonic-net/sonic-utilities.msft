@@ -2297,7 +2297,6 @@ def ztp():
 
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
-    pass
 
 @ztp.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,

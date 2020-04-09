@@ -101,7 +101,6 @@ def load_platform_psuutil():
         platform_path = "/".join([PLATFORM_ROOT_PATH, platform])
     else:
         platform_path = PLATFORM_ROOT_PATH_DOCKER
-    hwsku_path = "/".join([platform_path, hwsku])
 
     try:
         module_file = "/".join([platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py"])

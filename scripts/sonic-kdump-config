@@ -49,7 +49,6 @@ def run_command(cmd, use_shell=False):
     @param use_shell (bool) Execute subprocess with shell access
     '''
 
-    pid = None
     try:
         if isinstance(cmd, list):
             if use_shell is False:

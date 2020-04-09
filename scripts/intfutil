@@ -220,8 +220,7 @@ def get_portchannel_list(get_raw_po_int_configdb_info):
         portchannel = po[0]
         if portchannel not in portchannel_list:
             portchannel_list.append(portchannel)
-    portchannel = portchannel_list.sort()
-    return portchannel_list
+    return natsorted(portchannel_list)
 
 def create_po_int_tuple_list(get_raw_po_int_configdb_info):
     """

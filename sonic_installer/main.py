@@ -374,7 +374,6 @@ def cli():
 @click.argument('url')
 def install(url, force, skip_migration=False):
     """ Install image from local binary or URL"""
-    cleanup_image = False
     if get_running_image_type() == IMAGE_TYPE_ABOOT:
         DEFAULT_IMAGE_PATH = ABOOT_DEFAULT_IMAGE_PATH
     else:
@@ -443,7 +442,7 @@ def list():
     click.echo("Current: " + curimage)
     click.echo("Next: " + nextimage)
     click.echo("Available: ")
-    for image in get_installed_images():
+    for image in images:
         click.echo(image)
 
 # Set default image for boot
@@ -518,7 +517,7 @@ def cleanup():
     curimage = get_current_image()
     nextimage = get_next_image()
     image_removed = 0
-    for image in get_installed_images():
+    for image in images:
         if image != curimage and image != nextimage:
             click.echo("Removing image %s" % image)
             remove_image(image)
@@ -638,7 +637,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
 
     run_command("docker kill %s > /dev/null" % container_name)
     run_command("docker rm %s " % container_name)
-    if tag == None:
+    if tag is None:
         # example image: docker-lldp-sv2:latest
         tag = get_docker_tag_name(image_latest)
     run_command("docker tag %s:latest %s:%s" % (image_name, image_name, tag))

@@ -142,8 +142,6 @@ def get_sfp_eeprom_status_string(port, port_sfp_eeprom_status):
 #   logical_port if logical and not ganged
 #
 def get_physical_port_name(logical_port, physical_port, ganged):
-    port_name = None
-
     if logical_port == physical_port:
         return logical_port
     elif ganged:
@@ -344,7 +342,6 @@ def load_platform_sfputil():
 
     # Load platform module from source
     platform_path = "/".join([PLATFORM_ROOT_PATH, platform])
-    hwsku_path = "/".join([platform_path, hwsku])
 
     try:
         module_file = "/".join([platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py"])

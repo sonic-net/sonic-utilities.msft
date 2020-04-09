@@ -225,7 +225,6 @@ Examples:
     """
         Print the counters of pfc rx counter
     """
-    cnstat_cached_dict = OrderedDict()
     if os.path.isfile(cnstat_fqn_file_rx):
         try:
             cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_rx, 'r'))
@@ -240,7 +239,6 @@ Examples:
     """
         Print the counters of pfc tx counter
     """
-    cnstat_cached_dict = OrderedDict()
     if os.path.isfile(cnstat_fqn_file_tx):
         try:
             cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_tx, 'r'))

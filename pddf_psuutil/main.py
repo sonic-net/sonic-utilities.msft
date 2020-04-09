@@ -104,14 +104,12 @@ def mfrinfo(index):
     """Display PSU manufacturer info"""
     supported_psu = range(1, platform_psuutil.get_num_psus() + 1)
     psu_ids = []
-    info = ""
     if (index < 0):
         psu_ids = supported_psu
     else:
         psu_ids = [index]
 
     for psu in psu_ids:
-        msg = ""
         psu_name = "PSU {}".format(psu)
         if psu not in supported_psu:
             click.echo("Error! The {} is not available on the platform.\n" \
@@ -145,7 +143,6 @@ def seninfo(index):
         psu_ids = [index]
 
     for psu in psu_ids:
-        msg = ""
         psu_name = "PSU {}".format(psu)
         if psu not in supported_psu:
             click.echo("Error! The {} is not available on the platform.\n" \

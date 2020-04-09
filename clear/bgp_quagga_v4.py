@@ -1,5 +1,5 @@
 import click
-from clear.main import *
+from clear.main import ip, run_command
 
 
 ###############################################################################
@@ -9,8 +9,7 @@ from clear.main import *
 ###############################################################################
 
 
-@ip.group(cls=AliasedGroup, default_if_no_args=True,
-          context_settings=CONTEXT_SETTINGS)
+@ip.group()
 def bgp():
     """Clear BGP (Border Gateway Protocol) peers"""
     pass
@@ -24,8 +23,7 @@ def default():
     run_command(command)
 
 
-@bgp.group(cls=AliasedGroup, default_if_no_args=True,
-           context_settings=CONTEXT_SETTINGS)
+@bgp.group()
 def neighbor():
     """Clear specific BGP peers"""
     pass
@@ -69,8 +67,7 @@ def neigh_out(ipaddress):
     run_command(command)
 
 
-@neighbor.group(cls=AliasedGroup, default_if_no_args=True,
-                context_settings=CONTEXT_SETTINGS)
+@neighbor.group()
 def soft():
     """Soft reconfig BGP's inbound/outbound updates"""
     pass

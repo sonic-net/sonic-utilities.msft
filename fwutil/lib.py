@@ -106,8 +106,6 @@ class URL(object):
         return False
 
     def retrieve(self):
-        filename, headers = None, None
-
         self.__validate()
 
         result = urlparse(self.__url)
@@ -126,7 +124,7 @@ class URL(object):
                 self.DOWNLOAD_PATH_TEMPLATE.format(basename),
                 self.__reporthook
             )
-        except:
+        except Exception:
             if os.path.exists(self.DOWNLOAD_PATH_TEMPLATE.format(basename)):
                 os.remove(self.DOWNLOAD_PATH_TEMPLATE.format(basename))
             raise
@@ -560,7 +558,6 @@ class ComponentUpdateProvider(PlatformDataProvider):
 
                 firmware_path = NA
                 firmware_version_current = chassis_component.get_firmware_version()
-                firmware_version_available = NA
                 firmware_version = firmware_version_current
 
                 status = self.FW_STATUS_UP_TO_DATE
@@ -608,7 +605,6 @@ class ComponentUpdateProvider(PlatformDataProvider):
 
                     firmware_path = NA
                     firmware_version_current = module_component.get_firmware_version()
-                    firmware_version_available = NA
                     firmware_version = firmware_version_current
 
                     status = self.FW_STATUS_UP_TO_DATE
@@ -662,7 +658,6 @@ class ComponentUpdateProvider(PlatformDataProvider):
                 )
 
                 firmware_version_current = chassis_component.get_firmware_version()
-                firmware_version_available = NA
 
                 status = self.FW_STATUS_UP_TO_DATE
 
@@ -724,7 +719,6 @@ class ComponentUpdateProvider(PlatformDataProvider):
                     )
 
                     firmware_version_current = module_component.get_firmware_version()
-                    firmware_version_available = NA
 
                     status = self.FW_STATUS_UP_TO_DATE
 

@@ -643,10 +643,9 @@ def is_mgmt_vrf_enabled(ctx):
         cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
 
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        res = p.communicate()
+        stdout = p.communicate()[0]
         if p.returncode == 0:
-            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            mvrf_dict = json.loads(p.stdout.read())
+            mvrf_dict = json.loads(stdout)
 
             # if the mgmtVrfEnabled attribute is configured, check the value
             # and return True accordingly.
@@ -698,8 +697,6 @@ def address ():
 
     config_db = ConfigDBConnector()
     config_db.connect()
-    header = ['IFNAME', 'IP Address', 'PrefixLen',]
-    body = []
 
     # Fetching data from config_db for MGMT_INTERFACE
     mgmt_ip_data = config_db.get_table('MGMT_INTERFACE')
@@ -2166,8 +2163,6 @@ def brief(verbose):
     vlan_ip_data = config_db.get_table('VLAN_INTERFACE')
     vlan_ports_data = config_db.get_table('VLAN_MEMBER')
 
-    vlan_keys = natsorted(vlan_dhcp_helper_data.keys())
-
     # Defining dictionaries for DHCP Helper address, Interface Gateway IP,
     # VLAN ports and port tagging
     vlan_dhcp_helper_dict = {}
@@ -2637,7 +2632,6 @@ def state(redis_unix_socket_path):
     if redis_unix_socket_path:
         kwargs['unix_socket_path'] = redis_unix_socket_path
 
-    data = {}
     db = SonicV2Connector(host='127.0.0.1')
     db.connect(db.STATE_DB, False)   # Make one attempt only
 

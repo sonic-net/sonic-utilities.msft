@@ -143,7 +143,6 @@ class Queuestat(object):
             Print the cnstat.
         """
         table = []
-        queue_count = len(cnstat_dict)
 
         for key, data in cnstat_dict.iteritems():
             if key == 'time':
@@ -170,7 +169,6 @@ class Queuestat(object):
                 return '{:,}'.format(new - old)
 
         table = []
-        queue_count = len(cnstat_new_dict)
 
         for key, cntr in cnstat_new_dict.iteritems():
             if key == 'time':
@@ -198,7 +196,6 @@ class Queuestat(object):
         for port in natsorted(self.counter_port_name_map):
             cnstat_dict = self.get_cnstat(self.port_queues_map[port])
 
-            cnstat_cached_dict = OrderedDict()
             cnstat_fqn_file_name = cnstat_fqn_file + port
             if os.path.isfile(cnstat_fqn_file_name):
                 try:
@@ -217,7 +214,6 @@ class Queuestat(object):
 
         # Get stat for the port queried
         cnstat_dict = self.get_cnstat(self.port_queues_map[port])
-        cnstat_cached_dict = OrderedDict()
         cnstat_fqn_file_name = cnstat_fqn_file + port
         if os.path.isfile(cnstat_fqn_file_name):
             try:

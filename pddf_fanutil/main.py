@@ -110,7 +110,6 @@ def direction(index):
     status_table = []
 
     for fan in fan_ids:
-        msg = ""
         fan_name = "FAN {}".format(fan)
         if fan not in supported_fan:
             click.echo("Error! The {} is not available on the platform.\n" \
@@ -138,7 +137,6 @@ def getspeed(index):
     status_table = []
 
     for fan in fan_ids:
-        msg = ""
         fan_name = "FAN {}".format(fan)
         if fan not in supported_fan:
             click.echo("Error! The {} is not available on the platform.\n" \

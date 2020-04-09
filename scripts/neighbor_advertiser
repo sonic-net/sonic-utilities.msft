@@ -549,7 +549,7 @@ def main():
     ferret_service_vips = args.vips
     operation_mode = args.mode
 
-    if operation_mode == 'set' and ferret_service_vips == None:
+    if operation_mode == 'set' and ferret_service_vips is None:
         log_warning('ferret service vip is required in set mode')
         sys.exit(1)
 

@@ -81,7 +81,6 @@ def gettemp(index):
     status_table = []
 
     for thermal in thermal_ids:
-        msg = ""
         thermal_name = "TEMP{}".format(thermal)
         if thermal not in supported_thermal:
             click.echo("Error! The {} is not available on the platform.\n" \

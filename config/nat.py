@@ -66,7 +66,6 @@ def isIpOverlappingWithAnyStaticEntry(ipAddress, table):
 
     for key,values in static_dict.items():
         global_ip = "---"
-        local_ip = "---"
         nat_type = "dnat"
 
         if table == 'STATIC_NAPT':
@@ -542,8 +541,6 @@ def remove_tcp(ctx, global_ip, global_port, local_ip, local_port):
     entryFound = False
     table = "STATIC_NAPT"
     key = "{}|TCP|{}".format(global_ip, global_port)
-    dataKey1 = 'local_ip'
-    dataKey2 = 'local_port'
 
     data = config_db.get_entry(table, key)
     if data:
@@ -665,8 +662,6 @@ def add_pool(ctx, pool_name, global_ip_range, global_port_range):
         else:
             if is_valid_port_address(port_address[0]) is False:
                 ctx.fail("Given port value {} is invalid. Please enter a valid port value !!".format(port_address[0]))
-            portLowLimit = int(port_address[0])
-            portHighLimit = int(port_address[0]) 
     else:
         global_port_range = "NULL"
 

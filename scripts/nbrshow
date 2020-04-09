@@ -80,7 +80,6 @@ class NbrBase(object):
 
             ent = self.db.get_all('ASIC_DB', s, blocking=True)
             br_port_id = ent[b"SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
-            ent_type = ent[b"SAI_FDB_ENTRY_ATTR_TYPE"]
             if br_port_id not in self.if_br_oid_map:
                 continue
             port_id = self.if_br_oid_map[br_port_id]
