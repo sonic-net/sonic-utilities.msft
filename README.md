@@ -1,3 +1,8 @@
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/Azure/sonic-utilities.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-utilities/alerts/)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/Azure/sonic-utilities.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/Azure/sonic-utilities/context:python)
+
+[![Build](https://sonic-jenkins.westus2.cloudapp.azure.com/job/common/job/sonic-utilities-build/badge/icon)](https://sonic-jenkins.westus2.cloudapp.azure.com/job/common/job/sonic-utilities-build/)
+
 # SONiC: Software for Open Networking in the Cloud
 
 ## sonic-utilities
@@ -23,21 +28,21 @@ Guide for performing commits:
 * Use a standard commit message format:
 
 >     [component/folder touched]: Description intent of your changes
-> 
+>
 >     [List of changes]
->     
+>
 > 	  Signed-off-by: Your Name your@email.com
-    
+
 For example:
 
 >     swss-common: Stabilize the ConsumerTable
->     
+>
 >     * Fixing autoreconf
 >     * Fixing unit-tests by adding checkers and initialize the DB before start
 >     * Adding the ability to select from multiple channels
->     * Health-Monitor - The idea of the patch is that if something went wrong with the notification channel, 
+>     * Health-Monitor - The idea of the patch is that if something went wrong with the notification channel,
 >       we will have the option to know about it (Query the LLEN table length).
->       
+>
 >       Signed-off-by: John Doe user@dev.null
 
 
