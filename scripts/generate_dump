@@ -200,6 +200,37 @@ save_redis() {
 }
 
 ###############################################################################
+# Runs a 'show platform' command, append the output to 'filename' and add to the incrementally built tar.
+# Globals:
+#  LOGDIR
+#  BASE
+#  MKDIR
+#  TAR
+#  TARFILE
+#  DUMPDIR
+#  V
+#  RM
+# Arguments:
+#  type: the type of platform information
+#  filename: the filename to save the output as in $BASE/dump
+# Returns:
+#  None
+###############################################################################
+save_platform() {
+    local type="$1"
+    local filename=$2
+    local filepath="${LOGDIR}/$filename"
+    local tarpath="${BASE}/dump/$filename"
+    [ ! -d $LOGDIR ] && $MKDIR $V -p $LOGDIR
+
+    eval "show platform $type" &>> "$filepath"
+    echo $'\r' >> "$filepath"
+
+    ($TAR $V -uhf $TARFILE -C $DUMPDIR "$tarpath" \
+        || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.")
+}
+
+###############################################################################
 # Runs a comamnd and saves its output to the incrementally built tar.
 # Globals:
 #  LOGDIR
@@ -327,17 +358,20 @@ main() {
         /proc/zoneinfo \
         || abort "${ERROR_PROCFS_SAVE_FAILED}" "Proc saving operation failed. Aborting for safety."
 
+    save_platform "syseeprom" "platform"
+    save_platform "psustatus" "platform"
+    save_platform "ssdhealth" "platform"
+    save_platform "temperature" "platform"
+    save_platform "fan" "platform"
+
     save_cmd "show version" "version"
     save_cmd "show platform summary" "platform.summary"
-    save_cmd "show platform syseeprom" "platform.syseeprom"
     save_cmd "cat /host/machine.conf" "machine.conf"
     save_cmd "docker stats --no-stream" "docker.stats"
 
     save_cmd "sensors" "sensors"
-    save_cmd "show platform psustatus" "platform.psustatus"
     save_cmd "lspci -vvv -xx" "lspci"
     save_cmd "lsusb -v" "lsusb"
-
     save_cmd "sysctl -a" "sysctl"
     save_ip "link" "link"
     save_ip "addr" "addr"
