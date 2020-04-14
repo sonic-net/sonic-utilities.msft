@@ -77,6 +77,7 @@
 * [Platform Component Firmware](#platform-component-firmware)
   * [Platform Component Firmware show commands](#platform-component-firmware-show-commands)
   * [Platform Component Firmware config commands](#platform-component-firmware-config-commands)
+  * [Platform Component Firmware vendor specific behaviour](#platform-component-firmware-vendor-specific-behaviour)
 * [Platform Specific Commands](#platform-specific-commands)
 * [PortChannels](#portchannels)
   * [PortChannel Show commands](#portchannel-show-commands)
@@ -4146,6 +4147,45 @@ Supported options:
 3. -i|--image - update FW using current/next SONiC image
 
 Note: the default option is --image=current (current/next values are taken from `sonic_installer list`)
+
+### Platform Component Firmware vendor specific behaviour
+
+#### Mellanox
+
+**CPLD update**
+
+On Mellanox platforms CPLD update can be done either for single or for all components at once.  
+The second approach is preferred. In this case an aggregated `vme` binary is used and  
+CPLD component can be specified arbitrary.
+
+- Example:
+```bash
+root@sonic:/home/admin# show platform firmware
+Chassis                 Module    Component    Version                  Description
+----------------------  --------  -----------  -----------------------  ----------------------------------------
+x86_64-mlnx_msn3800-r0  N/A       BIOS         0ACLH004_02.02.007_9600  BIOS - Basic Input/Output System
+                                  CPLD1        CPLD000000_REV0400       CPLD - Complex Programmable Logic Device
+                                  CPLD2        CPLD000000_REV0300       CPLD - Complex Programmable Logic Device
+                                  CPLD3        CPLD000000_REV0300       CPLD - Complex Programmable Logic Device
+                                  CPLD4        CPLD000000_REV0100       CPLD - Complex Programmable Logic Device
+
+root@sonic:/home/admin# BURN_VME="$(pwd)/FUI000091_Burn_SN3800_CPLD000120_REV0600_CPLD000165_REV0400_CPLD000166_REV0300_CPLD000167_REV0100.vme"
+root@sonic:/home/admin# REFRESH_VME="$(pwd)/FUI000091_Refresh_SN3800_CPLD000120_REV0600_CPLD000165_REV0400_CPLD000166_REV0300_CPLD000167_REV0100.vme"
+
+root@sonic:/home/admin# config platform firmware install chassis component CPLD1 fw -y ${BURN_VME}
+root@sonic:/home/admin# config platform firmware install chassis component CPLD1 fw -y ${REFRESH_VME}
+
+root@sonic:/home/admin# show platform firmware
+Chassis                 Module    Component    Version                  Description
+----------------------  --------  -----------  -----------------------  ----------------------------------------
+x86_64-mlnx_msn3800-r0  N/A       BIOS         0ACLH004_02.02.007_9600  BIOS - Basic Input/Output System
+                                  CPLD1        CPLD000000_REV0600       CPLD - Complex Programmable Logic Device
+                                  CPLD2        CPLD000000_REV0400       CPLD - Complex Programmable Logic Device
+                                  CPLD3        CPLD000000_REV0300       CPLD - Complex Programmable Logic Device
+                                  CPLD4        CPLD000000_REV0100       CPLD - Complex Programmable Logic Device
+```
+
+Note: the update will have the same effect if any of CPLD1/CPLD2/CPLD3/CPLD4 will be used
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#platform-component-firmware)
 
