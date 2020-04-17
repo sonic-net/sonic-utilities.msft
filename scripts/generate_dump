@@ -358,6 +358,10 @@ main() {
         /proc/zoneinfo \
         || abort "${ERROR_PROCFS_SAVE_FAILED}" "Proc saving operation failed. Aborting for safety."
 
+    save_cmd "systemd-analyze blame" "systemd.analyze.blame"
+    save_cmd "systemd-analyze dump" "systemd.analyze.dump"
+    save_cmd "systemd-analyze plot" "systemd.analyze.plot.svg"
+    
     save_platform "syseeprom" "platform"
     save_platform "psustatus" "platform"
     save_platform "ssdhealth" "platform"
