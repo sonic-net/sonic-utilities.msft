@@ -104,6 +104,11 @@
     * [VLAN Config commands](#vlan-config-commands)
   * [FDB](#fdb)
     * [FDB show commands](#fdb-show-commands)
+* [VxLAN & Vnet](#vxlan--vnet)
+  * [VxLAN](#vxlan)
+    * [VxLAN show commands](#vxlan-show-commands)
+  * [Vnet](#vnet)
+    * [Vnet show commands](#vnet-show-commands)
 * [Warm Reboot](#warm-reboot)
 * [Warm Restart](#warm-restart)
   * [Warm Restart show commands](#warm-restart-show-commands)
@@ -5607,6 +5612,188 @@ Clear the FDB table
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#vlan--FDB)
+
+## VxLAN & Vnet
+
+### VxLAN
+
+#### VxLAN show commands
+
+**show vxlan tunnel**
+
+This command displays brief information about all the vxlans configured in the device. It displays the vxlan tunnel name, source IP address, destination IP address (if configured), tunnel map name and mapping.
+
+- Usage:
+
+  ```
+  show vxlan tunnel
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vxlan tunnel
+  vxlan tunnel name    source ip    destination ip    tunnel map name    tunnel map mapping(vni -> vlan)
+  -------------------  -----------  ----------------  -----------------  ---------------------------------
+  tunnel1              10.10.10.10
+  tunnel2              10.10.10.10  20.10.10.10       tmap1              1234 -> 100
+  tunnel3              10.10.10.10  30.10.10.10       tmap2              1235 -> 200
+  ```
+
+**show vxlan name <vxlan_name>**
+
+This command displays <vlan_name> configuration.
+
+- Usage:
+
+  ```
+  show vxlan name <vxlan_name>
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vxlan name tunnel3
+  vxlan tunnel name    source ip    destination ip    tunnel map name    tunnel map mapping(vni -> vlan)
+  -------------------  -----------  ----------------  -----------------  ---------------------------------
+  tunnel3              10.10.10.10  30.10.10.10       tmap2              1235 -> 200
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#vxlan--vnet)
+
+### Vnet
+
+#### Vnet show commands
+
+**show vnet brief**
+
+This command displays brief information about all the vnets configured in the device. It displays the vnet name, vxlan tunnel name, vni and peer list (if configured).
+
+- Usage:
+
+  ```
+  show vnet brief
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet brief
+  vnet name    vxlan tunnel      vni  peer list
+  -----------  --------------  -----  ------------------
+  Vnet_2000    tunnel1          2000
+  Vnet_3000    tunnel1          3000  Vnet_2000,Vnet4000
+  ```
+
+**show vnet name <vnet_name>**
+
+This command displays brief information about <vnet_name> configured in the device.
+
+- Usage:
+
+  ```
+  show vnet name <vnet_name>
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet name Vnet_3000
+  vnet name    vxlan tunnel      vni  peer list
+  -----------  --------------  -----  ------------------
+  Vnet_3000    tunnel1          3000  Vnet_2000,Vnet4000
+  ```
+
+**show vnet interfaces**
+
+This command displays vnet interfaces information about all the vnets configured in the device.
+
+- Usage:
+
+  ```
+  show vnet interfaces
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet interfaces
+  vnet name    interfaces
+  -----------  ------------
+  Vnet_2000    Ethernet1
+  Vnet_3000    Vlan2000
+  ```
+
+**show vnet neighbors**
+
+This command displays vnet neighbor information about all the vnets configured in the device. It displays the vnet name, neighbor IP address, neighbor mac address (if configured) and interface.
+
+- Usage:
+
+  ```
+  show vnet neighbors
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet neighbors
+  Vnet_2000    neighbor     mac_address    interfaces
+  -----------  -----------  -------------  ------------
+               11.11.11.11                 Ethernet1
+               11.11.11.12                 Ethernet1
+
+  Vnet_3000    neighbor     mac_address        interfaces
+  -----------  -----------  -----------------  ------------
+               20.20.20.20  aa:bb:cc:dd:ee:ff  Vlan2000
+  ```
+
+**show vnet routes all**
+
+This command displays all routes information about all the vnets configured in the device.
+
+- Usage:
+
+  ```
+  show vnet routes all
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet routes all
+  vnet name    prefix          nexthop    interface
+  -----------  --------------  ---------  -----------
+  Vnet_2000    100.100.3.0/24             Ethernet52
+  Vnet_3000    100.100.4.0/24             Vlan2000
+
+  vnet name    prefix          endpoint    mac address        vni
+  -----------  --------------  ----------  -----------------  -----
+  Vnet_2000    100.100.1.1/32  10.10.10.1
+  Vnet_3000    100.100.2.1/32  10.10.10.2  00:00:00:00:03:04
+  ```
+
+**show vnet routes tunnel**
+
+This command displays tunnel routes information about all the vnets configured in the device.
+
+- Usage:
+
+  ```
+  show vnet routes tunnel
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet routes tunnel
+  vnet name    prefix          endpoint    mac address        vni
+  -----------  --------------  ----------  -----------------  -----
+  Vnet_2000    100.100.1.1/32  10.10.10.1
+  Vnet_3000    100.100.2.1/32  10.10.10.2  00:00:00:00:03:04
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#vxlan--vnet)
 
 ## Warm Reboot
 
