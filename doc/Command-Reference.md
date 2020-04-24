@@ -1603,6 +1603,38 @@ Optionally, you can specify an IP address in order to display only that particul
   Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ip bgp neighbors" for Quagga.
 
 
+**show ip bgp network [[<ipv4-address>|<ipv4-prefix>] [(bestpath | multipath | longer-prefixes | json)]]
+
+This command displays all the details of IPv4 Border Gateway Protocol (BGP) prefixes.
+
+- Usage:
+
+
+  ```
+  show ip bgp network [[<ipv4-address>|<ipv4-prefix>] [(bestpath | multipath | longer-prefixes | json)]]
+  ```
+
+- Example:
+
+  NOTE: The "longer-prefixes" option is only available when a network prefix with a "/" notation is used.
+
+  ```
+  admin@sonic:~$ show ip bgp network
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32 bestpath
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32 multipath
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32 json
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32/32 bestpath
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32/32 multipath
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32/32 json
+
+  admin@sonic:~$ show ip bgp network 10.1.0.32/32 longer-prefixes
+  ```
 
 **show bgp ipv6 summary (Versions >= 201904 using default FRR routing stack)**
 
@@ -1670,6 +1702,41 @@ This command displays all the details of one particular IPv6 Border Gateway Prot
   ```
   Click [here](#Quagga-BGP-Show-Commands) to see the example for "show ip bgp summary" for Quagga.
 
+
+**show ipv6 bgp network [[<ipv6-address>|<ipv6-prefix>] [(bestpath | multipath | longer-prefixes | json)]]
+
+This command displays all the details of IPv6 Border Gateway Protocol (BGP) prefixes.  
+
+- Usage: 
+
+  
+  ```
+  show ipv6 bgp network [[<ipv6-address>|<ipv6-prefix>] [(bestpath | multipath | longer-prefixes | json)]]   
+  ```
+
+- Example:
+
+  NOTE: The "longer-prefixes" option is only available when a network prefix with a "/" notation is used.
+ 
+  ```
+  admin@sonic:~$ show ipv6 bgp network
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72 bestpath 
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72 multipath
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72 json 
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72/64 bestpath
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72/64 multipath
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72/64 json 
+
+  admin@sonic:~$ show ipv6 bgp network fc00::72/64 longer-prefixes
+  ```
+ 
+  
 
 
 **show route-map**
