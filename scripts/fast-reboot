@@ -92,7 +92,7 @@ function parseOptions()
     done
 }
 
-function clear_fast_boot()
+function common_clear()
 {
     debug "${REBOOT_TYPE} failure ($?) cleanup ..."
 
@@ -101,9 +101,16 @@ function clear_fast_boot()
     teardown_control_plane_assistant
 }
 
+function clear_fast_boot()
+{
+    common_clear
+
+    redis-cli -n 6 DEL "FAST_REBOOT|system" &>/dev/null || /bin/true
+}
+
 function clear_warm_boot()
 {
-    clear_fast_boot
+    common_clear
 
     result=`timeout 10s config warm_restart disable; if [[ $? == 124 ]]; then echo timeout; else echo "code ($?)"; fi` || /bin/true
     debug "Cancel warm-reboot: ${result}"
@@ -308,6 +315,7 @@ case "$REBOOT_TYPE" in
     "fast-reboot")
         BOOT_TYPE_ARG=$REBOOT_TYPE
         trap clear_fast_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
+        redis-cli -n 6 SET "FAST_REBOOT|system" "1" "EX" "180" &>/dev/null
         ;;
     "warm-reboot")
         if [[ "$sonic_asic_type" == "mellanox" ]]; then
