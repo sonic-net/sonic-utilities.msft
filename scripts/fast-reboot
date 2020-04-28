@@ -29,6 +29,7 @@ EXIT_NEXT_IMAGE_NOT_EXISTS=4
 EXIT_ORCHAGENT_SHUTDOWN=10
 EXIT_SYNCD_SHUTDOWN=11
 EXIT_FAST_REBOOT_DUMP_FAILURE=12
+EXIT_FILTER_FDB_ENTRIES_FAILURE=13
 EXIT_NO_CONTROL_PLANE_ASSISTANT=20
 
 function error()
@@ -378,13 +379,23 @@ fi
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
     # into /host/fast-reboot
-    mkdir -p /host/fast-reboot
+    DUMP_DIR=/host/fast-reboot
+    mkdir -p $DUMP_DIR
     FAST_REBOOT_DUMP_RC=0
-    /usr/bin/fast-reboot-dump.py -t /host/fast-reboot || FAST_REBOOT_DUMP_RC=$?
+    /usr/bin/fast-reboot-dump.py -t $DUMP_DIR || FAST_REBOOT_DUMP_RC=$?
     if [[ FAST_REBOOT_DUMP_RC -ne 0 ]]; then
         error "Failed to run fast-reboot-dump.py. Exit code: $FAST_REBOOT_DUMP_RC"
         unload_kernel
         exit "${EXIT_FAST_REBOOT_DUMP_FAILURE}"
+    fi
+
+    FILTER_FDB_ENTRIES_RC=0
+    # Filter FDB entries using MAC addresses from ARP table
+    /usr/bin/filter_fdb_entries.py -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json || FILTER_FDB_ENTRIES_RC=$?
+    if [[ FILTER_FDB_ENTRIES_RC -ne 0 ]]; then
+        error "Failed to filter FDb entries. Exit code: $FILTER_FDB_ENTRIES_RC"
+        unload_kernel
+        exit "${EXIT_FILTER_FDB_ENTRIES_FAILURE}"
     fi
 fi
 
