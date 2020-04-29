@@ -15,6 +15,7 @@ import ipaddress
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from minigraph import parse_device_desc_xml
+from click_default_group import DefaultGroup
 
 import aaa
 import mlnx
@@ -58,6 +59,53 @@ def log_error(msg):
     syslog.openlog(SYSLOG_IDENTIFIER)
     syslog.syslog(syslog.LOG_ERR, msg)
     syslog.closelog()
+
+
+# This aliased group has been modified from click examples to inherit from DefaultGroup instead of click.Group.
+# DefaultGroup is a superclass of click.Group which calls a default subcommand instead of showing
+# a help message if no subcommand is passed
+class AbbreviationGroup(DefaultGroup):
+    """This subclass of a DefaultGroup supports looking up aliases in a config
+    file and with a bit of magic.
+    """
+
+    def get_command(self, ctx, cmd_name):
+        # Try to get builtin commands as normal
+        rv = click.Group.get_command(self, ctx, cmd_name)
+        if rv is not None:
+            return rv
+
+        # Allow automatic abbreviation of the command.  "status" for
+        # instance will match "st".  We only allow that however if
+        # there is only one command.
+        # If there are multiple matches and the shortest one is the common prefix of all the matches, return
+        # the shortest one
+        matches = []
+        shortest = None
+        for x in self.list_commands(ctx):
+            if x.lower().startswith(cmd_name.lower()):
+                matches.append(x)
+                if not shortest:
+                    shortest = x
+                elif len(shortest) > len(x):
+                    shortest = x
+
+        if not matches:
+            # No command name matched. Issue Default command.
+            ctx.arg0 = cmd_name
+            cmd_name = self.default_cmd_name
+            return DefaultGroup.get_command(self, ctx, cmd_name)
+        elif len(matches) == 1:
+            return DefaultGroup.get_command(self, ctx, matches[0])
+        else:
+            for x in matches:
+                if not x.startswith(shortest):
+                    break
+            else:
+                return DefaultGroup.get_command(self, ctx, shortest)
+
+            ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
+
 
 #
 # Load asic_type for further use
@@ -531,11 +579,13 @@ def is_ipaddress(val):
 
 
 # This is our main entrypoint - the main 'config' command
-@click.group(context_settings=CONTEXT_SETTINGS)
+@click.group(cls=AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
 def config():
     """SONiC command line - 'config' command"""
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
+
+
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
 # === Add NAT Configuration ==========
@@ -708,7 +758,7 @@ def hostname(new_hostname):
 #
 # 'portchannel' group ('config portchannel ...')
 #
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 def portchannel(ctx):
     config_db = ConfigDBConnector()
@@ -739,7 +789,7 @@ def remove_portchannel(ctx, portchannel_name):
     db = ctx.obj['db']
     db.set_entry('PORTCHANNEL', portchannel_name, None)
 
-@portchannel.group('member')
+@portchannel.group(cls=AbbreviationGroup, name='member')
 @click.pass_context
 def portchannel_member(ctx):
     pass
@@ -768,7 +818,7 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
 #
 # 'mirror_session' group ('config mirror_session ...')
 #
-@config.group('mirror_session')
+@config.group(cls=AbbreviationGroup, name='mirror_session')
 def mirror_session():
     pass
 
@@ -819,7 +869,7 @@ def remove(session_name):
 #
 # 'pfcwd' group ('config pfcwd ...')
 #
-@config.group()
+@config.group(cls=AbbreviationGroup)
 def pfcwd():
     """Configure pfc watchdog """
     pass
@@ -905,7 +955,7 @@ def start_default(verbose):
 #
 # 'qos' group ('config qos ...')
 #
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 def qos(ctx):
     pass
@@ -943,7 +993,7 @@ def reload():
 #
 # 'warm_restart' group ('config warm_restart ...')
 #
-@config.group('warm_restart')
+@config.group(cls=AbbreviationGroup, name='warm_restart')
 @click.pass_context
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def warm_restart(ctx, redis_unix_socket_path):
@@ -1018,7 +1068,7 @@ def warm_restart_bgp_eoiu(ctx, enable):
 #
 # 'vlan' group ('config vlan ...')
 #
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def vlan(ctx, redis_unix_socket_path):
@@ -1057,7 +1107,7 @@ def del_vlan(ctx, vid):
 #
 # 'member' group ('config vlan member ...')
 #
-@vlan.group('member')
+@vlan.group(cls=AbbreviationGroup, name='member')
 @click.pass_context
 def vlan_member(ctx):
     pass
@@ -1172,7 +1222,7 @@ def vrf_delete_management_vrf(config_db):
     config_db.mod_entry('MGMT_VRF_CONFIG',"vrf_global",{"mgmtVrfEnabled": "false"})
     mvrf_restart_services()
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 def snmpagentaddress(ctx):
     """SNMP agent listening IP address, port, vrf configuration"""
@@ -1221,7 +1271,7 @@ def del_snmp_agent_address(ctx, agentip, port, vrf):
     cmd="systemctl restart snmp"
     os.system (cmd)
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 def snmptrap(ctx):
     """SNMP Trap server configuration to send traps"""
@@ -1268,7 +1318,7 @@ def delete_snmptrap_server(ctx, ver):
     cmd="systemctl restart snmp"
     os.system (cmd)
 
-@vlan.group('dhcp_relay')
+@vlan.group(cls=AbbreviationGroup, name='dhcp_relay')
 @click.pass_context
 def vlan_dhcp_relay(ctx):
     pass
@@ -1337,7 +1387,7 @@ def del_vlan_dhcp_relay_destination(ctx, vid, dhcp_relay_destination_ip):
 # 'bgp' group ('config bgp ...')
 #
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 def bgp():
     """BGP-related configuration tasks"""
     pass
@@ -1346,12 +1396,12 @@ def bgp():
 # 'shutdown' subgroup ('config bgp shutdown ...')
 #
 
-@bgp.group()
+@bgp.group(cls=AbbreviationGroup)
 def shutdown():
     """Shut down BGP session(s)"""
     pass
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 def kdump():
     """ Configure kdump """
     if os.geteuid() != 0:
@@ -1412,7 +1462,7 @@ def neighbor(ipaddr_or_hostname, verbose):
     """Shut down BGP session by neighbor IP address or hostname"""
     _change_bgp_session_status(ipaddr_or_hostname, 'down', verbose)
 
-@bgp.group()
+@bgp.group(cls=AbbreviationGroup)
 def startup():
     """Start up BGP session(s)"""
     pass
@@ -1438,7 +1488,7 @@ def neighbor(ipaddr_or_hostname, verbose):
 # 'remove' subgroup ('config bgp remove ...')
 #
 
-@bgp.group()
+@bgp.group(cls=AbbreviationGroup)
 def remove():
     "Remove BGP neighbor configuration from the device"
     pass
@@ -1453,7 +1503,7 @@ def remove_neighbor(neighbor_ip_or_hostname):
 # 'interface' group ('config interface ...')
 #
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 def interface(ctx):
     """Interface-related configuration tasks"""
@@ -1587,7 +1637,7 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
 # 'ip' subgroup ('config interface ip ...')
 #
 
-@interface.group()
+@interface.group(cls=AbbreviationGroup)
 @click.pass_context
 def ip(ctx):
     """Add or remove IP address"""
@@ -1693,7 +1743,7 @@ def remove(ctx, interface_name, ip_addr):
 #
 
 
-@interface.group()
+@interface.group(cls=AbbreviationGroup)
 @click.pass_context
 def vrf(ctx):
     """Bind or unbind VRF"""
@@ -1764,7 +1814,7 @@ def unbind(ctx, interface_name):
 # 'vrf' group ('config vrf ...')
 #
 
-@config.group('vrf')
+@config.group(cls=AbbreviationGroup, name='vrf')
 @click.pass_context
 def vrf(ctx):
     """VRF-related configuration tasks"""
@@ -1809,7 +1859,7 @@ def del_vrf(ctx, vrf_name):
 # 'route' group ('config route ...')
 #
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 def route(ctx):
     """route-related configuration tasks"""
@@ -1923,7 +1973,7 @@ def del_route(ctx, command_str):
 # 'acl' group ('config acl ...')
 #
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 def acl():
     """ACL-related configuration tasks"""
     pass
@@ -1932,7 +1982,7 @@ def acl():
 # 'add' subgroup ('config acl add ...')
 #
 
-@acl.group()
+@acl.group(cls=AbbreviationGroup)
 def add():
     """
     Add ACL configuration.
@@ -1996,7 +2046,7 @@ def table(table_name, table_type, description, ports, stage):
 # 'remove' subgroup ('config acl remove ...')
 #
 
-@acl.group()
+@acl.group(cls=AbbreviationGroup)
 def remove():
     """
     Remove ACL configuration.
@@ -2022,7 +2072,7 @@ def table(table_name):
 # 'acl update' group
 #
 
-@acl.group()
+@acl.group(cls=AbbreviationGroup)
 def update():
     """ACL-related configuration tasks"""
     pass
@@ -2056,7 +2106,7 @@ def incremental(file_name):
 # 'dropcounters' group ('config dropcounters ...')
 #
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 def dropcounters():
     """Drop counter related configuration tasks"""
     pass
@@ -2153,7 +2203,7 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
 # 'pfc' group ('config interface pfc ...')
 #
 
-@interface.group()
+@interface.group(cls=AbbreviationGroup)
 @click.pass_context
 def pfc(ctx):
     """Set PFC configuration."""
@@ -2199,7 +2249,7 @@ def priority(ctx, interface_name, priority, status):
 # 'platform' group ('config platform ...')
 #
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 def platform():
     """Platform-related configuration tasks"""
 
@@ -2207,7 +2257,7 @@ if asic_type == 'mellanox':
     platform.add_command(mlnx.mlnx)
 
 # 'firmware' subgroup ("config platform firmware ...")
-@platform.group()
+@platform.group(cls=AbbreviationGroup)
 def firmware():
     """Firmware configuration tasks"""
     pass
@@ -2252,12 +2302,12 @@ def update(args):
 # 'watermark' group ("show watermark telemetry interval")
 #
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 def watermark():
     """Configure watermark """
     pass
 
-@watermark.group()
+@watermark.group(cls=AbbreviationGroup)
 def telemetry():
     """Configure watermark telemetry"""
     pass
@@ -2274,7 +2324,7 @@ def interval(interval):
 # 'interface_naming_mode' subgroup ('config interface_naming_mode ...')
 #
 
-@config.group('interface_naming_mode')
+@config.group(cls=AbbreviationGroup, name='interface_naming_mode')
 def interface_naming_mode():
     """Modify interface naming mode for interacting with SONiC CLI"""
     pass
@@ -2289,7 +2339,7 @@ def naming_mode_alias():
     """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
     set_interface_naming_mode('alias')
 
-@config.group()
+@config.group(cls=AbbreviationGroup)
 def ztp():
     """ Configure Zero Touch Provisioning """
     if os.path.isfile('/usr/bin/ztp') is False:
@@ -2326,7 +2376,7 @@ def enable(enable):
 #
 # 'syslog' group ('config syslog ...')
 #
-@config.group('syslog')
+@config.group(cls=AbbreviationGroup, name='syslog')
 @click.pass_context
 def syslog_group(ctx):
     """Syslog server configuration tasks"""
@@ -2378,7 +2428,7 @@ def del_syslog_server(ctx, syslog_ip_address):
 #
 # 'ntp' group ('config ntp ...')
 #
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 def ntp(ctx):
     """NTP server configuration tasks"""
@@ -2430,7 +2480,7 @@ def del_ntp_server(ctx, ntp_ip_address):
 #
 # 'sflow' group ('config sflow ...')
 #
-@config.group()
+@config.group(cls=AbbreviationGroup)
 @click.pass_context
 def sflow(ctx):
     """sFlow-related configuration tasks"""
@@ -2511,7 +2561,7 @@ def is_valid_sample_rate(rate):
 #
 # 'sflow interface' group
 #
-@sflow.group()
+@sflow.group(cls=AbbreviationGroup)
 @click.pass_context
 def interface(ctx):
     """Configure sFlow settings for an interface"""
@@ -2586,7 +2636,7 @@ def sample_rate(ctx, ifname, rate):
 #
 # 'sflow collector' group
 #
-@sflow.group()
+@sflow.group(cls=AbbreviationGroup)
 @click.pass_context
 def collector(ctx):
     """Add/Delete a sFlow collector"""
@@ -2654,7 +2704,7 @@ def del_collector(ctx, name):
 #
 # 'sflow agent-id' group
 #
-@sflow.group('agent-id')
+@sflow.group(cls=AbbreviationGroup, name='agent-id')
 @click.pass_context
 def agent_id(ctx):
     """Add/Delete a sFlow agent"""
@@ -2726,7 +2776,7 @@ def feature_status(name, state):
 #
 # 'container' group ('config container ...')
 #
-@config.group(name='container', invoke_without_command=False)
+@config.group(cls=AbbreviationGroup, name='container', invoke_without_command=False)
 def container():
     """Modify configuration of containers"""
     pass
@@ -2734,7 +2784,7 @@ def container():
 #
 # 'feature' group ('config container feature ...')
 #
-@container.group(name='feature', invoke_without_command=False)
+@container.group(cls=AbbreviationGroup, name='feature', invoke_without_command=False)
 def feature():
     """Modify configuration of container features"""
     pass
