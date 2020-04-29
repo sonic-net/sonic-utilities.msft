@@ -2848,9 +2848,6 @@ def ztp(status, verbose):
     if os.path.isfile('/usr/bin/ztp') is False:
         exit("ZTP feature unavailable in this image version")
 
-    if os.geteuid() != 0:
-        exit("Root privileges are required for this operation")
-
     cmd = "ztp status"
     if verbose:
        cmd = cmd + " --verbose"
