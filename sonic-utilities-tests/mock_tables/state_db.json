@@ -53,11 +53,13 @@
     },
     "PSU_INFO|PSU 1": {
         "presence": "true",
-        "status": "true"
+        "status": "true",
+        "led_status": "green"
     },
     "PSU_INFO|PSU 2": {
         "presence": "true",
-        "status": "true"
+        "status": "true",
+        "led_status": "green"
     },
     "SWITCH_CAPABILITY|switch": {
         "MIRROR": "true",

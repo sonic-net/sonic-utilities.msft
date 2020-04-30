@@ -36,9 +36,9 @@ class TestPsu(object):
     def test_single_psu(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["platform"].commands["psustatus"], ["--index=1"])
-        expected = """PSU    Status
------  --------
-PSU 1  OK
+        expected = """PSU    Status    LED
+-----  --------  -----
+PSU 1  OK        green
 """
         assert result.output == expected
 

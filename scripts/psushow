@@ -35,7 +35,7 @@ def psu_status_show(index):
     else:
         psu_ids = [index]
 
-    header = ['PSU', 'Status']
+    header = ['PSU', 'Status', 'LED']
     status_table = []
 
     for psu in psu_ids:
@@ -51,7 +51,8 @@ def psu_status_show(index):
             msg = 'OK' if oper_status == 'true' else "NOT OK"
         else:
             msg = 'NOT PRESENT'
-        status_table.append([psu_name, msg])
+        led_status = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'led_status')
+        status_table.append([psu_name, msg, led_status])
 
     if status_table:
         print tabulate(status_table, header, tablefmt="simple")
