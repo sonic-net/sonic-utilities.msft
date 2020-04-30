@@ -79,6 +79,7 @@ setup(
         'scripts/intfutil',
         'scripts/intfstat',
         'scripts/lldpshow',
+        'scripts/log_ssd_health',
         'scripts/mmuconfig',
         'scripts/natclear',
         'scripts/natconfig',

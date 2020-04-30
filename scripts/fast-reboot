@@ -16,6 +16,7 @@ ASSISTANT_SCRIPT="/usr/bin/neighbor_advertiser"
 DEVPATH="/usr/share/sonic/device"
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
+LOG_SSD_HEALTH="/usr/bin/log_ssd_health"
 
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
@@ -423,6 +424,12 @@ fi
 # We are fully committed to reboot from this point on becasue critical
 # service will go down and we cannot recover from it.
 set +e
+
+if [ -x ${LOG_SSD_HEALTH} ]; then
+    debug "Collecting logs to check ssd health before fast-reboot..."
+    ${LOG_SSD_HEALTH}
+fi
+
 
 # Kill nat docker after saving the conntrack table
 debug "Stopping nat ..."
