@@ -2,10 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
 import sys
-import getopt
+import argparse
 import ipaddress
+import syslog
 import json
+import time
+from enum import Enum
 from swsssdk import ConfigDBConnector
 
 os.environ['PYTHONUNBUFFERED']='True'
@@ -13,30 +17,36 @@ os.environ['PYTHONUNBUFFERED']='True'
 PREFIX_SEPARATOR = '/'
 IPV6_SEPARATOR = ':'
 
-# Modes of operation from quiet to noisy
-MODE_QUIET = 0
-MODE_ERR = 1
-MODE_INFO = 2
-MODE_DEBUG = 3
+MIN_SCAN_INTERVAL = 10      # Every 10 seconds
+MAX_SCAN_INTERVAL = 3600    # An hour
 
-mode = MODE_ERR
+class Level(Enum):
+    ERR = 'ERR'
+    INFO = 'INFO'
+    DEBUG = 'DEBUG'
 
-def set_mode(m):
-    global mode
-    if (m == 'QUIET'):
-        mode = MODE_QUIET
-    elif (m == 'ERR'):
-        mode = MODE_ERR
-    elif (m == 'INFO'):
-        mode = MODE_INFO
-    elif (m == 'DEBUG'):
-        mode = MODE_DEBUG
-    return mode
+    def __str__(self):
+        return self.value
+
+report_level = syslog.LOG_ERR
+
+def set_level(lvl):
+    global report_level
+
+    if (lvl == Level.INFO):
+        report_level = syslog.LOG_INFO
+
+    if (lvl == Level.DEBUG):
+        report_level = syslog.LOG_DEBUG
+
 
 def print_message(lvl, *args):
-    if (lvl <= mode):
+    if (lvl <= report_level):
+        msg = ""
         for arg in args:
-            print arg
+            msg += " " + str(arg)
+        print(msg)
+        syslog.syslog(lvl, msg)
 
 def add_prefix(ip):
     if ip.find(IPV6_SEPARATOR) == -1:
@@ -48,12 +58,9 @@ def add_prefix(ip):
 def add_prefix_ifnot(ip):
     return ip if ip.find(PREFIX_SEPARATOR) != -1 else add_prefix(ip)
 
-def ip_subnet(ip):
-    if ip.find(":") == -1:
-        net = ipaddress.IPv4Network(ip, False)
-    else:
-        net = ipaddress.IPv6Network(ip, False)
-    return net.with_prefixlen
+def is_local(ip):
+    t = ipaddress.ip_address(ip.split("/")[0].decode('utf-8'))
+    return t.is_link_local
 
 def cmps(s1, s2):
     if (s1 == s2):
@@ -93,103 +100,138 @@ def do_diff(t1, t2):
 def get_routes():
     db = ConfigDBConnector()
     db.db_connect('APPL_DB')
-    print_message(MODE_DEBUG, "APPL DB connected for routes")
+    print_message(syslog.LOG_DEBUG, "APPL DB connected for routes")
     keys = db.get_keys('ROUTE_TABLE')
-    print_message(MODE_DEBUG, json.dumps({"ROUTE_TABLE": keys}, indent=4))
 
     valid_rt = []
-    skip_rt = []
     for k in keys:
-        if db.get_entry('ROUTE_TABLE', k)['nexthop'] != '':
-            valid_rt.append(add_prefix_ifnot(k))
-        else:
-            skip_rt.append(k)
+        if not is_local(k):
+            valid_rt.append(add_prefix_ifnot(k.lower()))
 
-    print_message(MODE_INFO, json.dumps({"skipped_routes" : skip_rt}, indent=4))
+    print_message(syslog.LOG_DEBUG, json.dumps({"ROUTE_TABLE": sorted(valid_rt)}, indent=4))
     return sorted(valid_rt)
 
 def get_route_entries():
     db = ConfigDBConnector()
     db.db_connect('ASIC_DB')
-    print_message(MODE_DEBUG, "ASIC DB connected")
+    print_message(syslog.LOG_DEBUG, "ASIC DB connected")
     keys = db.get_keys('ASIC_STATE:SAI_OBJECT_TYPE_ROUTE_ENTRY', False)
-    print_message(MODE_DEBUG, json.dumps({"ASIC_ROUTE_ENTRY": keys}, indent=4))
 
     rt = []
     for k in keys:
-        rt.append(k.split("\"", -1)[3])
+        e = k.lower().split("\"", -1)[3]
+        if not is_local(e):
+            rt.append(e)
+    print_message(syslog.LOG_DEBUG, json.dumps({"ASIC_ROUTE_ENTRY": sorted(rt)}, indent=4))
     return sorted(rt)
 
 
 def get_interfaces():
     db = ConfigDBConnector()
     db.db_connect('APPL_DB')
-    print_message(MODE_DEBUG, "APPL DB connected for interfaces")
+    print_message(syslog.LOG_DEBUG, "APPL DB connected for interfaces")
 
     intf = []
     keys = db.get_keys('INTF_TABLE')
-    print_message(MODE_DEBUG, json.dumps({"APPL_DB_INTF": keys}, indent=4))
 
     for k in keys:
-        subk = k.split(':', -1)
-        alias = subk[0]
-        ip_prefix = ":".join(subk[1:])
-        ip = add_prefix(ip_prefix.split("/", -1)[0])
-        if (subk[0] == "eth0") or (subk[0] == "docker0"):
+        lst = re.split(':', k.lower(), maxsplit=1)
+        if len(lst) == 1:
+            # No IP address in key; ignore
             continue
-        if (subk[0] != "lo"):
-            intf.append(ip_subnet(ip_prefix))
-        intf.append(ip)
+
+        ip = add_prefix(lst[1].split("/", -1)[0])
+        if not is_local(ip):
+            intf.append(ip)
+
+    print_message(syslog.LOG_DEBUG, json.dumps({"APPL_DB_INTF": sorted(intf)}, indent=4))
     return sorted(intf)
 
+def filter_out_local_interfaces(keys):
+    rt = []
+    local_if = set(['eth0', 'lo', 'docker0'])
+
+    db = ConfigDBConnector()
+    db.db_connect('APPL_DB')
+    
+    for k in keys:
+        e = db.get_entry('ROUTE_TABLE', k)
+        if not e:
+            # Prefix might have been added. So try w/o it.
+            e = db.get_entry('ROUTE_TABLE', k.split("/")[0])
+        if not e or (e['ifname'] not in local_if):
+            rt.append(k)
+
+    return rt
+
 def check_routes():
-    intf_miss = []
-    rt_miss = []
-    re_miss = []
+    intf_appl_miss = []
+    rt_appl_miss = []
+    rt_asic_miss = []
 
     results = {}
     err_present = False
 
-    rt_miss, re_miss = do_diff(get_routes(), get_route_entries())
-    intf_miss, re_miss = do_diff(get_interfaces(), re_miss)
+    rt_appl = get_routes()
+    rt_asic = get_route_entries()
+    intf_appl = get_interfaces()
 
-    if (len(rt_miss) != 0):
-        results["missed_ROUTE_TABLE_routes"] = rt_miss
+    # Diff APPL-DB routes & ASIC-DB routes
+    rt_appl_miss, rt_asic_miss = do_diff(rt_appl, rt_asic)
+
+    # Check missed ASIC routes against APPL-DB INTF_TABLE
+    _, rt_asic_miss = do_diff(intf_appl, rt_asic_miss)
+
+    # Check APPL-DB INTF_TABLE with ASIC table route entries
+    intf_appl_miss, _ = do_diff(intf_appl, rt_asic)
+
+    if (len(rt_appl_miss) != 0):
+        rt_appl_miss = filter_out_local_interfaces(rt_appl_miss)
+
+    if (len(rt_appl_miss) != 0):
+        results["missed_ROUTE_TABLE_routes"] = rt_appl_miss
         err_present = True
 
-    if (len(intf_miss) != 0):
-        results["missed_INTF_TABLE_entries"] = intf_miss
+    if (len(intf_appl_miss) != 0):
+        results["missed_INTF_TABLE_entries"] = intf_appl_miss
         err_present = True
 
-    if (len(re_miss) != 0):
-        results["Unaccounted_ROUTE_ENTRY_TABLE_entries"] = re_miss
+    if (len(rt_asic_miss) != 0):
+        results["Unaccounted_ROUTE_ENTRY_TABLE_entries"] = rt_asic_miss
         err_present = True
 
     if err_present:
-        print_message(MODE_ERR, "results: {",  json.dumps(results, indent=4), "}")
-        print_message(MODE_ERR, "Failed. Look at reported mismatches above")
+        print_message(syslog.LOG_ERR, "results: {",  json.dumps(results, indent=4), "}")
+        print_message(syslog.LOG_ERR, "Failed. Look at reported mismatches above")
         return -1
     else:
-        print_message(MODE_ERR, "All good!")
+        print_message(syslog.LOG_INFO, "All good!")
         return 0
 
-def usage():
-    print sys.argv[0], "[-m <QUIET|ERR|INFO|DEBUG>]"
-    print sys.argv[0], "[--mode=<QUIET|ERR|INFO|DEBUG>]"
-    sys.exit(-1)
-
 def main(argv):
-    try:
-        opts, argv = getopt.getopt(argv, "m:", ["mode="])
-    except getopt.GetoptError:
-        usage()
+    interval = 0
+    parser=argparse.ArgumentParser(description="Verify routes between APPL-DB & ASIC-DB are in sync")
+    parser.add_argument('-m', "--mode", type=Level, choices=list(Level), default='ERR')
+    parser.add_argument("-i", "--interval", type=int, default=0, help="Scan interval in seconds")
+    args = parser.parse_args()
 
-    for opt, arg in opts:
-        if opt in ("-m", "--mode"):
-            set_mode(arg)
+    set_level(args.mode)
 
-    ret = check_routes()
-    sys.exit(ret)
+    if args.interval:
+        if (args.interval < MIN_SCAN_INTERVAL):
+            interval = MIN_SCAN_INTERVAL
+        elif (args.interval > MAX_SCAN_INTERVAL):
+            interval = MAX_SCAN_INTERVAL
+        else:
+            interval = args.interval
+
+    while True:
+        ret = check_routes()
+
+        if interval:
+            time.sleep(interval)
+        else:
+            sys.exit(ret)
 
 
 if __name__ == "__main__":
