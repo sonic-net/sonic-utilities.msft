@@ -4,7 +4,7 @@ import traceback
 import sys
 import argparse
 import syslog
-from swsssdk import ConfigDBConnector
+from swsssdk import ConfigDBConnector, SonicDBConfig
 import sonic_device_util
 
 
@@ -24,7 +24,7 @@ def log_error(msg):
 
 
 class DBMigrator():
-    def __init__(self, socket=None):
+    def __init__(self, namespace, socket=None):
         """
         Version string format:
            version_<major>_<minor>_<build>
@@ -46,9 +46,11 @@ class DBMigrator():
         if socket:
             db_kwargs['unix_socket_path'] = socket
 
-        self.configDB        = ConfigDBConnector(**db_kwargs)
+        if namespace is None:
+            self.configDB = ConfigDBConnector(**db_kwargs)
+        else:
+            self.configDB = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace, **db_kwargs)
         self.configDB.db_connect('CONFIG_DB')
-
 
     def migrate_pfc_wd_table(self):
         '''
@@ -291,14 +293,25 @@ def main():
                         required = False,
                         help = 'the unix socket that the desired database listens on',
                         default = None )
+        parser.add_argument('-n',
+                        dest='namespace',
+                        metavar='asic namespace',
+                        type = str,
+                        required = False,
+                        help = 'The asic namespace whose DB instance we need to connect',
+                        default = None )
         args = parser.parse_args()
         operation = args.operation
         socket_path = args.socket
+        namespace = args.namespace
+
+        if args.namespace is not None:
+            SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
 
         if socket_path:
-            dbmgtr = DBMigrator(socket=socket_path)
+            dbmgtr = DBMigrator(namespace, socket=socket_path)
         else:
-            dbmgtr = DBMigrator()
+            dbmgtr = DBMigrator(namespace)
 
         result = getattr(dbmgtr, operation)()
         if result:
