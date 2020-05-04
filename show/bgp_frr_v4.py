@@ -1,5 +1,5 @@
 import click
-from show.main import ip, run_command, get_bgp_summary_extended
+from show.main import AliasedGroup, ip, run_command, get_bgp_summary_extended
 
 
 ###############################################################################
@@ -9,7 +9,7 @@ from show.main import ip, run_command, get_bgp_summary_extended
 ###############################################################################
 
 
-@ip.group()
+@ip.group(cls=AliasedGroup)
 def bgp():
     """Show IPv4 BGP (Border Gateway Protocol) information"""
     pass
