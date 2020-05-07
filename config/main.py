@@ -36,6 +36,7 @@ SYSTEMCTL_ACTION_STOP="stop"
 SYSTEMCTL_ACTION_RESTART="restart"
 SYSTEMCTL_ACTION_RESET_FAILED="reset-failed"
 
+DEFAULT_NAMESPACE = ''
 # ========================== Syslog wrappers ==========================
 
 def log_debug(msg):
@@ -632,6 +633,8 @@ def config():
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
 
+    SonicDBConfig.load_sonic_global_db_config()
+
 
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
@@ -915,26 +918,46 @@ def load_minigraph():
     log_info("'load_minigraph' stopping services...")
     _stop_services()
 
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    client = config_db.get_redis_client(config_db.CONFIG_DB)
-    client.flushdb()
-    if os.path.isfile('/etc/sonic/init_cfg.json'):
-        command = "{} -H -m -j /etc/sonic/init_cfg.json --write-to-db".format(SONIC_CFGGEN_PATH)
-    else:
-        command = "{} -H -m --write-to-db".format(SONIC_CFGGEN_PATH)
-    run_command(command, display_cmd=True)
-    client.set(config_db.INIT_INDICATOR, 1)
-    if device_type != 'MgmtToRRouter':
-        run_command('pfcwd start_default', display_cmd=True)
+    # For Single Asic platform the namespace list has the empty string
+    # for mulit Asic platform the empty string to generate the config
+    # for host
+    namespace_list = [DEFAULT_NAMESPACE]
+    num_npus = sonic_device_util.get_num_npus()
+    if num_npus > 1:
+        namespace_list += sonic_device_util.get_namespaces()
+
+    for namespace in namespace_list:
+        if namespace is DEFAULT_NAMESPACE:
+            config_db = ConfigDBConnector()
+            cfggen_namespace_option = " "
+            ns_cmd_prefix = " "
+        else:
+            config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+            cfggen_namespace_option = " -n {}".format(namespace)
+            ns_cmd_prefix = "sudo ip netns exec {}".format(namespace)
+        config_db.connect()
+        client = config_db.get_redis_client(config_db.CONFIG_DB)
+        client.flushdb()
+        if os.path.isfile('/etc/sonic/init_cfg.json'):
+            command = "{} -H -m -j /etc/sonic/init_cfg.json {} --write-to-db".format(SONIC_CFGGEN_PATH, cfggen_namespace_option)
+        else:
+            command = "{} -H -m --write-to-db {} ".format(SONIC_CFGGEN_PATH,cfggen_namespace_option)
+        run_command(command, display_cmd=True)
+        client.set(config_db.INIT_INDICATOR, 1)
+
+        # These commands are not run for host on multi asic platform
+        if num_npus == 1 or namespace is not DEFAULT_NAMESPACE:
+            if device_type != 'MgmtToRRouter':
+                run_command('{} pfcwd start_default'.format(ns_cmd_prefix), display_cmd=True)
+            run_command("{} config qos reload".format(ns_cmd_prefix), display_cmd=True)
+
+        # Write latest db version string into db
+        db_migrator='/usr/bin/db_migrator.py'
+        if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
+            run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
+
     if os.path.isfile('/etc/sonic/acl.json'):
         run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
-    run_command("config qos reload", display_cmd=True)
-
-    # Write latest db version string into db
-    db_migrator='/usr/bin/db_migrator.py'
-    if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
-        run_command(db_migrator + ' -o set_version')
 
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
