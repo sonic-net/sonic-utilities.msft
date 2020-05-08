@@ -2298,6 +2298,8 @@ Optional argument "-p" specify a period (in seconds) with which to gather counte
 - Usage:
   ```
   show interfaces counters [-a|--printall] [-p|--period <period>]
+  show interfaces counters errors
+  show interfaces counters rates 
   show interfaces counters rif [-p|--period <period>] <interface_name>
   ```
 
@@ -2314,6 +2316,33 @@ Optional argument "-p" specify a period (in seconds) with which to gather counte
    Ethernet20        U   47,983,339,172   35.89 MB/s      0.70%         0     2,174         0   58,986,354,359   51.83 MB/s      1.01%         0         0         0
    Ethernet24        U   33,543,533,441   36.59 MB/s      0.71%         0     1,613         0   43,066,076,370   49.92 MB/s      0.97%         0         0         0
   ```
+
+The "errors" subcommand is used to display the interface errors. 
+
+- Example:
+  ```
+  admin@str-s6000-acs-11:~$ show interface counters errors
+      IFACE    STATE    RX_ERR    RX_DRP    RX_OVR    TX_ERR    TX_DRP    TX_OVR
+  -----------  -------  --------  --------  --------  --------  --------  --------
+    Ethernet0        U         0         4         0         0         0         0
+    Ethernet4        U         0         0         0         0         0         0
+    Ethernet8        U         0         1         0         0         0         0
+   Ethernet12        U         0         0         0         0         0         0
+```
+
+The "rates" subcommand is used to disply only the interface rates. 
+
+- Exmaple: 
+  ```
+  admin@str-s6000-acs-11:/usr/bin$ show int counters rates
+      IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    TX_OK    TX_BPS    TX_PPS    TX_UTIL
+  -----------  -------  -------  --------  --------  ---------  -------  --------  --------  ---------
+    Ethernet0        U   467510       N/A       N/A        N/A   466488       N/A       N/A        N/A
+    Ethernet4        U   469679       N/A       N/A        N/A   469245       N/A       N/A        N/A
+    Ethernet8        U   466660       N/A       N/A        N/A   465982       N/A       N/A        N/A
+   Ethernet12        U   466579       N/A       N/A        N/A   466318       N/A       N/A        N/A
+```
+
 
 The "rif" subcommand is used to display l3 interface counters. Layer 3 interfaces include router interfaces, portchannels and vlan interfaces.
 

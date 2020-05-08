@@ -966,6 +966,28 @@ def counters(ctx, verbose, period, printall):
 
         run_command(cmd, display_cmd=verbose)
 
+# 'errors' subcommand ("show interfaces counters errors")
+@counters.command()
+@click.option('-p', '--period')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def errors(verbose, period):
+    """Show interface counters errors"""
+    cmd = "portstat -e"
+    if period is not None:
+        cmd += " -p {}".format(period)
+    run_command(cmd, display_cmd=verbose)
+
+# 'rates' subcommand ("show interfaces counters rates")
+@counters.command()
+@click.option('-p', '--period')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def rates(verbose, period):
+    """Show interface counters rates"""
+    cmd = "portstat -R"
+    if period is not None:
+        cmd += " -p {}".format(period)
+    run_command(cmd, display_cmd=verbose)
+
 # 'counters' subcommand ("show interfaces counters rif")
 @counters.command()
 @click.argument('interface', metavar='<interface_name>', required=False, type=str)
