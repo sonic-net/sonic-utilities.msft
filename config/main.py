@@ -1971,6 +1971,57 @@ def remove(ctx, interface_name, ip_addr):
         ctx.fail("'ip_addr' is not valid.")
 
 #
+# 'transceiver' subgroup ('config interface transceiver ...')
+#
+
+@interface.group(cls=AbbreviationGroup)
+@click.pass_context
+def transceiver(ctx):
+    """SFP transceiver configuration"""
+    pass
+
+#
+# 'lpmode' subcommand ('config interface transceiver lpmode ...')
+#
+
+@transceiver.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('state', metavar='(enable|disable)', type=click.Choice(['enable', 'disable']))
+@click.pass_context
+def lpmode(ctx, interface_name, state):
+    """Enable/disable low-power mode for SFP transceiver module"""
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if interface_name_is_valid(interface_name) is False:
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    cmd = "sudo sfputil lpmode {} {}".format("on" if state == "enable" else "off", interface_name)
+    run_command(cmd)
+
+#
+# 'reset' subcommand ('config interface reset ...')
+#
+
+@transceiver.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.pass_context
+def reset(ctx, interface_name):
+    """Reset SFP transceiver module"""
+    if get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if interface_name_is_valid(interface_name) is False:
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    cmd = "sudo sfputil reset {}".format(interface_name)
+    run_command(cmd)
+
+#
 # 'vrf' subgroup ('config interface vrf ...')
 #
 

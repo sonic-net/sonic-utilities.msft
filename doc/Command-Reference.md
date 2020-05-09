@@ -2530,7 +2530,7 @@ This sub-section explains the following list of configuration on the interfaces.
 
 From 201904 release onwards, the “config interface” command syntax is changed and the format is as follows:
 
-- config interface  interface_subcommand <interface_name>
+- config interface interface_subcommand <interface_name>
 i.e Interface name comes after the subcommand
 - Ex: config interface startup Ethernet63
 
@@ -2696,6 +2696,7 @@ This command is used to administratively shut down either the Physical interface
   *Versions <= 201811*
   ```
   config interface <interface_name> shutdown (for 201811- version)
+  ```
 
 - Example:
 
@@ -2723,6 +2724,7 @@ This command is used for administratively bringing up the Physical interface or 
   *Versions <= 201811*
   ```
   config interface <interface_name> startup (for 201811- version)
+  ```
 
 - Example:
 
@@ -2761,6 +2763,44 @@ Dynamic breakout feature is yet to be supported in SONiC and hence uses cannot c
 - Example (Versions <= 201811):
   ```
   admin@sonic:~$ sudo config interface Ethernet63 speed 40000
+
+  ```
+
+**config interface transceiver lpmode**
+
+This command is used to enable or disable low-power mode for an SFP transceiver
+
+- Usage:
+
+  ```
+  config interface transceiver lpmode <interface_name> (enable | disable)
+  ```
+
+- Examples:
+
+  ```
+  user@sonic~$ sudo config interface transceiver lpmode Ethernet0 enable
+  Enabling low-power mode for port Ethernet0...  OK
+
+  user@sonic~$ sudo config interface transceiver lpmode Ethernet0 disable
+  Disabling low-power mode for port Ethernet0...  OK
+  ```
+
+**config interface transceiver reset**
+
+This command is used to reset an SFP transceiver
+
+- Usage:
+
+  ```
+  config interface transceiver reset <interface_name>
+  ```
+
+- Examples:
+
+  ```
+  user@sonic~$ sudo config interface transceiver reset Ethernet0
+  Resetting port Ethernet0...  OK
   ```
 
 **config interface mtu <interface_name> (Versions >= 201904)**
