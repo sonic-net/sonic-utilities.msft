@@ -3,7 +3,6 @@
 
 import click
 import subprocess
-from click_default_group import DefaultGroup
 
 def run_command(command, pager=False):
     click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
@@ -192,17 +191,13 @@ else:
     #
     # 'bgp' group for quagga ###
     #
-    @cli.group(cls=DefaultGroup, default_if_no_args=True)
-    #@cli.group()
-    def bgp():
-        """debug bgp on """
-        pass
-
-    @bgp.command(default=True)
-    def default():
-        """debug bgp"""
-        command = 'sudo vtysh -c "debug bgp"'
-        run_command(command)
+    @cli.group(invoke_without_command=True)
+    @click.pass_context
+    def bgp(ctx):
+        """debug bgp on"""
+        if ctx.invoked_subcommand is None:
+            command = 'sudo vtysh -c "debug bgp"'
+            run_command(command)
 
     @bgp.command()
     def events():

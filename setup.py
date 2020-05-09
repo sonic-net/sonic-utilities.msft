@@ -144,7 +144,6 @@ setup(
     # - swsssdk
     # - tabulate
     install_requires=[
-        'click-default-group',
         'click',
         'natsort'
     ],

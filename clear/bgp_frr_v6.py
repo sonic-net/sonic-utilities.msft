@@ -14,32 +14,22 @@ def bgp():
     """Clear IPv6 BGP (Border Gateway Protocol) information"""
     pass
 
-
-# Default 'bgp' command (called if no subcommands or their aliases were passed)
-@bgp.command(default=True)
-def default():
-    """Clear all BGP peers"""
-    command = 'sudo vtysh -c "clear bgp ipv6 *"'
-    run_command(command)
-
-
 @bgp.group()
 def neighbor():
     """Clear specific BGP peers"""
     pass
 
-
-@neighbor.command(default=True)
+# 'all' subcommand
+@neighbor.command('all')
 @click.argument('ipaddress', required=False)
-def default(ipaddress):
+def neigh_all(ipaddress):
     """Clear all BGP peers"""
 
     if ipaddress is not None:
-        command = 'sudo vtysh -c "clear bgp ipv6 {} "'.format(ipaddress)
+        command = 'sudo vtysh -c "clear bgp ipv6 {}"'.format(ipaddress)
     else:
         command = 'sudo vtysh -c "clear bgp ipv6 *"'
     run_command(command)
-
 
 # 'in' subcommand
 @neighbor.command('in')
@@ -72,19 +62,6 @@ def soft():
     """Soft reconfig BGP's inbound/outbound updates"""
     pass
 
-
-@soft.command(default=True)
-@click.argument('ipaddress', required=False)
-def default(ipaddress):
-    """Clear BGP neighbors soft configuration"""
-
-    if ipaddress is not None:
-        command = 'sudo vtysh -c "clear bgp ipv6 {} soft "'.format(ipaddress)
-    else:
-        command = 'sudo vtysh -c "clear bgp ipv6 * soft"'
-    run_command(command)
-
-
 # 'soft in' subcommand
 @soft.command('in')
 @click.argument('ipaddress', required=False)
@@ -97,6 +74,18 @@ def soft_in(ipaddress):
         command = 'sudo vtysh -c "clear bgp ipv6 * soft in"'
     run_command(command)
 
+
+# 'soft all' subcommand
+@neighbor.command('all')
+@click.argument('ipaddress', required=False)
+def soft_all(ipaddress):
+    """Clear BGP neighbors soft configuration"""
+
+    if ipaddress is not None:
+        command = 'sudo vtysh -c "clear bgp ipv6 {} soft"'.format(ipaddress)
+    else:
+        command = 'sudo vtysh -c "clear bgp ipv6 * soft"'
+    run_command(command)
 
 # 'soft out' subcommand
 @soft.command('out')

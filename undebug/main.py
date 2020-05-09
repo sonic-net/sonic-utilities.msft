@@ -3,7 +3,6 @@
 
 import click
 import subprocess
-from click_default_group import DefaultGroup
 
 def run_command(command, pager=False):
     click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
@@ -192,57 +191,53 @@ else:
     #
     # 'bgp' group for quagga ###
     #
-    @cli.group(cls=DefaultGroup, default_if_no_args=True)
-    #@cli.group()
-    def bgp():
-        """debug bgp on """
-        pass
-
-    @bgp.command(default=True)
-    def default():
-        """debug bgp"""
-        command = 'sudo vtysh -c "no debug bgp"'
-        run_command(command)
+    @cli.group(invoke_without_command=True)
+    @click.pass_context
+    def bgp(ctx):
+        """debug bgp off"""
+        if ctx.invoked_subcommand is None:
+            command = 'sudo vtysh -c "no debug bgp"'
+            run_command(command)
 
     @bgp.command()
     def events():
-        """debug bgp events on"""
+        """debug bgp events off"""
         command = 'sudo vtysh -c "no debug bgp events"'
         run_command(command)
 
     @bgp.command()
     def updates():
-        """debug bgp updates on"""
+        """debug bgp updates off"""
         command = 'sudo vtysh -c "no debug bgp updates"'
         run_command(command)
 
     @bgp.command()
     def as4():
-        """debug bgp as4 actions on"""
+        """debug bgp as4 actions off"""
         command = 'sudo vtysh -c "no debug bgp as4"'
         run_command(command)
 
     @bgp.command()
     def filters():
-        """debug bgp filters on"""
+        """debug bgp filters off"""
         command = 'sudo vtysh -c "no debug bgp filters"'
         run_command(command)
 
     @bgp.command()
     def fsm():
-        """debug bgp finite state machine on"""
+        """debug bgp finite state machine off"""
         command = 'sudo vtysh -c "no debug bgp fsm"'
         run_command(command)
 
     @bgp.command()
     def keepalives():
-        """debug bgp keepalives on"""
+        """debug bgp keepalives off"""
         command = 'sudo vtysh -c "no debug bgp keepalives"'
         run_command(command)
 
     @bgp.command()
     def zebra():
-        """debug bgp zebra messages on"""
+        """debug bgp zebra messages off"""
         command = 'sudo vtysh -c "no debug bgp zebra"'
         run_command(command)
 

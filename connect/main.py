@@ -3,7 +3,6 @@
 import click
 import os
 import pexpect
-from click_default_group import DefaultGroup
 
 try:
     # noinspection PyPep8Naming
@@ -35,12 +34,9 @@ class Config(object):
 _config = None
 
 
-# This aliased group has been modified from click examples to inherit from DefaultGroup instead of click.Group.
-# DefaultGroup is a superclass of click.Group which calls a default subcommand instead of showing
-# a help message if no subcommand is passed
-class AliasedGroup(DefaultGroup):
-    """This subclass of a DefaultGroup supports looking up aliases in a config
-    file and with a bit of magic.
+class AliasedGroup(click.Group):
+    """This subclass of click.Group supports abbreviations and
+       looking up aliases in a config file with a bit of magic.
     """
 
     def get_command(self, ctx, cmd_name):
@@ -71,12 +67,9 @@ class AliasedGroup(DefaultGroup):
         matches = [x for x in self.list_commands(ctx)
                    if x.lower().startswith(cmd_name.lower())]
         if not matches:
-            # No command name matched. Issue Default command.
-            ctx.arg0 = cmd_name
-            cmd_name = self.default_cmd_name
-            return DefaultGroup.get_command(self, ctx, cmd_name)
+            return None
         elif len(matches) == 1:
-            return DefaultGroup.get_command(self, ctx, matches[0])
+            return click.Group.get_command(self, ctx, matches[0])
         ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
 
 def run_command(command, display_cmd=False):
