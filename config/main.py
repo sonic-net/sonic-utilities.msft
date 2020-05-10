@@ -680,6 +680,7 @@ def save(filename):
         else:
             command = "{} -n {} -d --print-data > {}".format(SONIC_CFGGEN_PATH, namespace, file)
 
+        log_info("'save' executing...")
         run_command(command, display_cmd=True)
 
 @config.command()
@@ -741,6 +742,7 @@ def load(filename, yes):
         else:
             command = "{} -n {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, namespace, file)
 
+        log_info("'load' executing...")
         run_command(command, display_cmd=True)
 
 
@@ -871,6 +873,7 @@ def reload(filename, yes, load_sysinfo):
 @click.argument('filename', default='/etc/sonic/device_desc.xml', type=click.Path(exists=True))
 def load_mgmt_config(filename):
     """Reconfigure hostname and mgmt interface based on device description file."""
+    log_info("'load_mgmt_config' executing...")
     command = "{} -M {} --write-to-db".format(SONIC_CFGGEN_PATH, filename)
     run_command(command, display_cmd=True)
     #FIXME: After config DB daemon for hostname and mgmt interface is implemented, we'll no longer need to do manual configuration here
@@ -1182,14 +1185,19 @@ def start_default(verbose):
 @config.group(cls=AbbreviationGroup)
 @click.pass_context
 def qos(ctx):
+    """QoS-related configuration tasks"""
     pass
 
 @qos.command('clear')
 def clear():
+    """Clear QoS configuration"""
+    log_info("'qos clear' executing...")
     _clear_qos()
 
 @qos.command('reload')
 def reload():
+    """Reload QoS configuration"""
+    log_info("'qos reload' executing...")
     _clear_qos()
     platform = _get_platform()
     hwsku = _get_hwsku()
@@ -1321,6 +1329,8 @@ def add_vlan(ctx, vid):
 @click.argument('vid', metavar='<vid>', required=True, type=int)
 @click.pass_context
 def del_vlan(ctx, vid):
+    """Delete VLAN"""
+    log_info("'vlan del {}' executing...".format(vid))
     db = ctx.obj['db']
     keys = [ (k, v) for k, v in db.get_table('VLAN_MEMBER') if k == 'Vlan{}'.format(vid) ]
     for k in keys:
@@ -1343,6 +1353,8 @@ def vlan_member(ctx):
 @click.option('-u', '--untagged', is_flag=True)
 @click.pass_context
 def add_vlan_member(ctx, vid, interface_name, untagged):
+    """Add VLAN member"""
+    log_info("'vlan member add {} {}' executing...".format(vid, interface_name))
     db = ctx.obj['db']
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
@@ -1381,6 +1393,8 @@ def add_vlan_member(ctx, vid, interface_name, untagged):
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.pass_context
 def del_vlan_member(ctx, vid, interface_name):
+    """Delete VLAN member"""
+    log_info("'vlan member del {} {}' executing...".format(vid, interface_name))
     db = ctx.obj['db']
     vlan_name = 'Vlan{}'.format(vid)
     vlan = db.get_entry('VLAN', vlan_name)
@@ -1674,6 +1688,7 @@ def num_dumps(kdump_num_dumps):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def all(verbose):
     """Shut down all BGP sessions"""
+    log_info("'bgp shutdown all' executing...")
     bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses()
     for ipaddress in bgp_neighbor_ip_list:
         _change_bgp_session_status_by_addr(ipaddress, 'down', verbose)
@@ -1684,6 +1699,7 @@ def all(verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def neighbor(ipaddr_or_hostname, verbose):
     """Shut down BGP session by neighbor IP address or hostname"""
+    log_info("'bgp shutdown neighbor {}' executing...".format(ipaddr_or_hostname))
     _change_bgp_session_status(ipaddr_or_hostname, 'down', verbose)
 
 @bgp.group(cls=AbbreviationGroup)
@@ -1696,6 +1712,7 @@ def startup():
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def all(verbose):
     """Start up all BGP sessions"""
+    log_info("'bgp startup all' executing...")
     bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses()
     for ipaddress in bgp_neighbor_ip_list:
         _change_bgp_session_status(ipaddress, 'up', verbose)
@@ -1706,6 +1723,7 @@ def all(verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def neighbor(ipaddr_or_hostname, verbose):
     """Start up BGP session by neighbor IP address or hostname"""
+    log_info("'bgp startup neighbor {}' executing...".format(ipaddr_or_hostname))
     _change_bgp_session_status(ipaddr_or_hostname, 'up', verbose)
 
 #
@@ -1745,6 +1763,7 @@ def interface(ctx):
 @click.pass_context
 def startup(ctx, interface_name):
     """Start up interface"""
+
     config_db = ctx.obj['config_db']
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
@@ -1753,6 +1772,8 @@ def startup(ctx, interface_name):
 
     if interface_name_is_valid(interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    log_info("'interface startup {}' executing...".format(interface_name))
 
     if interface_name.startswith("Ethernet"):
         if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
@@ -1773,6 +1794,7 @@ def startup(ctx, interface_name):
 @click.pass_context
 def shutdown(ctx, interface_name):
     """Shut down interface"""
+    log_info("'interface shutdown {}' executing...".format(interface_name))
     config_db = ctx.obj['config_db']
     if get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(interface_name)
@@ -1808,6 +1830,8 @@ def speed(ctx, interface_name, interface_speed, verbose):
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
+
+    log_info("'interface speed {} {}' executing...".format(interface_name, interface_speed))
 
     command = "portconfig -p {} -s {}".format(interface_name, interface_speed)
     if verbose:
@@ -2361,6 +2385,7 @@ def update():
 @click.argument('file_name', required=True)
 def full(file_name):
     """Full update of ACL rules configuration."""
+    log_info("'acl update full {}' executing...".format(file_name))
     command = "acl-loader update full {}".format(file_name)
     run_command(command)
 
@@ -2373,6 +2398,7 @@ def full(file_name):
 @click.argument('file_name', required=True)
 def incremental(file_name):
     """Incremental update of ACL rule configuration."""
+    log_info("'acl update incremental {}' executing...".format(file_name))
     command = "acl-loader update incremental {}".format(file_name)
     run_command(command)
 
@@ -2463,6 +2489,7 @@ def remove_reasons(counter_name, reasons, verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
     """ECN-related configuration tasks"""
+    log_info("'ecn -profile {}' executing...".format(profile))
     command = "ecnconfig -p %s" % profile
     if rmax is not None: command += " -rmax %d" % rmax
     if rmin is not None: command += " -rmin %d" % rmin
