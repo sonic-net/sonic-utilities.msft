@@ -3997,11 +3997,16 @@ This command displays a list of NTP peers known to the server as well as a summa
 - Example:
   ```
   admin@sonic:~$ show ntp
+  synchronised to NTP server (204.2.134.164) at stratum 3
+     time correct to within 326797 ms
+     polling server every 1024 s
+
        remote           refid      st t when poll reach   delay   offset  jitter
   ==============================================================================
    23.92.29.245    .XFAC.          16 u    - 1024    0    0.000    0.000   0.000
   *204.2.134.164   46.233.231.73    2 u  916 1024  377    3.079    0.394   0.128
   ```
+
 
 ### NTP Config Commands
 
