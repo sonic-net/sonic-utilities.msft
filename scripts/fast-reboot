@@ -107,7 +107,7 @@ function clear_fast_boot()
 {
     common_clear
 
-    redis-cli -n 6 DEL "FAST_REBOOT|system" &>/dev/null || /bin/true
+    sonic-db-cli STATE_DB DEL "FAST_REBOOT|system" &>/dev/null || /bin/true
 }
 
 function clear_warm_boot()
@@ -208,7 +208,8 @@ function backup_database()
             end
         end
     " 0 > /dev/null
-    redis-cli save > /dev/null
+    sonic-db-cli SAVE > /dev/null
+    #TODO : need a script to copy all rdb files if there is multiple db instances config
     docker cp database:/var/lib/redis/$REDIS_FILE $WARM_DIR
     docker exec -i database rm /var/lib/redis/$REDIS_FILE
 }
@@ -317,7 +318,7 @@ case "$REBOOT_TYPE" in
     "fast-reboot")
         BOOT_TYPE_ARG=$REBOOT_TYPE
         trap clear_fast_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
-        redis-cli -n 6 SET "FAST_REBOOT|system" "1" "EX" "180" &>/dev/null
+        sonic-db-cli STATE_DB SET "FAST_REBOOT|system" "1" "EX" "180" &>/dev/null
         ;;
     "warm-reboot")
         if [[ "$sonic_asic_type" == "mellanox" ]]; then
