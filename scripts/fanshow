@@ -9,13 +9,15 @@ from swsssdk import SonicV2Connector
 from natsort import natsorted
 
 
-header = ['FAN', 'Speed', 'Direction', 'Presence', 'Status', 'Timestamp']
+header = ['Drawer', 'LED', 'FAN', 'Speed', 'Direction', 'Presence', 'Status', 'Timestamp']
 
 FAN_TABLE_NAME = 'FAN_INFO'
+DRAWER_FIELD_NAME = 'drawer_name'
 SPEED_FIELD_NAME = 'speed'
 DIRECTION_FIELD_NAME = 'direction'
 PRESENCE_FIELD_NAME = 'presence'
 STATUS_FIELD_NAME = 'status'
+LED_STATUS_FIELD_NAME = 'led_status'
 TIMESTAMP_FIELD_NAME = 'timestamp'
 
 
@@ -58,7 +60,8 @@ class FanShow(object):
             else:
                 status = 'N/A'
 
-            table.append((name, speed, data_dict[DIRECTION_FIELD_NAME], presence, status, data_dict[TIMESTAMP_FIELD_NAME]))
+            table.append((data_dict[DRAWER_FIELD_NAME], data_dict[LED_STATUS_FIELD_NAME], name, speed, data_dict[DIRECTION_FIELD_NAME], presence, status, 
+                          data_dict[TIMESTAMP_FIELD_NAME]))
         
         if table:
             print(tabulate(table, header, tablefmt='simple', stralign='right'))
