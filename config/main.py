@@ -117,7 +117,7 @@ except KeyError, TypeError:
 
 # Execute action on list of systemd services
 def execute_systemctl(list_of_services, action):
-    num_asic = _get_num_asic()
+    num_asic = sonic_device_util.get_num_npus()
     generated_services_list, generated_multi_instance_services = _get_sonic_generated_services(num_asic)
     if ((generated_services_list == []) and
         (generated_multi_instance_services == [])):
@@ -156,44 +156,12 @@ def run_command(command, display_cmd=False, ignore_error=False):
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
 
-# API to check if this is a multi-asic device or not.
-def is_multi_asic():
-    num_asics = _get_num_asic()
-
-    if num_asics > 1:
-        return True
-    else:
-        return False
-
-"""In case of Multi-Asic platform, Each ASIC will have a linux network namespace created.
-   So we loop through the databases in different namespaces and depending on the sub_role
-   decide whether this is a front end ASIC/namespace or a back end one.
-"""
-def get_all_namespaces():
-    front_ns = []
-    back_ns = []
-    num_asics = _get_num_asic()
-
-    if is_multi_asic():
-        for asic in range(num_asics):
-            namespace = "{}{}".format(NAMESPACE_PREFIX, asic)
-            config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-            config_db.connect()
-
-            metadata = config_db.get_table('DEVICE_METADATA')
-            if metadata['localhost']['sub_role'] == 'FrontEnd':
-                front_ns.append(namespace)
-            elif metadata['localhost']['sub_role'] == 'BackEnd':
-                back_ns.append(namespace)
-
-    return {'front_ns': front_ns, 'back_ns': back_ns}
-
 # Validate whether a given namespace name is valid in the device.
 def validate_namespace(namespace):
-    if not is_multi_asic():
+    if not sonic_device_util.is_multi_npu():
         return True
 
-    namespaces = get_all_namespaces()
+    namespaces = sonic_device_util.get_all_namespaces()
     if namespace in namespaces['front_ns'] + namespaces['back_ns']:
         return True
     else:
@@ -494,32 +462,6 @@ def _clear_qos():
     for qos_table in QOS_TABLE_NAMES:
         config_db.delete_table(qos_table)
 
-def _get_hwsku():
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    metadata = config_db.get_table('DEVICE_METADATA')
-    return metadata['localhost']['hwsku']
-
-def _get_platform():
-    with open('/host/machine.conf') as machine_conf:
-        for line in machine_conf:
-            tokens = line.split('=')
-            if tokens[0].strip() == 'onie_platform' or tokens[0].strip() == 'aboot_platform':
-                return tokens[1].strip()
-    return ''
-
-def _get_num_asic():
-    platform = _get_platform()
-    num_asic = 1
-    asic_conf_file = os.path.join('/usr/share/sonic/device/', platform, ASIC_CONF_FILENAME)
-    if os.path.isfile(asic_conf_file):
-        with open(asic_conf_file) as conf_file:
-            for line in conf_file:
-                line_info = line.split('=')
-                if line_info[0].lower() == "num_asic":
-                    num_asic = int(line_info[1])
-    return num_asic
-
 def _get_sonic_generated_services(num_asic):
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
         return None
@@ -644,11 +586,11 @@ def save(filename):
     """Export current config DB to a file on disk.\n
        <filename> : Names of configuration file(s) to save, separated by comma with no spaces in between
     """
-    num_asic = _get_num_asic()
+    num_asic = sonic_device_util.get_num_npus()
     cfg_files = []
 
     num_cfg_file = 1
-    if is_multi_asic():
+    if sonic_device_util.is_multi_npu():
         num_cfg_file += num_asic
 
     # If the user give the filename[s], extract the file names.
@@ -701,11 +643,11 @@ def load(filename, yes):
     if not yes:
         click.confirm(message, abort=True)
 
-    num_asic = _get_num_asic()
+    num_asic = sonic_device_util.get_num_npus()
     cfg_files = []
 
     num_cfg_file = 1
-    if is_multi_asic():
+    if sonic_device_util.is_multi_npu():
         num_cfg_file += num_asic
 
     # If the user give the filename[s], extract the file names.
@@ -767,11 +709,11 @@ def reload(filename, yes, load_sysinfo):
 
     log_info("'reload' executing...")
 
-    num_asic = _get_num_asic()
+    num_asic = sonic_device_util.get_num_npus()
     cfg_files = []
 
     num_cfg_file = 1
-    if is_multi_asic():
+    if sonic_device_util.is_multi_npu():
         num_cfg_file += num_asic
 
     # If the user give the filename[s], extract the file names.
@@ -1065,9 +1007,6 @@ def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer):
     """
     Add mirror session
     """
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
     session_info = {
             "src_ip": src_ip,
             "dst_ip": dst_ip,
@@ -1083,8 +1022,21 @@ def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer):
 
     if queue is not None:
         session_info['queue'] = queue
-
-    config_db.set_entry("MIRROR_SESSION", session_name, session_info)
+    
+    """
+    For multi-npu platforms we need to program all front asic namespaces
+    """
+    namespaces = sonic_device_util.get_all_namespaces()
+    if not namespaces['front_ns']:
+        config_db = ConfigDBConnector()
+        config_db.connect()
+        config_db.set_entry("MIRROR_SESSION", session_name, session_info)
+    else:
+        per_npu_configdb = {}
+        for front_asic_namespaces in namespaces['front_ns']:
+            per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            per_npu_configdb[front_asic_namespaces].connect()
+            per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
 
 @mirror_session.command()
 @click.argument('session_name', metavar='<session_name>', required=True)
@@ -1092,10 +1044,21 @@ def remove(session_name):
     """
     Delete mirror session
     """
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    config_db.set_entry("MIRROR_SESSION", session_name, None)
 
+    """
+    For multi-npu platforms we need to program all front asic namespaces
+    """
+    namespaces = sonic_device_util.get_all_namespaces()
+    if not namespaces['front_ns']:
+        config_db = ConfigDBConnector()
+        config_db.connect()
+        config_db.set_entry("MIRROR_SESSION", session_name, None)
+    else:
+        per_npu_configdb = {}
+        for front_asic_namespaces in namespaces['front_ns']:
+            per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            per_npu_configdb[front_asic_namespaces].connect()
+            per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, None)
 #
 # 'pfcwd' group ('config pfcwd ...')
 #
@@ -1202,8 +1165,8 @@ def reload():
     """Reload QoS configuration"""
     log_info("'qos reload' executing...")
     _clear_qos()
-    platform = _get_platform()
-    hwsku = _get_hwsku()
+    platform = sonic_device_util.get_platform()
+    hwsku = sonic_device_util.get_hwsku()
     buffer_template_file = os.path.join('/usr/share/sonic/device/', platform, hwsku, 'buffers.json.j2')
     if os.path.isfile(buffer_template_file):
         command = "{} -d -t {} >/tmp/buffers.json".format(SONIC_CFGGEN_PATH, buffer_template_file)
