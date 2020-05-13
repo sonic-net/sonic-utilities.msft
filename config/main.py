@@ -545,6 +545,7 @@ def _abort_if_false(ctx, param, value):
 def _stop_services():
     # on Mellanox platform pmon is stopped by syncd
     services_to_stop = [
+        'restapi',
         'swss',
         'lldp',
         'pmon',
@@ -575,7 +576,8 @@ def _reset_failed_services():
         'syncd',
         'teamd',
         'nat',
-        'sflow'
+        'sflow',
+        'restapi'
     ]
     execute_systemctl(services_to_reset, SYSTEMCTL_ACTION_RESET_FAILED)
 
@@ -595,6 +597,7 @@ def _restart_services():
         'hostcfgd',
         'nat',
         'sflow',
+        'restapi'
     ]
 
     if asic_type == 'mellanox' and 'pmon' in services_to_restart:
