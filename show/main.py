@@ -636,16 +636,19 @@ def is_mgmt_vrf_enabled(ctx):
         cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
 
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout = p.communicate()[0]
-        if p.returncode == 0:
-            mvrf_dict = json.loads(stdout)
+        try :
+            mvrf_dict = json.loads(p.stdout.read())
+        except ValueError:
+            print("MGMT_VRF_CONFIG is not present.")
+            return False
 
-            # if the mgmtVrfEnabled attribute is configured, check the value
-            # and return True accordingly.
-            if 'mgmtVrfEnabled' in mvrf_dict['vrf_global']:
-                if (mvrf_dict['vrf_global']['mgmtVrfEnabled'] == "true"):
-                    #ManagementVRF is enabled. Return True.
-                    return True
+        # if the mgmtVrfEnabled attribute is configured, check the value
+        # and return True accordingly.
+        if 'mgmtVrfEnabled' in mvrf_dict['vrf_global']:
+            if (mvrf_dict['vrf_global']['mgmtVrfEnabled'] == "true"):
+                #ManagementVRF is enabled. Return True.
+                return True
+
     return False
 
 #
