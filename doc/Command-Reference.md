@@ -49,6 +49,9 @@
 * [Interface Naming Mode](#interface-naming-mode)
   * [Interface naming mode show commands](#interface-naming-mode-show-commands)
   * [Interface naming mode config commands](#interface-naming-mode-config-commands)
+ * [Interface Vrf binding](#interface-vrf-binding)
+      * [Interface vrf bind & unbind config commands](#interface-vrf-bind-&-unbind-config-commands)
+      * [Interface vrf binding show commands](#interface-vrf-binding-show-commands)
 * [IP / IPv6](#ip--ipv6)
   * [IP show commands](#ip-show-commands)
   * [IPv6 show commands](#ipv6-show-commands)
@@ -60,6 +63,11 @@
   * [Reloading Configuration](#reloading-configuration)
   * [Loading Management Configuration](#loading-management-configuration)
   * [Saving Configuration to a File for Persistence](saving-configuration-to-a-file-for-persistence)
+ * [Loopback Interfaces](#loopback-interfaces)
+    * [Loopback config commands](#loopback-config-commands)
+* [VRF Configuration](#vrf-configuration)
+    * [VRF show commands](#vrf-show-commands)
+    * [VRF config commands](#vrf-config-commands)
 * [Management VRF](#Management-VRF)
   * [Management VRF Show commands](#management-vrf-show-commands)
   * [Management VRF Config commands](#management-vrf-config-commands)
@@ -271,15 +279,18 @@ This command lists all the possible configuration commands at the top level.
     load                   Import a previous saved config DB dump file.
     load_mgmt_config       Reconfigure hostname and mgmt interface based...
     load_minigraph         Reconfigure based on minigraph.
+    loopback               Loopback-related configuration tasks.
     mirror_session
     nat                    NAT-related configuration tasks
     platform               Platform-related configuration tasks
     portchannel
     qos
     reload                 Clear current configuration and import a...
+    route                  route-related configuration tasks
     save                   Export current config DB to a file on disk.
     tacacs                 TACACS+ server configuration
     vlan                   VLAN-related configuration tasks
+    vrf                    VRF-related configuration tasks
     warm_restart           warm_restart-related configuration tasks
     watermark              Configure watermark
     container              Modify configuration of containers
@@ -342,6 +353,7 @@ This command displays the full list of show commands available in the software; 
     users                 Show users
     version               Show version information
     vlan                  Show VLAN information
+    vrf                   Show vrf config
     warm_restart          Show warm restart configuration and state
     watermark             Show details of watermark
     container             Show details of container
@@ -2440,7 +2452,6 @@ This command displays the key fields of the interfaces such as Operational Statu
   Ethernet4    down       up  hundredGigE1/2  T0-2:hundredGigE1/30
   ```
 
-
 **show interfaces naming_mode**
 
 Refer sub-section [Interface-Naming-Mode](#Interface-Naming-Mode)
@@ -2544,7 +2555,7 @@ NOTE: In older versions of SONiC until 201811 release, the command syntax was `c
 **config interface <interface_name> ip add <ip_addr> (Versions <= 201811)**
 
 This command is used for adding the IP address for an interface.
-IP address for either physical interface or for portchannel or for VLAN interface can be configured using this command. 
+IP address for either physical interface or for portchannel or for VLAN interface or for Loopback interface can be configured using this command. 
 While configuring the IP address for the management interface "eth0", users can provide the default gateway IP address as an optional parameter from release 201911. 
 
 
@@ -2900,6 +2911,35 @@ The user must log out and log back in for changes to take effect. Note that the 
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interface-naming-mode)
 
+## Interface Vrf binding
+
+### Interface vrf bind & unbind config commands
+
+**config interface vrf bind**
+
+This command is used to bind a interface to a vrf.
+By default, all L3 interfaces will be in default vrf. Above vrf bind command will let users bind interface to a vrf.
+
+- Usage:
+  ```
+  config interface vrf bind <interface_name> <vrf_name>
+  ```
+
+**config interface vrf unbind**
+
+This command is used to ubind a interface from a vrf.
+This will move the interface to default vrf.
+
+- Usage:
+  ```
+  config interface vrf unbind <interface_name> <vrf_name>
+  ```
+  
+  ### Interface vrf binding show commands
+  
+  To display interface vrf binding information, user can use show vrf command.  Please refer sub-section [Vrf-show-command](#vrf-show-commands).
+  
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interface-vrf-binding)
 
 ## IP / IPv6
 
@@ -2918,7 +2958,7 @@ This command displays either all the route entries from the routing table or a s
 
 - Usage:
   ```
-  show ip route [<ip_address>]
+  show ip route [<vrf-name>] [<ip_address>]
   ```
 
 - Example:
@@ -2929,12 +2969,9 @@ This command displays either all the route entries from the routing table or a s
          > - selected route, * - FIB route
   S>* 0.0.0.0/0 [200/0] via 10.11.162.254, eth0
   C>* 1.1.0.0/16 is directly connected, Vlan100
-  C>* 10.1.0.1/32 is directly connected, lo
-  C>* 10.1.0.32/32 is directly connected, lo
   C>* 10.1.1.0/31 is directly connected, Ethernet112
   C>* 10.1.1.2/31 is directly connected, Ethernet116
   C>* 10.11.162.0/24 is directly connected, eth0
-  C>* 10.12.0.102/32 is directly connected, lo
   C>* 127.0.0.0/8 is directly connected, lo
   C>* 240.127.1.0/24 is directly connected, docker0
   ```
@@ -2948,6 +2985,27 @@ This command displays either all the route entries from the routing table or a s
     Known via "connected", distance 0, metric 0, best
     * directly connected, Ethernet112
   ```
+
+  - Vrf-name can also be specified to get IPv4 routes programmed in the vrf.
+
+  - Example:
+     ```
+     admin@sonic:~$ show ip route vrf Vrf-red
+       Codes: K - kernel route, C - connected, S - static, R - RIP,
+       O - OSPF, I - IS-IS, B - BGP, E - EIGRP, N - NHRP,
+       T - Table, v - VNC, V - VNC-Direct, A - Babel, D - SHARP,
+       F - PBR, f - OpenFabric,
+       > - selected route, * - FIB route
+       VRF Vrf-red:
+       C>*  11.1.1.1/32 is directly connected, Loopback11, 21:50:47
+       C>*  100.1.1.0/24 is directly connected, Vlan100, 03w1d06h
+       
+     admin@sonic:~$ show ip route vrf Vrf-red 11.1.1.1/32
+       Routing entry for 11.1.1.1/32
+       Known via "connected", distance 0, metric 0, vrf Vrf-red, best
+       Last update 21:57:53 ago
+       * directly connected, Loopback11
+   ```
 
 **show ip interfaces**
 
@@ -2968,16 +3026,20 @@ The type of interfaces include the following.
 - Example:
   ```
   admin@sonic:~$ show ip interfaces
-  Interface      IPv4 address/mask    Admin/Oper    BGP Neighbor    Neighbor IP
-  -------------  -------------------  ------------  --------------  -------------
-  PortChannel01  10.0.0.56/31         up/down       DEVICE1         10.0.0.57
-  PortChannel02  10.0.0.58/31         up/down       DEVICE2         10.0.0.59
-  PortChannel03  10.0.0.60/31         up/down       DEVICE3         10.0.0.61
-  PortChannel04  10.0.0.62/31         up/down       DEVICE4         10.0.0.63
-  Vlan1000       192.168.0.1/27       up/up         N/A             N/A
-  docker0        240.127.1.1/24       up/down       N/A             N/A
-  eth0           10.3.147.252/23      up/up         N/A             N/A
-  lo             127.0.0.1/8          up/up         N/A             N/A
+  Interface       Master          IPv4 address/mask     Admin/Oper      BGP Neighbor     Neighbor IP     Flags
+  -------------   ------------    ------------------    --------------  -------------    -------------   -------
+  Loopback0                       1.0.0.1/32            up/up           N/A              N/A
+  Loopback11      Vrf-red         11.1.1.1/32           up/up           N/A              N/A
+  Loopback100     Vrf-blue        100.0.0.1/32          up/up           N/A              N/A
+  PortChannel01                   10.0.0.56/31          up/down         DEVICE1          10.0.0.57
+  PortChannel02                   10.0.0.58/31          up/down         DEVICE2          10.0.0.59
+  PortChannel03                   10.0.0.60/31          up/down         DEVICE3          10.0.0.61
+  PortChannel04                   10.0.0.62/31          up/down         DEVICE4          10.0.0.63
+  Vlan100         Vrf-red         1001.1.1/24           up/up           N/A              N/A
+  Vlan1000                        192.168.0.1/27        up/up           N/A              N/A
+  docker0                         240.127.1.1/24        up/down         N/A              N/A
+  eth0                            10.3.147.252/23       up/up           N/A              N/A
+  lo                              127.0.0.1/8           up/up           N/A              N/A
   ```
 
 **show ip protocol**
@@ -3026,7 +3088,7 @@ This command displays either all the IPv6 route entries from the routing table o
 
 - Usage:
   ```
-  show ipv6 route [<ipv6_address>]
+  show ipv6 route [<vrf-name>] [<ipv6_address>]
   ```
 
 - Example:
@@ -3060,6 +3122,29 @@ This command displays either all the IPv6 route entries from the routing table o
     * directly connected, lo
   ```
 
+ Vrf-name can also be specified to get IPv6 routes programmed in the vrf.
+
+  - Example:
+     ```
+     admin@sonic:~$ show ipv6 route vrf Vrf-red
+       Codes: K - kernel route, C - connected, S - static, R - RIP,
+       O - OSPF, I - IS-IS, B - BGP, E - EIGRP, N - NHRP,
+       T - Table, v - VNC, V - VNC-Direct, A - Babel, D - SHARP,
+       F - PBR, f - OpenFabric,
+       > - selected route, * - FIB route
+       VRF Vrf-red:
+            C>*  1100::1/128 is directly connected, Loopback11, 21:50:47           
+            C>*  100::/112 is directly connected, Vlan100, 03w1d06h
+            C>*  fe80::/64 is directly connected, Loopback11, 21:50:47
+            C>*  fe80::/64 is directly connected, Vlan100, 03w1d06h
+            
+      admin@sonic:~$ show ipv6 route vrf Vrf-red 1100::1/128
+        Routing entry for 1100::1/128
+        Known via "connected", distance 0, metric 0, vrf Vrf-red, best
+        Last update 21:57:53 ago
+        * directly connected, Loopback11
+     ```
+
 **show ipv6 interfaces**
 
 This command displays the details about all the Layer3 IPv6 interfaces in the device for which IPv6 address has been assigned.
@@ -3078,16 +3163,18 @@ The type of interfaces include the following.
 - Example:
   ```
   admin@sonic:~$ show ipv6 interfaces
-  Interface      IPv6 address/mask                         Admin/Oper    BGP Neighbor    Neighbor IP
-  -------------  ----------------------------------------  ------------  --------------  -------------
-  Bridge         fe80::7c45:1dff:fe08:cdd%Bridge/64        up/up         N/A             N/A
-  PortChannel01  fc00::71/126                              up/down       DEVICE1         fc00::72
-  PortChannel02  fc00::75/126                              up/down       DEVICE2         fc00::76
-  PortChannel03  fc00::79/126                              up/down       DEVICE3         fc00::7a
-  PortChannel04  fc00::7d/126                              up/down       DEVICE4         fc00::7e
-  Vlan100        fe80::eef4:bbff:fefe:880a%Vlan100/64      up/up         N/A             N/A
-  eth0           fe80::eef4:bbff:fefe:880a%eth0/64         up/up         N/A             N/A
-  lo             fc00:1::32/128                            up/up         N/A             N/A
+  Interface        Master     IPv6 address/mask                          Admin/Oper    BGP Neighbor    Neighbor IP
+  -----------      --------   ----------------------------------------   ------------  --------------  -------------
+  Bridge                      fe80::7c45:1dff:fe08:cdd%Bridge/64         up/up         N/A             N/A
+  Loopback11       Vrf-red    1100::1/128                                up/up
+  PortChannel01               fc00::71/126                               up/down       DEVICE1         fc00::72
+  PortChannel02               fc00::75/126                               up/down       DEVICE2         fc00::76
+  PortChannel03               fc00::79/126                               up/down       DEVICE3         fc00::7a
+  PortChannel04               fc00::7d/126                               up/down       DEVICE4         fc00::7e
+  Vlan100          Vrf-red    100::1/112                                 up/up         N/A             N/A
+                              fe80::eef4:bbff:fefe:880a%Vlan100/64
+  eth0                        fe80::eef4:bbff:fefe:880a%eth0/64          up/up         N/A             N/A
+  lo                          fc00:1::32/128                             up/up         N/A             N/A
   ```
 
 **show ipv6 protocol**
@@ -3386,6 +3473,73 @@ Saved file can be transferred to remote machines for debugging. If users wants t
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#loading-reloading-and-saving-configuration)
 
+## Loopback Interfaces
+
+### Loopback Config commands
+
+This sub-section explains how to create and delete loopback interfaces.
+
+**config interface loopback**
+
+This command is used to add or delete loopback interfaces.
+It is recommended to use loopback names in the format "Loopbackxxx", where "xxx" is number of 1 to 3 digits. Ex: "Loopback11".
+
+- Usage:
+  ```
+  config loopback (add | del) <loopback_name>
+  ```
+
+- Example (Create the loopback with name "Loopback11"):
+  ```
+  admin@sonic:~$ sudo config loopback add Loopback11
+  ```
+
+## VRF Configuration
+
+### VRF show commands
+
+**show vrf**
+
+This command displays all vrfs configured on the system along with interface binding to the vrf.
+If vrf-name is also provided as part of the command, if the vrf is created it will display all interfaces binding to the vrf, if vrf is not created nothing will be displayed.
+
+- Usage:
+  ```
+  show vrf [<vrf_name>]
+  ```
+
+- Example:
+  ````
+     admin@sonic:~$ show vrf
+     VRF        Interfaces
+     -------    ------------
+     default    Vlan20
+     Vrf-red    Vlan100
+                Loopback11
+     Vrf-blue   Loopback100
+                Loopback102
+  ````  
+
+### VRF config commands
+
+**config vrf add **
+
+This command creates vrf in SONiC system with provided vrf-name.
+
+- Usage:
+ ```
+config vrf add <vrf-name>
+```
+Note: vrf-name should always start with keyword "Vrf"
+
+**config vrf del <vrf-name>**
+
+This command deletes vrf with name vrf-name.
+
+- Usage:
+ ```
+config vrf del <vrf-name>
+```
 
 ## Management VRF
 
