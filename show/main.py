@@ -1725,6 +1725,23 @@ def ssdhealth(device, verbose, vendor):
     options += " -e" if vendor else ""
     run_command(cmd + options, display_cmd=verbose)
 
+@platform.command()
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+@click.option('-c', '--check', is_flag=True, help="Check the platfome pcie device")
+def pcieinfo(check, verbose):
+    """Show Device PCIe Info"""
+    cmd = "pcieutil pcie_show"
+    if check:
+        cmd = "pcieutil pcie_check"
+    run_command(cmd, display_cmd=verbose)
+
+# 'firmware' subcommand ("show platform firmware")
+@platform.command()
+def firmware():
+    """Show firmware status information"""
+    cmd = "fwutil show status"
+    run_command(cmd)
+
 # 'fan' subcommand ("show platform fan")
 @platform.command()
 def fan():
@@ -1738,14 +1755,7 @@ def temperature():
     """Show device temperature information"""
     cmd = 'tempershow'
     run_command(cmd)
-
-# 'firmware' subcommand ("show platform firmware")
-@platform.command()
-def firmware():
-    """Show firmware status information"""
-    cmd = "fwutil show status"
-    run_command(cmd)
-
+    
 #
 # 'logging' command ("show logging")
 #
