@@ -511,6 +511,11 @@ main() {
         fi
     done
 
+    # run 'hw-management-generate-dump.sh' script and save the result file
+    /usr/bin/hw-management-generate-dump.sh    
+    save_file "/tmp/hw-mgmt-dump*" "hw-mgmt" false
+    rm -f /tmp/hw-mgmt-dump*
+
     # clean up working tar dir before compressing
     $RM $V -rf $TARDIR
 
