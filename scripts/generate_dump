@@ -361,7 +361,7 @@ main() {
     save_cmd "systemd-analyze blame" "systemd.analyze.blame"
     save_cmd "systemd-analyze dump" "systemd.analyze.dump"
     save_cmd "systemd-analyze plot" "systemd.analyze.plot.svg"
-    
+
     save_platform "syseeprom" "platform"
     save_platform "psustatus" "platform"
     save_platform "ssdhealth" "platform"
@@ -440,6 +440,12 @@ main() {
         save_cmd "bcmcmd -t5 version" "broadcom.version"
         save_cmd "bcmcmd -t5 soc" "broadcom.soc"
         save_cmd "bcmcmd -t5 ps" "broadcom.ps"
+        save_cmd "cat /proc/bcm/knet/debug" "broadcom.knet.debug"
+        save_cmd "cat /proc/bcm/knet/dma" "broadcom.knet.dma"
+        save_cmd "cat /proc/bcm/knet/dstats" "broadcom.knet.dstats"
+        save_cmd "cat /proc/bcm/knet/link" "broadcom.knet.link"
+        save_cmd "cat /proc/bcm/knet/rate" "broadcom.knet.rate"
+        save_cmd "cat /proc/bcm/knet/stats" "broadcom.knet.stats"
         save_cmd "bcmcmd \"l3 nat_ingress show\"" "broadcom.nat.ingress"
         save_cmd "bcmcmd \"l3 nat_egress show\"" "broadcom.nat.egress"
     fi
@@ -512,7 +518,7 @@ main() {
     done
 
     # run 'hw-management-generate-dump.sh' script and save the result file
-    /usr/bin/hw-management-generate-dump.sh    
+    /usr/bin/hw-management-generate-dump.sh
     save_file "/tmp/hw-mgmt-dump*" "hw-mgmt" false
     rm -f /tmp/hw-mgmt-dump*
 
