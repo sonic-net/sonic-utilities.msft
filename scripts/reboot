@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Reboot immediately if we run the kdump capture kernel
+VMCORE_FILE=/proc/vmcore
+if [ -e $VMCORE_FILE -a -s $VMCORE_FILE ]; then
+   echo "We have a /proc/vmcore, then we just kdump'ed"
+   /sbin/reboot
+fi
+
 REBOOT_USER=$(logname)
 REBOOT_TIME=$(date)
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
@@ -17,18 +24,6 @@ function debug()
     fi
     logger "$@"
 }
-
-# Reboot immediately if we run the kdump capture kernel
-VMCORE_FILE=/proc/vmcore
-if [ -e $VMCORE_FILE -a -s $VMCORE_FILE ]; then
-   debug "We have a /proc/vmcore, then we just kdump'ed"
-   if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
-       VERBOSE=yes debug "Rebooting with platform ${PLATFORM} specific tool ..."
-       exec ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT}
-   else
-       /sbin/reboot
-   fi
-fi
 
 function stop_sonic_services()
 {
