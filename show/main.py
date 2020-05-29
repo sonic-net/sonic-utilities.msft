@@ -1629,13 +1629,13 @@ def lldp():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def neighbors(interfacename, verbose):
     """Show LLDP neighbors"""
-    cmd = "sudo lldpctl"
+    cmd = "sudo lldpshow -d"
 
     if interfacename is not None:
         if get_interface_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
-        cmd += " {}".format(interfacename)
+        cmd += " -p {}".format(interfacename)
 
     run_command(cmd, display_cmd=verbose)
 
