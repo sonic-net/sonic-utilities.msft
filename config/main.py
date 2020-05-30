@@ -908,14 +908,19 @@ def load_minigraph(no_service_restart):
                 run_command('{} pfcwd start_default'.format(ns_cmd_prefix), display_cmd=True)
             run_command("{} config qos reload".format(ns_cmd_prefix), display_cmd=True)
 
-        # Write latest db version string into db
-        db_migrator='/usr/bin/db_migrator.py'
-        if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
-            run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
-
     if os.path.isfile('/etc/sonic/acl.json'):
         run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
-
+    
+    # Write latest db version string into db
+    db_migrator='/usr/bin/db_migrator.py'
+    if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
+        for namespace in namespace_list:
+            if namespace is DEFAULT_NAMESPACE:
+                cfggen_namespace_option = " "
+            else:
+                cfggen_namespace_option = " -n {}".format(namespace)
+            run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
+     
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
