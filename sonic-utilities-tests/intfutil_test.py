@@ -27,9 +27,9 @@ class TestIntfutil(TestCase):
         result = self.runner.invoke(show.cli.commands["interfaces"].commands["status"], [])
         print >> sys.stderr, result.output
         expected_output = (
-              "Interface    Lanes    Speed    MTU      Alias    Vlan    Oper    Admin             Type    Asym PFC\n"
-            "-----------  -------  -------  -----  ---------  ------  ------  -------  ---------------  ----------\n"
-            "  Ethernet0        0      25G   9100  Ethernet0  routed    down       up  QSFP28 or later         off"
+              "Interface    Lanes    Speed    MTU    FEC      Alias    Vlan    Oper    Admin             Type    Asym PFC\n"
+            "-----------  -------  -------  -----  -----  ---------  ------  ------  -------  ---------------  ----------\n"
+            "  Ethernet0        0      25G   9100     rs  Ethernet0  routed    down       up  QSFP28 or later         off"
         )
         self.assertEqual(result.output.strip(), expected_output)
 
