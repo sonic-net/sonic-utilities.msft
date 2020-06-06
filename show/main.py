@@ -947,9 +947,10 @@ def status(interfacename, verbose):
 @interfaces.group(invoke_without_command=True)
 @click.option('-a', '--printall', is_flag=True)
 @click.option('-p', '--period')
+@click.option('-i', '--interface')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.pass_context
-def counters(ctx, verbose, period, printall):
+def counters(ctx, verbose, period, interface, printall):
     """Show interface counters"""
 
     if ctx.invoked_subcommand is None:
@@ -959,6 +960,8 @@ def counters(ctx, verbose, period, printall):
             cmd += " -a"
         if period is not None:
             cmd += " -p {}".format(period)
+        if interface is not None:
+            cmd += " -i {}".format(interface)
 
         run_command(cmd, display_cmd=verbose)
 

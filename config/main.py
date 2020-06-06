@@ -14,6 +14,7 @@ import sonic_device_util
 import ipaddress
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from minigraph import parse_device_desc_xml
+from utilities_common.intf_filter import parse_interface_in_filter
 
 import aaa
 import mlnx
@@ -1843,21 +1844,26 @@ def startup(ctx, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name_is_valid(interface_name) is False:
-        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+    intf_fs = parse_interface_in_filter(interface_name)
+    if len(intf_fs) == 1 and interface_name_is_valid(interface_name) is False:
+         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
     log_info("'interface startup {}' executing...".format(interface_name))
+    port_dict = config_db.get_table('PORT')
+    for port_name in port_dict.keys():
+        if port_name in intf_fs:
+            config_db.mod_entry("PORT", port_name, {"admin_status": "up"})
 
-    if interface_name.startswith("Ethernet"):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            config_db.mod_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "up"})
-        else:
-            config_db.mod_entry("PORT", interface_name, {"admin_status": "up"})
-    elif interface_name.startswith("PortChannel"):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            config_db.mod_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "up"})
-        else:
-            config_db.mod_entry("PORTCHANNEL", interface_name, {"admin_status": "up"})
+    portchannel_list = config_db.get_table("PORTCHANNEL")
+    for po_name in portchannel_list.keys():
+        if po_name in intf_fs:
+            config_db.mod_entry("PORTCHANNEL", po_name, {"admin_status": "up"})
+
+    subport_list = config_db.get_table("VLAN_SUB_INTERFACE")
+    for sp_name in subport_list.keys():
+        if sp_name in intf_fs:
+            config_db.mod_entry("VLAN_SUB_INTERFACE", sp_name, {"admin_status": "up"})
+
 #
 # 'shutdown' subcommand
 #
@@ -1874,19 +1880,24 @@ def shutdown(ctx, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name_is_valid(interface_name) is False:
+    intf_fs = parse_interface_in_filter(interface_name)
+    if len(intf_fs) == 1 and interface_name_is_valid(interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
-    if interface_name.startswith("Ethernet"):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            config_db.mod_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "down"})
-        else:
-            config_db.mod_entry("PORT", interface_name, {"admin_status": "down"})
-    elif interface_name.startswith("PortChannel"):
-        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
-            config_db.mod_entry("VLAN_SUB_INTERFACE", interface_name, {"admin_status": "down"})
-        else:
-            config_db.mod_entry("PORTCHANNEL", interface_name, {"admin_status": "down"})
+    port_dict = config_db.get_table('PORT')
+    for port_name in port_dict.keys():
+        if port_name in intf_fs:
+            config_db.mod_entry("PORT", port_name, {"admin_status": "down"})
+
+    portchannel_list = config_db.get_table("PORTCHANNEL")
+    for po_name in portchannel_list.keys():
+        if po_name in intf_fs:
+            config_db.mod_entry("PORTCHANNEL", po_name, {"admin_status": "down"})
+
+    subport_list = config_db.get_table("VLAN_SUB_INTERFACE")
+    for sp_name in subport_list.keys():
+        if sp_name in intf_fs:
+            config_db.mod_entry("VLAN_SUB_INTERFACE", sp_name, {"admin_status": "down"})
 
 #
 # 'speed' subcommand
