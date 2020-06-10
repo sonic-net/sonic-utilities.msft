@@ -1,5 +1,6 @@
 {
     "PORT_TABLE:Ethernet0": {
+        "index": "0",
         "lanes": "0",
         "alias": "Ethernet0",
         "description": "ARISTA01T2:Ethernet1",
@@ -11,6 +12,7 @@
         "admin_status": "up"
     },
     "PORT_TABLE:Ethernet200": {
+        "index": "200",
         "lanes": "200,201,202,203",
         "alias": "Ethernet200",
         "description": "Ethernet200",
@@ -18,9 +20,34 @@
         "oper_status": "down",
         "fec": "rs",
         "mtu": "9100",
-        "pfc_asym": "off"
+        "pfc_asym": "off",
+        "admin_status": "up"
     },
     "INTF_TABLE:Ethernet0.10": {
         "admin_status": "up"
+    },
+    "_GEARBOX_TABLE:phy:1": {
+        "name": "sesto-1",
+        "phy_id": "1",
+        "phy_oid": "0x21000000000002",
+        "firmware_major_version": "v0.2"
+    },
+    "_GEARBOX_TABLE:phy:2": {
+        "name": "sesto-2",
+        "phy_id": "2",
+        "phy_oid": "0x21000000000003",
+        "firmware_major_version": "v0.3"
+    },
+    "_GEARBOX_TABLE:interface:200": {
+        "name": "Ethernet200",
+        "index": "200",
+        "line_lanes": "304,305",
+        "phy_id": "1",
+        "system_lanes": "300,301,302,303"
+    },
+    "_GEARBOX_TABLE:phy:1:ports:200": {
+        "index": "200",
+        "line_speed": "50000",
+        "system_speed": "25000"
     }
 }

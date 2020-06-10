@@ -43,6 +43,8 @@
 * [ECN](#ecn)
   * [ECN show commands](#ecn-show-commands)
   * [ECN config commands](#ecn-config-commands)
+* [Gearbox](#gearbox)
+  * [Gearbox show commands](#gearbox-show-commands)
 * [Interfaces](#interfaces)
   * [Interface Show Commands](#interface-show-commands)
   * [Interface Config Commands](#interface-config-commands)
@@ -2256,6 +2258,56 @@ The list of the WRED profile fields that are configurable is listed in the below
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#ecn)
+
+## Gearbox
+
+This section explains all the Gearbox PHY show commands that are supported in SONiC.
+
+### Gearbox show commands
+This sub-section contains the show commands that are supported for gearbox phy.
+
+**show gearbox interfaces status**
+
+This command displays information about the gearbox phy interface lanes, speeds and status. Data is displayed for both MAC side and line side of the gearbox phy
+
+- Usage:
+  ```
+  show gearbox interfaces status
+  ```
+
+- Example:
+
+```
+home/admin# show gearbox interfaces status
+  PHY Id    Interface    MAC Lanes    MAC Lane Speed    PHY Lanes    PHY Lane Speed    Line Lanes    Line Lane Speed    Oper    Admin
+--------  -----------  -----------  ----------------  -----------  ----------------  ------------  -----------------  ------  -------
+       1    Ethernet0  25,26,27,28               10G      200,201               20G           206                40G      up       up
+       1    Ethernet4  29,30,31,32               10G      202,203               20G           207                40G      up       up
+       1    Ethernet8  33,34,35,36               10G      204,205               20G           208                40G      up       up
+
+  ```
+
+**show gearbox phys status**
+
+This command displays basic information about the gearbox phys configured on the switch. 
+
+- Usage:
+  ```
+  show gearbox phys status
+  ```
+
+- Example:
+
+```
+/home/admin# show gearbox phys status
+  PHY Id     Name    Firmware
+--------  -------  ----------
+       1  sesto-1        v0.1
+
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#gearbox)
+
 
 ## Update Device Hostname Configuration Commands
 

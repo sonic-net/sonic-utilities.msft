@@ -76,6 +76,7 @@ setup(
         'scripts/fdbclear',
         'scripts/fdbshow',
         'scripts/filter_fdb_entries.py',
+        'scripts/gearboxutil',
         'scripts/generate_dump',
         'scripts/intfutil',
         'scripts/intfstat',

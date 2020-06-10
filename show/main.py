@@ -2842,6 +2842,43 @@ def pool(verbose):
     cmd = "sudo natconfig -p"
     run_command(cmd, display_cmd=verbose)
 
+# Define GEARBOX commands only if GEARBOX is configured
+app_db = SonicV2Connector(host='127.0.0.1')
+app_db.connect(app_db.APPL_DB) 
+if app_db.keys(app_db.APPL_DB, '_GEARBOX_TABLE:phy:*'):
+
+    @cli.group(cls=AliasedGroup)
+    def gearbox():
+        """Show gearbox info"""
+        pass
+
+    # 'phys' subcommand ("show gearbox phys")
+    @gearbox.group(cls=AliasedGroup)
+    def phys():
+        """Show external PHY information"""
+        pass
+
+    # 'status' subcommand ("show gearbox phys status")
+    @phys.command()
+    @click.pass_context
+    def status(ctx):
+        """Show gearbox phys status"""
+        run_command("gearboxutil phys status")
+        return
+
+    # 'interfaces' subcommand ("show gearbox interfaces")
+    @gearbox.group(cls=AliasedGroup)
+    def interfaces():
+        """Show gearbox interfaces information"""
+        pass
+
+    # 'status' subcommand ("show gearbox interfaces status")
+    @interfaces.command()
+    @click.pass_context
+    def status(ctx):
+        """Show gearbox interfaces status"""
+        run_command("gearboxutil interfaces status")
+        return
 
 # 'bindings' subcommand  ("show nat config bindings")
 @config.command()
