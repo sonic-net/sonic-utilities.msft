@@ -497,6 +497,32 @@ def _abort_if_false(ctx, param, value):
     if not value:
         ctx.abort()
 
+
+def _get_disabled_services_list():
+    disabled_services_list = []
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    feature_table = config_db.get_table('FEATURE')
+    if feature_table is not None:
+        for feature_name in feature_table.keys():
+            if not feature_name:
+                log_warning("Feature is None")
+                continue
+
+            status = feature_table[feature_name]['status']
+            if not status:
+                log_warning("Status of feature '{}' is None".format(feature_name))
+                continue
+
+        if status == "disabled":
+            disabled_services_list.append(feature_name)
+    else:
+        log_warning("Unable to retreive FEATURE table")
+
+    return disabled_services_list
+
+
 def _stop_services():
     # on Mellanox platform pmon is stopped by syncd
     services_to_stop = [
@@ -513,6 +539,7 @@ def _stop_services():
         services_to_stop.remove('pmon')
 
     execute_systemctl(services_to_stop, SYSTEMCTL_ACTION_STOP)
+
 
 def _reset_failed_services():
     services_to_reset = [
@@ -534,8 +561,8 @@ def _reset_failed_services():
         'sflow',
         'restapi'
     ]
-    execute_systemctl(services_to_reset, SYSTEMCTL_ACTION_RESET_FAILED)
 
+    execute_systemctl(services_to_reset, SYSTEMCTL_ACTION_RESET_FAILED)
 
 
 def _restart_services():
@@ -554,6 +581,12 @@ def _restart_services():
         'sflow',
         'restapi'
     ]
+
+    disable_services = _get_disabled_services_list()
+
+    for service in disable_services:
+        if service in services_to_restart:
+            services_to_restart.remove(service)
 
     if asic_type == 'mellanox' and 'pmon' in services_to_restart:
         services_to_restart.remove('pmon')
