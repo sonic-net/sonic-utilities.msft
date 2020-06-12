@@ -3,7 +3,6 @@
 import click
 import swsssdk
 from tabulate import tabulate
-from subprocess import Popen, PIPE
 
 class Crm:
     def __init__(self):
@@ -123,15 +122,9 @@ class Crm:
         header = ("Table ID", "Resource Name", "Used Count", "Available Count")
 
         # Retrieve all ACL table keys from CRM:ACL_TABLE_STATS
-        # TODO
-        # Volodymyr is working on refactoring codes to access redis database via redis-py or swsssdk
-        # we should avoid using 'keys' operation via redis-cli or sonic-db-cli
-        # there would be an issue when KEY in database contains space or '\n'
-        # for loop on the non-tty 'keys' output will take the space or `\n` as seperator when parsing the element
-        proc = Popen("docker exec -i database redis-cli --raw -n 2 KEYS *CRM:ACL_TABLE_STATS*", stdout=PIPE, stderr=PIPE, shell=True)
-        out, err = proc.communicate()
+        crm_acl_keys = countersdb.keys(countersdb.COUNTERS_DB, 'CRM:ACL_TABLE_STATS*')
 
-        for key in out.splitlines() or [None]:
+        for key in crm_acl_keys or [None]:
             data = []
 
             if key:
