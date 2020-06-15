@@ -6,8 +6,8 @@
 #
 
 try:
-    import click
     import syslog
+    import click
 except ImportError as e:
     raise ImportError("Required module not found: {}".format(str(e)))
 
@@ -58,6 +58,7 @@ class LogHelper(object):
     """
     FW_ACTION_DOWNLOAD = "download"
     FW_ACTION_INSTALL = "install"
+    FW_ACTION_UPDATE = "update"
 
     STATUS_SUCCESS = "success"
     STATUS_FAILURE = "failure"
@@ -122,8 +123,17 @@ class LogHelper(object):
     def log_fw_install_end(self, component, firmware, status, exception=None):
         self.__log_fw_action_end(self.FW_ACTION_INSTALL, component, firmware, status, exception)
 
+    def log_fw_update_start(self, component, firmware):
+        self.__log_fw_action_start(self.FW_ACTION_UPDATE, component, firmware)
+
+    def log_fw_update_end(self, component, firmware, status, exception=None):
+        self.__log_fw_action_end(self.FW_ACTION_UPDATE, component, firmware, status, exception)
+
     def print_error(self, msg):
         click.echo("Error: {}.".format(msg))
 
     def print_warning(self, msg):
         click.echo("Warning: {}.".format(msg))
+
+    def print_info(self, msg):
+        click.echo("Info: {}.".format(msg))

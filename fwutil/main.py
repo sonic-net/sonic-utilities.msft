@@ -6,8 +6,9 @@
 #
 
 try:
-    import click
     import os
+    import click
+
     from lib import PlatformDataProvider, ComponentStatusProvider, ComponentUpdateProvider
     from lib import URL, SquashFs
     from log import LogHelper
@@ -16,7 +17,7 @@ except ImportError as e:
 
 # ========================= Constants ==========================================
 
-VERSION = '1.0.0.0'
+VERSION = '2.0.0.0'
 
 CHASSIS_NAME_CTX_KEY = "chassis_name"
 MODULE_NAME_CTX_KEY = "module_name"
@@ -51,6 +52,11 @@ def cli_abort(ctx, msg):
     ctx.abort()
 
 
+def cli_exit(ctx, msg):
+    log_helper.print_info(msg)
+    ctx.exit(EXIT_SUCCESS)
+
+
 def cli_init(ctx):
     if os.geteuid() != ROOT_UID:
         cli_abort(ctx, "Root privileges are required")
@@ -64,7 +70,6 @@ def cli_init(ctx):
 @click.pass_context
 def cli(ctx):
     """fwutil - Command-line utility for interacting with platform components"""
-
     cli_init(ctx)
 
 
@@ -76,13 +81,39 @@ def install(ctx):
     ctx.obj[COMPONENT_PATH_CTX_KEY] = [ ]
 
 
+# 'update' group
+@cli.group()
+@click.pass_context
+def update(ctx):
+    """Update platform firmware"""
+    ctx.obj[COMPONENT_PATH_CTX_KEY] = [ ]
+
+
+def chassis_handler(ctx):
+    ctx.obj[CHASSIS_NAME_CTX_KEY] = pdp.chassis.get_name()
+    ctx.obj[COMPONENT_PATH_CTX_KEY].append(pdp.chassis.get_name())
+
+
 # 'chassis' subgroup
 @click.group()
 @click.pass_context
-def chassis(ctx):
+def chassis_install(ctx):
     """Install chassis firmware"""
-    ctx.obj[CHASSIS_NAME_CTX_KEY] = pdp.chassis.get_name()
+    chassis_handler(ctx)
+
+
+# 'chassis' subgroup
+@click.group()
+@click.pass_context
+def chassis_update(ctx):
+    """Update chassis firmware"""
+    chassis_handler(ctx)
+
+
+def module_handler(ctx, module_name):
+    ctx.obj[MODULE_NAME_CTX_KEY] = module_name
     ctx.obj[COMPONENT_PATH_CTX_KEY].append(pdp.chassis.get_name())
+    ctx.obj[COMPONENT_PATH_CTX_KEY].append(module_name)
 
 
 def validate_module(ctx, param, value):
@@ -102,11 +133,22 @@ def validate_module(ctx, param, value):
 @click.group()
 @click.argument('module_name', metavar='<module_name>', callback=validate_module)
 @click.pass_context
-def module(ctx, module_name):
+def module_install(ctx, module_name):
     """Install module firmware"""
-    ctx.obj[MODULE_NAME_CTX_KEY] = module_name
-    ctx.obj[COMPONENT_PATH_CTX_KEY].append(pdp.chassis.get_name())
-    ctx.obj[COMPONENT_PATH_CTX_KEY].append(module_name)
+    module_handler(ctx, module_name)
+
+
+# 'module' subgroup
+@click.group()
+@click.argument('module_name', metavar='<module_name>', callback=validate_module)
+@click.pass_context
+def module_update(ctx, module_name):
+    """Update module firmware"""
+    module_handler(ctx, module_name)
+
+
+def component_handler(ctx, component_name):
+    ctx.obj[COMPONENT_PATH_CTX_KEY].append(component_name)
 
 
 def validate_component(ctx, param, value):
@@ -132,9 +174,18 @@ def validate_component(ctx, param, value):
 @click.group()
 @click.argument('component_name', metavar='<component_name>', callback=validate_component)
 @click.pass_context
-def component(ctx, component_name):
+def component_install(ctx, component_name):
     """Install component firmware"""
-    ctx.obj[COMPONENT_PATH_CTX_KEY].append(component_name)
+    component_handler(ctx, component_name)
+
+
+# 'component' subgroup
+@click.group()
+@click.argument('component_name', metavar='<component_name>', callback=validate_component)
+@click.pass_context
+def component_update(ctx, component_name):
+    """Update component firmware"""
+    component_handler(ctx, component_name)
 
 
 def install_fw(ctx, fw_path):
@@ -149,6 +200,9 @@ def install_fw(ctx, fw_path):
         log_helper.log_fw_install_start(component_path, fw_path)
         status = component.install_firmware(fw_path)
         log_helper.log_fw_install_end(component_path, fw_path, status)
+    except KeyboardInterrupt:
+        log_helper.log_fw_install_end(component_path, fw_path, False, "Keyboard interrupt")
+        raise
     except Exception as e:
         log_helper.log_fw_install_end(component_path, fw_path, False, e)
         cli_abort(ctx, str(e))
@@ -168,6 +222,9 @@ def download_fw(ctx, url):
         log_helper.log_fw_download_start(component_path, str(url))
         filename, headers = url.retrieve()
         log_helper.log_fw_download_end(component_path, str(url), True)
+    except KeyboardInterrupt:
+        log_helper.log_fw_download_end(component_path, str(url), False, "Keyboard interrupt")
+        raise
     except Exception as e:
         log_helper.log_fw_download_end(component_path, str(url), False, e)
         cli_abort(ctx, str(e))
@@ -191,37 +248,50 @@ def validate_fw(ctx, param, value):
 
 
 # 'fw' subcommand
-@component.command()
+@component_install.command(name='fw')
 @click.option('-y', '--yes', 'yes', is_flag=True, show_default=True, help="Assume \"yes\" as answer to all prompts and run non-interactively")
 @click.argument('fw_path', metavar='<fw_path>', callback=validate_fw)
 @click.pass_context
-def fw(ctx, yes, fw_path):
-    """Install firmware from local binary or URL"""
-    if not yes:
-        click.confirm("New firmware will be installed, continue?", abort=True)
-
+def fw_install(ctx, yes, fw_path):
+    """Install firmware from local path or URL"""
     url = None
 
-    if URL_CTX_KEY in ctx.obj:
-        url = ctx.obj[URL_CTX_KEY]
-        fw_path = download_fw(ctx, url)
-
     try:
+        if URL_CTX_KEY in ctx.obj:
+            url = ctx.obj[URL_CTX_KEY]
+            fw_path = download_fw(ctx, url)
+
+        component = ctx.obj[COMPONENT_CTX_KEY]
+
+        notification = component.get_firmware_update_notification(fw_path)
+        if notification:
+            log_helper.print_warning(notification)
+
+        if not yes:
+            click.confirm("New firmware will be installed, continue?", abort=True)
+
         install_fw(ctx, fw_path)
     finally:
         if url is not None and os.path.exists(fw_path):
             os.remove(fw_path)
 
 
-# 'update' subgroup
-@cli.command()
+# 'fw' subcommand
+@component_update.command(name='fw')
 @click.option('-y', '--yes', 'yes', is_flag=True, show_default=True, help="Assume \"yes\" as answer to all prompts and run non-interactively")
-@click.option('-f', '--force', 'force', is_flag=True, show_default=True, help="Install firmware regardless the current version")
-@click.option('-i', '--image', 'image', type=click.Choice(["current", "next"]), default="current", show_default=True, help="Update firmware using current/next image")
+@click.option('-f', '--force', 'force', is_flag=True, show_default=True, help="Update firmware regardless the current version")
+@click.option('-i', '--image', 'image', type=click.Choice(["current", "next"]), default="current", show_default=True, help="Update firmware using current/next SONiC image")
 @click.pass_context
-def update(ctx, yes, force, image):
-    """Update platform firmware"""
-    aborted = False
+def fw_update(ctx, yes, force, image):
+    """Update firmware from SONiC image"""
+    if CHASSIS_NAME_CTX_KEY in ctx.obj:
+        chassis_name = ctx.obj[CHASSIS_NAME_CTX_KEY]
+        module_name = None
+    elif MODULE_NAME_CTX_KEY in ctx.obj:
+        chassis_name = pdp.chassis.get_name()
+        module_name = ctx.obj[MODULE_NAME_CTX_KEY]
+
+    component_name = ctx.obj[COMPONENT_CTX_KEY].get_name()
 
     try:
         squashfs = None
@@ -239,31 +309,29 @@ def update(ctx, yes, force, image):
             else:
                 cup = ComponentUpdateProvider()
 
-            click.echo(cup.get_status(force))
+            if not cup.is_firmware_update_available(chassis_name, module_name, component_name):
+                cli_exit(ctx, "Firmware update is not available")
+
+            if not (cup.is_firmware_update_required(chassis_name, module_name, component_name) or force):
+                cli_exit(ctx, "Firmware is up-to-date")
+
+            notification = cup.get_notification(chassis_name, module_name, component_name)
+            if notification:
+                log_helper.print_warning(notification)
 
             if not yes:
                 click.confirm("New firmware will be installed, continue?", abort=True)
 
-            result = cup.update_firmware(force)
-
-            click.echo()
-            click.echo("Summary:")
-            click.echo()
-
-            click.echo(result)
-        except click.Abort:
-            aborted = True
-        except Exception as e:
-            aborted = True
-            click.echo("Error: " + str(e) + ". Aborting...")
-
-        if image == IMAGE_NEXT and squashfs is not None:
-            squashfs.umount_next_image_fs()
+            cup.update_firmware(chassis_name, module_name, component_name)
+        finally:
+            if squashfs is not None:
+                squashfs.umount_next_image_fs()
+    except click.exceptions.Abort:
+        ctx.abort()
+    except click.exceptions.Exit as e:
+        ctx.exit(e.exit_code)
     except Exception as e:
         cli_abort(ctx, str(e))
-
-    if aborted:
-        ctx.abort()
 
 
 # 'show' subgroup
@@ -271,6 +339,40 @@ def update(ctx, yes, force, image):
 def show():
     """Display platform info"""
     pass
+
+
+# 'updates' subcommand
+@show.command()
+@click.option('-i', '--image', 'image', type=click.Choice(["current", "next"]), default="current", show_default=True, help="Show updates using current/next SONiC image")
+@click.pass_context
+def updates(ctx, image):
+    """Show available updates"""
+    try:
+        squashfs = None
+
+        try:
+            if image == IMAGE_NEXT:
+                squashfs = SquashFs()
+
+                if squashfs.is_next_boot_set():
+                    fs_path = squashfs.mount_next_image_fs()
+                    cup = ComponentUpdateProvider(fs_path)
+                else:
+                    log_helper.print_warning("Next boot is set to current: fallback to defaults")
+                    cup = ComponentUpdateProvider()
+            else:
+                cup = ComponentUpdateProvider()
+
+            status = cup.get_status()
+            if status is not None:
+                click.echo(status)
+            else:
+                log_helper.print_info("Firmware updates are not available")
+        finally:
+            if squashfs is not None:
+                squashfs.umount_next_image_fs()
+    except Exception as e:
+        cli_abort(ctx, str(e))
 
 
 # 'status' subcommand
@@ -291,11 +393,17 @@ def version():
     """Show utility version"""
     click.echo("fwutil version {0}".format(VERSION))
 
-install.add_command(chassis)
-install.add_command(module)
+install.add_command(chassis_install, name='chassis')
+install.add_command(module_install, name='module')
 
-chassis.add_command(component)
-module.add_command(component)
+update.add_command(chassis_update, name='chassis')
+update.add_command(module_update, name='module')
+
+chassis_install.add_command(component_install, name='component')
+module_install.add_command(component_install, name='component')
+
+chassis_update.add_command(component_update, name='component')
+module_update.add_command(component_update, name='component')
 
 # ========================= CLI entrypoint =====================================
 
