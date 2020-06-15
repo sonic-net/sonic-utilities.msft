@@ -762,7 +762,11 @@ class AclLoader(object):
         header = ("Table", "Rule", "Priority", "Action", "Match")
 
         def pop_priority(val):
-            priority  = val.pop("PRIORITY")
+            priority = "N/A"
+            for key in dict(val):
+                if (key.upper() == "PRIORITY"):
+                    priority  = val.pop(key)
+                    return priority
             return priority
 
         def pop_action(val):

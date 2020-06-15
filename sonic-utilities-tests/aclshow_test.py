@@ -24,6 +24,7 @@ RULE_3        DATAACL         9997              301            300
 RULE_4        DATAACL         9996              401            400
 RULE_7        DATAACL         9993              701            700
 RULE_9        DATAACL         9991              901            900
+RULE_10       DATAACL         9989             1001           1000
 DEFAULT_RULE  DATAACL            1                2              1
 RULE_6        EVERFLOW        9994              601            600
 """
@@ -39,6 +40,7 @@ RULE_4        DATAACL         9996              401            400
 RULE_05       DATAACL         9995                0              0
 RULE_7        DATAACL         9993              701            700
 RULE_9        DATAACL         9991              901            900
+RULE_10       DATAACL         9989             1001           1000
 DEFAULT_RULE  DATAACL            1                2              1
 RULE_6        EVERFLOW        9994              601            600
 RULE_08       EVERFLOW        9992                0              0
@@ -49,6 +51,13 @@ rule1_dataacl_output = '' + \
 """RULE NAME    TABLE NAME      PRIO    PACKETS COUNT    BYTES COUNT
 -----------  ------------  ------  ---------------  -------------
 RULE_1       DATAACL         9999              101            100
+"""
+
+# Expected output for aclshow -r RULE_1 -t DATAACL
+rule10_dataacl_output = '' + \
+"""RULE NAME    TABLE NAME      PRIO    PACKETS COUNT    BYTES COUNT
+-----------  ------------  ------  ---------------  -------------
+RULE_10      DATAACL         9989             1001           1000
 """
 
 # Expected output for aclshow -a -r RULE_05
@@ -68,7 +77,7 @@ rule0_output = '' + \
 rule4_rule6_verbose_output = '' + \
 """Reading ACL info...
 Total number of ACL Tables: 5
-Total number of ACL Rules: 10
+Total number of ACL Rules: 11
 
 RULE NAME    TABLE NAME      PRIO    PACKETS COUNT    BYTES COUNT
 -----------  ------------  ------  ---------------  -------------
@@ -93,6 +102,7 @@ RULE_3        DATAACL         9997              301            300
 RULE_4        DATAACL         9996              401            400
 RULE_7        DATAACL         9993              701            700
 RULE_9        DATAACL         9991              901            900
+RULE_10       DATAACL         9989             1001           1000
 DEFAULT_RULE  DATAACL            1                2              1
 """
 
@@ -111,6 +121,7 @@ RULE_4        DATAACL         9996                0              0
 RULE_05       DATAACL         9995                0              0
 RULE_7        DATAACL         9993                0              0
 RULE_9        DATAACL         9991                0              0
+RULE_10       DATAACL         9989                0              0
 DEFAULT_RULE  DATAACL            1                0              0
 RULE_6        EVERFLOW        9994                0              0
 RULE_08       EVERFLOW        9992                0              0
@@ -183,6 +194,11 @@ def test_rule05_all():
 def test_rule0():
     test = Aclshow(all = None, clear = None, rules = 'RULE_0', tables = None, verbose = None)
     assert test.result.getvalue() == rule0_output
+
+# aclshow -r RULE_10 -t DATAACL
+def test_rule10_lowercase_priority():
+    test = Aclshow(all = None, clear = None, rules = 'RULE_10', tables = 'DATAACL', verbose = None)
+    assert test.result.getvalue() == rule10_dataacl_output
 
 # aclshow -r RULE_4,RULE_6 -vv
 def test_rule4_rule6_verbose():

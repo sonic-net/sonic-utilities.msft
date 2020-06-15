@@ -115,6 +115,10 @@
             "Bytes": "900",
             "Packets": "901"
     },
+    "COUNTERS:DATAACL:RULE_10": {
+            "Bytes": "1000",
+            "Packets": "1001"
+    },
     "COUNTERS:oid:0x1000000000002": {
         "SAI_PORT_STAT_IF_IN_ERRORS": "10",
         "SAI_PORT_STAT_IF_IN_DISCARDS": "100",
