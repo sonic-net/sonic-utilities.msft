@@ -141,7 +141,7 @@ class SFPShow(object):
         ident = '        '
         seperator = ": "
         for key in sorted_key_table:
-            if dom_info_dict is not None and dom_info_dict[key] != 'N/A':
+            if dom_info_dict is not None and key in dom_info_dict and dom_info_dict[key] != 'N/A':
                 current_val = (ident + ident +
                         dom_value_map[key])
                 current_val = (current_val + seperator.rjust(len(seperator) +
