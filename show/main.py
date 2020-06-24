@@ -1546,6 +1546,7 @@ def interfaces():
 
         if netifaces.AF_INET6 in ipaddresses:
             ifaddresses = []
+            neighbor_info = []
             for ipaddr in ipaddresses[netifaces.AF_INET6]:
                 neighbor_name = 'N/A'
                 neighbor_ip = 'N/A'
@@ -1557,6 +1558,7 @@ def interfaces():
                     neighbor_ip = bgp_peer[local_ip][1]
                 except Exception:
                     pass
+                neighbor_info.append([neighbor_name, neighbor_ip])
 
             if len(ifaddresses) > 0:
                 admin = get_if_admin_state(iface)
@@ -1567,9 +1569,11 @@ def interfaces():
                 master = get_if_master(iface)
                 if get_interface_mode() == "alias":
                     iface = iface_alias_converter.name_to_alias(iface)
-                data.append([iface, master, ifaddresses[0][1], admin + "/" + oper, neighbor_name, neighbor_ip])
-            for ifaddr in ifaddresses[1:]:
-                data.append(["", "", ifaddr[1], ""])
+                data.append([iface, master, ifaddresses[0][1], admin + "/" + oper, neighbor_info[0][0], neighbor_info[0][1]])
+                neighbor_info.pop(0)
+                for ifaddr in ifaddresses[1:]:
+                    data.append(["", "", ifaddr[1], admin + "/" + oper, neighbor_info[0][0], neighbor_info[0][1]])
+                    neighbor_info.pop(0)
 
     print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
 
