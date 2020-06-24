@@ -14,6 +14,7 @@ class TestFilterFdbEntries(object):
     """
     ARP_FILENAME = "/tmp/arp.json"
     FDB_FILENAME = "/tmp/fdb.json"
+    CONFIG_DB_FILENAME = "/tmp/config_db.json"
     EXPECTED_FDB_FILENAME = "/tmp/expected_fdb.json"
 
     def __setUp(self, testData):
@@ -45,16 +46,17 @@ class TestFilterFdbEntries(object):
                 Raises:
                     Exception if data type is not supported
             """
-            if isinstance(data, list):
+            if isinstance(data, list) or isinstance(data, dict):
                 with open(filename, 'w') as fp:
                     json.dump(data, fp, indent=2, separators=(',', ': '))
             elif isinstance(data, str):
                 shutil.copyfile(data, filename)
             else:
-                raise Exception("Unknown test data type: {0}".format(type(test_data)))
+                raise Exception("Unknown test data type: {0}".format(type(data)))
 
         create_file_or_raise(testData["arp"], self.ARP_FILENAME)
         create_file_or_raise(testData["fdb"], self.FDB_FILENAME)
+        create_file_or_raise(testData["config_db"], self.CONFIG_DB_FILENAME)
         create_file_or_raise(testData["expected_fdb"], self.EXPECTED_FDB_FILENAME)
 
     def __tearDown(self):
@@ -72,6 +74,7 @@ class TestFilterFdbEntries(object):
         fdbFiles = glob.glob(self.FDB_FILENAME + '*')
         for file in fdbFiles:
             os.remove(file)
+        os.remove(self.CONFIG_DB_FILENAME)
 
     def __runCommand(self, cmds):
         """
@@ -166,8 +169,10 @@ class TestFilterFdbEntries(object):
                 self.ARP_FILENAME,
                 "-f",
                 self.FDB_FILENAME,
+                "-c",
+                self.CONFIG_DB_FILENAME,
             ])
-            assert rc == 0, "CFilter_fbd_entries.py failed with '{0}'".format(stderr)
+            assert rc == 0, "Filter_fdb_entries.py failed with '{0}'".format(stderr)
             assert self.__verifyOutput(), "Test failed for test data: {0}".format(testData)
         finally:
             self.__tearDown()
