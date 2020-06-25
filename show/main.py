@@ -9,6 +9,7 @@ import subprocess
 import sys
 import ipaddress
 from pkg_resources import parse_version
+from collections import OrderedDict
 
 import click
 from natsort import natsorted
@@ -17,10 +18,16 @@ from tabulate import tabulate
 import sonic_device_util
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
+from portconfig import get_child_ports
 
 import mlnx
 
+# Global Variable
+PLATFORM_ROOT_PATH = "/usr/share/sonic/device"
+PLATFORM_JSON = 'platform.json'
+HWSKU_JSON = 'hwsku.json'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
+PORT_STR = "Ethernet"
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
@@ -181,6 +188,15 @@ def get_routing_stack():
 # Global Routing-Stack variable
 routing_stack = get_routing_stack()
 
+# Read given JSON file
+def readJsonFile(fileName):
+    try:
+        with open(fileName) as f:
+            result = json.load(f)
+    except Exception as e:
+        click.echo(str(e))
+        raise click.Abort()
+    return result
 
 def run_command(command, display_cmd=False, return_cmd=False):
     if display_cmd:
@@ -788,6 +804,101 @@ def alias(interfacename):
                 body.append([port_name, port_name])
 
     click.echo(tabulate(body, header))
+
+
+#
+# 'breakout' group ###
+#
+@interfaces.group(invoke_without_command=True)
+@click.pass_context
+def breakout(ctx):
+    """Show Breakout Mode information by interfaces"""
+    # Reading data from Redis configDb
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    ctx.obj = {'db': config_db}
+
+    try:
+        curBrkout_tbl = config_db.get_table('BREAKOUT_CFG')
+    except Exception as e:
+        click.echo("Breakout table is not present in Config DB")
+        raise click.Abort()
+
+    if ctx.invoked_subcommand is None:
+
+        # Get HWSKU and Platform information
+        hw_info_dict = get_hw_info_dict()
+        platform = hw_info_dict['platform']
+        hwsku = hw_info_dict['hwsku']
+
+        # Get port capability from platform and hwsku related files
+        platformFile = "{}/{}/{}".format(PLATFORM_ROOT_PATH, platform, PLATFORM_JSON)
+        platformDict = readJsonFile(platformFile)['interfaces']
+        hwskuDict = readJsonFile("{}/{}/{}/{}".format(PLATFORM_ROOT_PATH, platform, hwsku, HWSKU_JSON))['interfaces']
+
+        if not platformDict or not hwskuDict:
+            click.echo("Can not load port config from {} or {} file".format(PLATFORM_JSON, HWSKU_JSON))
+            raise click.Abort()
+
+        for port_name in platformDict.keys():
+            curBrkout_mode = curBrkout_tbl[port_name]["brkout_mode"]
+
+            # Update deafult breakout mode and current breakout mode to platformDict
+            platformDict[port_name].update(hwskuDict[port_name])
+            platformDict[port_name]["Current Breakout Mode"] = curBrkout_mode
+
+            # List all the child ports if present
+            child_portDict = get_child_ports(port_name, curBrkout_mode, platformFile)
+            if not child_portDict:
+                click.echo("Cannot find ports from {} file ".format(PLATFORM_JSON))
+                raise click.Abort()
+
+            child_ports = natsorted(child_portDict.keys())
+
+            children, speeds = [], []
+            # Update portname and speed of child ports if present
+            for port in child_ports:
+                speed = config_db.get_entry('PORT', port).get('speed')
+                if speed is not None:
+                    speeds.append(str(int(speed)//1000)+'G')
+                    children.append(port)
+
+            platformDict[port_name]["child ports"] = ",".join(children)
+            platformDict[port_name]["child port speeds"] = ",".join(speeds)
+
+        # Sorted keys by name in natural sort Order for human readability
+        parsed = OrderedDict((k, platformDict[k]) for k in natsorted(platformDict.keys()))
+        click.echo(json.dumps(parsed, indent=4))
+
+# 'breakout current-mode' subcommand ("show interfaces breakout current-mode")
+@breakout.command('current-mode')
+@click.argument('interface', metavar='<interface_name>', required=False, type=str)
+@click.pass_context
+def currrent_mode(ctx, interface):
+    """Show current Breakout mode Info by interface(s)"""
+
+    config_db = ctx.obj['db']
+
+    header = ['Interface', 'Current Breakout Mode']
+    body = []
+
+    try:
+        curBrkout_tbl = config_db.get_table('BREAKOUT_CFG')
+    except Exception as e:
+        click.echo("Breakout table is not present in Config DB")
+        raise click.Abort()
+
+    # Show current Breakout Mode of user prompted interface
+    if interface is not None:
+        body.append([interface, str(curBrkout_tbl[interface]['brkout_mode'])])
+        click.echo(tabulate(body, header, tablefmt="grid"))
+        return
+
+    # Show current Breakout Mode for all interfaces
+    for name in natsorted(curBrkout_tbl.keys()):
+        body.append([name, str(curBrkout_tbl[name]['brkout_mode'])])
+    click.echo(tabulate(body, header, tablefmt="grid"))
+
 
 #
 # 'neighbor' group ###

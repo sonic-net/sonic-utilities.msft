@@ -2345,6 +2345,7 @@ Subsequent pages explain each of these commands in detail.
     -?, -h, --help  Show this message and exit.
 
   Commands:
+  breakout     Show Breakout Mode information by interfaces
   counters     Show interface counters
   description  Show interface status, protocol and...
   naming_mode  Show interface naming_mode status
@@ -2352,6 +2353,56 @@ Subsequent pages explain each of these commands in detail.
   portchannel  Show PortChannel information
   status       Show Interface status information
   transceiver  Show SFP Transceiver information
+  ```
+
+**show interfaces breakout**
+
+This show command displays the port capability for all interfaces i.e. index, lanes, default_brkout_mode, breakout_modes(i.e. all the available breakout modes) and brkout_mode (i.e. current breakout mode). To display current breakout mode, "current-mode" subcommand can be used.For a single interface, provide the interface name with the sub-command.
+
+- Usage:
+  ```
+  show interfaces breakout
+  show interfaces breakout current-mode
+  show interfaces breakout current-mode <interface_name>
+  ```
+
+- Example:
+  ```
+  admin@lnos-x1-a-fab01:~$ show interfaces  breakout
+  {
+      "Ethernet0": {
+          "index": "1,1,1,1",
+          "default_brkout_mode": "1x100G[40G]",
+          "child ports": "Ethernet0",
+          "child port speed": "100G",
+          "breakout_modes": "1x100G[40G],2x50G,4x25G[10G]",
+          "Current Breakout Mode": "1x100G[40G]",
+          "lanes": "65,66,67,68",
+          "alias_at_lanes": "Eth1/1, Eth1/2, Eth1/3, Eth1/4"
+      },... continue
+  }
+
+The "current-mode" subcommand is used to display current breakout mode for all interfaces.
+
+  admin@lnos-x1-a-fab01:~$ show interfaces  breakout current-mode
+  +-------------+-------------------------+
+  | Interface   | Current Breakout Mode   |
+  +=============+=========================+
+  | Ethernet0   | 4x25G[10G]              |
+  +-------------+-------------------------+
+  | Ethernet4   | 4x25G[10G]              |
+  +-------------+-------------------------+
+  | Ethernet8   | 4x25G[10G]              |
+  +-------------+-------------------------+
+  | Ethernet12  | 4x25G[10G]              |
+  +-------------+-------------------------+
+
+  admin@lnos-x1-a-fab01:~$ show interfaces  breakout current-mode Ethernet0
+  +-------------+-------------------------+
+  | Interface   | Current Breakout Mode   |
+  +=============+=========================+
+  | Ethernet0   | 4x25G[10G]              |
+  +-------------+-------------------------+
   ```
 
 **show interfaces counters**
