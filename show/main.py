@@ -2650,7 +2650,8 @@ def reboot_cause():
 # 'line' command ("show line")
 #
 @cli.command('line')
-def line():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def line(verbose):
     """Show all /dev/ttyUSB lines and their info"""
     cmd = "consutil show"
     run_command(cmd, display_cmd=verbose)
