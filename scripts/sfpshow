@@ -24,16 +24,21 @@ try:
 except KeyError:
     pass 
 
-qsfp_data_map = {'modelname': 'Vendor PN', 'vendor_oui': 'Vendor OUI',
+qsfp_data_map = {'model': 'Vendor PN',
+                 'vendor_oui': 'Vendor OUI',
                  'vendor_date': 'Vendor Date Code(YYYY-MM-DD Lot)',
-                 'manufacturename': 'Vendor Name',
-                 'hardwarerev': 'Vendor Rev', 'serialnum': 'Vendor SN',
-                 'type': 'Identifier', 'ext_identifier': 'Extended Identifier',
+                 'manufacturer': 'Vendor Name',
+                 'hardware_rev': 'Vendor Rev',
+                 'serial': 'Vendor SN',
+                 'type': 'Identifier',
+                 'ext_identifier': 'Extended Identifier',
                  'ext_rateselect_compliance': 'Extended RateSelect Compliance',
-                 'cable_length': 'cable_length', 'cable_type': 'Length',
+                 'cable_length': 'cable_length',
+                 'cable_type': 'Length',
                  'nominal_bit_rate': 'Nominal Bit Rate(100Mbs)',
-                 'specification_compliance':'Specification compliance',
-                 'encoding': 'Encoding', 'Connector': 'Connector' 
+                 'specification_compliance': 'Specification compliance',
+                 'encoding': 'Encoding',
+                 'connector': 'Connector'
                  }
 
 sfp_dom_channel_monitor_map = {'rx1power': 'RXPower',
