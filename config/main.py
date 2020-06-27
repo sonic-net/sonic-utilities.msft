@@ -114,7 +114,7 @@ class AbbreviationGroup(click.Group):
 try:
     version_info = sonic_device_util.get_sonic_version_info()
     asic_type = version_info['asic_type']
-except KeyError, TypeError:
+except (KeyError, TypeError):
     raise click.Abort()
 
 #
