@@ -515,8 +515,8 @@ def _get_disabled_services_list():
                 log_warning("Status of feature '{}' is None".format(feature_name))
                 continue
 
-        if status == "disabled":
-            disabled_services_list.append(feature_name)
+            if status == "disabled":
+                disabled_services_list.append(feature_name)
     else:
         log_warning("Unable to retreive FEATURE table")
 
