@@ -2,12 +2,17 @@
 Bootloader implementation for Aboot used on Arista devices
 """
 
+import base64
 import collections
 import os
 import re
 import subprocess
+import sys
+import zipfile
 
 import click
+
+from M2Crypto import X509
 
 from ..common import (
    HOST_PATH,
@@ -18,6 +23,12 @@ from ..common import (
 from .bootloader import Bootloader
 
 _secureboot = None
+
+# For the signature format, see: https://github.com/aristanetworks/swi-tools/tree/master/switools
+SWI_SIG_FILE_NAME = 'swi-signature'
+SWIX_SIG_FILE_NAME = 'swix-signature'
+ISSUERCERT = 'IssuerCert'
+
 def isSecureboot():
     global _secureboot
     if _secureboot is None:
@@ -114,10 +125,47 @@ class AbootBootloader(Bootloader):
     def verify_binary_image(self, image_path):
         try:
             subprocess.check_call(['/usr/bin/unzip', '-tq', image_path])
-            # TODO: secureboot check signature
+            return self._verify_secureboot_image(image_path)
         except subprocess.CalledProcessError:
             return False
+
+    def _verify_secureboot_image(self, image_path):
+        if isSecureboot():
+            cert = self.getCert(image_path)
+            return cert is not None
         return True
+
+    @classmethod
+    def getCert(cls, swiFile):
+        with zipfile.ZipFile(swiFile, 'r') as swi:
+            try:
+                sigInfo = swi.getinfo(cls.getSigFileName(swiFile))
+            except KeyError:
+                # Occurs if SIG_FILE_NAME is not in the swi (the SWI is not signed properly)
+                return None
+            with swi.open(sigInfo, 'r') as sigFile:
+                for line in sigFile:
+                    data = line.split(':')
+                    if len(data) == 2:
+                        if data[0] == ISSUERCERT:
+                            try:
+                                base64_cert = cls.base64Decode(data[1].strip())
+                                return X509.load_cert_string(base64_cert)
+                            except TypeError:
+                                return None
+                    else:
+                        sys.stderr.write('Unexpected format for line in swi[x]-signature file: %s\n' % line)
+            return None
+
+    @classmethod
+    def getSigFileName(cls, swiFile):
+        if swiFile.lower().endswith(".swix"):
+            return SWIX_SIG_FILE_NAME
+        return SWI_SIG_FILE_NAME
+
+    @classmethod
+    def base64Decode(cls, text):
+        return base64.standard_b64decode(text)
 
     @classmethod
     def detect(cls):

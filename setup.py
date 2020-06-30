@@ -149,7 +149,8 @@ setup(
     # - tabulate
     install_requires=[
         'click',
-        'natsort'
+        'natsort',
+        'm2crypto'
     ],
     setup_requires= [
         'pytest-runner'
