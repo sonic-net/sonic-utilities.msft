@@ -145,6 +145,12 @@
         "Ethernet4": "oid:0x1000000000004",
         "Ethernet8": "oid:0x1000000000006"
     },
+    "COUNTERS_LAG_NAME_MAP": {
+        "PortChannel0001": "oid:0x60000000005a1",
+        "PortChannel0002": "oid:0x60000000005a2",
+        "PortChannel0003": "oid:0x600000000063c",
+        "PortChannel0004": "oid:0x600000000063d"
+    },
     "COUNTERS_DEBUG_NAME_PORT_STAT_MAP": {
         "DEBUG_0": "SAI_PORT_STAT_IN_DROP_REASON_RANGE_BASE",
         "DEBUG_2": "SAI_PORT_STAT_OUT_CONFIGURED_DROP_REASONS_1_DROPPED_PKTS"
