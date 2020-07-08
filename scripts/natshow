@@ -132,6 +132,8 @@ class NatShow(object):
                 continue
 
             ip_protocol = "all"
+            source = "---"
+            destination = "---"
             translated_dst = "---"
             translated_src = "---"
 
@@ -249,7 +251,7 @@ class NatShow(object):
                     napt_keys = re.split(':', napt_entry)
                     napt_values = self.appl_db.get_all(self.appl_db.APPL_DB,'NAPT_TABLE:{}'.format(napt_entry))
 
-                    ip_protocol = napt_keys[0]
+                    ip_protocol = napt_keys[0].lower()
                     source = "---"
                     destination = "---"
 
@@ -278,6 +280,8 @@ class NatShow(object):
                     nat_twice_values = self.appl_db.get_all(self.appl_db.APPL_DB,'NAT_TWICE_TABLE:{}'.format(nat_twice_entry))
 
                     ip_protocol = "all"
+                    source = "---"
+                    destination = "---"
 
                     source = nat_twice_keys[0]
                     destination = nat_twice_keys[1]
@@ -301,7 +305,9 @@ class NatShow(object):
                     napt_twice_keys = re.split(':', napt_twice_entry)
                     napt_twice_values = self.appl_db.get_all(self.appl_db.APPL_DB,'NAPT_TWICE_TABLE:{}'.format(napt_twice_entry))
 
-                    ip_protocol = napt_twice_keys[0]
+                    ip_protocol = napt_twice_keys[0].lower()
+                    source = "---"
+                    destination = "---"
 
                     source = napt_twice_keys[1] + ':' + napt_twice_keys[2]
                     destination = napt_twice_keys[3] + ':' + napt_twice_keys[4]

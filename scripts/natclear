@@ -23,11 +23,18 @@ class NatClear(object):
         self.db.connect(self.db.APPL_DB)
         return
 
-    def send_notification(self, op, data):
+    def send_entries_notification(self, op, data):
         opdata = [op,data]
         msg = json.dumps(opdata,separators=(',',':'))
-        self.db.publish('APPL_DB','FLUSHNATREQUEST', msg)
+        self.db.publish('APPL_DB','FLUSHNATENTRIES', msg)
         return
+
+    def send_statistics_notification(self, op, data):
+        opdata = [op,data]
+        msg = json.dumps(opdata,separators=(',',':'))
+        self.db.publish('APPL_DB','FLUSHNATSTATISTICS', msg)
+        return
+
 
 def main():
     parser = argparse.ArgumentParser(description='Clear the nat information',
@@ -49,11 +56,11 @@ def main():
     try:
         nat = NatClear()
         if clear_translations:
-            nat.send_notification("ENTRIES", "ALL")
+            nat.send_entries_notification("ENTRIES", "ALL")
             print ""
             print("Dynamic NAT entries are cleared.")
         elif clear_statistics:
-            nat.send_notification("STATISTICS", "ALL")
+            nat.send_statistics_notification("STATISTICS", "ALL")
             print ""
             print("NAT statistics are cleared.")
     except Exception as e:
