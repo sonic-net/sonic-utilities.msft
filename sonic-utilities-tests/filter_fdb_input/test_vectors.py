@@ -198,6 +198,7 @@ filterFdbEntriesTestVector = [
                 "Vlan1000": {}
             },
             "VLAN_INTERFACE": {
+                "Vlan1000": {}, 
                 "Vlan1000|192.168.128.1/21": {}
             }, 
         },

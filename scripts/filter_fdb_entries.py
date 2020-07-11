@@ -31,6 +31,8 @@ def get_vlan_cidr_map(filename):
     vlan_cidr = defaultdict()
     if "VLAN_INTERFACE" in config_db_entries.keys() and "VLAN" in config_db_entries.keys():
         for vlan_key in config_db_entries["VLAN_INTERFACE"].keys():
+            if '|' not in vlan_key:
+                continue
             vlan, cidr = tuple(vlan_key.split('|'))
             if vlan in config_db_entries["VLAN"]:
                 vlan_cidr[vlan] = ip_interface(cidr).network
