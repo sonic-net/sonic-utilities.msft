@@ -5,6 +5,7 @@ import sys
 import argparse
 import syslog
 from swsssdk import ConfigDBConnector, SonicDBConfig
+from swsssdk import SonicV2Connector
 import sonic_device_util
 
 
@@ -52,6 +53,10 @@ class DBMigrator():
             self.configDB = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace, **db_kwargs)
         self.configDB.db_connect('CONFIG_DB')
 
+        self.appDB = SonicV2Connector(host='127.0.0.1')
+        if self.appDB is not None:
+            self.appDB.connect(self.appDB.APPL_DB)
+
     def migrate_pfc_wd_table(self):
         '''
         Migrate all data entries from table PFC_WD_TABLE to PFC_WD
@@ -98,6 +103,41 @@ class DBMigrator():
                 log_info('Migrating interface table for ' + key[0])
                 self.configDB.set_entry(table, key[0], data[key])
                 if_db.append(key[0])
+
+    def migrate_intf_table(self):
+        '''
+        Migrate all data from existing INTF table in APP DB during warmboot with IP Prefix
+        to have an additional ONE entry without IP Prefix. For. e.g, for an entry
+        "Vlan1000:192.168.0.1/21": {}", this function shall add an entry without
+        IP prefix as ""Vlan1000": {}". This also migrates 'lo' to 'Loopback0' interface
+        '''
+
+        if self.appDB is None:
+            return
+
+        if_db = []
+        data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:*")
+        for key in data:
+            if_name = key.split(":")[1]
+            if if_name == "lo":
+                self.appDB.delete(self.appDB.APPL_DB, key)
+                key = key.replace(if_name, "Loopback0")
+                log_info('Migrating lo entry to ' + key)
+                self.appDB.set(self.appDB.APPL_DB, key, 'NULL', 'NULL')
+
+            if '/' not in key:
+                if_db.append(key.split(":")[1])
+                continue
+
+        data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:*")
+        for key in data:
+            if_name = key.split(":")[1]
+            if if_name in if_db:
+                continue
+            log_info('Migrating intf table for ' + if_name)
+            table = "INTF_TABLE:" + if_name
+            self.appDB.set(self.appDB.APPL_DB, table, 'NULL', 'NULL')
+            if_db.append(if_name)
 
     def mlnx_migrate_buffer_pool_size(self):
         """
@@ -213,6 +253,7 @@ class DBMigrator():
         #       upgrade will take care of the subsequent migrations.
         self.migrate_pfc_wd_table()
         self.migrate_interface_table()
+        self.migrate_intf_table()
         self.set_version('version_1_0_2')
         return 'version_1_0_2'
 
@@ -223,6 +264,7 @@ class DBMigrator():
         log_info('Handling version_1_0_1')
 
         self.migrate_interface_table()
+        self.migrate_intf_table()
         self.set_version('version_1_0_2')
         return 'version_1_0_2'
 
