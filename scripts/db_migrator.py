@@ -115,8 +115,12 @@ class DBMigrator():
         if self.appDB is None:
             return
 
-        if_db = []
         data = self.appDB.keys(self.appDB.APPL_DB, "INTF_TABLE:*")
+
+        if data is None:
+            return
+
+        if_db = []
         for key in data:
             if_name = key.split(":")[1]
             if if_name == "lo":
