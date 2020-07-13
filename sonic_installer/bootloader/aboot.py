@@ -23,6 +23,7 @@ from ..common import (
 from .bootloader import Bootloader
 
 _secureboot = None
+DEFAULT_SWI_IMAGE = 'sonic.swi'
 
 # For the signature format, see: https://github.com/aristanetworks/swi-tools/tree/master/switools
 SWI_SIG_FILE_NAME = 'swi-signature'
@@ -110,9 +111,9 @@ class AbootBootloader(Bootloader):
             self._boot_config_set(SWI=image_path, SWI_DEFAULT=image_path)
             click.echo("Set next and default boot to current image %s" % current)
 
-        image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
+        image_path = self.get_image_path(image)
         click.echo('Removing image root filesystem...')
-        subprocess.call(['rm','-rf', os.path.join(HOST_PATH, image_dir)])
+        subprocess.call(['rm','-rf', image_path])
         click.echo('Image removed')
 
     def get_binary_image_version(self, image_path):
@@ -128,6 +129,13 @@ class AbootBootloader(Bootloader):
             return self._verify_secureboot_image(image_path)
         except subprocess.CalledProcessError:
             return False
+
+    def verify_next_image(self):
+        if not super(AbootBootloader, self).verify_next_image():
+            return False
+        image = self.get_next_image()
+        image_path = os.path.join(self.get_image_path(image), DEFAULT_SWI_IMAGE)
+        return self._verify_secureboot_image(image_path)
 
     def _verify_secureboot_image(self, image_path):
         if isSecureboot():

@@ -16,6 +16,7 @@ PLAT_REBOOT="platform_reboot"
 REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
 VERBOSE=no
 EXIT_NEXT_IMAGE_NOT_EXISTS=4
+EXIT_SONIC_INSTALLER_VERIFY_REBOOT=21
 
 function debug()
 {
@@ -79,10 +80,11 @@ function reboot_pre_check()
     fi
     rm ${filename}
 
-    # Make sure that the next image exists
-    if [[ ! -d ${IMAGE_PATH} ]]; then
-        VERBOSE=yes debug "Next image ${NEXT_SONIC_IMAGE} doesn't exist ..."
-        exit ${EXIT_NEXT_IMAGE_NOT_EXISTS}
+    # Verify the next image by sonic_installer
+    local message=$(sonic_installer verify-next-image 2>&1)
+    if [ $? -ne 0 ]; then
+        VERBOSE=yes debug "Failed to verify next image: ${message}"
+        exit ${EXIT_SONIC_INSTALLER_VERIFY_REBOOT}
     fi
 }
 
