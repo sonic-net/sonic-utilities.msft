@@ -64,7 +64,7 @@ function show_help_and_exit()
 
 function setup_reboot_variables()
 {
-    NEXT_SONIC_IMAGE=$(sonic_installer list | grep "Next: " | cut -d ' ' -f 2)
+    NEXT_SONIC_IMAGE=$(sonic-installer list | grep "Next: " | cut -d ' ' -f 2)
     IMAGE_PATH="/host/image-${NEXT_SONIC_IMAGE#SONiC-OS-}"
 }
 

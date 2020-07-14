@@ -73,8 +73,8 @@ function ConfirmASICConfigChecksumsMatch()
 # Main starts here
 debug "Checking that ASIC configuration has not changed"
 
-CURR_SONIC_IMAGE="$(sonic_installer list | grep "Current: " | cut -f2 -d' ')"
-DST_SONIC_IMAGE="$(sonic_installer list | grep "Next: " | cut -f2 -d' ')"
+CURR_SONIC_IMAGE="$(sonic-installer list | grep "Current: " | cut -f2 -d' ')"
+DST_SONIC_IMAGE="$(sonic-installer list | grep "Next: " | cut -f2 -d' ')"
 if [[ "${CURR_SONIC_IMAGE}" == "${DST_SONIC_IMAGE}" ]]; then
     debug "ASIC config unchanged, current and destination SONiC version are the same"
     exit "${ASIC_CONFIG_UNCHANGED}"

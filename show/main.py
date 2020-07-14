@@ -2722,7 +2722,7 @@ def ecn():
 @cli.command('boot')
 def boot():
     """Show boot configuration"""
-    cmd = "sudo sonic_installer list"
+    cmd = "sudo sonic-installer list"
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
     click.echo(proc.stdout.read())
 

@@ -135,7 +135,8 @@ setup(
             'pddf_ledutil = pddf_ledutil.main:cli',
             'show = show.main:cli',
             'sonic-clear = clear.main:cli',
-            'sonic_installer = sonic_installer.main:cli',
+            'sonic-installer = sonic_installer.main:sonic_installer',
+            'sonic_installer = sonic_installer.main:sonic_installer',  # Deprecated
             'undebug = undebug.main:cli',
             'watchdogutil = watchdogutil.main:watchdogutil',
         ]

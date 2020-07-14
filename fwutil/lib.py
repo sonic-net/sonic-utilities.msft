@@ -221,13 +221,13 @@ class SquashFs(object):
         self.overlay_mountpoint = self.OVERLAY_MOUNTPOINT_TEMPLATE.format(image_stem)
 
     def get_current_image(self):
-        cmd = "sonic_installer list | grep 'Current: ' | cut -f2 -d' '"
+        cmd = "sonic-installer list | grep 'Current: ' | cut -f2 -d' '"
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
 
         return output.rstrip(NEWLINE)
 
     def get_next_image(self):
-        cmd = "sonic_installer list | grep 'Next: ' | cut -f2 -d' '"
+        cmd = "sonic-installer list | grep 'Next: ' | cut -f2 -d' '"
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
 
         return output.rstrip(NEWLINE)

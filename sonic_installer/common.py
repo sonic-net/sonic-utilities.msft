@@ -1,5 +1,5 @@
 """
-Module holding common functions and constants used by sonic_installer and its
+Module holding common functions and constants used by sonic-installer and its
 subpackages.
 """
 

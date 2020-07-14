@@ -77,7 +77,7 @@ def run_command(cmd, use_shell=False):
 
 ## Search which SONiC image is the Current image
 def get_current_image():
-    (rc, img, err_str) = run_command("sonic_installer list | grep 'Current: ' | cut -d '-' -f 3-", use_shell=True);
+    (rc, img, err_str) = run_command("sonic-installer list | grep 'Current: ' | cut -d '-' -f 3-", use_shell=True);
     if type(img) == list and len(img) == 1:
         return img[0]
     print_err("Unable to locate current SONiC image")
@@ -85,7 +85,7 @@ def get_current_image():
 
 ## Search which SONiC image is the Next image
 def get_next_image():
-    (rc, img, err_str) = run_command("sonic_installer list | grep 'Next: ' | cut -d '-' -f 3-", use_shell=True);
+    (rc, img, err_str) = run_command("sonic-installer list | grep 'Next: ' | cut -d '-' -f 3-", use_shell=True);
     if type(img) == list and len(img) == 1:
         return img[0]
     print_err("Unable to locate current SONiC image")

@@ -274,7 +274,7 @@ function teardown_control_plane_assistant()
 function setup_reboot_variables()
 {
     # Kernel and initrd image
-    NEXT_SONIC_IMAGE=$(sonic_installer list | grep "Next: " | cut -d ' ' -f 2)
+    NEXT_SONIC_IMAGE=$(sonic-installer list | grep "Next: " | cut -d ' ' -f 2)
     IMAGE_PATH="/host/image-${NEXT_SONIC_IMAGE#SONiC-OS-}"
     if grep -q aboot_platform= /host/machine.conf; then
         KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
