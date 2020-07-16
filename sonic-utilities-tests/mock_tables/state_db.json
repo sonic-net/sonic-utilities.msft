@@ -14,7 +14,8 @@
         "cable_type": "Length Cable Assembly(m)",
         "cable_length": "3",
         "specification_compliance": "{'10/40G Ethernet Compliance Code': '40G Active Cable (XLPPI)'}",
-        "nominal_bit_rate": "255"
+        "nominal_bit_rate": "255",
+        "application_advertisement": "N/A"
     },
     "TRANSCEIVER_DOM_SENSOR|Ethernet0": {
         "temperature": "30.9258",

@@ -1,6 +1,7 @@
 import sys
 import os
 from click.testing import CliRunner
+import mock_tables.dbconnector
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -36,6 +37,7 @@ Ethernet200  Not present
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet0 -d"])
         expected = """Ethernet0: SFP EEPROM detected
+        Application Advertisement: N/A
         Connector: No separable connector
         Encoding: 64B66B
         Extended Identifier: Power Class 3(2.5W max), CDR present in Rx Tx
@@ -89,6 +91,7 @@ Ethernet200  Not present
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet0"])
         expected = """Ethernet0: SFP EEPROM detected
+        Application Advertisement: N/A
         Connector: No separable connector
         Encoding: 64B66B
         Extended Identifier: Power Class 3(2.5W max), CDR present in Rx Tx

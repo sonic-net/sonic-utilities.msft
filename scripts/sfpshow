@@ -38,7 +38,8 @@ qsfp_data_map = {'model': 'Vendor PN',
                  'nominal_bit_rate': 'Nominal Bit Rate(100Mbs)',
                  'specification_compliance': 'Specification compliance',
                  'encoding': 'Encoding',
-                 'connector': 'Connector'
+                 'connector': 'Connector',
+                 'application_advertisement': 'Application Advertisement'
                  }
 
 sfp_dom_channel_monitor_map = {'rx1power': 'RXPower',
@@ -261,11 +262,14 @@ class SFPShow(object):
             elif key1 == 'cable_length':
                 pass
             elif key1 == 'specification_compliance':
-                spefic_compliance_dict = eval(sfp_info_dict['specification_compliance'])
-                sorted_compliance_key_table = natsorted(spefic_compliance_dict)
-                out_put = out_put + ident + qsfp_data_map['specification_compliance'] + ': ' + '\n'
-                for compliance_key in sorted_compliance_key_table:
-                    out_put = out_put + ident + ident + compliance_key + ': ' + spefic_compliance_dict[compliance_key] + '\n'
+                if sfp_info_dict['type'] == "QSFP-DD Double Density 8X Pluggable Transceiver":
+                    out_put = out_put + ident + qsfp_data_map[key1] + ': ' + sfp_info_dict[key1] + '\n'
+                else:
+                    out_put = out_put + ident + qsfp_data_map['specification_compliance'] + ': ' + '\n'
+                    spefic_compliance_dict = eval(sfp_info_dict['specification_compliance'])
+                    sorted_compliance_key_table = natsorted(spefic_compliance_dict)
+                    for compliance_key in sorted_compliance_key_table:
+                        out_put = out_put + ident + ident + compliance_key + ': ' + spefic_compliance_dict[compliance_key] + '\n'
             else:
                 out_put = out_put + ident + qsfp_data_map[key1] + ': ' + sfp_info_dict[key1] + '\n'
 
