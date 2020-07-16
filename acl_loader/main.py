@@ -244,6 +244,9 @@ class AclLoader(object):
         :param table_name: Table name
         :return:
         """
+        if not self.is_table_valid(table_name):
+            warning("Table \"%s\" not found" % table_name)
+
         self.current_table = table_name
 
     def set_session_name(self, session_name):
@@ -412,7 +415,7 @@ class AclLoader(object):
     def convert_ip(self, table_name, rule_idx, rule):
         rule_props = {}
 
-        if rule.ip.config.protocol:
+        if rule.ip.config.protocol or rule.ip.config.protocol == 0:  # 0 is a valid protocol number
             if self.ip_protocol_map.has_key(rule.ip.config.protocol):
                 rule_props["IP_PROTOCOL"] = self.ip_protocol_map[rule.ip.config.protocol]
             else:
