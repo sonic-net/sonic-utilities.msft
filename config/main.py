@@ -548,8 +548,10 @@ def _get_disabled_services_list():
 
 
 def _stop_services():
+    # This list is order-dependent. Please add services in the order they should be stopped
     # on Mellanox platform pmon is stopped by syncd
     services_to_stop = [
+        'telemetry',
         'restapi',
         'swss',
         'lldp',
@@ -566,6 +568,7 @@ def _stop_services():
 
 
 def _reset_failed_services():
+    # This list is order-independent. Please keep list in alphabetical order
     services_to_reset = [
         'bgp',
         'dhcp_relay',
@@ -573,23 +576,25 @@ def _reset_failed_services():
         'hostname-config',
         'interfaces-config',
         'lldp',
+        'nat',
         'ntp-config',
         'pmon',
         'radv',
+        'restapi',
         'rsyslog-config',
+        'sflow',
         'snmp',
         'swss',
         'syncd',
         'teamd',
-        'nat',
-        'sflow',
-        'restapi'
+        'telemetry'
     ]
 
     execute_systemctl(services_to_reset, SYSTEMCTL_ACTION_RESET_FAILED)
 
 
 def _restart_services():
+    # This list is order-dependent. Please add services in the order they should be started
     # on Mellanox platform pmon is started by syncd
     services_to_restart = [
         'hostname-config',
@@ -603,7 +608,8 @@ def _restart_services():
         'hostcfgd',
         'nat',
         'sflow',
-        'restapi'
+        'restapi',
+        'telemetry'
     ]
 
     disable_services = _get_disabled_services_list()
