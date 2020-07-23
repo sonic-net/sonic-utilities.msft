@@ -2660,6 +2660,7 @@ This sub-section explains the following list of configuration on the interfaces.
 3) shutdown - to administratively shut down the interface
 4) speed - to set the interface speed
 5) startup - to bring up the administratively shutdown interface
+6) breakout - to set interface breakout mode
 
 From 201904 release onwards, the “config interface” command syntax is changed and the format is as follows:
 
@@ -2960,6 +2961,36 @@ This command is used to configure the mtu for the Physical interface. Use the va
 - Example (Versions >= 201904):
   ```
   admin@sonic:~$ sudo config interface mtu Ethernet64 1500
+  ```
+
+**config interface breakout**
+
+This command is used to set breakout mode available for user-specified interface.
+kindly use, double tab i.e. <tab><tab> to see the available breakout option customized for each interface provided by the user.
+
+- Usage:
+  ```
+  sudo config interface breakout  --help
+  Usage: config interface breakout [OPTIONS] <interface_name> MODE
+
+    Set interface breakout mode
+
+    Options:
+      -f, --force-remove-dependencies
+                                      Clear all depenedecies internally first.
+      -l, --load-predefined-config    load predefied user configuration (alias,
+                                      lanes, speed etc) first.
+      -y, --yes
+      -v, --verbose                   Enable verbose output
+      -?, -h, --help                  Show this message and exit.
+  ```
+- Example :
+  ```
+  admin@sonic:~$ sudo config interface breakout  Ethernet0 <tab><tab>
+  <tab provides option for breakout mode>
+  1x100G[40G]  2x50G        4x25G[10G]
+
+  admin@sonic:~$ sudo config interface breakout  Ethernet0 4x25G[10G] -f -l -v -y
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
