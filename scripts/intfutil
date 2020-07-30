@@ -290,7 +290,7 @@ def po_speed_dict(po_int_dict, appl_db):
         po_speed_dict = {}
         return po_speed_dict
 
-def appl_db_portchannel_status_get(appl_db, config_db, po_name, status_type, portchannel_speed_dict):
+def appl_db_portchannel_status_get(appl_db, config_db, po_name, status_type, portchannel_speed_dict, combined_int_to_vlan_po_dict=None):
     """
     Get the port status
     """
@@ -301,7 +301,10 @@ def appl_db_portchannel_status_get(appl_db, config_db, po_name, status_type, por
         status = portchannel_speed_dict[po_name]
         return status
     if status_type == "vlan":
-        status = "routed"
+        if combined_int_to_vlan_po_dict and po_name in combined_int_to_vlan_po_dict.keys():
+            status = "trunk"
+        else:
+            status = "routed"
         return status
     if status_type == "mtu":
         status = config_db.get(config_db.CONFIG_DB, po_table_id, status_type)
@@ -388,7 +391,7 @@ class IntfStatus(object):
                                 appl_db_portchannel_status_get(self.appl_db, self.config_db, po, PORT_MTU_STATUS, self.portchannel_speed_dict),
                                 appl_db_portchannel_status_get(self.appl_db, self.config_db, po, PORT_FEC, self.portchannel_speed_dict),
                                 appl_db_portchannel_status_get(self.appl_db, self.config_db, po, PORT_ALIAS, self.portchannel_speed_dict),
-                                appl_db_portchannel_status_get(self.appl_db, self.config_db, po, "vlan", self.portchannel_speed_dict),
+                                appl_db_portchannel_status_get(self.appl_db, self.config_db, po, "vlan", self.portchannel_speed_dict, self.combined_int_to_vlan_po_dict),
                                 appl_db_portchannel_status_get(self.appl_db, self.config_db, po, PORT_OPER_STATUS, self.portchannel_speed_dict),
                                 appl_db_portchannel_status_get(self.appl_db, self.config_db, po, PORT_ADMIN_STATUS, self.portchannel_speed_dict),
                                 appl_db_portchannel_status_get(self.appl_db, self.config_db, po, PORT_OPTICS_TYPE, self.portchannel_speed_dict),
