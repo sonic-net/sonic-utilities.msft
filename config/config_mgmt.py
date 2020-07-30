@@ -83,7 +83,7 @@ class ConfigMgmt():
     def __del__(self):
         pass
 
-    def tablesWithoutYang(self):
+    def tablesWithOutYang(self):
         '''
         Return tables loaded in config for which YANG model does not exist.
 

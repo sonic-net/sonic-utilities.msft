@@ -32,7 +32,7 @@ class TestConfigMgmt(TestCase):
         self.updateConfig(curConfig, unknown)
         self.writeJson(curConfig, config_mgmt.CONFIG_DB_JSON_FILE)
         cm = config_mgmt.ConfigMgmt(source=config_mgmt.CONFIG_DB_JSON_FILE)
-        #assert "unknown_table" in cm.tablesWithoutYang()
+        assert "unknown_table" in cm.tablesWithOutYang()
         return
 
     def test_search_keys(self):
