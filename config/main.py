@@ -10,6 +10,7 @@ import syslog
 import time
 import netifaces
 import threading
+import json
 
 import sonic_device_util
 import ipaddress
