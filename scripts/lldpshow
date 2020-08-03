@@ -74,7 +74,7 @@ class Lldpshow(object):
             lldp_interface_list = lldp_port if lldp_port is not None else self.lldp_interface[lldp_instace_num]
             # In detail mode we will pass interface list (only front ports) and get O/P as plain text 
             # and in table format we will get xml output
-            lldp_cmd = 'sudo docker exec -it lldp{} lldpctl '.format(self.lldp_instance[lldp_instace_num]) + ('-f xml' if not lldp_detail_info else lldp_interface_list)
+            lldp_cmd = 'sudo docker exec -i lldp{} lldpctl '.format(self.lldp_instance[lldp_instace_num]) + ('-f xml' if not lldp_detail_info else lldp_interface_list)
             p = subprocess.Popen(lldp_cmd, stdout=subprocess.PIPE, shell=True)
             (output, err) = p.communicate()
             ## Wait for end of command. Get return returncode ##
