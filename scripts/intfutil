@@ -16,7 +16,7 @@ import os
 try:
     if os.environ["UTILITIES_UNIT_TESTING"] == "1":
         modules_path = os.path.join(os.path.dirname(__file__), "..")
-        tests_path = os.path.join(modules_path, "sonic-utilities-tests")
+        tests_path = os.path.join(modules_path, "tests")
         sys.path.insert(0, modules_path)
         sys.path.insert(0, tests_path)
         import mock_tables.dbconnector

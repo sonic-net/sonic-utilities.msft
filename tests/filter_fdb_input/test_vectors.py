@@ -243,14 +243,14 @@ filterFdbEntriesTestVector = [
         ],
     },
     {
-        "arp": "sonic-utilities-tests/filter_fdb_input/arp.json",
-        "fdb": "sonic-utilities-tests/filter_fdb_input/fdb.json",
-        "config_db": "sonic-utilities-tests/filter_fdb_input/config_db.json",
-        "expected_fdb": "sonic-utilities-tests/filter_fdb_input/expected_fdb.json"
+        "arp": "tests/filter_fdb_input/arp.json",
+        "fdb": "tests/filter_fdb_input/fdb.json",
+        "config_db": "tests/filter_fdb_input/config_db.json",
+        "expected_fdb": "tests/filter_fdb_input/expected_fdb.json"
     },
     {
-        "arp": "sonic-utilities-tests/filter_fdb_input/arp.json",
-        "fdb": "sonic-utilities-tests/filter_fdb_input/fdb.json",
+        "arp": "tests/filter_fdb_input/arp.json",
+        "fdb": "tests/filter_fdb_input/fdb.json",
         "config_db": {
             "VLAN": {
                 "Vlan1": {}
@@ -263,8 +263,8 @@ filterFdbEntriesTestVector = [
         ],
     },
     {
-        "arp": "sonic-utilities-tests/filter_fdb_input/arp.json",
-        "fdb": "sonic-utilities-tests/filter_fdb_input/fdb.json",
+        "arp": "tests/filter_fdb_input/arp.json",
+        "fdb": "tests/filter_fdb_input/fdb.json",
         "config_db": {
         },
         "expected_fdb": [

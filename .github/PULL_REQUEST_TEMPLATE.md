@@ -9,7 +9,7 @@ If this is a bug fix, make sure your description includes "closes #xxxx",
 issue when the PR is merged.
 
 If you are adding/modifying/removing any command or utility script, please also
-make sure to add/modify/remove any unit tests from the sonic-utilities-tests
+make sure to add/modify/remove any unit tests from the tests
 directory as appropriate.
 
 If you are modifying or removing an existing 'show', 'config' or 'sonic-clear'
