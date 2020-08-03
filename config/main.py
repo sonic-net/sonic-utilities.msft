@@ -48,6 +48,10 @@ CFG_LOOPBACK_PREFIX_LEN = len(CFG_LOOPBACK_PREFIX)
 CFG_LOOPBACK_NAME_TOTAL_LEN_MAX = 11
 CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
+
+asic_type = None
+config_db = None
+
 # ========================== Syslog wrappers ==========================
 
 def log_debug(msg):
@@ -111,17 +115,6 @@ class AbbreviationGroup(click.Group):
                 return click.Group.get_command(self, ctx, shortest)
 
             ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
-
-
-#
-# Load asic_type for further use
-#
-
-try:
-    version_info = sonic_device_util.get_sonic_version_info()
-    asic_type = version_info['asic_type']
-except (KeyError, TypeError):
-    raise click.Abort()
 
 #
 # Load breakout config file for Dynamic Port Breakout
@@ -552,7 +545,7 @@ def _is_neighbor_ipaddress(config_db, ipaddress):
 
 def _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts=False):
     """Returns list of strings containing IP addresses of all BGP neighbors
-       if the flag ignore_local_hosts is set to True, additional check to see if 
+       if the flag ignore_local_hosts is set to True, additional check to see if
        if the BGP neighbor AS number is same as local BGP AS number, if so ignore that neigbor.
     """
     addrs = []
@@ -692,12 +685,12 @@ def _get_disabled_services_list():
                 log_warning("Feature is None")
                 continue
 
-            status = feature_table[feature_name]['status']
-            if not status:
-                log_warning("Status of feature '{}' is None".format(feature_name))
+            state = feature_table[feature_name]['state']
+            if not state:
+                log_warning("Enable state of feature '{}' is None".format(feature_name))
                 continue
 
-            if status == "disabled":
+            if state == "disabled":
                 disabled_services_list.append(feature_name)
     else:
         log_warning("Unable to retreive FEATURE table")
@@ -890,6 +883,19 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 @click.group(cls=AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
 def config():
     """SONiC command line - 'config' command"""
+    #
+    # Load asic_type for further use
+    #
+    global asic_type
+
+    try:
+        version_info = sonic_device_util.get_sonic_version_info()
+        asic_type = version_info['asic_type']
+    except KeyError, TypeError:
+        raise click.Abort()
+
+    if asic_type == 'mellanox':
+        platform.add_command(mlnx.mlnx)
 
     # Load the global config file database_global.json once.
     SonicDBConfig.load_sonic_global_db_config()
@@ -899,6 +905,10 @@ def config():
 
     SonicDBConfig.load_sonic_global_db_config()
 
+    global config_db
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
 
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
@@ -1007,7 +1017,7 @@ def load(filename, yes):
         # if any of the config files in linux host OR namespace is not present, return
         if not os.path.isfile(file):
             click.echo("The config_db file {} doesn't exist".format(file))
-            return 
+            return
 
         if namespace is None:
             command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, file)
@@ -1225,7 +1235,7 @@ def load_minigraph(no_service_restart):
 
     if os.path.isfile('/etc/sonic/acl.json'):
         run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
-    
+
     # Write latest db version string into db
     db_migrator='/usr/bin/db_migrator.py'
     if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
@@ -1235,7 +1245,7 @@ def load_minigraph(no_service_restart):
             else:
                 cfggen_namespace_option = " -n {}".format(namespace)
             run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
-     
+
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
@@ -1891,7 +1901,7 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
     #Construct SNMP_AGENT_ADDRESS_CONFIG table key in the format ip|<port>|<vrf>
     key = agentip+'|'
     if port:
-        key = key+port   
+        key = key+port
     key = key+'|'
     if vrf:
         key = key+vrf
@@ -1912,7 +1922,7 @@ def del_snmp_agent_address(ctx, agentip, port, vrf):
 
     key = agentip+'|'
     if port:
-        key = key+port   
+        key = key+port
     key = key+'|'
     if vrf:
         key = key+vrf
@@ -2174,7 +2184,7 @@ def all(verbose):
         config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         config_db.connect()
         bgp_neighbor_ip_list = _get_all_neighbor_ipaddresses(config_db, ignore_local_hosts)
-        for ipaddress in bgp_neighbor_ip_list: 
+        for ipaddress in bgp_neighbor_ip_list:
             _change_bgp_session_status_by_addr(config_db, ipaddress, 'up', verbose)
 
 # 'neighbor' subcommand
@@ -2463,7 +2473,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         sys.exit(0)
 
 def _get_all_mgmtinterface_keys():
-    """Returns list of strings containing mgmt interface keys 
+    """Returns list of strings containing mgmt interface keys
     """
     config_db = ConfigDBConnector()
     config_db.connect()
@@ -3191,9 +3201,9 @@ def priority(ctx, interface_name, priority, status):
         interface_name = interface_alias_to_name(interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
-    
+
     run_command("pfc config priority {0} {1} {2}".format(status, interface_name, priority))
-    
+
 #
 # 'platform' group ('config platform ...')
 #
@@ -3201,9 +3211,6 @@ def priority(ctx, interface_name, priority, status):
 @config.group(cls=AbbreviationGroup)
 def platform():
     """Platform-related configuration tasks"""
-
-if asic_type == 'mellanox':
-    platform.add_command(mlnx.mlnx)
 
 # 'firmware' subgroup ("config platform firmware ...")
 @platform.group(cls=AbbreviationGroup)
@@ -3292,10 +3299,10 @@ def naming_mode_alias():
 def is_loopback_name_valid(loopback_name):
     """Loopback name validation
     """
-    
+
     if loopback_name[:CFG_LOOPBACK_PREFIX_LEN] != CFG_LOOPBACK_PREFIX :
         return False
-    if (loopback_name[CFG_LOOPBACK_PREFIX_LEN:].isdigit() is False or 
+    if (loopback_name[CFG_LOOPBACK_PREFIX_LEN:].isdigit() is False or
           int(loopback_name[CFG_LOOPBACK_PREFIX_LEN:]) > CFG_LOOPBACK_ID_MAX_VAL) :
         return False
     if len(loopback_name) > CFG_LOOPBACK_NAME_TOTAL_LEN_MAX:
@@ -3462,7 +3469,7 @@ def add_ntp_server(ctx, ntp_ip_address):
     if ntp_ip_address in ntp_servers:
         click.echo("NTP server {} is already configured".format(ntp_ip_address))
         return
-    else: 
+    else:
         db.set_entry('NTP_SERVER', ntp_ip_address, {'NULL': 'NULL'})
         click.echo("NTP server {} added to configuration".format(ntp_ip_address))
         try:
@@ -3483,7 +3490,7 @@ def del_ntp_server(ctx, ntp_ip_address):
     if ntp_ip_address in ntp_servers:
         db.set_entry('NTP_SERVER', '{}'.format(ntp_ip_address), None)
         click.echo("NTP server {} removed from configuration".format(ntp_ip_address))
-    else: 
+    else:
         ctx.fail("NTP server {} is not configured.".format(ntp_ip_address))
     try:
         click.echo("Restarting ntp-config service...")
@@ -3770,58 +3777,47 @@ def delete(ctx):
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
 
 #
-# 'feature' command ('config feature name state')
-# 
-@config.command('feature')
-@click.argument('name', metavar='<feature-name>', required=True)
-@click.argument('state', metavar='<feature-state>', required=True, type=click.Choice(["enabled", "disabled"]))
-def feature_status(name, state):
-    """ Configure status of feature"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    status_data = config_db.get_entry('FEATURE', name)
-
-    if not status_data:
-        click.echo(" Feature '{}' doesn't exist".format(name))
-        return
-
-    config_db.mod_entry('FEATURE', name, {'status': state})
-
+# 'feature' group ('config feature ...')
 #
-# 'container' group ('config container ...')
-#
-@config.group(cls=AbbreviationGroup, name='container', invoke_without_command=False)
-def container():
-    """Modify configuration of containers"""
-    pass
-
-#
-# 'feature' group ('config container feature ...')
-#
-@container.group(cls=AbbreviationGroup, name='feature', invoke_without_command=False)
+@config.group(cls=AbbreviationGroup, name='feature', invoke_without_command=False)
 def feature():
-    """Modify configuration of container features"""
+    """Modify configuration of features"""
     pass
 
 #
-# 'autorestart' subcommand ('config container feature autorestart ...')
+# 'state' command ('config feature state ...')
 #
-@feature.command(name='autorestart', short_help="Configure the status of autorestart feature for specific container")
-@click.argument('container_name', metavar='<container_name>', required=True)
-@click.argument('autorestart_status', metavar='<autorestart_status>', required=True, type=click.Choice(["enabled", "disabled"]))
-def autorestart(container_name, autorestart_status):
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    container_feature_table = config_db.get_table('CONTAINER_FEATURE')
-    if not container_feature_table:
-        click.echo("Unable to retrieve container feature table from Config DB.")
-        return
+@feature.command('state', short_help="Enable/disable a feature")
+@click.argument('name', metavar='<feature-name>', required=True)
+@click.argument('state', metavar='<state>', required=True, type=click.Choice(["enabled", "disabled"]))
+def feature_state(name, state):
+    """Enable/disable a feature"""
+    state_data = config_db.get_entry('FEATURE', name)
 
-    if not container_feature_table.has_key(container_name):
-        click.echo("Unable to retrieve features for container '{}'".format(container_name))
-        return
+    if not state_data:
+        click.echo("Feature '{}' doesn't exist".format(name))
+        sys.exit(1)
 
-    config_db.mod_entry('CONTAINER_FEATURE', container_name, {'auto_restart': autorestart_status})
+    config_db.mod_entry('FEATURE', name, {'state': state})
+
+#
+# 'autorestart' command ('config feature autorestart ...')
+#
+@feature.command(name='autorestart', short_help="Enable/disable autosrestart of a feature")
+@click.argument('name', metavar='<feature-name>', required=True)
+@click.argument('autorestart', metavar='<autorestart>', required=True, type=click.Choice(["enabled", "disabled"]))
+def feature_autorestart(name, autorestart):
+    """Enable/disable autorestart of a feature"""
+    feature_table = config_db.get_table('FEATURE')
+    if not feature_table:
+        click.echo("Unable to retrieve feature table from Config DB.")
+        sys.exit(1)
+
+    if not feature_table.has_key(name):
+        click.echo("Unable to retrieve feature '{}'".format(name))
+        sys.exit(1)
+
+    config_db.mod_entry('FEATURE', name, {'auto_restart': autorestart})
 
 if __name__ == '__main__':
     config()

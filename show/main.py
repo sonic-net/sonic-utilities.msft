@@ -31,6 +31,8 @@ PORT_STR = "Ethernet"
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
+config_db = None
+
 try:
     # noinspection PyPep8Naming
     import ConfigParser as configparser
@@ -557,7 +559,10 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 @click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
 def cli():
     """SONiC command line - 'show' command"""
-    pass
+    global config_db
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
 
 #
 # 'vrf' command ("show vrf")
@@ -1179,8 +1184,8 @@ def priority(interface):
     cmd = 'pfc show priority'
     if interface is not None and get_interface_mode() == "alias":
         interface = iface_alias_converter.alias_to_name(interface)
-                
-    if interface is not None:    
+
+    if interface is not None:
         cmd += ' {0}'.format(interface)
 
     run_command(cmd)
@@ -1192,8 +1197,8 @@ def asymmetric(interface):
     cmd = 'pfc show asymmetric'
     if interface is not None and get_interface_mode() == "alias":
         interface = iface_alias_converter.alias_to_name(interface)
-                
-    if interface is not None:    
+
+    if interface is not None:
         cmd += ' {0}'.format(interface)
 
     run_command(cmd)
@@ -1727,7 +1732,7 @@ if routing_stack == "quagga":
     from .bgp_quagga_v6 import bgp
     ipv6.add_command(bgp)
 elif routing_stack == "frr":
-    from .bgp_frr_v4 import bgp 
+    from .bgp_frr_v4 import bgp
     ip.add_command(bgp)
     from .bgp_frr_v6 import bgp
     ipv6.add_command(bgp)
@@ -2173,7 +2178,7 @@ def ntp(ctx, verbose):
     ntpstat_cmd = "ntpstat"
     ntpcmd = "ntpq -p -n"
     if is_mgmt_vrf_enabled(ctx) is True:
-        #ManagementVRF is enabled. Call ntpq using "ip vrf exec" or cgexec based on linux version 
+        #ManagementVRF is enabled. Call ntpq using "ip vrf exec" or cgexec based on linux version
         os_info =  os.uname()
         release = os_info[2].split('-')
         if parse_version(release[0]) > parse_version("4.9.0"):
@@ -2971,7 +2976,7 @@ def pool(verbose):
 
 # Define GEARBOX commands only if GEARBOX is configured
 app_db = SonicV2Connector(host='127.0.0.1')
-app_db.connect(app_db.APPL_DB) 
+app_db.connect(app_db.APPL_DB)
 if app_db.keys(app_db.APPL_DB, '_GEARBOX_TABLE:phy:*'):
 
     @cli.group(cls=AliasedGroup)
@@ -3051,53 +3056,52 @@ def ztp(status, verbose):
     run_command(cmd, display_cmd=verbose)
 
 #
-# show features
+# 'feature' group (show feature ...)
 #
-@cli.command('features')
-def features():
-    """Show status of optional features"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    header = ['Feature', 'Status']
+@cli.group(name='feature', invoke_without_command=False)
+def feature():
+    """Show feature status"""
+    pass
+
+#
+# 'state' subcommand (show feature status)
+#
+@feature.command('status', short_help="Show feature state")
+@click.argument('feature_name', required=False)
+def autorestart(feature_name):
+    header = ['Feature', 'State', 'AutoRestart']
     body = []
-    status_data = config_db.get_table('FEATURE')
-    for key in status_data.keys():
-        body.append([key, status_data[key]['status']])
+    feature_table = config_db.get_table('FEATURE')
+    if feature_name:
+        if feature_table and feature_table.has_key(feature_name):
+            body.append([feature_name, feature_table[feature_name]['state'], \
+                         feature_table[feature_name]['auto_restart']])
+        else:
+            click.echo("Can not find feature {}".format(feature_name))
+            sys.exit(1)
+    else:
+        for key in natsorted(feature_table.keys()):
+            body.append([key, feature_table[key]['state'], feature_table[key]['auto_restart']])
     click.echo(tabulate(body, header))
 
 #
-# 'container' group (show container ...)
+# 'autorestart' subcommand (show feature autorestart)
 #
-@cli.group(name='container', invoke_without_command=False)
-def container():
-    """Show container"""
-    pass
-
-#
-# 'feature' group (show container feature ...)
-#
-@container.group(name='feature', invoke_without_command=False)
-def feature():
-    """Show container feature"""
-    pass
-
-#
-# 'autorestart' subcommand (show container feature autorestart)
-#
-@feature.command('autorestart', short_help="Show whether the auto-restart feature for container(s) is enabled or disabled")
-@click.argument('container_name', required=False)
-def autorestart(container_name):
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    header = ['Container Name', 'Status']
+@feature.command('autorestart', short_help="Show auto-restart state for a feature")
+@click.argument('feature_name', required=False)
+def autorestart(feature_name):
+    header = ['Feature', 'AutoRestart']
     body = []
-    container_feature_table = config_db.get_table('CONTAINER_FEATURE')
-    if container_name:
-        if container_feature_table and container_feature_table.has_key(container_name):
-            body.append([container_name, container_feature_table[container_name]['auto_restart']])
+    feature_table = config_db.get_table('FEATURE')
+    if feature_name:
+        if feature_table and feature_table.has_key(feature_name):
+            body.append([feature_name, feature_table[feature_name]['auto_restart']])
+        else:
+            click.echo("Can not find feature {}".format(feature_name))
+            sys.exit(1)
     else:
-        for name in container_feature_table.keys():
-            body.append([name, container_feature_table[name]['auto_restart']])
+        for name in natsorted(feature_table.keys()):
+            body.append([name, feature_table[name]['auto_restart']])
     click.echo(tabulate(body, header))
 
 #

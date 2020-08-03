@@ -150,5 +150,75 @@
     "DEBUG_COUNTER_DROP_REASON|DEBUG_0|IP_HEADER_ERROR": {},
     "DEBUG_COUNTER_DROP_REASON|DEBUG_1|ACL_ANY": {},
     "DEBUG_COUNTER_DROP_REASON|DEBUG_2|IP_HEADER_ERROR": {},
-    "DEBUG_COUNTER_DROP_REASON|DEBUG_2|NO_L3_HEADER": {}
+    "DEBUG_COUNTER_DROP_REASON|DEBUG_2|NO_L3_HEADER": {},
+    "FEATURE|bgp": {
+        "state": "enabled",
+        "auto_restart": "enabled",
+        "high_mem_alert": "disabled"
+    },
+    "FEATURE|database": {
+        "state": "enabled",
+        "auto_restart": "disabled",
+        "high_mem_alert": "disabled"
+    },
+    "FEATURE|dhcp_relay": {
+        "state": "enabled",
+        "auto_restart": "enabled",
+        "high_mem_alert": "disabled"
+    },
+    "FEATURE|lldp": {
+        "state": "enabled",
+        "auto_restart": "enabled",
+        "high_mem_alert": "disabled"
+    },
+    "FEATURE|nat": {
+        "state": "enabled",
+        "auto_restart": "enabled",
+        "high_mem_alert": "disabled"
+    },
+    "FEATURE|pmon": {
+        "state": "enabled",
+        "auto_restart": "enabled",
+        "high_mem_alert": "disabled"
+    },
+    "FEATURE|radv": {
+        "state": "enabled",
+        "auto_restart": "enabled",
+        "high_mem_alert": "disabled"
+    },
+    "FEATURE|restapi": {
+        "state": "disabled",
+        "auto_restart": "enabled",
+        "high_mem_alert": "disabled"
+    },
+    "FEATURE|sflow": {
+        "state": "disabled",
+        "auto_restart": "enabled",
+        "high_mem_alert": "disabled"
+    },
+    "FEATURE|snmp": {
+        "state": "enabled",
+        "auto_restart": "enabled",
+        "high_mem_alert": "disabled"
+    },
+    "FEATURE|swss": {
+        "state": "enabled",
+        "auto_restart": "enabled",
+        "high_mem_alert": "disabled"
+    },
+    "FEATURE|syncd": {
+        "state": "enabled",
+        "auto_restart": "enabled",
+        "high_mem_alert": "disabled"
+    },
+    "FEATURE|teamd": {
+        "state": "enabled",
+        "auto_restart": "enabled",
+        "high_mem_alert": "disabled"
+    },
+    "FEATURE|telemetry": {
+        "state": "enabled",
+        "auto_restart": "enabled",
+        "high_mem_alert": "disabled"
+    }
 }
