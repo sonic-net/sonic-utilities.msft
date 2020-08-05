@@ -337,6 +337,24 @@ def run_command(command, display_cmd=False, ignore_error=False):
     if proc.returncode != 0 and not ignore_error:
         sys.exit(proc.returncode)
 
+def _get_device_type():
+    """
+    Get device type
+
+    TODO: move to sonic-py-common
+    """
+
+    command = "{} -m -v DEVICE_METADATA.localhost.type".format(SONIC_CFGGEN_PATH)
+    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    device_type, err = proc.communicate()
+    if err:
+        click.echo("Could not get the device type from minigraph, setting device type to Unknown")
+        device_type = 'Unknown'
+    else:
+        device_type = device_type.strip()
+
+    return device_type
+
 # Validate whether a given namespace name is valid in the device.
 def validate_namespace(namespace):
     if not sonic_device_util.is_multi_npu():
@@ -676,8 +694,6 @@ def _abort_if_false(ctx, param, value):
 def _get_disabled_services_list():
     disabled_services_list = []
 
-    config_db = ConfigDBConnector()
-    config_db.connect()
     feature_table = config_db.get_table('FEATURE')
     if feature_table is not None:
         for feature_name in feature_table.keys():
@@ -697,7 +713,6 @@ def _get_disabled_services_list():
 
     return disabled_services_list
 
-
 def _stop_services():
     # This list is order-dependent. Please add services in the order they should be stopped
     # on Mellanox platform pmon is stopped by syncd
@@ -714,6 +729,12 @@ def _stop_services():
 
     if asic_type == 'mellanox' and 'pmon' in services_to_stop:
         services_to_stop.remove('pmon')
+
+    disabled_services = _get_disabled_services_list()
+
+    for service in disabled_services:
+        if service in services_to_stop:
+            services_to_stop.remove(service)
 
     execute_systemctl(services_to_stop, SYSTEMCTL_ACTION_STOP)
 
@@ -741,6 +762,12 @@ def _reset_failed_services():
         'telemetry'
     ]
 
+    disabled_services = _get_disabled_services_list()
+
+    for service in disabled_services:
+        if service in services_to_reset:
+            services_to_reset.remove(service)
+
     execute_systemctl(services_to_reset, SYSTEMCTL_ACTION_RESET_FAILED)
 
 
@@ -763,9 +790,9 @@ def _restart_services():
         'telemetry'
     ]
 
-    disable_services = _get_disabled_services_list()
+    disabled_services = _get_disabled_services_list()
 
-    for service in disable_services:
+    for service in disabled_services:
         if service in services_to_restart:
             services_to_restart.remove(service)
 
@@ -1185,16 +1212,6 @@ def load_minigraph(no_service_restart):
     """Reconfigure based on minigraph."""
     log_info("'load_minigraph' executing...")
 
-    # get the device type
-    command = "{} -m -v DEVICE_METADATA.localhost.type".format(SONIC_CFGGEN_PATH)
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    device_type, err = proc.communicate()
-    if err:
-        click.echo("Could not get the device type from minigraph, setting device type to Unknown")
-        device_type = 'Unknown'
-    else:
-        device_type = device_type.strip()
-
     #Stop services before config push
     if not no_service_restart:
         log_info("'load_minigraph' stopping services...")
@@ -1223,9 +1240,12 @@ def load_minigraph(no_service_restart):
         if os.path.isfile('/etc/sonic/init_cfg.json'):
             command = "{} -H -m -j /etc/sonic/init_cfg.json {} --write-to-db".format(SONIC_CFGGEN_PATH, cfggen_namespace_option)
         else:
-            command = "{} -H -m --write-to-db {} ".format(SONIC_CFGGEN_PATH,cfggen_namespace_option)
+            command = "{} -H -m --write-to-db {}".format(SONIC_CFGGEN_PATH, cfggen_namespace_option)
         run_command(command, display_cmd=True)
         client.set(config_db.INIT_INDICATOR, 1)
+
+        # get the device type
+        device_type = _get_device_type()
 
         # These commands are not run for host on multi asic platform
         if num_npus == 1 or namespace is not DEFAULT_NAMESPACE:

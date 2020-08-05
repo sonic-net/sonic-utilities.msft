@@ -32,6 +32,8 @@ class MockPubSub:
     def punsubscribe(self, *args, **kwargs):
         pass
 
+    def clear(self):
+        pass
 
 INPUT_DIR = os.path.dirname(os.path.abspath(__file__))
 
