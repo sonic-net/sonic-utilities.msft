@@ -112,6 +112,7 @@ setup(
     ],
     data_files=[
         ('/etc/bash_completion.d', glob.glob('data/etc/bash_completion.d/*')),
+        ('/usr/share/sonic/templates', ['sonic_installer/templates/sonic-environment.j2']),
     ],
     entry_points={
         'console_scripts': [

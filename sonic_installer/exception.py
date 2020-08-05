@@ -1,0 +1,8 @@
+"""
+Module sonic_installer exceptions
+"""
+
+class SonicRuntimeException(Exception):
+    """SONiC Runtime Excpetion class used to report SONiC related errors
+    """
+    pass
