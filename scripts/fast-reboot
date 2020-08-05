@@ -271,14 +271,23 @@ function teardown_control_plane_assistant()
     fi
 }
 
+function is_secureboot() {
+    grep -Eq 'secure_boot_enable=[1y]' /proc/cmdline
+}
+
 function setup_reboot_variables()
 {
     # Kernel and initrd image
     NEXT_SONIC_IMAGE=$(sonic-installer list | grep "Next: " | cut -d ' ' -f 2)
     IMAGE_PATH="/host/image-${NEXT_SONIC_IMAGE#SONiC-OS-}"
     if grep -q aboot_platform= /host/machine.conf; then
-        KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
-        BOOT_OPTIONS="$(cat "$IMAGE_PATH/kernel-cmdline" | tr '\n' ' ') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
+        if is_secureboot; then
+            KERNEL_IMAGE=""
+            BOOT_OPTIONS="SONIC_BOOT_TYPE=${BOOT_TYPE_ARG} secure_boot_enable=1"
+        else
+            KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
+            BOOT_OPTIONS="$(cat "$IMAGE_PATH/kernel-cmdline" | tr '\n' ' ') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
+        fi
     elif grep -q onie_platform= /host/machine.conf; then
         KERNEL_OPTIONS=$(cat /host/grub/grub.cfg | sed "/$NEXT_SONIC_IMAGE'/,/}/"'!'"g" | grep linux)
         KERNEL_IMAGE="/host$(echo $KERNEL_OPTIONS | cut -d ' ' -f 2)"
@@ -330,6 +339,18 @@ function reboot_pre_check()
             fi
         fi
     fi
+}
+
+function load_aboot_secureboot_kernel() {
+    local next_image="$IMAGE_PATH/sonic.swi"
+    echo "Loading next image from $next_image"
+    unzip -qp "$next_image" boot0 | \
+        swipath=$next_image kexec=true loadonly=true ENV_EXTRA_CMDLINE="$BOOT_OPTIONS" bash -
+}
+
+function load_kernel() {
+    # Load kernel into the memory
+    /sbin/kexec -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
 }
 
 function unload_kernel()
@@ -412,8 +433,12 @@ if [[ "$sonic_asic_type" == "mellanox" ]]; then
     fi
 fi
 
-# Load kernel into the memory
-/sbin/kexec -l "$KERNEL_IMAGE" --initrd="$INITRD" --append="$BOOT_OPTIONS"
+
+if is_secureboot && grep -q aboot_machine= /host/machine.conf; then
+    load_aboot_secureboot_kernel
+else
+    load_kernel
+fi
 
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
