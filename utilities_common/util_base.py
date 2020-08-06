@@ -11,7 +11,8 @@ except ImportError as e:
 #
 # Constants ====================================================================
 #
-# Platform root directory inside docker
+# Platform root directory
+PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
 PLATFORM_ROOT_DOCKER = '/usr/share/sonic/platform'
 SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 HWSKU_KEY = 'DEVICE_METADATA.localhost.hwsku'
@@ -98,7 +99,11 @@ class UtilHelper(object):
         (platform, hwsku) = self.get_platform_and_hwsku()
 
         # Load platform module from source
-        platform_path = PLATFORM_ROOT_DOCKER
+        platform_path = ''
+        if len(platform) != 0:
+            platform_path = "/".join([PLATFORM_ROOT_PATH, platform])
+        else:
+            platform_path = PLATFORM_ROOT_PATH_DOCKER
         hwsku_path = "/".join([platform_path, hwsku])
 
         return (platform_path, hwsku_path)

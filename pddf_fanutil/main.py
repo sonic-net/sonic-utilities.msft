@@ -14,7 +14,7 @@ try:
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
-VERSION = '1.0'
+VERSION = '2.0'
 
 SYSLOG_IDENTIFIER = "fanutil"
 PLATFORM_SPECIFIC_MODULE_NAME = "fanutil"
@@ -22,13 +22,92 @@ PLATFORM_SPECIFIC_CLASS_NAME = "FanUtil"
 
 # Global platform-specific fanutil class instance
 platform_fanutil = None
+platform_chassis = None
 
 #logger = UtilLogger(SYSLOG_IDENTIFIER)
+
+def _wrapper_get_num_fans():
+    if platform_chassis is not None:
+        try:
+            return platform_chassis.get_num_fans()
+        except NotImplementedError:
+            pass
+    return platform_fanutil.get_num_fans()
+
+def _wrapper_get_fan_name(idx):
+    if platform_chassis is not None:
+        try:
+            return platform_chassis.get_fan(idx-1).get_name()
+        except NotImplementedError:
+            pass
+    return "FAN {}".format(idx)
+
+def _wrapper_get_fan_presence(idx):
+    if platform_chassis is not None:
+        try:
+            return platform_chassis.get_fan(idx-1).get_presence()
+        except NotImplementedError:
+            pass
+    return platform_fanutil.get_presence(idx)
+
+def _wrapper_get_fan_status(idx):
+    if platform_chassis is not None:
+        try:
+            return platform_chassis.get_fan(idx-1).get_status()
+        except NotImplementedError:
+            pass
+    return platform_fanutil.get_status(idx)
+
+def _wrapper_get_fan_direction(idx):
+    if platform_chassis is not None:
+        try:
+            return platform_chassis.get_fan(idx-1).get_direction()
+        except NotImplementedError:
+            pass
+    return platform_fanutil.get_direction(idx)
+
+def _wrapper_get_fan_speed(idx):
+    if platform_chassis is not None:
+        try:
+            return platform_chassis.get_fan(idx-1).get_speed_rpm()
+        except NotImplementedError:
+            pass
+    return platform_fanutil.get_speed(idx)
+
+def _wrapper_get_fan_speed_rear(idx):
+    if platform_chassis is not None:
+        # This wrapper API is invalid for Pl API 2.0 as every fan 
+        # is treated as a separate fan
+        return 0
+    return platform_fanutil.get_speed_rear(idx)
+
+def _wrapper_set_fan_speed(idx, percent):
+    if platform_chassis is not None:
+        try:
+            return platform_chassis.get_fan(idx-1).set_speed(percent)
+        except NotImplementedError:
+            pass
+    return platform_fanutil.set_speed(percent)
+
+def _wrapper_dump_sysfs(idx):
+    if platform_chassis is not None:
+        try:
+            return platform_chassis.get_fan(idx).dump_sysfs()
+        except NotImplementedError:
+            pass
+    return platform_fanutil.dump_sysfs()
+
+
+
+
 
 # This is our main entrypoint - the main 'fanutil' command
 @click.group()
 def cli():
     """pddf_fanutil - Command line utility for providing FAN information"""
+
+    global platform_fanutil
+    global platform_chassis
 
     if os.geteuid() != 0:
         click.echo("Root privileges are required for this operation")
@@ -41,13 +120,21 @@ def cli():
         click.echo("PDDF mode should be supported and enabled for this platform for this operation")
         sys.exit(1)
 
-    # Load platform-specific fanutil class
-    global platform_fanutil
+    # Load new platform api class
     try:
-        platform_fanutil = helper.load_platform_util(PLATFORM_SPECIFIC_MODULE_NAME, PLATFORM_SPECIFIC_CLASS_NAME)
+        import sonic_platform.platform
+        platform_chassis = sonic_platform.platform.Platform().get_chassis()
     except Exception as e:
-        click.echo("Failed to load {}: {}".format(PLATFORM_SPECIFIC_MODULE_NAME, str(e)))
-        sys.exit(2)
+        click.echo("Failed to load chassis due to {}".format(str(e)))
+
+
+    # Load platform-specific fanutil class if new platform object class is not found
+    if platform_chassis is None:
+        try:
+            platform_fanutil = helper.load_platform_util(PLATFORM_SPECIFIC_MODULE_NAME, PLATFORM_SPECIFIC_CLASS_NAME)
+        except Exception as e:
+            click.echo("Failed to load {}: {}".format(PLATFORM_SPECIFIC_MODULE_NAME, str(e)))
+            sys.exit(2)
 
 # 'version' subcommand
 @cli.command()
@@ -59,14 +146,14 @@ def version():
 @cli.command()
 def numfans():
     """Display number of FANs installed on device"""
-    click.echo(str(platform_fanutil.get_num_fans()))
+    click.echo(_wrapper_get_num_fans())
 
 # 'status' subcommand
 @cli.command()
 @click.option('-i', '--index', default=-1, type=int, help="the index of FAN")
 def status(index):
     """Display FAN status"""
-    supported_fan = range(1, platform_fanutil.get_num_fans() + 1)
+    supported_fan = range(1, _wrapper_get_num_fans()+1)
     fan_ids = []
     if (index < 0):
         fan_ids = supported_fan
@@ -78,14 +165,14 @@ def status(index):
 
     for fan in fan_ids:
         msg = ""
-        fan_name = "FAN {}".format(fan)
+        fan_name = _wrapper_get_fan_name(fan)
         if fan not in supported_fan:
             click.echo("Error! The {} is not available on the platform.\n" \
-            "Number of supported FAN - {}.".format(fan_name, platform_fanutil.get_num_fans()))
+            "Number of supported FAN - {}.".format(fan_name, len(supported_fan)))
             continue
-        presence = platform_fanutil.get_presence(fan)
+        presence = _wrapper_get_fan_presence(fan)
         if presence:
-            oper_status = platform_fanutil.get_status(fan)
+            oper_status = _wrapper_get_fan_status(fan)
             msg = 'OK' if oper_status else "NOT OK"
         else:
             msg = 'NOT PRESENT'
@@ -99,7 +186,7 @@ def status(index):
 @click.option('-i', '--index', default=-1, type=int, help="the index of FAN")
 def direction(index):
     """Display FAN airflow direction"""
-    supported_fan = range(1, platform_fanutil.get_num_fans() + 1)
+    supported_fan = range(1, _wrapper_get_num_fans() + 1)
     fan_ids = []
     if (index < 0):
         fan_ids = supported_fan
@@ -110,13 +197,13 @@ def direction(index):
     status_table = []
 
     for fan in fan_ids:
-        fan_name = "FAN {}".format(fan)
+        fan_name = _wrapper_get_fan_name(fan)
         if fan not in supported_fan:
             click.echo("Error! The {} is not available on the platform.\n" \
-            "Number of supported FAN - {}.".format(fan_name, platform_fanutil.get_num_fans()))
+            "Number of supported FAN - {}.".format(fan_name, len(supported_fan)))
             continue
-        direction = platform_fanutil.get_direction(fan)
-        status_table.append([fan_name, direction])
+        direction = _wrapper_get_fan_direction(fan)
+        status_table.append([fan_name, direction.capitalize()])
 
     if status_table:
         click.echo(tabulate(status_table, header, tablefmt="simple"))
@@ -126,25 +213,33 @@ def direction(index):
 @click.option('-i', '--index', default=-1, type=int, help="the index of FAN")
 def getspeed(index):
     """Display FAN speed in RPM"""
-    supported_fan = range(1, platform_fanutil.get_num_fans() + 1)
+    supported_fan = range(1, _wrapper_get_num_fans() + 1)
     fan_ids = []
     if (index < 0):
         fan_ids = supported_fan
     else:
         fan_ids = [index]
 
-    header = ['FAN', 'Front Fan RPM', 'Rear Fan RPM']
+    if platform_chassis is not None:
+        header = ['FAN', 'SPEED (RPM)']
+    else:
+        header = ['FAN', 'Front Fan RPM', 'Rear Fan RPM']
+    
     status_table = []
 
     for fan in fan_ids:
-        fan_name = "FAN {}".format(fan)
+        fan_name = _wrapper_get_fan_name(fan)
         if fan not in supported_fan:
             click.echo("Error! The {} is not available on the platform.\n" \
-            "Number of supported FAN - {}.".format(fan_name, platform_fanutil.get_num_fans()))
+            "Number of supported FAN - {}.".format(fan_name, len(supported_fan)))
             continue
-        front = platform_fanutil.get_speed(fan)
-        rear = platform_fanutil.get_speed_rear(fan)
-        status_table.append([fan_name, front, rear])
+        front = _wrapper_get_fan_speed(fan)
+        rear = _wrapper_get_fan_speed_rear(fan)
+
+        if platform_chassis is not None:
+            status_table.append([fan_name, front])
+        else:
+            status_table.append([fan_name, front, rear])
 
     if status_table:
         click.echo(tabulate(status_table, header, tablefmt="simple"))
@@ -158,21 +253,24 @@ def setspeed(speed):
         click.echo("speed value is required")
         raise click.Abort()
 
-    status = platform_fanutil.set_speed(speed)
-    if status:
-        click.echo("Successful")
-    else:
-        click.echo("Failed")
+    for fan in range(_wrapper_get_num_fans()):
+        status = _wrapper_set_fan_speed(fan, speed)
+        if not status:
+            click.echo("Failed")
+            sys.exit(1)
+
+    click.echo("Successful")
 
 @cli.group()
 def debug():
     """pddf_fanutil debug commands"""
     pass
 
-@debug.command('dump-sysfs')
+@debug.command()
 def dump_sysfs():
     """Dump all Fan related SysFS paths"""
-    status = platform_fanutil.dump_sysfs()
+    for fan in range(_wrapper_get_num_fans()):
+        status = _wrapper_dump_sysfs(fan)
 
     if status:
         for i in status:
