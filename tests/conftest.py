@@ -58,12 +58,6 @@ def get_cmd_module():
     import config.main as config
     import show.main as show
 
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
-    config.config_db = config_db
-    show.config_db = config_db
-
     config.run_command = _dummy_run_command
 
     return (config, show)

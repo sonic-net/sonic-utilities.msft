@@ -19,6 +19,7 @@ import sonic_device_util
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from portconfig import get_child_ports
+from utilities_common.db import Db
 
 import mlnx
 
@@ -30,8 +31,6 @@ SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 PORT_STR = "Ethernet"
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
-
-config_db = None
 
 try:
     # noinspection PyPep8Naming
@@ -557,12 +556,13 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 # This is our entrypoint - the main "show" command
 # TODO: Consider changing function name to 'show' for better understandability
 @click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
-def cli():
+@click.pass_context
+def cli(ctx):
     """SONiC command line - 'show' command"""
-    global config_db
 
-    config_db = ConfigDBConnector()
-    config_db.connect()
+    ctx.obj = Db()
+
+pass_db = click.make_pass_decorator(Db, ensure=True)
 
 #
 # 'vrf' command ("show vrf")
@@ -3064,14 +3064,15 @@ def feature():
     pass
 
 #
-# 'state' subcommand (show feature status)
+# 'status' subcommand (show feature status)
 #
 @feature.command('status', short_help="Show feature state")
 @click.argument('feature_name', required=False)
-def autorestart(feature_name):
+@pass_db
+def feature_status(db, feature_name):
     header = ['Feature', 'State', 'AutoRestart']
     body = []
-    feature_table = config_db.get_table('FEATURE')
+    feature_table = db.cfgdb.get_table('FEATURE')
     if feature_name:
         if feature_table and feature_table.has_key(feature_name):
             body.append([feature_name, feature_table[feature_name]['state'], \
@@ -3089,10 +3090,11 @@ def autorestart(feature_name):
 #
 @feature.command('autorestart', short_help="Show auto-restart state for a feature")
 @click.argument('feature_name', required=False)
-def autorestart(feature_name):
+@pass_db
+def feature_autorestart(db, feature_name):
     header = ['Feature', 'AutoRestart']
     body = []
-    feature_table = config_db.get_table('FEATURE')
+    feature_table = db.cfgdb.get_table('FEATURE')
     if feature_name:
         if feature_table and feature_table.has_key(feature_name):
             body.append([feature_name, feature_table[feature_name]['auto_restart']])

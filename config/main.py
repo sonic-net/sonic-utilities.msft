@@ -19,6 +19,7 @@ from minigraph import parse_device_desc_xml
 from config_mgmt import ConfigMgmtDPB
 from utilities_common.intf_filter import parse_interface_in_filter
 from utilities_common.util_base import UtilHelper
+from utilities_common.db import Db
 from portconfig import get_child_ports, get_port_config_file_name
 
 import aaa
@@ -50,7 +51,6 @@ CFG_LOOPBACK_ID_MAX_VAL = 999
 CFG_LOOPBACK_NO="<0-999>"
 
 asic_type = None
-config_db = None
 
 # ========================== Syslog wrappers ==========================
 
@@ -691,7 +691,7 @@ def _abort_if_false(ctx, param, value):
         ctx.abort()
 
 
-def _get_disabled_services_list():
+def _get_disabled_services_list(config_db):
     disabled_services_list = []
 
     feature_table = config_db.get_table('FEATURE')
@@ -713,7 +713,7 @@ def _get_disabled_services_list():
 
     return disabled_services_list
 
-def _stop_services():
+def _stop_services(config_db):
     # This list is order-dependent. Please add services in the order they should be stopped
     # on Mellanox platform pmon is stopped by syncd
     services_to_stop = [
@@ -730,7 +730,7 @@ def _stop_services():
     if asic_type == 'mellanox' and 'pmon' in services_to_stop:
         services_to_stop.remove('pmon')
 
-    disabled_services = _get_disabled_services_list()
+    disabled_services = _get_disabled_services_list(config_db)
 
     for service in disabled_services:
         if service in services_to_stop:
@@ -739,7 +739,7 @@ def _stop_services():
     execute_systemctl(services_to_stop, SYSTEMCTL_ACTION_STOP)
 
 
-def _reset_failed_services():
+def _reset_failed_services(config_db):
     # This list is order-independent. Please keep list in alphabetical order
     services_to_reset = [
         'bgp',
@@ -762,7 +762,7 @@ def _reset_failed_services():
         'telemetry'
     ]
 
-    disabled_services = _get_disabled_services_list()
+    disabled_services = _get_disabled_services_list(config_db)
 
     for service in disabled_services:
         if service in services_to_reset:
@@ -771,7 +771,7 @@ def _reset_failed_services():
     execute_systemctl(services_to_reset, SYSTEMCTL_ACTION_RESET_FAILED)
 
 
-def _restart_services():
+def _restart_services(config_db):
     # This list is order-dependent. Please add services in the order they should be started
     # on Mellanox platform pmon is started by syncd
     services_to_restart = [
@@ -790,7 +790,7 @@ def _restart_services():
         'telemetry'
     ]
 
-    disabled_services = _get_disabled_services_list()
+    disabled_services = _get_disabled_services_list(config_db)
 
     for service in disabled_services:
         if service in services_to_restart:
@@ -908,7 +908,8 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
-def config():
+@click.pass_context
+def config(ctx):
     """SONiC command line - 'config' command"""
     #
     # Load asic_type for further use
@@ -932,10 +933,9 @@ def config():
 
     SonicDBConfig.load_sonic_global_db_config()
 
-    global config_db
+    ctx.obj = Db()
 
-    config_db = ConfigDBConnector()
-    config_db.connect()
+pass_db = click.make_pass_decorator(Db, ensure=True)
 
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
@@ -1060,7 +1060,8 @@ def load(filename, yes):
 @click.option('-l', '--load-sysinfo', is_flag=True, help='load system default information (mac, portmap etc) first.')
 @click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
 @click.argument('filename', required=False)
-def reload(filename, yes, load_sysinfo, no_service_restart):
+@pass_db
+def reload(db, filename, yes, load_sysinfo, no_service_restart):
     """Clear current configuration and import a previous saved config DB dump file.
        <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
@@ -1102,7 +1103,7 @@ def reload(filename, yes, load_sysinfo, no_service_restart):
     #Stop services before config push
     if not no_service_restart:
         log_info("'reload' stopping services...")
-        _stop_services()
+        _stop_services(db.cfgdb)
 
     """ In Single AISC platforms we have single DB service. In multi-ASIC platforms we have a global DB
         service running in the host + DB services running in each ASIC namespace created per ASIC.
@@ -1175,9 +1176,9 @@ def reload(filename, yes, load_sysinfo, no_service_restart):
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
-        _reset_failed_services()
+        _reset_failed_services(db.cfgdb)
         log_info("'reload' restarting services...")
-        _restart_services()
+        _restart_services(db.cfgdb)
 
 @config.command("load_mgmt_config")
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -1208,14 +1209,15 @@ def load_mgmt_config(filename):
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Reload config from minigraph?')
 @click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
-def load_minigraph(no_service_restart):
+@pass_db
+def load_minigraph(db, no_service_restart):
     """Reconfigure based on minigraph."""
     log_info("'load_minigraph' executing...")
 
     #Stop services before config push
     if not no_service_restart:
         log_info("'load_minigraph' stopping services...")
-        _stop_services()
+        _stop_services(db.cfgdb)
 
     # For Single Asic platform the namespace list has the empty string
     # for mulit Asic platform the empty string to generate the config
@@ -1269,10 +1271,10 @@ def load_minigraph(no_service_restart):
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
-        _reset_failed_services()
+        _reset_failed_services(db.cfgdb)
         #FIXME: After config DB daemon is implemented, we'll no longer need to restart every service.
         log_info("'load_minigraph' restarting services...")
-        _restart_services()
+        _restart_services(db.cfgdb)
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
 
 
@@ -3810,15 +3812,16 @@ def feature():
 @feature.command('state', short_help="Enable/disable a feature")
 @click.argument('name', metavar='<feature-name>', required=True)
 @click.argument('state', metavar='<state>', required=True, type=click.Choice(["enabled", "disabled"]))
-def feature_state(name, state):
+@pass_db
+def feature_state(db, name, state):
     """Enable/disable a feature"""
-    state_data = config_db.get_entry('FEATURE', name)
+    state_data = db.cfgdb.get_entry('FEATURE', name)
 
     if not state_data:
         click.echo("Feature '{}' doesn't exist".format(name))
         sys.exit(1)
 
-    config_db.mod_entry('FEATURE', name, {'state': state})
+    db.cfgdb.mod_entry('FEATURE', name, {'state': state})
 
 #
 # 'autorestart' command ('config feature autorestart ...')
@@ -3826,9 +3829,10 @@ def feature_state(name, state):
 @feature.command(name='autorestart', short_help="Enable/disable autosrestart of a feature")
 @click.argument('name', metavar='<feature-name>', required=True)
 @click.argument('autorestart', metavar='<autorestart>', required=True, type=click.Choice(["enabled", "disabled"]))
-def feature_autorestart(name, autorestart):
+@pass_db
+def feature_autorestart(db, name, autorestart):
     """Enable/disable autorestart of a feature"""
-    feature_table = config_db.get_table('FEATURE')
+    feature_table = db.cfgdb.get_table('FEATURE')
     if not feature_table:
         click.echo("Unable to retrieve feature table from Config DB.")
         sys.exit(1)
@@ -3837,7 +3841,7 @@ def feature_autorestart(name, autorestart):
         click.echo("Unable to retrieve feature '{}'".format(name))
         sys.exit(1)
 
-    config_db.mod_entry('FEATURE', name, {'auto_restart': autorestart})
+    db.cfgdb.mod_entry('FEATURE', name, {'auto_restart': autorestart})
 
 if __name__ == '__main__':
     config()

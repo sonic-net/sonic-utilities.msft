@@ -1,5 +1,7 @@
 from click.testing import CliRunner
 
+from utilities_common.db import Db
+
 show_feature_status_output="""\
 Feature     State     AutoRestart
 ----------  --------  -------------
@@ -122,22 +124,26 @@ class TestFeature(object):
 
     def test_config_bgp_feature_state(self, get_cmd_module):
         (config, show) = get_cmd_module
+        db = Db()
         runner = CliRunner()
-        result = runner.invoke(config.config.commands["feature"].commands["state"], ["bgp", "disabled"])
+        result = runner.invoke(config.config.commands["feature"].commands["state"], ["bgp", "disabled"], obj=db)
         print(result.exit_code)
         print(result.output)
-        result = runner.invoke(show.cli.commands["feature"].commands["status"], ["bgp"])
+        assert result.exit_code == 0
+        result = runner.invoke(show.cli.commands["feature"].commands["status"], ["bgp"], obj=db)
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_feature_bgp_disabled_status_output
 
     def test_config_bgp_autorestart(self, get_cmd_module):
         (config, show) = get_cmd_module
+        db = Db()
         runner = CliRunner()
-        result = runner.invoke(config.config.commands["feature"].commands["autorestart"], ["bgp", "disabled"])
+        result = runner.invoke(config.config.commands["feature"].commands["autorestart"], ["bgp", "disabled"], obj=db)
         print(result.exit_code)
         print(result.output)
-        result = runner.invoke(show.cli.commands["feature"].commands["autorestart"], ["bgp"])
+        assert result.exit_code == 0
+        result = runner.invoke(show.cli.commands["feature"].commands["autorestart"], ["bgp"], obj=db)
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_feature_bgp_disabled_autorestart_output
