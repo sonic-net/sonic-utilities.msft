@@ -663,10 +663,21 @@ def _clear_qos():
             'BUFFER_PROFILE',
             'BUFFER_PG',
             'BUFFER_QUEUE']
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    for qos_table in QOS_TABLE_NAMES:
-        config_db.delete_table(qos_table)
+
+    namespace_list = [DEFAULT_NAMESPACE]
+    if sonic_device_util.get_num_npus() > 1:
+        namespace_list = sonic_device_util.get_namespaces()
+
+    for ns in namespace_list:
+        if ns is DEFAULT_NAMESPACE:
+            config_db = ConfigDBConnector()
+        else:
+            config_db = ConfigDBConnector(
+                use_unix_socket_path=True, namespace=ns
+            )
+        config_db.connect()
+        for qos_table in QOS_TABLE_NAMES:
+            config_db.delete_table(qos_table)
 
 def _get_sonic_generated_services(num_asic):
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
@@ -1231,11 +1242,11 @@ def load_minigraph(db, no_service_restart):
         if namespace is DEFAULT_NAMESPACE:
             config_db = ConfigDBConnector()
             cfggen_namespace_option = " "
-            ns_cmd_prefix = " "
+            ns_cmd_prefix = ""
         else:
             config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
             cfggen_namespace_option = " -n {}".format(namespace)
-            ns_cmd_prefix = "sudo ip netns exec {}".format(namespace)
+            ns_cmd_prefix = "sudo ip netns exec {} ".format(namespace)
         config_db.connect()
         client = config_db.get_redis_client(config_db.CONFIG_DB)
         client.flushdb()
@@ -1252,11 +1263,13 @@ def load_minigraph(db, no_service_restart):
         # These commands are not run for host on multi asic platform
         if num_npus == 1 or namespace is not DEFAULT_NAMESPACE:
             if device_type != 'MgmtToRRouter':
-                run_command('{} pfcwd start_default'.format(ns_cmd_prefix), display_cmd=True)
-            run_command("{} config qos reload".format(ns_cmd_prefix), display_cmd=True)
+                run_command('{}pfcwd start_default'.format(ns_cmd_prefix), display_cmd=True)
 
     if os.path.isfile('/etc/sonic/acl.json'):
         run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
+
+    # generate QoS and Buffer configs
+    run_command("config qos reload", display_cmd=True)
 
     # Write latest db version string into db
     db_migrator='/usr/bin/db_migrator.py'
@@ -1642,26 +1655,80 @@ def reload():
     _clear_qos()
     platform = sonic_device_util.get_platform()
     hwsku = sonic_device_util.get_hwsku()
-    buffer_template_file = os.path.join('/usr/share/sonic/device/', platform, hwsku, 'buffers.json.j2')
-    if os.path.isfile(buffer_template_file):
-        command = "{} -d -t {} >/tmp/buffers.json".format(SONIC_CFGGEN_PATH, buffer_template_file)
-        run_command(command, display_cmd=True)
+    namespace_list = [DEFAULT_NAMESPACE]
+    if sonic_device_util.get_num_npus() > 1:
+        namespace_list = sonic_device_util.get_namespaces()
 
-        qos_template_file = os.path.join('/usr/share/sonic/device/', platform, hwsku, 'qos.json.j2')
-        sonic_version_file = os.path.join('/etc/sonic/', 'sonic_version.yml')
-        if os.path.isfile(qos_template_file):
-            command = "{} -d -t {} -y {} >/tmp/qos.json".format(SONIC_CFGGEN_PATH, qos_template_file, sonic_version_file)
-            run_command(command, display_cmd=True)
-
-            # Apply the configurations only when both buffer and qos configuration files are presented
-            command = "{} -j /tmp/buffers.json --write-to-db".format(SONIC_CFGGEN_PATH)
-            run_command(command, display_cmd=True)
-            command = "{} -j /tmp/qos.json --write-to-db".format(SONIC_CFGGEN_PATH)
-            run_command(command, display_cmd=True)
+    for ns in namespace_list:
+        if ns is DEFAULT_NAMESPACE:
+            asic_id_suffix = ""
         else:
-            click.secho('QoS definition template not found at {}'.format(qos_template_file), fg='yellow')
-    else:
-        click.secho('Buffer definition template not found at {}'.format(buffer_template_file), fg='yellow')
+            asic_id = sonic_device_util.get_npu_id_from_name(ns)
+            if asic_id is None:
+                click.secho(
+                    "Command 'qos reload' failed with invalid namespace '{}'".
+                        format(ns),
+                    fg='yellow'
+                )
+                raise click.Abort()
+            asic_id_suffix = str(asic_id)
+
+        buffer_template_file = os.path.join(
+            '/usr/share/sonic/device/',
+            platform,
+            hwsku,
+            asic_id_suffix,
+            'buffers.json.j2'
+        )
+        buffer_output_file = "/tmp/buffers{}.json".format(asic_id_suffix)
+        qos_output_file = "/tmp/qos{}.json".format(asic_id_suffix)
+
+        cmd_ns = "" if ns is DEFAULT_NAMESPACE else "-n {}".format(ns)
+        if os.path.isfile(buffer_template_file):
+            command = "{} {} -d -t {} > {}".format(
+                SONIC_CFGGEN_PATH,
+                cmd_ns,
+                buffer_template_file,
+                buffer_output_file
+            )
+            run_command(command, display_cmd=True)
+            qos_template_file = os.path.join(
+                '/usr/share/sonic/device/',
+                platform,
+                hwsku,
+                asic_id_suffix,
+                'qos.json.j2'
+            )
+            sonic_version_file = os.path.join(
+                '/etc/sonic/', 'sonic_version.yml'
+            )
+            if os.path.isfile(qos_template_file):
+                command = "{} {} -d -t {} -y {} > {}".format(
+                    SONIC_CFGGEN_PATH,
+                    cmd_ns,
+                    qos_template_file,
+                    sonic_version_file,
+                    qos_output_file
+                )
+                run_command(command, display_cmd=True)
+                # Apply the configurations only when both buffer and qos
+                # configuration files are presented
+                command = "{} {} -j {} --write-to-db".format(
+                    SONIC_CFGGEN_PATH, cmd_ns, buffer_output_file
+                )
+                run_command(command, display_cmd=True)
+                command = "{} {} -j {} --write-to-db".format(
+                    SONIC_CFGGEN_PATH, cmd_ns, qos_output_file
+                )
+                run_command(command, display_cmd=True)
+            else:
+                click.secho('QoS definition template not found at {}'.format(
+                    qos_template_file
+                ), fg='yellow')
+        else:
+            click.secho('Buffer definition template not found at {}'.format(
+                buffer_template_file
+            ), fg='yellow')
 
 #
 # 'warm_restart' group ('config warm_restart ...')
