@@ -40,9 +40,6 @@ def _wrapper_setstatusled(device_name, color, color_state):
     click.echo(outputs)
 
 
-
-#logger = UtilLogger(SYSLOG_IDENTIFIER)
-
 # ==================== CLI commands and groups ====================
 
 

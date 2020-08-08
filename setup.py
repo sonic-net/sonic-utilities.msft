@@ -149,7 +149,8 @@ setup(
     # therefore all dependencies will be assumed to also be available as .debs.
     # These unlistable dependencies are as follows:
     # - sonic-config-engine
-    # - swsssdk
+    # - sonic-py-common
+    # - sonic-py-swsssdk
     # - tabulate
     install_requires=[
         'click',

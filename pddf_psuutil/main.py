@@ -24,7 +24,6 @@ PLATFORM_SPECIFIC_CLASS_NAME = "PsuUtil"
 platform_psuutil = None
 platform_chassis = None
 
-#logger = UtilLogger(SYSLOG_IDENTIFIER)
 
 # Wrapper APIs so that this util is suited to both 1.0 and 2.0 platform APIs
 def _wrapper_get_num_psus():

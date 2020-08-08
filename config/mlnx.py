@@ -6,12 +6,13 @@
 #
 
 try:
-    import sys
     import os
     import subprocess
-    import click
-    import syslog
+    import sys
     import time
+
+    import click
+    from sonic_py_common import logger
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
@@ -36,32 +37,9 @@ SNIFFER_CONF_FILE_IN_CONTAINER = CONTAINER_NAME + ':' + SNIFFER_CONF_FILE
 # Command to restart swss service
 COMMAND_RESTART_SWSS = 'systemctl restart swss.service'
 
-# ========================== Syslog wrappers ==========================
-def log_info(msg, syslog_identifier, also_print_to_console=False):
-    syslog.openlog(syslog_identifier)
-    syslog.syslog(syslog.LOG_INFO, msg)
-    syslog.closelog()
 
-    if also_print_to_console:
-        print msg
-
-
-def log_warning(msg, syslog_identifier, also_print_to_console=False):
-    syslog.openlog(syslog_identifier)
-    syslog.syslog(syslog.LOG_WARNING, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        print msg
-
-
-def log_error(msg, syslog_identifier, also_print_to_console=False):
-    syslog.openlog(syslog_identifier)
-    syslog.syslog(syslog.LOG_ERR, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        print msg
+# Global logger instance
+log = logger.Logger(SNIFFER_SYSLOG_IDENTIFIER)
 
 
 # run command
@@ -166,7 +144,7 @@ def restart_swss():
     try:
         run_command(COMMAND_RESTART_SWSS)
     except OSError as e:
-        log_error("Not able to restart swss service, %s" % str(e), SNIFFER_SYSLOG_IDENTIFIER, True)
+        log.log_error("Not able to restart swss service, %s" % str(e), True)
         return 1
     return 0
 

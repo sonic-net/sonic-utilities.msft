@@ -7,7 +7,7 @@ import pytest
 
 import mock_tables.dbconnector
 
-import sonic_device_util
+from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector
 
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -67,7 +67,7 @@ def setup_single_broacom_asic():
     import config.main as config
     import show.main as show
 
-    sonic_device_util.get_num_npus = mock.MagicMock(return_value = 1)
+    device_info.get_num_npus = mock.MagicMock(return_value = 1)
     config._get_sonic_generated_services = \
             mock.MagicMock(return_value = (generated_services_list, []))
 

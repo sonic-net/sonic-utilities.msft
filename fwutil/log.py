@@ -6,8 +6,8 @@
 #
 
 try:
-    import syslog
     import click
+    from sonic_py_common import logger
 except ImportError as e:
     raise ImportError("Required module not found: {}".format(str(e)))
 
@@ -15,42 +15,11 @@ except ImportError as e:
 
 SYSLOG_IDENTIFIER = "fwutil"
 
+# Global logger instance
+log = logger.Logger(SYSLOG_IDENTIFIER)
+
+
 # ========================= Helper classes =====================================
-
-class SyslogLogger(object):
-    """
-    SyslogLogger
-    """
-    def __init__(self, identifier):
-        self.__syslog = syslog
-
-        self.__syslog.openlog(
-            ident=identifier,
-            logoption=self.__syslog.LOG_NDELAY,
-            facility=self.__syslog.LOG_USER
-        )
-
-    def __del__(self):
-        self.__syslog.closelog()
-
-    def log_error(self, msg):
-        self.__syslog.syslog(self.__syslog.LOG_ERR, msg)
-
-    def log_warning(self, msg):
-        self.__syslog.syslog(self.__syslog.LOG_WARNING, msg)
-
-    def log_notice(self, msg):
-        self.__syslog.syslog(self.__syslog.LOG_NOTICE, msg)
-
-    def log_info(self, msg):
-        self.__syslog.syslog(self.__syslog.LOG_INFO, msg)
-
-    def log_debug(self, msg):
-        self.__syslog.syslog(self.__syslog.LOG_DEBUG, msg)
-
-
-logger = SyslogLogger(SYSLOG_IDENTIFIER)
-
 
 class LogHelper(object):
     """
@@ -67,7 +36,7 @@ class LogHelper(object):
         caption = "Firmware {} started".format(action)
         template = "{}: component={}, firmware={}"
 
-        logger.log_info(
+        log.log_info(
             template.format(
                 caption,
                 component,
@@ -82,7 +51,7 @@ class LogHelper(object):
         exception_template = "{}: component={}, firmware={}, status={}, exception={}"
 
         if status:
-            logger.log_info(
+            log.log_info(
                 status_template.format(
                     caption,
                     component,
@@ -92,7 +61,7 @@ class LogHelper(object):
             )
         else:
             if exception is None:
-                logger.log_error(
+                log.log_error(
                     status_template.format(
                         caption,
                         component,
@@ -101,7 +70,7 @@ class LogHelper(object):
                     )
                 )
             else:
-                logger.log_error(
+                log.log_error(
                     exception_template.format(
                         caption,
                         component,

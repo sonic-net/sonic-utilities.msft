@@ -6,68 +6,20 @@
 #
 
 try:
-    import sys
-    import os
-    import subprocess
     import argparse
-    import syslog
+    import os
+    import sys
+
+    from sonic_py_common import device_info, logger
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
 DEFAULT_DEVICE="/dev/sda"
 SYSLOG_IDENTIFIER = "ssdutil"
 
-PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
-SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
-HWSKU_KEY = 'DEVICE_METADATA.localhost.hwsku'
-PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
+# Global logger instance
+log = logger.Logger(SYSLOG_IDENTIFIER)
 
-def syslog_msg(severity, msg, stdout=False):
-    """
-    Prints to syslog (and stdout if needed) message with specified severity
-
-    Args:
-        severity : message severity
-        msg      : message
-        stdout   : also primt message to stdout
-
-    """
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(severity, msg)
-    syslog.closelog()
-
-    if stdout:
-        print msg
-
-def get_platform_and_hwsku():
-    """
-    Retrieves current platform name and hwsku
-    Raises an OSError exception when failed to fetch
-
-    Returns:
-        tuple of strings platform and hwsku
-        e.g. ("x86_64-mlnx_msn2700-r0", "ACS-MSN2700")
-    """
-    try:
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-H', '-v', PLATFORM_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        platform = stdout.rstrip('\n')
-
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-d', '-v', HWSKU_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        hwsku = stdout.rstrip('\n')
-    except OSError as e:
-        raise OSError("Cannot detect platform")
-
-    return (platform, hwsku)
 
 def import_ssd_api(diskdev):
     """
@@ -78,20 +30,18 @@ def import_ssd_api(diskdev):
         Instance of the class with SSD API implementation (vendor or generic)
     """
 
-    # Get platform and hwsku
-    (platform, hwsku) = get_platform_and_hwsku()
-
     # try to load platform specific module
     try:
-        hwsku_plugins_path = "/".join([PLATFORM_ROOT_PATH, platform, "plugins"])
-        sys.path.append(os.path.abspath(hwsku_plugins_path))
+        platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
+        platform_plugins_path = os.path.join(platform_path, "plugins")
+        sys.path.append(os.path.abspath(platform_plugins_path))
         from ssd_util import SsdUtil
     except ImportError as e:
-        syslog_msg(syslog.LOG_WARNING, "Platform specific SsdUtil module not found. Falling down to the generic implementation")
+        log.log_warning("Platform specific SsdUtil module not found. Falling down to the generic implementation")
         try:
             from sonic_platform_base.sonic_ssd.ssd_generic import SsdUtil
         except ImportError as e:
-            syslog_msg(syslog.LOG_ERR, "Failed to import default SsdUtil. Error: {}".format(str(e)), True)
+            log.log_error("Failed to import default SsdUtil. Error: {}".format(str(e)), True)
             raise e
 
     return SsdUtil(diskdev)

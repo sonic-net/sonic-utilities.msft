@@ -7,16 +7,17 @@
 ########################################
 
 
-import os
-import sys
-import json
-import requests
 import argparse
-import syslog
-import traceback
+import json
+import os
+import requests
 import subprocess
+import sys
 import time
+import traceback
 import warnings
+
+from sonic_py_common import logger
 from swsssdk import ConfigDBConnector
 from netaddr import IPAddress, IPNetwork
 
@@ -58,25 +59,9 @@ FERRET_NEIGHBOR_ADVERTISER_API_PREFIX = '/Ferret/NeighborAdvertiser/Slices/'
 
 
 #
-# Syslog functions
+# Global logger instance
 #
-
-def log_info(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_INFO, msg)
-    syslog.closelog()
-
-
-def log_warning(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_WARNING, msg)
-    syslog.closelog()
-
-
-def log_error(msg):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_ERR, msg)
-    syslog.closelog()
+log = logger.Logger()
 
 
 #
@@ -110,13 +95,13 @@ def is_dip_in_device_vlan(ferret_dip):
 
     for vlan_interface in vlan_interface_query.iterkeys():
         if not is_ip_prefix_in_key(vlan_interface):
-            log_info('{} does not have a subnet, skipping...'.format(vlan_interface))
+            log.log_info('{} does not have a subnet, skipping...'.format(vlan_interface))
             continue
 
         vlan_subnet = IPNetwork(vlan_interface[1])
 
         if ferret_dip.version != vlan_subnet.version:
-            log_info('{} version (IPv{}) does not match provided DIP version (IPv{}), skipping...'.format(vlan_interface[0], vlan_subnet.version, ferret_dip.version))
+            log.log_info('{} version (IPv{}) does not match provided DIP version (IPv{}), skipping...'.format(vlan_interface[0], vlan_subnet.version, ferret_dip.version))
             continue
 
         if ferret_dip in vlan_subnet:
@@ -263,7 +248,7 @@ def get_vlan_addresses(vlan_interface):
             elif keys[0] == 'link/ether':
                 mac_addr = keys[1]
     except Exception:
-        log_error('failed to get %s addresses from o.s.' % vlan_interface)
+        log.log_error('failed to get %s addresses from o.s.' % vlan_interface)
 
     if not mac_addr:
         mac_addr = get_vlan_interface_mac_address(vlan_interface)
@@ -300,7 +285,7 @@ def construct_neighbor_advertiser_slice():
         vlan_id, vxlan_id, ipv4_addr, ipv6_addr, mac_addr = get_vlan_addresses(vlan_interface)
 
         if not mac_addr:
-            log_warning('Cannot find mac addr of vlan interface {}'.format(vlan_interface))
+            log.log_warning('Cannot find mac addr of vlan interface {}'.format(vlan_interface))
             continue
 
         ipv4_mappings = []
@@ -370,7 +355,7 @@ def post_neighbor_advertiser_slice(ferret_service_vip):
         try:
             response = wrapped_ferret_request(request_slice, https_endpoint)
         except Exception as e:
-            log_error("The request failed, vip: {}, error: {}".format(ferret_service_vip, e))
+            log.log_error("The request failed, vip: {}, error: {}".format(ferret_service_vip, e))
             return None
 
         neighbor_advertiser_configuration = json.loads(response.content)
@@ -378,15 +363,15 @@ def post_neighbor_advertiser_slice(ferret_service_vip):
 
         # Retry the request if the provided DIP is in the device VLAN
         if is_dip_in_device_vlan(ferret_server_ipv4_addr):
-            log_info("Failed to set up neighbor advertiser slice, vip: {}, dip {} is in device VLAN (attempt {}/{})".format(ferret_service_vip, ferret_server_ipv4_addr, retry + 1, DEFAULT_FERRET_QUERY_RETRIES))
+            log.log_info("Failed to set up neighbor advertiser slice, vip: {}, dip {} is in device VLAN (attempt {}/{})".format(ferret_service_vip, ferret_server_ipv4_addr, retry + 1, DEFAULT_FERRET_QUERY_RETRIES))
             continue
 
         # If all the proceeding checks pass, return the provided DIP
         save_as_json(neighbor_advertiser_configuration, NEIGHBOR_ADVERTISER_RESPONSE_CONFIG_PATH)
-        log_info("Successfully set up neighbor advertiser slice, vip: {}, dip: {}".format(ferret_service_vip, ferret_server_ipv4_addr))
+        log.log_info("Successfully set up neighbor advertiser slice, vip: {}, dip: {}".format(ferret_service_vip, ferret_server_ipv4_addr))
         return ferret_server_ipv4_addr
 
-    log_error("Failed to set up neighbor advertiser slice, vip: {}, returned dips were in device VLAN".format(ferret_service_vip))
+    log.log_error("Failed to set up neighbor advertiser slice, vip: {}, returned dips were in device VLAN".format(ferret_service_vip))
     return None
 
 
@@ -412,9 +397,9 @@ def find_mirror_table_name():
                 MIRROR_ACL_TABLE_PREFIX + MIRROR_ACL_TABLEV6_NAME == table:
             v6_table = table
     if not v4_table:
-        log_error(MIRROR_ACL_TABLE_NAME + " table does not exist")
+        log.log_error(MIRROR_ACL_TABLE_NAME + " table does not exist")
     if not v6_table:
-        log_error(MIRROR_ACL_TABLEV6_NAME + " table does not exist")
+        log.log_error(MIRROR_ACL_TABLEV6_NAME + " table does not exist")
     return (v4_table, v6_table)
 
 
@@ -459,7 +444,7 @@ def set_mirror_tunnel(ferret_server_ip):
     # Ensure the mirror session is created before creating the rules
     time.sleep(DEFAULT_CONFIG_DB_WAIT_TIME)
     add_mirror_acl_rule()
-    log_info('Finish setting mirror tunnel; Ferret: {}'.format(ferret_server_ip))
+    log.log_info('Finish setting mirror tunnel; Ferret: {}'.format(ferret_server_ip))
 
 
 #
@@ -485,7 +470,7 @@ def reset_mirror_tunnel():
     # Ensure the rules are removed before removing the mirror session
     time.sleep(DEFAULT_CONFIG_DB_WAIT_TIME)
     remove_mirror_session()
-    log_info('Finish resetting mirror tunnel')
+    log.log_info('Finish resetting mirror tunnel')
 
 
 #
@@ -514,7 +499,7 @@ def add_vxlan_tunnel_map():
 def set_vxlan_tunnel(ferret_server_ip):
     add_vxlan_tunnel(ferret_server_ip)
     add_vxlan_tunnel_map()
-    log_info('Finish setting vxlan tunnel; Ferret: {}'.format(ferret_server_ip))
+    log.log_info('Finish setting vxlan tunnel; Ferret: {}'.format(ferret_server_ip))
 
 
 #
@@ -533,7 +518,7 @@ def remove_vxlan_tunnel_map():
 def reset_vxlan_tunnel():
     remove_vxlan_tunnel_map()
     remove_vxlan_tunnel()
-    log_info('Finish resetting vxlan tunnel')
+    log.log_info('Finish resetting vxlan tunnel')
 
 
 #
@@ -550,7 +535,7 @@ def main():
     operation_mode = args.mode
 
     if operation_mode == 'set' and ferret_service_vips is None:
-        log_warning('ferret service vip is required in set mode')
+        log.log_warning('ferret service vip is required in set mode')
         sys.exit(1)
 
     connect_config_db()
@@ -568,7 +553,7 @@ def main():
                 break
 
         if not set_success:
-            log_error('Failed to set up neighbor advertiser slice, tried all vips in {}'.format(ferret_service_vips))
+            log.log_error('Failed to set up neighbor advertiser slice, tried all vips in {}'.format(ferret_service_vips))
             sys.exit(1)
 
     if operation_mode == 'reset':
@@ -582,6 +567,6 @@ if __name__ == '__main__':
     try:
         main()
     except Exception as e:
-        log_error('! [Failure] {} {}'.format(e, traceback.format_exc()))
+        log.log_error('! [Failure] {} {}'.format(e, traceback.format_exc()))
         sys.exit(1)
 

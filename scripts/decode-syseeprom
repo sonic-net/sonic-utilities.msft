@@ -5,14 +5,14 @@
 # This is the main script that handles eeprom encoding and decoding
 #
 try:
+    import glob
+    import imp
     import optparse
-    import warnings
     import os
     import sys
-    import imp
-    import glob
-    from sonic_device_util import get_machine_info
-    from sonic_device_util import get_platform_info
+    import warnings
+
+    from sonic_py_common import device_info
 except ImportError as e:
     raise ImportError (str(e) + "- required module not found")
 
@@ -26,7 +26,7 @@ def main():
         raise RuntimeError("must be root to run")
 
     # Get platform name
-    platform = get_platform_info(get_machine_info())
+    platform = device_info.get_platform()
 
     platform_path = '/'.join([PLATFORM_ROOT, platform])
 

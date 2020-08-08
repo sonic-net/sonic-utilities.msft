@@ -6,12 +6,12 @@
 #
 
 try:
-    import sys
-    import os
-    import subprocess
-    import click
     import imp
-    import syslog
+    import os
+    import sys
+
+    import click
+    from sonic_py_common import device_info, logger
     from tabulate import tabulate
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -23,44 +23,14 @@ SYSLOG_IDENTIFIER = "sfputil"
 PLATFORM_SPECIFIC_MODULE_NAME = "sfputil"
 PLATFORM_SPECIFIC_CLASS_NAME = "SfpUtil"
 
-PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
-SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
-HWSKU_KEY = 'DEVICE_METADATA.localhost.hwsku'
-PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
-
 # Global platform-specific sfputil class instance
 platform_sfputil = None
 PLATFORM_JSON = 'platform.json'
 PORT_CONFIG_INI = 'port_config.ini'
 
-# ========================== Syslog wrappers ==========================
 
-
-def log_info(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_INFO, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        print msg
-
-
-def log_warning(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_WARNING, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        print msg
-
-
-def log_error(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_ERR, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        print msg
+# Global logger instance
+log = logger.Logger(SYSLOG_IDENTIFIER)
 
 
 # ========================== Methods for printing ==========================
@@ -292,69 +262,25 @@ def port_eeprom_data_raw_string_pretty(logical_port_name):
 # ==================== Methods for initialization ====================
 
 
-# Returns platform and HW SKU
-def get_platform_and_hwsku():
-    try:
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-H', '-v', PLATFORM_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        platform = stdout.rstrip('\n')
-
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-d', '-v', HWSKU_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        hwsku = stdout.rstrip('\n')
-    except OSError as e:
-        raise OSError("Cannot detect platform")
-
-    return (platform, hwsku)
-
-
-# Returns path to port config file
-def get_path_to_port_config_file():
-    # Get platform and hwsku
-    (platform, hwsku) = get_platform_and_hwsku()
-
-    # Load platform module from source
-    platform_path = "/".join([PLATFORM_ROOT_PATH, platform])
-    hwsku_path = "/".join([platform_path, hwsku])
-
-    # First check for the presence of the new 'port_config.ini' file
-    port_config_file_path = "/".join([platform_path, PLATFORM_JSON])
-    if not os.path.isfile(port_config_file_path):
-        # platform.json doesn't exist. Try loading the legacy 'port_config.ini' file
-        port_config_file_path = "/".join([hwsku_path, PORT_CONFIG_INI])
-
-    return port_config_file_path
-
 # Loads platform specific sfputil module from source
 def load_platform_sfputil():
     global platform_sfputil
 
-    # Get platform and hwsku
-    (platform, hwsku) = get_platform_and_hwsku()
-
     # Load platform module from source
-    platform_path = "/".join([PLATFORM_ROOT_PATH, platform])
+    platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
 
     try:
-        module_file = "/".join([platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py"])
+        module_file = os.path.join(platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py")
         module = imp.load_source(PLATFORM_SPECIFIC_MODULE_NAME, module_file)
     except IOError as e:
-        log_error("Failed to load platform module '%s': %s" % (PLATFORM_SPECIFIC_MODULE_NAME, str(e)), True)
+        log.log_error("Failed to load platform module '%s': %s" % (PLATFORM_SPECIFIC_MODULE_NAME, str(e)), True)
         return -1
 
     try:
         platform_sfputil_class = getattr(module, PLATFORM_SPECIFIC_CLASS_NAME)
         platform_sfputil = platform_sfputil_class()
     except AttributeError as e:
-        log_error("Failed to instantiate '%s' class: %s" % (PLATFORM_SPECIFIC_CLASS_NAME, str(e)), True)
+        log.log_error("Failed to instantiate '%s' class: %s" % (PLATFORM_SPECIFIC_CLASS_NAME, str(e)), True)
         return -2
 
     return 0
@@ -379,10 +305,10 @@ def cli():
 
     # Load port info
     try:
-        port_config_file_path = get_path_to_port_config_file()
+        port_config_file_path = device_info.get_path_to_port_config_file()
         platform_sfputil.read_porttab_mappings(port_config_file_path)
     except Exception as e:
-        log_error("Error reading port info (%s)" % str(e), True)
+        log.log_error("Error reading port info (%s)" % str(e), True)
         sys.exit(3)
 
 

@@ -4,15 +4,13 @@ import click
 import ipaddr
 import json
 import syslog
-import tabulate
-from natsort import natsorted
-import sonic_device_util
 
 import openconfig_acl
+import tabulate
 import pyangbind.lib.pybindJSON as pybindJSON
-from swsssdk import ConfigDBConnector
-from swsssdk import SonicV2Connector
-from swsssdk import SonicDBConfig
+from natsort import natsorted
+from sonic_py_common import device_info
+from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 
 
 def info(msg):
@@ -142,7 +140,7 @@ class AclLoader(object):
 
         # Getting all front asic namespace and correspding config and state DB connector
         
-        namespaces = sonic_device_util.get_all_namespaces()
+        namespaces = device_info.get_all_namespaces()
         for front_asic_namespaces in namespaces['front_ns']:
             self.per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
             self.per_npu_configdb[front_asic_namespaces].connect()

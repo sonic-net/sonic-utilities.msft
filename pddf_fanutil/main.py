@@ -24,7 +24,6 @@ PLATFORM_SPECIFIC_CLASS_NAME = "FanUtil"
 platform_fanutil = None
 platform_chassis = None
 
-#logger = UtilLogger(SYSLOG_IDENTIFIER)
 
 def _wrapper_get_num_fans():
     if platform_chassis is not None:
@@ -96,9 +95,6 @@ def _wrapper_dump_sysfs(idx):
         except NotImplementedError:
             pass
     return platform_fanutil.dump_sysfs()
-
-
-
 
 
 # This is our main entrypoint - the main 'fanutil' command

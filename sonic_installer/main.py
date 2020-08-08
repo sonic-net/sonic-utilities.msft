@@ -8,21 +8,24 @@ except ImportError:
 import os
 import subprocess
 import sys
-import syslog
 import time
 import urllib
 
 import click
+from sonic_py_common import logger
 from swsssdk import SonicV2Connector
 
 from .bootloader import get_bootloader
 from .common import run_command, run_command_or_raise
 from .exception import SonicRuntimeException
 
+SYSLOG_IDENTIFIER = "sonic-installer"
 
 # Global Config object
 _config = None
 
+# Global logger instance
+log = logger.Logger(SYSLOG_IDENTIFIER)
 
 # This is from the aliases example:
 # https://github.com/pallets/click/blob/57c6f09611fc47ca80db0bd010f05998b3c0aa95/examples/aliases/aliases.py
@@ -601,11 +604,11 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
                 count += 1
                 time.sleep(2)
                 state = hget_warm_restart_table("STATE_DB", "WARM_RESTART_TABLE", warm_app_name, "state")
-                syslog.syslog("%s reached %s state" % (warm_app_name, state))
+                log.log_notice("%s reached %s state" % (warm_app_name, state))
             sys.stdout.write("]\n\r")
             if state != exp_state:
                 click.echo("%s failed to reach %s state" % (warm_app_name, exp_state))
-                syslog.syslog(syslog.LOG_ERR, "%s failed to reach %s state" % (warm_app_name, exp_state))
+                log.log_error("%s failed to reach %s state" % (warm_app_name, exp_state))
     else:
         exp_state = ""  # this is cold upgrade
 

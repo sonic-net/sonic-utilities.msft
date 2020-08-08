@@ -6,12 +6,12 @@
 #
 
 try:
-    import sys
-    import os
-    import subprocess
-    import click
     import imp
-    import syslog
+    import os
+    import sys
+
+    import click
+    from sonic_py_common import device_info, logger
     from tabulate import tabulate
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
@@ -22,98 +22,35 @@ SYSLOG_IDENTIFIER = "psuutil"
 PLATFORM_SPECIFIC_MODULE_NAME = "psuutil"
 PLATFORM_SPECIFIC_CLASS_NAME = "PsuUtil"
 
-PLATFORM_ROOT_PATH = '/usr/share/sonic/device'
-PLATFORM_ROOT_PATH_DOCKER = '/usr/share/sonic/platform'
-SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
-HWSKU_KEY = 'DEVICE_METADATA.localhost.hwsku'
-PLATFORM_KEY = 'DEVICE_METADATA.localhost.platform'
-
 # Global platform-specific psuutil class instance
 platform_psuutil = None
 
 
-# ========================== Syslog wrappers ==========================
-
-
-def log_info(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_INFO, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        click.echo(msg)
-
-
-def log_warning(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_WARNING, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        click.echo(msg)
-
-
-def log_error(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_ERR, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        click.echo(msg)
+# Global logger instance
+log = logger.Logger(SYSLOG_IDENTIFIER)
 
 
 # ==================== Methods for initialization ====================
-
-# Returns platform and HW SKU
-def get_platform_and_hwsku():
-    try:
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-H', '-v', PLATFORM_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        platform = stdout.rstrip('\n')
-
-        proc = subprocess.Popen([SONIC_CFGGEN_PATH, '-d', '-v', HWSKU_KEY],
-                                stdout=subprocess.PIPE,
-                                shell=False,
-                                stderr=subprocess.STDOUT)
-        stdout = proc.communicate()[0]
-        proc.wait()
-        hwsku = stdout.rstrip('\n')
-    except OSError as e:
-        raise OSError("Cannot detect platform")
-
-    return (platform, hwsku)
-
 
 # Loads platform specific psuutil module from source
 def load_platform_psuutil():
     global platform_psuutil
 
-    # Get platform and hwsku
-    (platform, hwsku) = get_platform_and_hwsku()
-
     # Load platform module from source
-    platform_path = ''
-    if len(platform) != 0:
-        platform_path = "/".join([PLATFORM_ROOT_PATH, platform])
-    else:
-        platform_path = PLATFORM_ROOT_PATH_DOCKER
+    platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
 
     try:
-        module_file = "/".join([platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py"])
+        module_file = os.path.join(platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py")
         module = imp.load_source(PLATFORM_SPECIFIC_MODULE_NAME, module_file)
     except IOError as e:
-        log_error("Failed to load platform module '%s': %s" % (PLATFORM_SPECIFIC_MODULE_NAME, str(e)), True)
+        log.log_error("Failed to load platform module '%s': %s" % (PLATFORM_SPECIFIC_MODULE_NAME, str(e)), True)
         return -1
 
     try:
         platform_psuutil_class = getattr(module, PLATFORM_SPECIFIC_CLASS_NAME)
         platform_psuutil = platform_psuutil_class()
     except AttributeError as e:
-        log_error("Failed to instantiate '%s' class: %s" % (PLATFORM_SPECIFIC_CLASS_NAME, str(e)), True)
+        log.log_error("Failed to instantiate '%s' class: %s" % (PLATFORM_SPECIFIC_CLASS_NAME, str(e)), True)
         return -2
 
     return 0
@@ -137,18 +74,24 @@ def cli():
         sys.exit(2)
 
 # 'version' subcommand
+
+
 @cli.command()
 def version():
     """Display version info"""
     click.echo("psuutil version {0}".format(VERSION))
 
 # 'numpsus' subcommand
+
+
 @cli.command()
 def numpsus():
     """Display number of supported PSUs on device"""
     click.echo(str(platform_psuutil.get_num_psus()))
 
 # 'status' subcommand
+
+
 @cli.command()
 @click.option('-i', '--index', default=-1, type=int, help="the index of PSU")
 def status(index):
@@ -167,8 +110,8 @@ def status(index):
         msg = ""
         psu_name = "PSU {}".format(psu)
         if psu not in supported_psu:
-            click.echo("Error! The {} is not available on the platform.\n" \
-            "Number of supported PSU - {}.".format(psu_name, platform_psuutil.get_num_psus()))
+            click.echo("Error! The {} is not available on the platform.\n"
+                       "Number of supported PSU - {}.".format(psu_name, platform_psuutil.get_num_psus()))
             continue
         presence = platform_psuutil.get_psu_presence(psu)
         if presence:
@@ -180,6 +123,7 @@ def status(index):
 
     if status_table:
         click.echo(tabulate(status_table, header, tablefmt="simple"))
+
 
 if __name__ == '__main__':
     cli()

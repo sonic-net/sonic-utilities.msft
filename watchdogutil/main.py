@@ -6,11 +6,12 @@
 #
 
 try:
-    import sys
     import os
+    import sys
+
     import click
-    import syslog
     import sonic_platform
+    from sonic_py_common import logger
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
@@ -24,35 +25,8 @@ CHASSIS_LOAD_ERROR = -2
 # Global platform-specific watchdog class instance
 platform_watchdog = None
 
-
-# ========================== Syslog wrappers ==========================
-
-
-def log_info(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_INFO, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        click.echo(msg)
-
-
-def log_warning(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_WARNING, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        click.echo(msg)
-
-
-def log_error(msg, also_print_to_console=False):
-    syslog.openlog(SYSLOG_IDENTIFIER)
-    syslog.syslog(syslog.LOG_ERR, msg)
-    syslog.closelog()
-
-    if also_print_to_console:
-        click.echo(msg)
+# Global logger instance
+log = logger.Logger(SYSLOG_IDENTIFIER)
 
 
 # ==================== Methods for initialization ====================
@@ -65,12 +39,12 @@ def load_platform_watchdog():
 
     chassis = platform.get_chassis()
     if not chassis:
-        log_error("Failed to get chassis")
+        log.log_error("Failed to get chassis")
         return CHASSIS_LOAD_ERROR
 
     platform_watchdog = chassis.get_watchdog()
     if not platform_watchdog:
-        log_error("Failed to get watchdog module")
+        log.log_error("Failed to get watchdog module")
         return WATCHDOG_LOAD_ERROR
 
     return 0
