@@ -79,6 +79,15 @@ class TestFeature(object):
         assert result.exit_code == 0
         assert result.output == show_feature_status_output
 
+    def test_show_feature_status_abbrev_cmd(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["feature"], ["st"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_feature_status_output
+
     def test_show_bgp_feature_status(self, get_cmd_module):
         (config, show) = get_cmd_module
         runner = CliRunner()

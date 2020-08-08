@@ -20,6 +20,7 @@ from swsssdk import SonicV2Connector
 from tabulate import tabulate
 from utilities_common.db import Db
 
+import feature
 import mlnx
 
 # Global Variables
@@ -559,7 +560,7 @@ def cli(ctx):
 
     ctx.obj = Db()
 
-pass_db = click.make_pass_decorator(Db, ensure=True)
+cli.add_command(feature.feature)
 
 #
 # 'vrf' command ("show vrf")
@@ -3039,57 +3040,6 @@ def ztp(status, verbose):
     if verbose:
        cmd = cmd + " --verbose"
     run_command(cmd, display_cmd=verbose)
-
-#
-# 'feature' group (show feature ...)
-#
-@cli.group(name='feature', invoke_without_command=False)
-def feature():
-    """Show feature status"""
-    pass
-
-#
-# 'status' subcommand (show feature status)
-#
-@feature.command('status', short_help="Show feature state")
-@click.argument('feature_name', required=False)
-@pass_db
-def feature_status(db, feature_name):
-    header = ['Feature', 'State', 'AutoRestart']
-    body = []
-    feature_table = db.cfgdb.get_table('FEATURE')
-    if feature_name:
-        if feature_table and feature_table.has_key(feature_name):
-            body.append([feature_name, feature_table[feature_name]['state'], \
-                         feature_table[feature_name]['auto_restart']])
-        else:
-            click.echo("Can not find feature {}".format(feature_name))
-            sys.exit(1)
-    else:
-        for key in natsorted(feature_table.keys()):
-            body.append([key, feature_table[key]['state'], feature_table[key]['auto_restart']])
-    click.echo(tabulate(body, header))
-
-#
-# 'autorestart' subcommand (show feature autorestart)
-#
-@feature.command('autorestart', short_help="Show auto-restart state for a feature")
-@click.argument('feature_name', required=False)
-@pass_db
-def feature_autorestart(db, feature_name):
-    header = ['Feature', 'AutoRestart']
-    body = []
-    feature_table = db.cfgdb.get_table('FEATURE')
-    if feature_name:
-        if feature_table and feature_table.has_key(feature_name):
-            body.append([feature_name, feature_table[feature_name]['auto_restart']])
-        else:
-            click.echo("Can not find feature {}".format(feature_name))
-            sys.exit(1)
-    else:
-        for name in natsorted(feature_table.keys()):
-            body.append([name, feature_table[name]['auto_restart']])
-    click.echo(tabulate(body, header))
 
 #
 # 'vnet' command ("show vnet")

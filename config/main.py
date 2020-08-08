@@ -18,10 +18,12 @@ from sonic_py_common import device_info, logger
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
+from utilities_common.cli import AbbreviationGroup, pass_db
 
 import aaa
 import mlnx
 import nat
+import feature
 from config_mgmt import ConfigMgmtDPB
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
@@ -53,46 +55,6 @@ CFG_LOOPBACK_NO="<0-999>"
 log = logger.Logger(SYSLOG_IDENTIFIER)
 
 asic_type = None
-
-
-class AbbreviationGroup(click.Group):
-    """This subclass of click.Group supports abbreviated subgroup/subcommand names
-    """
-
-    def get_command(self, ctx, cmd_name):
-        # Try to get builtin commands as normal
-        rv = click.Group.get_command(self, ctx, cmd_name)
-        if rv is not None:
-            return rv
-
-        # Allow automatic abbreviation of the command.  "status" for
-        # instance will match "st".  We only allow that however if
-        # there is only one command.
-        # If there are multiple matches and the shortest one is the common prefix of all the matches, return
-        # the shortest one
-        matches = []
-        shortest = None
-        for x in self.list_commands(ctx):
-            if x.lower().startswith(cmd_name.lower()):
-                matches.append(x)
-                if not shortest:
-                    shortest = x
-                elif len(shortest) > len(x):
-                    shortest = x
-
-        if not matches:
-            return None
-        elif len(matches) == 1:
-            return click.Group.get_command(self, ctx, matches[0])
-        else:
-            for x in matches:
-                if not x.startswith(shortest):
-                    break
-            else:
-                return click.Group.get_command(self, ctx, shortest)
-
-            ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
-
 
 #
 # Load breakout config file for Dynamic Port Breakout
@@ -922,10 +884,9 @@ def config(ctx):
 
     ctx.obj = Db()
 
-pass_db = click.make_pass_decorator(Db, ensure=True)
-
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
+config.add_command(feature.feature)
 # === Add NAT Configuration ==========
 config.add_command(nat.nat)
 
@@ -3837,51 +3798,6 @@ def delete(ctx):
 
     sflow_tbl['global'].pop('agent_id')
     config_db.set_entry('SFLOW', 'global', sflow_tbl['global'])
-
-#
-# 'feature' group ('config feature ...')
-#
-@config.group(cls=AbbreviationGroup, name='feature', invoke_without_command=False)
-def feature():
-    """Modify configuration of features"""
-    pass
-
-#
-# 'state' command ('config feature state ...')
-#
-@feature.command('state', short_help="Enable/disable a feature")
-@click.argument('name', metavar='<feature-name>', required=True)
-@click.argument('state', metavar='<state>', required=True, type=click.Choice(["enabled", "disabled"]))
-@pass_db
-def feature_state(db, name, state):
-    """Enable/disable a feature"""
-    state_data = db.cfgdb.get_entry('FEATURE', name)
-
-    if not state_data:
-        click.echo("Feature '{}' doesn't exist".format(name))
-        sys.exit(1)
-
-    db.cfgdb.mod_entry('FEATURE', name, {'state': state})
-
-#
-# 'autorestart' command ('config feature autorestart ...')
-#
-@feature.command(name='autorestart', short_help="Enable/disable autosrestart of a feature")
-@click.argument('name', metavar='<feature-name>', required=True)
-@click.argument('autorestart', metavar='<autorestart>', required=True, type=click.Choice(["enabled", "disabled"]))
-@pass_db
-def feature_autorestart(db, name, autorestart):
-    """Enable/disable autorestart of a feature"""
-    feature_table = db.cfgdb.get_table('FEATURE')
-    if not feature_table:
-        click.echo("Unable to retrieve feature table from Config DB.")
-        sys.exit(1)
-
-    if not feature_table.has_key(name):
-        click.echo("Unable to retrieve feature '{}'".format(name))
-        sys.exit(1)
-
-    db.cfgdb.mod_entry('FEATURE', name, {'auto_restart': autorestart})
 
 if __name__ == '__main__':
     config()
