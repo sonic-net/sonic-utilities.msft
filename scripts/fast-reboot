@@ -633,15 +633,16 @@ if [ -x /sbin/hwclock ]; then
     /sbin/hwclock -w || /bin/true
 fi
 
-if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
-    debug "Running ${PLATFORM} specific plugin..."
-    ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN}
-fi
-
 # Enable Watchdog Timer
 if [ -x ${WATCHDOG_UTIL} ]; then
     debug "Enabling Watchdog before ${REBOOT_TYPE}"
     ${WATCHDOG_UTIL} arm
+fi
+
+# Run platform specific reboot plugin
+if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
+    debug "Running ${PLATFORM} specific plugin..."
+    ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN}
 fi
 
 # Reboot: explicity call Linux native reboot under sbin
