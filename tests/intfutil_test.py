@@ -10,6 +10,22 @@ root_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(root_path)
 scripts_path = os.path.join(modules_path, "scripts")
 
+show_interface_status_output="""\
+      Interface            Lanes    Speed    MTU    FEC      Alias             Vlan    Oper    Admin             Type    Asym PFC
+---------------  ---------------  -------  -----  -----  ---------  ---------------  ------  -------  ---------------  ----------
+      Ethernet0                0      25G   9100     rs  Ethernet0           routed    down       up  QSFP28 or later         off
+     Ethernet32      13,14,15,16      40G   9100     rs       etp9  PortChannel1001      up       up              N/A         off
+    Ethernet112      93,94,95,96      40G   9100     rs      etp29  PortChannel0001      up       up              N/A         off
+    Ethernet116      89,90,91,92      40G   9100     rs      etp30  PortChannel0002      up       up              N/A         off
+    Ethernet120  101,102,103,104      40G   9100     rs      etp31  PortChannel0003      up       up              N/A         off
+    Ethernet124     97,98,99,100      40G   9100     rs      etp32  PortChannel0004      up       up              N/A         off
+PortChannel0001              N/A      40G   9100    N/A        N/A           routed     N/A      N/A              N/A         N/A
+PortChannel0002              N/A      40G   9100    N/A        N/A           routed     N/A      N/A              N/A         N/A
+PortChannel0003              N/A      40G   9100    N/A        N/A           routed     N/A      N/A              N/A         N/A
+PortChannel0004              N/A      40G   9100    N/A        N/A           routed     N/A      N/A              N/A         N/A
+PortChannel1001              N/A      40G   9100    N/A        N/A           routed     N/A      N/A              N/A         N/A
+"""
+
 class TestIntfutil(TestCase):
     @classmethod
     def setup_class(cls):
@@ -26,17 +42,12 @@ class TestIntfutil(TestCase):
         # Test 'show interfaces status'
         result = self.runner.invoke(show.cli.commands["interfaces"].commands["status"], [])
         print >> sys.stderr, result.output
-        expected_output = (
-              "Interface    Lanes    Speed    MTU    FEC      Alias    Vlan    Oper    Admin             Type    Asym PFC\n"
-            "-----------  -------  -------  -----  -----  ---------  ------  ------  -------  ---------------  ----------\n"
-            "  Ethernet0        0      25G   9100     rs  Ethernet0  routed    down       up  QSFP28 or later         off"
-        )
-        self.assertEqual(result.output.strip(), expected_output)
+        assert result.output == show_interface_status_output
 
         # Test 'intfutil status'
         output = subprocess.check_output('intfutil status', stderr=subprocess.STDOUT, shell=True)
         print >> sys.stderr, output
-        self.assertEqual(output.strip(), expected_output)
+        assert result.output == show_interface_status_output
 
     # Test 'show interfaces status --verbose'
     def test_intf_status_verbose(self):
@@ -44,7 +55,6 @@ class TestIntfutil(TestCase):
         print >> sys.stderr, result.output
         expected_output = "Command: intfutil status"
         self.assertEqual(result.output.split('\n')[0], expected_output)
-
 
     # Test 'show subinterfaces status' / 'intfutil status subport'
     def test_subintf_status(self):

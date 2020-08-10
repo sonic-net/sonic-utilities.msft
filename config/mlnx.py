@@ -7,12 +7,11 @@
 
 try:
     import os
-    import subprocess
-    import sys
     import time
 
     import click
     from sonic_py_common import logger
+    import utilities_common.cli as clicommon
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
@@ -40,24 +39,6 @@ COMMAND_RESTART_SWSS = 'systemctl restart swss.service'
 
 # Global logger instance
 log = logger.Logger(SNIFFER_SYSLOG_IDENTIFIER)
-
-
-# run command
-def run_command(command, display_cmd=False, ignore_error=False):
-    """Run bash command and print output to stdout
-    """
-    if display_cmd == True:
-        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
-
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    (out, err) = proc.communicate()
-
-    if len(out) > 0:
-        click.echo(out)
-
-    if proc.returncode != 0 and not ignore_error:
-        sys.exit(proc.returncode)
-
 
 # generate sniffer target file name include a time stamp.
 def sniffer_filename_generate(path, filename_prefix, filename_ext):
@@ -99,12 +80,12 @@ def env_variable_delete(delete_line):
 
 def conf_file_copy(src, dest):
     command = 'docker cp ' + src + ' ' + dest
-    run_command(command)
+    clicommon.run_command(command)
 
 
 def conf_file_receive():
     command = "docker exec {} bash -c 'touch {}'".format(CONTAINER_NAME, SNIFFER_CONF_FILE)
-    run_command(command)
+    clicommon.run_command(command)
     conf_file_copy(SNIFFER_CONF_FILE_IN_CONTAINER, TMP_SNIFFER_CONF_FILE)
 
 
@@ -134,7 +115,7 @@ def sniffer_env_variable_set(enable, env_variable_name, env_variable_string=""):
         config_file_send()
 
     command = 'rm -rf {}'.format(TMP_SNIFFER_CONF_FILE)
-    run_command(command)
+    clicommon.run_command(command)
 
     return ignore
 
@@ -142,7 +123,7 @@ def sniffer_env_variable_set(enable, env_variable_name, env_variable_string=""):
 # restart the swss service with command 'service swss restart'
 def restart_swss():
     try:
-        run_command(COMMAND_RESTART_SWSS)
+        clicommon.run_command(COMMAND_RESTART_SWSS)
     except OSError as e:
         log.log_error("Not able to restart swss service, %s" % str(e), True)
         return 1

@@ -19,9 +19,11 @@ from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from tabulate import tabulate
 from utilities_common.db import Db
+import utilities_common.cli as clicommon
 
-import feature
 import mlnx
+import vlan
+import feature
 
 # Global Variables
 PLATFORM_JSON = 'platform.json'
@@ -29,139 +31,6 @@ HWSKU_JSON = 'hwsku.json'
 PORT_STR = "Ethernet"
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
-
-try:
-    # noinspection PyPep8Naming
-    import ConfigParser as configparser
-except ImportError:
-    # noinspection PyUnresolvedReferences
-    import configparser
-
-
-# This is from the aliases example:
-# https://github.com/pallets/click/blob/57c6f09611fc47ca80db0bd010f05998b3c0aa95/examples/aliases/aliases.py
-class Config(object):
-    """Object to hold CLI config"""
-
-    def __init__(self):
-        self.path = os.getcwd()
-        self.aliases = {}
-
-    def read_config(self, filename):
-        parser = configparser.RawConfigParser()
-        parser.read([filename])
-        try:
-            self.aliases.update(parser.items('aliases'))
-        except configparser.NoSectionError:
-            pass
-
-class InterfaceAliasConverter(object):
-    """Class which handles conversion between interface name and alias"""
-
-    def __init__(self):
-        self.alias_max_length = 0
-
-        config_db = ConfigDBConnector()
-        config_db.connect()
-        self.port_dict = config_db.get_table('PORT')
-
-        if not self.port_dict:
-            click.echo(message="Warning: failed to retrieve PORT table from ConfigDB!", err=True)
-            self.port_dict = {}
-
-        for port_name in self.port_dict.keys():
-            try:
-                if self.alias_max_length < len(
-                        self.port_dict[port_name]['alias']):
-                   self.alias_max_length = len(
-                        self.port_dict[port_name]['alias'])
-            except KeyError:
-                break
-
-    def name_to_alias(self, interface_name):
-        """Return vendor interface alias if SONiC
-           interface name is given as argument
-        """
-        vlan_id = ''
-        sub_intf_sep_idx = -1
-        if interface_name is not None:
-            sub_intf_sep_idx = interface_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
-            if sub_intf_sep_idx != -1:
-                vlan_id = interface_name[sub_intf_sep_idx + 1:]
-                # interface_name holds the parent port name
-                interface_name = interface_name[:sub_intf_sep_idx]
-
-            for port_name in self.port_dict.keys():
-                if interface_name == port_name:
-                    return self.port_dict[port_name]['alias'] if sub_intf_sep_idx == -1 \
-                            else self.port_dict[port_name]['alias'] + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
-
-        # interface_name not in port_dict. Just return interface_name
-        return interface_name if sub_intf_sep_idx == -1 else interface_name + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
-
-    def alias_to_name(self, interface_alias):
-        """Return SONiC interface name if vendor
-           port alias is given as argument
-        """
-        vlan_id = ''
-        sub_intf_sep_idx = -1
-        if interface_alias is not None:
-            sub_intf_sep_idx = interface_alias.find(VLAN_SUB_INTERFACE_SEPARATOR)
-            if sub_intf_sep_idx != -1:
-                vlan_id = interface_alias[sub_intf_sep_idx + 1:]
-                # interface_alias holds the parent port alias
-                interface_alias = interface_alias[:sub_intf_sep_idx]
-
-            for port_name in self.port_dict.keys():
-                if interface_alias == self.port_dict[port_name]['alias']:
-                    return port_name if sub_intf_sep_idx == -1 else port_name + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
-
-        # interface_alias not in port_dict. Just return interface_alias
-        return interface_alias if sub_intf_sep_idx == -1 else interface_alias + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
-
-
-# Global Config object
-_config = None
-
-
-class AliasedGroup(click.Group):
-    """This subclass of click.Group supports abbreviations and
-       looking up aliases in a config file with a bit of magic.
-    """
-
-    def get_command(self, ctx, cmd_name):
-        global _config
-
-        # If we haven't instantiated our global config, do it now and load current config
-        if _config is None:
-            _config = Config()
-
-            # Load our config file
-            cfg_file = os.path.join(os.path.dirname(__file__), 'aliases.ini')
-            _config.read_config(cfg_file)
-
-        # Try to get builtin commands as normal
-        rv = click.Group.get_command(self, ctx, cmd_name)
-        if rv is not None:
-            return rv
-
-        # No builtin found. Look up an explicit command alias in the config
-        if cmd_name in _config.aliases:
-            actual_cmd = _config.aliases[cmd_name]
-            return click.Group.get_command(self, ctx, actual_cmd)
-
-        # Alternative option: if we did not find an explicit alias we
-        # allow automatic abbreviation of the command.  "status" for
-        # instance will match "st".  We only allow that however if
-        # there is only one command.
-        matches = [x for x in self.list_commands(ctx)
-                   if x.lower().startswith(cmd_name.lower())]
-        if not matches:
-            return None
-        elif len(matches) == 1:
-            return click.Group.get_command(self, ctx, matches[0])
-        ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
-
 
 # To be enhanced. Routing-stack information should be collected from a global
 # location (configdb?), so that we prevent the continous execution of this
@@ -203,7 +72,7 @@ def run_command(command, display_cmd=False, return_cmd=False):
 
     # No conversion needed for intfutil commands as it already displays
     # both SONiC interface name and alias name for all interfaces.
-    if get_interface_mode() == "alias" and not command.startswith("intfutil"):
+    if clicommon.get_interface_naming_mode() == "alias" and not command.startswith("intfutil"):
         run_command_in_alias_mode(command)
         raise sys.exit(0)
 
@@ -223,26 +92,8 @@ def run_command(command, display_cmd=False, return_cmd=False):
     if rc != 0:
         sys.exit(rc)
 
-
-def get_interface_mode():
-    mode = os.getenv('SONIC_CLI_IFACE_MODE')
-    if mode is None:
-        mode = "default"
-    return mode
-
-
-def is_ip_prefix_in_key(key):
-    '''
-    Function to check if IP address is present in the key. If it
-    is present, then the key would be a tuple or else, it shall be
-    be string
-    '''
-    return (isinstance(key, tuple))
-
-
 # Global class instance for SONiC interface name to alias conversion
-iface_alias_converter = InterfaceAliasConverter()
-
+iface_alias_converter = clicommon.InterfaceAliasConverter()
 
 def print_output_in_alias_mode(output, index):
     """Convert and print all instances of SONiC interface
@@ -553,7 +404,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
 # This is our entrypoint - the main "show" command
 # TODO: Consider changing function name to 'show' for better understandability
-@click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
+@click.group(cls=clicommon.AliasedGroup, context_settings=CONTEXT_SETTINGS)
 @click.pass_context
 def cli(ctx):
     """SONiC command line - 'show' command"""
@@ -561,6 +412,7 @@ def cli(ctx):
     ctx.obj = Db()
 
 cli.add_command(feature.feature)
+cli.add_command(vlan.vlan)
 
 #
 # 'vrf' command ("show vrf")
@@ -620,7 +472,7 @@ def arp(ipaddress, iface, verbose):
         cmd += " -ip {}".format(ipaddress)
 
     if iface is not None:
-        if get_interface_mode() == "alias":
+        if clicommon.get_interface_naming_mode() == "alias":
             if not ((iface.startswith("PortChannel")) or
                     (iface.startswith("eth"))):
                 iface = iface_alias_converter.alias_to_name(iface)
@@ -700,7 +552,7 @@ def mgmt_vrf(ctx,routes):
 # 'management_interface' group ("show management_interface ...")
 #
 
-@cli.group(name='management_interface', cls=AliasedGroup)
+@cli.group(name='management_interface', cls=clicommon.AliasedGroup)
 def management_interface():
     """Show management interface parameters"""
     pass
@@ -766,7 +618,7 @@ def snmptrap (ctx):
 # 'interfaces' group ("show interfaces ...")
 #
 
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def interfaces():
     """Show details of the network interfaces"""
     pass
@@ -786,7 +638,7 @@ def alias(interfacename):
     body = []
 
     if interfacename is not None:
-        if get_interface_mode() == "alias":
+        if clicommon.get_interface_naming_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
         # If we're given an interface name, output name and alias for that interface only
@@ -901,7 +753,7 @@ def currrent_mode(ctx, interface):
 #
 # 'neighbor' group ###
 #
-@interfaces.group(cls=AliasedGroup)
+@interfaces.group(cls=clicommon.AliasedGroup)
 def neighbor():
     """Show neighbor related information"""
     pass
@@ -931,7 +783,7 @@ def expected(interfacename):
     device2interface_dict = {}
     for port in natsorted(neighbor_dict['DEVICE_NEIGHBOR'].keys()):
         temp_port = port
-        if get_interface_mode() == "alias":
+        if clicommon.get_interface_naming_mode() == "alias":
             port = iface_alias_converter.name_to_alias(port)
             neighbor_dict['DEVICE_NEIGHBOR'][port] = neighbor_dict['DEVICE_NEIGHBOR'].pop(temp_port)
         device2interface_dict[neighbor_dict['DEVICE_NEIGHBOR'][port]['name']] = {'localPort': port, 'neighborPort': neighbor_dict['DEVICE_NEIGHBOR'][port]['port']}
@@ -958,7 +810,7 @@ def expected(interfacename):
 
     click.echo(tabulate(body, header))
 
-@interfaces.group(cls=AliasedGroup)
+@interfaces.group(cls=clicommon.AliasedGroup)
 def transceiver():
     """Show SFP Transceiver information"""
     pass
@@ -977,7 +829,7 @@ def eeprom(interfacename, dump_dom, verbose):
         cmd += " --dom"
 
     if interfacename is not None:
-        if get_interface_mode() == "alias":
+        if clicommon.get_interface_naming_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
         cmd += " -p {}".format(interfacename)
@@ -994,7 +846,7 @@ def lpmode(interfacename, verbose):
     cmd = "sudo sfputil show lpmode"
 
     if interfacename is not None:
-        if get_interface_mode() == "alias":
+        if clicommon.get_interface_naming_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
         cmd += " -p {}".format(interfacename)
@@ -1010,7 +862,7 @@ def presence(interfacename, verbose):
     cmd = "sfpshow presence"
 
     if interfacename is not None:
-        if get_interface_mode() == "alias":
+        if clicommon.get_interface_naming_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
         cmd += " -p {}".format(interfacename)
@@ -1027,7 +879,7 @@ def description(interfacename, verbose):
     cmd = "intfutil description"
 
     if interfacename is not None:
-        if get_interface_mode() == "alias":
+        if clicommon.get_interface_naming_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
         cmd += " {}".format(interfacename)
@@ -1044,7 +896,7 @@ def status(interfacename, verbose):
     cmd = "intfutil status"
 
     if interfacename is not None:
-        if get_interface_mode() == "alias":
+        if clicommon.get_interface_naming_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
         cmd += " {}".format(interfacename)
@@ -1124,7 +976,7 @@ def portchannel(verbose):
 # 'subinterfaces' group ("show subinterfaces ...")
 #
 
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def subinterfaces():
     """Show details of the sub port interfaces"""
     pass
@@ -1143,7 +995,7 @@ def status(subinterfacename, verbose):
             print("Invalid sub port interface name")
             return
 
-        if get_interface_mode() == "alias":
+        if clicommon.get_interface_naming_mode() == "alias":
             subinterfacename = iface_alias_converter.alias_to_name(subinterfacename)
 
         cmd += subinterfacename
@@ -1155,7 +1007,7 @@ def status(subinterfacename, verbose):
 # 'pfc' group ("show pfc ...")
 #
 
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def pfc():
     """Show details of the priority-flow-control (pfc) """
     pass
@@ -1175,7 +1027,7 @@ def counters(verbose):
 def priority(interface):
     """Show pfc priority"""
     cmd = 'pfc show priority'
-    if interface is not None and get_interface_mode() == "alias":
+    if interface is not None and clicommon.get_interface_naming_mode() == "alias":
         interface = iface_alias_converter.alias_to_name(interface)
 
     if interface is not None:
@@ -1188,7 +1040,7 @@ def priority(interface):
 def asymmetric(interface):
     """Show asymmetric pfc"""
     cmd = 'pfc show asymmetric'
-    if interface is not None and get_interface_mode() == "alias":
+    if interface is not None and clicommon.get_interface_naming_mode() == "alias":
         interface = iface_alias_converter.alias_to_name(interface)
 
     if interface is not None:
@@ -1197,7 +1049,7 @@ def asymmetric(interface):
     run_command(cmd)
 
 # 'pfcwd' subcommand ("show pfcwd...")
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def pfcwd():
     """Show details of the pfc watchdog """
     pass
@@ -1226,14 +1078,14 @@ def stats(verbose):
 def naming_mode(verbose):
     """Show interface naming_mode status"""
 
-    click.echo(get_interface_mode())
+    click.echo(clicommon.get_interface_naming_mode())
 
 
 #
 # 'watermark' group ("show watermark telemetry interval")
 #
 
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def watermark():
     """Show details of watermark """
     pass
@@ -1254,7 +1106,7 @@ def show_tm_interval():
 # 'queue' group ("show queue ...")
 #
 
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def queue():
     """Show details of the queues """
     pass
@@ -1269,7 +1121,7 @@ def counters(interfacename, verbose):
     cmd = "queuestat"
 
     if interfacename is not None:
-        if get_interface_mode() == "alias":
+        if clicommon.get_interface_naming_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
     if interfacename is not None:
@@ -1328,7 +1180,7 @@ def pwm_q_multi():
 # 'priority-group' group ("show priority-group ...")
 #
 
-@cli.group(name='priority-group', cls=AliasedGroup)
+@cli.group(name='priority-group', cls=clicommon.AliasedGroup)
 def priority_group():
     """Show details of the PGs """
 
@@ -1371,7 +1223,7 @@ def pwm_pg_shared():
 # 'buffer_pool' group ("show buffer_pool ...")
 #
 
-@cli.group(name='buffer_pool', cls=AliasedGroup)
+@cli.group(name='buffer_pool', cls=clicommon.AliasedGroup)
 def buffer_pool():
     """Show details of the buffer pools"""
 
@@ -1429,7 +1281,7 @@ def route_map(route_map_name, verbose):
 #
 
 # This group houses IP (i.e., IPv4) commands and subgroups
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def ip():
     """Show IP (IPv4) commands"""
     pass
@@ -1534,7 +1386,7 @@ def interfaces():
                 else:
                     oper = "down"
                 master = get_if_master(iface)
-                if get_interface_mode() == "alias":
+                if clicommon.get_interface_naming_mode() == "alias":
                     iface = iface_alias_converter.name_to_alias(iface)
 
                 data.append([iface, master, ifaddresses[0][1], admin + "/" + oper, neighbor_name, neighbor_ip])
@@ -1612,7 +1464,7 @@ def protocol(verbose):
 #
 
 # This group houses IPv6-related commands and subgroups
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def ipv6():
     """Show IPv6 commands"""
     pass
@@ -1676,7 +1528,7 @@ def interfaces():
                 else:
                     oper = "down"
                 master = get_if_master(iface)
-                if get_interface_mode() == "alias":
+                if clicommon.get_interface_naming_mode() == "alias":
                     iface = iface_alias_converter.name_to_alias(iface)
                 data.append([iface, master, ifaddresses[0][1], admin + "/" + oper, neighbor_info[0][0], neighbor_info[0][1]])
                 neighbor_info.pop(0)
@@ -1734,7 +1586,7 @@ elif routing_stack == "frr":
 # 'lldp' group ("show lldp ...")
 #
 
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def lldp():
     """LLDP (Link Layer Discovery Protocol) information"""
     pass
@@ -1748,7 +1600,7 @@ def neighbors(interfacename, verbose):
     cmd = "sudo lldpshow -d"
 
     if interfacename is not None:
-        if get_interface_mode() == "alias":
+        if clicommon.get_interface_naming_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
         cmd += " -p {}".format(interfacename)
@@ -1781,7 +1633,7 @@ def get_hw_info_dict():
 
     return hw_info_dict
 
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def platform():
     """Show platform-specific hardware info"""
     pass
@@ -1951,7 +1803,7 @@ def environment(verbose):
 # 'processes' group ("show processes ...")
 #
 
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def processes():
     """Display process information"""
     pass
@@ -2014,7 +1866,7 @@ def techsupport(since, verbose):
 # 'runningconfiguration' group ("show runningconfiguration")
 #
 
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def runningconfiguration():
     """Show current running configuration information"""
     pass
@@ -2128,7 +1980,7 @@ def syslog(verbose):
 # 'startupconfiguration' group ("show startupconfiguration ...")
 #
 
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def startupconfiguration():
     """Show startup configuration information"""
     pass
@@ -2202,15 +2054,10 @@ def system_memory(verbose):
     cmd = "free -m"
     run_command(cmd, display_cmd=verbose)
 
-@cli.group(cls=AliasedGroup)
-def vlan():
-    """Show VLAN information"""
-    pass
-
 #
 # 'kdump command ("show kdump ...")
 #
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def kdump():
     """Show kdump configuration, status and information """
     pass
@@ -2287,134 +2134,6 @@ def log(record, lines):
         run_command("sonic-kdump-config --file %s" % record)
     else:
         run_command("sonic-kdump-config --file %s --lines %s" % (record, lines))
-
-@vlan.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def brief(verbose):
-    """Show all bridge information"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    header = ['VLAN ID', 'IP Address', 'Ports', 'Port Tagging', 'DHCP Helper Address']
-    body = []
-    vlan_keys = []
-
-    # Fetching data from config_db for VLAN, VLAN_INTERFACE and VLAN_MEMBER
-    vlan_dhcp_helper_data = config_db.get_table('VLAN')
-    vlan_ip_data = config_db.get_table('VLAN_INTERFACE')
-    vlan_ports_data = config_db.get_table('VLAN_MEMBER')
-
-    # Defining dictionaries for DHCP Helper address, Interface Gateway IP,
-    # VLAN ports and port tagging
-    vlan_dhcp_helper_dict = {}
-    vlan_ip_dict = {}
-    vlan_ports_dict = {}
-    vlan_tagging_dict = {}
-
-    # Parsing DHCP Helpers info
-    for key in natsorted(vlan_dhcp_helper_data.keys()):
-        try:
-            if vlan_dhcp_helper_data[key]['dhcp_servers']:
-                vlan_dhcp_helper_dict[str(key.strip('Vlan'))] = vlan_dhcp_helper_data[key]['dhcp_servers']
-        except KeyError:
-            vlan_dhcp_helper_dict[str(key.strip('Vlan'))] = " "
-
-    # Parsing VLAN Gateway info
-    for key in natsorted(vlan_ip_data.keys()):
-        if not is_ip_prefix_in_key(key):
-            continue
-        interface_key = str(key[0].strip("Vlan"))
-        interface_value = str(key[1])
-        if interface_key in vlan_ip_dict:
-            vlan_ip_dict[interface_key].append(interface_value)
-        else:
-            vlan_ip_dict[interface_key] = [interface_value]
-
-    # Parsing VLAN Ports info
-    for key in natsorted(vlan_ports_data.keys()):
-        ports_key = str(key[0].strip("Vlan"))
-        ports_value = str(key[1])
-        ports_tagging = vlan_ports_data[key]['tagging_mode']
-        if ports_key in vlan_ports_dict:
-            if get_interface_mode() == "alias":
-                ports_value = iface_alias_converter.name_to_alias(ports_value)
-            vlan_ports_dict[ports_key].append(ports_value)
-        else:
-            if get_interface_mode() == "alias":
-                ports_value = iface_alias_converter.name_to_alias(ports_value)
-            vlan_ports_dict[ports_key] = [ports_value]
-        if ports_key in vlan_tagging_dict:
-            vlan_tagging_dict[ports_key].append(ports_tagging)
-        else:
-            vlan_tagging_dict[ports_key] = [ports_tagging]
-
-    # Printing the following dictionaries in tablular forms:
-    # vlan_dhcp_helper_dict={}, vlan_ip_dict = {}, vlan_ports_dict = {}
-    # vlan_tagging_dict = {}
-    for key in natsorted(vlan_dhcp_helper_dict.keys()):
-        if key not in vlan_ip_dict:
-            ip_address = ""
-        else:
-            ip_address = ','.replace(',', '\n').join(vlan_ip_dict[key])
-        if key not in vlan_ports_dict:
-            vlan_ports = ""
-        else:
-            vlan_ports = ','.replace(',', '\n').join((vlan_ports_dict[key]))
-        if key not in vlan_dhcp_helper_dict:
-            dhcp_helpers = ""
-        else:
-            dhcp_helpers = ','.replace(',', '\n').join(vlan_dhcp_helper_dict[key])
-        if key not in vlan_tagging_dict:
-            vlan_tagging = ""
-        else:
-            vlan_tagging = ','.replace(',', '\n').join((vlan_tagging_dict[key]))
-        body.append([key, ip_address, vlan_ports, vlan_tagging, dhcp_helpers])
-    click.echo(tabulate(body, header, tablefmt="grid"))
-
-@vlan.command()
-@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
-def config(redis_unix_socket_path):
-    kwargs = {}
-    if redis_unix_socket_path:
-        kwargs['unix_socket_path'] = redis_unix_socket_path
-    config_db = ConfigDBConnector(**kwargs)
-    config_db.connect(wait_for_init=False)
-    data = config_db.get_table('VLAN')
-    keys = data.keys()
-
-    def tablelize(keys, data):
-        table = []
-
-        for k in natsorted(keys):
-            if 'members' not in data[k] :
-                r = []
-                r.append(k)
-                r.append(data[k]['vlanid'])
-                table.append(r)
-                continue
-
-            for m in data[k].get('members', []):
-                r = []
-                r.append(k)
-                r.append(data[k]['vlanid'])
-                if get_interface_mode() == "alias":
-                    alias = iface_alias_converter.name_to_alias(m)
-                    r.append(alias)
-                else:
-                    r.append(m)
-
-                entry = config_db.get_entry('VLAN_MEMBER', (k, m))
-                mode = entry.get('tagging_mode')
-                if mode is None:
-                    r.append('?')
-                else:
-                    r.append(mode)
-
-                table.append(r)
-
-        return table
-
-    header = ['Name', 'VID', 'Member', 'Mode']
-    click.echo(tabulate(tablelize(keys, data), header))
 
 @cli.command('services')
 def services():
@@ -2606,7 +2325,7 @@ def show_sflow_global(config_db):
 # 'acl' group ###
 #
 
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def acl():
     """Show ACL related information"""
     pass
@@ -2648,7 +2367,7 @@ def table(table_name, verbose):
 # 'dropcounters' group ###
 #
 
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def dropcounters():
     """Show drop counter related information"""
     pass
@@ -2760,7 +2479,7 @@ def line(verbose):
     return
 
 
-@cli.group(name='warm_restart', cls=AliasedGroup)
+@cli.group(name='warm_restart', cls=clicommon.AliasedGroup)
 def warm_restart():
     """Show warm restart configuration and state"""
     pass
@@ -2886,7 +2605,7 @@ def config(redis_unix_socket_path):
 # 'nat' group ("show nat ...")
 #
 
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def nat():
     """Show details of the nat """
     pass
@@ -2965,13 +2684,13 @@ app_db = SonicV2Connector(host='127.0.0.1')
 app_db.connect(app_db.APPL_DB)
 if app_db.keys(app_db.APPL_DB, '_GEARBOX_TABLE:phy:*'):
 
-    @cli.group(cls=AliasedGroup)
+    @cli.group(cls=clicommon.AliasedGroup)
     def gearbox():
         """Show gearbox info"""
         pass
 
     # 'phys' subcommand ("show gearbox phys")
-    @gearbox.group(cls=AliasedGroup)
+    @gearbox.group(cls=clicommon.AliasedGroup)
     def phys():
         """Show external PHY information"""
         pass
@@ -2985,7 +2704,7 @@ if app_db.keys(app_db.APPL_DB, '_GEARBOX_TABLE:phy:*'):
         return
 
     # 'interfaces' subcommand ("show gearbox interfaces")
-    @gearbox.group(cls=AliasedGroup)
+    @gearbox.group(cls=clicommon.AliasedGroup)
     def interfaces():
         """Show gearbox interfaces information"""
         pass
@@ -3044,7 +2763,7 @@ def ztp(status, verbose):
 #
 # 'vnet' command ("show vnet")
 #
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def vnet():
     """Show vnet related information"""
     pass
@@ -3301,7 +3020,7 @@ def tunnel():
 #
 # 'vxlan' command ("show vxlan")
 #
-@cli.group(cls=AliasedGroup)
+@cli.group(cls=clicommon.AliasedGroup)
 def vxlan():
     """Show vxlan related information"""
     pass

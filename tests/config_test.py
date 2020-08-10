@@ -1,3 +1,4 @@
+import os
 import traceback
 
 from click.testing import CliRunner
@@ -48,6 +49,7 @@ Please note setting loaded from minigraph will be lost after system reboot. To p
 class TestLoadMinigraph(object):
     @classmethod
     def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "1"
         print("SETUP")
 
     def test_load_minigraph(self, get_cmd_module, setup_single_broacom_asic):
@@ -77,4 +79,5 @@ class TestLoadMinigraph(object):
 
     @classmethod
     def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
         print("TEARDOWN")

@@ -11,6 +11,66 @@
         "fec": "rs",
         "admin_status": "up"
     },
+    "PORT_TABLE:Ethernet32": {
+        "index": "8",
+        "lanes": "13,14,15,16",
+        "alias": "etp9",
+        "description": "Servers7:eth0",
+        "speed": "40000",
+        "oper_status": "up",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "fec": "rs",
+        "admin_status": "up"
+    },
+    "PORT_TABLE:Ethernet112": {
+        "index": "28",
+        "lanes": "93,94,95,96",
+        "alias": "etp29",
+        "description": "ARISTA01T1:Ethernet1",
+        "speed": "40000",
+        "oper_status": "up",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "fec": "rs",
+        "admin_status": "up"
+    },
+    "PORT_TABLE:Ethernet116": {
+        "index": "29",
+        "lanes": "89,90,91,92",
+        "alias": "etp30",
+        "description": "ARISTA02T1:Ethernet1",
+        "speed": "40000",
+        "oper_status": "up",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "fec": "rs",
+        "admin_status": "up"
+    },
+    "PORT_TABLE:Ethernet120": {
+        "index": "30",
+        "lanes": "101,102,103,104",
+        "alias": "etp31",
+        "description": "ARISTA03T1:Ethernet1",
+        "speed": "40000",
+        "oper_status": "up",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "fec": "rs",
+        "admin_status": "up"
+    },
+    "PORT_TABLE:Ethernet124": {
+        "index": "31",
+        "lanes": "97,98,99,100",
+        "alias": "etp32",
+        "description": "ARISTA04T1:Ethernet1",
+        "speed": "40000",
+        "oper_status": "up",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "fec": "rs",
+        "admin_status": "up"
+    },
     "PORT_TABLE:Ethernet200": {
         "index": "200",
         "lanes": "200,201,202,203",
