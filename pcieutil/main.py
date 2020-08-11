@@ -33,7 +33,7 @@ def print_result(name, result):
     sys.stdout.write(string)
     for i in xrange(int(length)):
         sys.stdout.write("-")
-    print(' [%s]' % result)
+    click.echo(' [%s]' % result)
 
 # ==================== Methods for initialization ====================
 
@@ -103,7 +103,7 @@ def pcie_show():
         Fn = item["fn"]
         Name = item["name"]
         Id = item["id"]
-        print "bus:dev.fn %s:%s.%s - dev_id=0x%s, %s" % (Bus, Dev, Fn, Id, Name)
+        click.echo("bus:dev.fn %s:%s.%s - dev_id=0x%s, %s" % (Bus, Dev, Fn, Id, Name))
 
 
 #  Show PCIE Vender ID and Device ID
@@ -122,9 +122,9 @@ def pcie_check():
             log.log_warning("PCIe Device: " + item["name"] + " Not Found")
             err += 1
     if err:
-        print "PCIe Device Checking All Test ----------->>> FAILED"
+        click.echo("PCIe Device Checking All Test ----------->>> FAILED")
     else:
-        print "PCIe Device Checking All Test ----------->>> PASSED"
+        click.echo("PCIe Device Checking All Test ----------->>> PASSED")
 
 
 @cli.command()
@@ -132,7 +132,7 @@ def pcie_check():
 def pcie_generate():
     '''Generate config file with current pci device'''
     platform_pcieutil.dump_conf_yaml()
-    print "Generate config file pcie.yaml under path %s" % platform_plugins_path
+    click.echo("Generate config file pcie.yaml under path %s" % platform_plugins_path)
 
 
 if __name__ == '__main__':

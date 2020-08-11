@@ -56,7 +56,7 @@ class Watermarkstat(object):
         def get_queue_type(table_id):
             queue_type = self.counters_db.get(self.counters_db.COUNTERS_DB, COUNTERS_QUEUE_TYPE_MAP, table_id)
             if queue_type is None:
-                print >> sys.stderr, "Queue Type is not available!", table_id
+                print("Queue Type is not available in table '{}'".format(table_id), file=sys.stderr)
                 sys.exit(1)
             elif queue_type == SAI_QUEUE_TYPE_MULTICAST:
                 return QUEUE_TYPE_MC
@@ -65,13 +65,13 @@ class Watermarkstat(object):
             elif queue_type == SAI_QUEUE_TYPE_ALL:
                 return QUEUE_TYPE_ALL
             else:
-                print >> sys.stderr, "Queue Type is invalid:", table_id, queue_type
+                print("Queue Type '{} in table '{}' is invalid".format(queue_type, table_id), file=sys.stderr)
                 sys.exit(1)
 
         def get_queue_port(table_id):
             port_table_id = self.counters_db.get(self.counters_db.COUNTERS_DB, COUNTERS_QUEUE_PORT_MAP, table_id)
             if port_table_id is None:
-                print >> sys.stderr, "Port is not available!", table_id
+                print("Port is not available in table '{}'".format(table_id), file=sys.stderr)
                 sys.exit(1)
 
             return port_table_id
@@ -79,7 +79,7 @@ class Watermarkstat(object):
         def get_pg_port(table_id):
             port_table_id = self.counters_db.get(self.counters_db.COUNTERS_DB, COUNTERS_PG_PORT_MAP, table_id)
             if port_table_id is None:
-                print >> sys.stderr, "Port is not available!", table_id
+                print("Port is not available in table '{}'".format(table_id), file=sys.stderr)
                 sys.exit(1)
 
             return port_table_id
@@ -87,7 +87,7 @@ class Watermarkstat(object):
         # Get all ports
         self.counter_port_name_map = self.counters_db.get_all(self.counters_db.COUNTERS_DB, COUNTERS_PORT_NAME_MAP)
         if self.counter_port_name_map is None:
-            print >> sys.stderr, "COUNTERS_PORT_NAME_MAP is empty!"
+            print("COUNTERS_PORT_NAME_MAP is empty!", file=sys.stderr)
             sys.exit(1)
 
         self.port_uc_queues_map = {}
@@ -104,7 +104,7 @@ class Watermarkstat(object):
         # Get Queues for each port
         counter_queue_name_map = self.counters_db.get_all(self.counters_db.COUNTERS_DB, COUNTERS_QUEUE_NAME_MAP)
         if counter_queue_name_map is None:
-            print >> sys.stderr, "COUNTERS_QUEUE_NAME_MAP is empty!"
+            print("COUNTERS_QUEUE_NAME_MAP is empty!", file=sys.stderr)
             sys.exit(1)
 
         for queue in counter_queue_name_map:
@@ -118,7 +118,7 @@ class Watermarkstat(object):
         # Get PGs for each port
         counter_pg_name_map = self.counters_db.get_all(self.counters_db.COUNTERS_DB, COUNTERS_PG_NAME_MAP)
         if counter_pg_name_map is None:
-            print >> sys.stderr, "COUNTERS_PG_NAME_MAP is empty!"
+            print("COUNTERS_PG_NAME_MAP is empty!", file=sys.stderr)
             sys.exit(1)
 
         for pg in counter_pg_name_map:
@@ -128,7 +128,7 @@ class Watermarkstat(object):
         # Get all buffer pools
         self.buffer_pool_name_to_oid_map = self.counters_db.get_all(self.counters_db.COUNTERS_DB, COUNTERS_BUFFER_POOL_NAME_MAP)
         if self.buffer_pool_name_to_oid_map is None:
-            print >> sys.stderr, "COUNTERS_BUFFER_POOL_NAME_MAP is empty!"
+            print("COUNTERS_BUFFER_POOL_NAME_MAP is empty!", file=sys.stderr)
             sys.exit(1)
 
         self.watermark_types = {
@@ -160,7 +160,7 @@ class Watermarkstat(object):
     def get_queue_index(self, table_id):
         queue_index = self.counters_db.get(self.counters_db.COUNTERS_DB, COUNTERS_QUEUE_INDEX_MAP, table_id)
         if queue_index is None:
-            print >> sys.stderr, "Queue index is not available!", table_id
+            print("Queue index is not available in table '{}'".format(table_id), file=sys.stderr)
             sys.exit(1)
 
         return queue_index
@@ -168,14 +168,14 @@ class Watermarkstat(object):
     def get_pg_index(self, table_id):
         pg_index = self.counters_db.get(self.counters_db.COUNTERS_DB, COUNTERS_PG_INDEX_MAP, table_id)
         if pg_index is None:
-            print >> sys.stderr, "Priority group index is not available!", table_id
+            print("Priority group index is not available in table '{}'".format(table_id), file=sys.stderr)
             sys.exit(1)
 
         return pg_index
 
     def build_header(self, wm_type):
         if wm_type is None:
-            print >> sys.stderr, "Header info is not available!"
+            print("Header info is not available!", file=sys.stderr)
             sys.exit(1)
 
         self.header_list = ['Port']
@@ -234,7 +234,7 @@ class Watermarkstat(object):
                 table.append(tuple(row_data))
 
         print(type["message"])
-        print tabulate(table, self.header_list, tablefmt='simple', stralign='right')
+        print(tabulate(table, self.header_list, tablefmt='simple', stralign='right'))
 
     def send_clear_notification(self, data):
         msg = json.dumps(data, separators=(',', ':'))

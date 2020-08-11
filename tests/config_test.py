@@ -56,8 +56,8 @@ class TestLoadMinigraph(object):
         (config, show) = get_cmd_module
         runner = CliRunner()
         result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
-        print result.exit_code
-        print result.output
+        print(result.exit_code)
+        print(result.output)
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
         assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
@@ -69,11 +69,11 @@ class TestLoadMinigraph(object):
         result = runner.invoke(config.config.commands["feature"].commands["state"], ["telemetry", "disabled"], obj=db)
         assert result.exit_code == 0
         result = runner.invoke(show.cli.commands["feature"].commands["status"], ["telemetry"], obj=db)
-        print result.output
+        print(result.output)
         assert result.exit_code == 0
         result = runner.invoke(config.config.commands["load_minigraph"], ["-y"], obj=db)
-        print result.exit_code
-        print result.output
+        print(result.exit_code)
+        print(result.output)
         assert result.exit_code == 0
         assert "telemetry" not in result.output
 

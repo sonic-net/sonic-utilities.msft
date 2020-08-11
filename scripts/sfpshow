@@ -314,7 +314,7 @@ class SFPShow(object):
 
                 out_put = out_put + '\n' 
 
-        print out_put
+        click.echo(out_put)
 
     def display_presence(self, interfacename):
         port_table = []

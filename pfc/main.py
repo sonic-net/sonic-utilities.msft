@@ -45,16 +45,16 @@ def showPfcAsym(interface):
 
     sorted_table = natsorted(table)
 
-    print '\n'
-    print tabulate(sorted_table, headers=header, tablefmt="simple", missingval="")
-    print '\n'
+    click.echo()
+    click.echo(tabulate(sorted_table, headers=header, tablefmt="simple", missingval=""))
+    click.echo()
 
 def configPfcPrio(status, interface, priority):
     configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
 
     if interface not in configdb.get_keys('PORT_QOS_MAP'):
-        print 'Cannot find interface {0}'.format(interface)
+        click.echo('Cannot find interface {0}'.format(interface))
         return 
 
     """Current lossless priorities on the interface""" 
@@ -65,11 +65,11 @@ def configPfcPrio(status, interface, priority):
     enable_prio = [x.strip() for x in enable_prio if x.strip()]
     
     if status == 'on' and priority in enable_prio:
-        print 'Priority {0} has already been enabled on {1}'.format(priority, interface)
+        click.echo('Priority {0} has already been enabled on {1}'.format(priority, interface))
         return
     
     if status == 'off' and priority not in enable_prio:
-        print 'Priority {0} is not enabled on {1}'.format(priority, interface)
+        click.echo('Priority {0} is not enabled on {1}'.format(priority, interface))
         return
     
     if status == 'on':
@@ -99,7 +99,7 @@ def showPfcPrio(interface):
     
     """The user specifies an interface but we cannot find it"""    
     if interface and interface not in intfs:
-        print 'Cannot find interface {0}'.format(interface)
+        click.echo('Cannot find interface {0}'.format(interface))
         return 
     
     if interface:
@@ -110,9 +110,9 @@ def showPfcPrio(interface):
         table.append([intf, entry.get('pfc_enable', 'N/A')])
     
     sorted_table = natsorted(table)
-    print '\n'
-    print tabulate(sorted_table, headers=header, tablefmt="simple", missingval="")
-    print '\n'
+    click.echo()
+    click.echo(tabulate(sorted_table, headers=header, tablefmt="simple", missingval=""))
+    click.echo()
     
 @click.group()
 def cli():

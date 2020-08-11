@@ -56,7 +56,7 @@ class Queuestat(object):
         def get_queue_port(table_id):
             port_table_id = self.db.get(self.db.COUNTERS_DB, COUNTERS_QUEUE_PORT_MAP, table_id)
             if port_table_id is None:
-                print "Port is not available!", table_id
+                print("Port is not available!", table_id)
                 sys.exit(1)
 
             return port_table_id
@@ -64,7 +64,7 @@ class Queuestat(object):
         # Get all ports
         self.counter_port_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_PORT_NAME_MAP)
         if self.counter_port_name_map is None:
-            print "COUNTERS_PORT_NAME_MAP is empty!"
+            print("COUNTERS_PORT_NAME_MAP is empty!")
             sys.exit(1)
 
         self.port_queues_map = {}
@@ -77,7 +77,7 @@ class Queuestat(object):
         # Get Queues for each port
         counter_queue_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_QUEUE_NAME_MAP)
         if counter_queue_name_map is None:
-            print "COUNTERS_QUEUE_NAME_MAP is empty!"
+            print("COUNTERS_QUEUE_NAME_MAP is empty!")
             sys.exit(1)
 
         for queue in counter_queue_name_map:
@@ -95,7 +95,7 @@ class Queuestat(object):
             def get_queue_index(table_id):
                 queue_index =  self.db.get(self.db.COUNTERS_DB, COUNTERS_QUEUE_INDEX_MAP, table_id)
                 if queue_index is None:
-                    print "Queue index is not available!", table_id
+                    print("Queue index is not available!", table_id)
                     sys.exit(1)
 
                 return queue_index
@@ -103,7 +103,7 @@ class Queuestat(object):
             def get_queue_type(table_id):
                 queue_type =  self.db.get(self.db.COUNTERS_DB, COUNTERS_QUEUE_TYPE_MAP, table_id)
                 if queue_type is None:
-                    print "Queue Type is not available!", table_id
+                    print("Queue Type is not available!", table_id)
                     sys.exit(1)
                 elif queue_type == SAI_QUEUE_TYPE_MULTICAST:
                     return QUEUE_TYPE_MC
@@ -112,7 +112,7 @@ class Queuestat(object):
                 elif queue_type == SAI_QUEUE_TYPE_ALL:
                     return QUEUE_TYPE_ALL
                 else:
-                    print "Queue Type is invalid:", table_id, queue_type
+                    print("Queue Type is invalid:", table_id, queue_type)
                     sys.exit(1)
 
             fields = ["0","0","0","0","0","0"]
@@ -151,8 +151,8 @@ class Queuestat(object):
                         data.totalpacket, data.totalbytes,
                         data.droppacket, data.dropbytes))
 
-        print tabulate(table, header, tablefmt='simple', stralign='right')
-        print
+        print(tabulate(table, header, tablefmt='simple', stralign='right'))
+        print()
 
     def cnstat_diff_print(self, port, cnstat_new_dict, cnstat_old_dict):
         """
@@ -188,8 +188,8 @@ class Queuestat(object):
                         cntr.totalpacket, cntr.totalbytes,
                         cntr.droppacket, cntr.dropbytes))
 
-        print tabulate(table, header, tablefmt='simple', stralign='right')
-        print
+        print(tabulate(table, header, tablefmt='simple', stralign='right'))
+        print()
 
     def get_print_all_stat(self):
         # Get stat for each port
@@ -200,16 +200,16 @@ class Queuestat(object):
             if os.path.isfile(cnstat_fqn_file_name):
                 try:
                     cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_name, 'r'))
-                    print port + " Last cached time was " + str(cnstat_cached_dict.get('time'))
+                    print(port + " Last cached time was " + str(cnstat_cached_dict.get('time')))
                     self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict)
                 except IOError as e:
-                    print e.errno, e
+                    print(e.errno, e)
             else:
                 self.cnstat_print(port, cnstat_dict)
 
     def get_print_port_stat(self, port):
         if not port in self.port_queues_map:
-            print "Port doesn't exist!", port
+            print("Port doesn't exist!", port)
             sys.exit(1)
 
         # Get stat for the port queried
@@ -218,10 +218,10 @@ class Queuestat(object):
         if os.path.isfile(cnstat_fqn_file_name):
             try:
                 cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_name, 'r'))
-                print "Last cached time was " + str(cnstat_cached_dict.get('time'))
+                print("Last cached time was " + str(cnstat_cached_dict.get('time')))
                 self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict)
             except IOError as e:
-                print e.errno, e
+                print(e.errno, e)
         else:
             self.cnstat_print(port, cnstat_dict)
 
@@ -230,7 +230,7 @@ class Queuestat(object):
             try:
                 os.makedirs(cnstat_dir)
             except IOError as e:
-                print e.errno, e
+                print(e.errno, e)
                 sys.exit(1)
 
         # Get stat for each port and save
@@ -239,10 +239,10 @@ class Queuestat(object):
             try:
                 pickle.dump(cnstat_dict, open(cnstat_fqn_file + port, 'w'))
             except IOError as e:
-                print e.errno, e
+                print(e.errno, e)
                 sys.exit(e.errno)
             else:
-                print "Clear and update saved counters for " + port
+                print("Clear and update saved counters for " + port)
 
 def main():
     global cnstat_dir
@@ -283,7 +283,7 @@ Examples:
             os.rmdir(cnstat_dir)
             sys.exit(0)
         except IOError as e:
-            print e.errno, e
+            print(e.errno, e)
             sys.exit(e)
 
     queuestat = Queuestat()

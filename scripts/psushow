@@ -26,7 +26,7 @@ def psu_status_show(index):
     chassis_name = "chassis {}".format(chassis_num)
     num_psus = db.get(db.STATE_DB, 'CHASSIS_INFO|{}'.format(chassis_name), 'psu_num')
     if not num_psus:
-        print "Error! Failed to get the number of PSUs!"
+        print("Error! Failed to get the number of PSUs!")
         return -1
 
     supported_psu = range(1, int(num_psus) + 1)
@@ -42,8 +42,8 @@ def psu_status_show(index):
         msg = ""
         psu_name = "PSU {}".format(psu)
         if psu not in supported_psu:
-            print "Error! The {} is not available on the platform.\n" \
-                  "Number of supported PSU - {}.".format(psu_name, num_psus)
+            print("Error! The {} is not available on the platform.\n"
+                  "Number of supported PSU - {}.".format(psu_name, num_psus))
             continue
         presence = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'presence')
         if presence == 'true':
@@ -55,7 +55,7 @@ def psu_status_show(index):
         status_table.append([psu_name, msg, led_status])
 
     if status_table:
-        print tabulate(status_table, header, tablefmt="simple")
+        print(tabulate(status_table, header, tablefmt="simple"))
     return 0
 
 def main():
@@ -76,7 +76,7 @@ Examples:
     if status_show:
         err = psu_status_show(psu_index)
         if err:
-            print "Error: fail to get psu status from state DB"
+            print("Error: fail to get psu status from state DB")
             sys.exit(1)
 
 if __name__ == "__main__":

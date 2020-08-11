@@ -52,7 +52,7 @@ def print_partitions(blkdev):
         index = m.group(3)
         if name != blkdev or not index:
             continue
-        print index, label
+        print(index, label)
 
 ## Get the current boot partition index
 def get_boot_partition(blkdev):
@@ -117,7 +117,7 @@ def main():
     if cur is None:
         logger.error('Failed to get boot partition')
         return -1
-    print 'Current rootfs partition is: {0}'.format(cur)
+    print('Current rootfs partition is: {0}'.format(cur))
 
     ## Handle the command line
     if args.index is None:

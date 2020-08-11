@@ -238,9 +238,9 @@ class NatConfig(object):
         for napt in self.static_napt_data:
             output.append([napt[0], napt[1], napt[2], napt[3], napt[4], napt[5], napt[6]])
 
-        print ""
-        print tabulate(output, HEADER)
-        print ""
+        print()
+        print(tabulate(output, HEADER))
+        print()
 
     def display_pool(self):
         """
@@ -253,9 +253,9 @@ class NatConfig(object):
         for nat in self.nat_pool_data:
             output.append([nat[0], nat[1], nat[2]])
 
-        print ""
-        print tabulate(output, HEADER)
-        print ""
+        print()
+        print(tabulate(output, HEADER))
+        print()
 
     def display_binding(self):
         """
@@ -268,9 +268,9 @@ class NatConfig(object):
         for nat in self.nat_binding_data:
             output.append([nat[0], nat[1], nat[2], nat[3], nat[4]])
 
-        print ""
-        print tabulate(output, HEADER)
-        print ""
+        print()
+        print(tabulate(output, HEADER))
+        print()
 
     def display_global(self):
         """
@@ -280,31 +280,31 @@ class NatConfig(object):
 
         global_data = self.config_db.get_entry('NAT_GLOBAL', 'Values')
         if global_data:
-           print ""
+           print()
            if 'admin_mode' in global_data:
-               print "Admin Mode     :", global_data['admin_mode']
+               print("Admin Mode     :", global_data['admin_mode'])
            else:
-               print "Admin Mode     : disabled"
+               print("Admin Mode     : disabled")
            if 'nat_timeout' in global_data:
-               print "Global Timeout :", global_data['nat_timeout'], "secs"
+               print("Global Timeout :", global_data['nat_timeout'], "secs")
            else:
-               print "Global Timeout : 600 secs"
+               print("Global Timeout : 600 secs")
            if 'nat_tcp_timeout' in global_data:
-               print "TCP Timeout    :", global_data['nat_tcp_timeout'], "secs"
+               print("TCP Timeout    :", global_data['nat_tcp_timeout'], "secs")
            else:
-               print "TCP Timeout    : 86400 secs"
+               print("TCP Timeout    : 86400 secs")
            if 'nat_udp_timeout' in global_data:
-               print "UDP Timeout    :", global_data['nat_udp_timeout'], "secs"
+               print("UDP Timeout    :", global_data['nat_udp_timeout'], "secs")
            else:
-               print "UDP Timeout    : 300 secs"
-           print ""
+               print("UDP Timeout    : 300 secs")
+           print()
         else:
-           print ""
-           print "Admin Mode     : disabled"
-           print "Global Timeout : 600 secs"
-           print "TCP Timeout    : 86400 secs"
-           print "UDP Timeout    : 300 secs"
-           print ""
+           print()
+           print("Admin Mode     : disabled")
+           print("Global Timeout : 600 secs")
+           print("TCP Timeout    : 86400 secs")
+           print("UDP Timeout    : 300 secs")
+           print()
            return
 
     def display_nat_zone(self):
@@ -318,9 +318,9 @@ class NatConfig(object):
         for nat in self.nat_zone_data:
             output.append([nat[0], nat[1]])
 
-        print ""
-        print tabulate(output, HEADER)
-        print ""
+        print()
+        print(tabulate(output, HEADER))
+        print()
 
 def main():
     parser = argparse.ArgumentParser(description='Display the nat configuration information',
@@ -366,7 +366,7 @@ def main():
             nat.fetch_nat_zone()
             nat.display_nat_zone()
     except Exception as e:
-        print e.message
+        print(e.message)
         sys.exit(1)
 
 if __name__ == "__main__":

@@ -167,9 +167,9 @@ class Portstat(object):
                               data.tx_drop, data.tx_ovr))
 
         if use_json:
-            print table_as_json(table, header)
+            print(table_as_json(table, header))
         else:
-            print tabulate(table, header, tablefmt='simple', stralign='right')
+            print(tabulate(table, header, tablefmt='simple', stralign='right'))
 
     def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, intf_list, use_json, print_all, errors_only, rates_only):
         """
@@ -277,9 +277,9 @@ class Portstat(object):
                                   cntr.tx_ovr))
 
         if use_json:
-            print table_as_json(table, header)
+            print(table_as_json(table, header))
         else:
-            print tabulate(table, header, tablefmt='simple', stralign='right')
+            print(tabulate(table, header, tablefmt='simple', stralign='right'))
 
 
 def main():
@@ -341,7 +341,7 @@ Examples:
             os.rmdir(cnstat_dir)
             sys.exit(0)
         except IOError as e:
-            print e.errno, e
+            print(e.errno, e)
             sys.exit(e)
 
     if delete_saved_stats:
@@ -349,7 +349,7 @@ Examples:
             os.remove(cnstat_fqn_file)
         except IOError as e:
             if e.errno != ENOENT:
-                print e.errno, e
+                print(e.errno, e)
                 sys.exit(1)
         finally:
             if os.listdir(cnstat_dir) == []:
@@ -372,7 +372,7 @@ Examples:
         try:
             os.makedirs(cnstat_dir)
         except IOError as e:
-            print e.errno, e
+            print(e.errno, e)
             sys.exit(1)
 
 
@@ -382,7 +382,7 @@ Examples:
         except IOError as e:
             sys.exit(e.errno)
         else:
-            print "Cleared counters"
+            print("Cleared counters")
             sys.exit(0)
 
     if wait_time_in_seconds == 0:
@@ -390,20 +390,20 @@ Examples:
         if os.path.isfile(cnstat_fqn_file):
             try:
                 cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'r'))
-                print "Last cached time was " + str(cnstat_cached_dict.get('time'))
+                print("Last cached time was " + str(cnstat_cached_dict.get('time')))
                 portstat.cnstat_diff_print(cnstat_dict, cnstat_cached_dict, intf_list, use_json, print_all, errors_only, rates_only)
             except IOError as e:
-                print e.errno, e
+                print(e.errno, e)
         else:
             if tag_name:
-                print "\nFile '%s' does not exist" % cnstat_fqn_file
-                print "Did you run 'portstat -c -t %s' to record the counters via tag %s?\n" % (tag_name, tag_name)
+                print("\nFile '%s' does not exist" % cnstat_fqn_file)
+                print("Did you run 'portstat -c -t %s' to record the counters via tag %s?\n" % (tag_name, tag_name))
             else:
                 portstat.cnstat_print(cnstat_dict, intf_list, use_json, print_all, errors_only, rates_only)
     else:
         #wait for the specified time and then gather the new stats and output the difference.
         time.sleep(wait_time_in_seconds)
-        print "The rates are calculated within %s seconds period" % wait_time_in_seconds
+        print("The rates are calculated within %s seconds period" % wait_time_in_seconds)
         cnstat_new_dict = portstat.get_cnstat()
         portstat.cnstat_diff_print(cnstat_new_dict, cnstat_dict, intf_list, use_json, print_all, errors_only, rates_only)
 

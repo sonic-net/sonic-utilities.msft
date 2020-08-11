@@ -94,7 +94,7 @@ class NbrBase(object):
                     vlan_id = port_util.get_vlan_id_from_bvid(self.db, fdb["bvid"])
                 except Exception:
                     vlan_id = fdb["bvid"]
-                    print "Failed to get Vlan id for bvid {}\n".format(fdb["bvid"])
+                    print("Failed to get Vlan id for bvid {}\n".format(fdb["bvid"]))
             self.bridge_mac_list.append((int(vlan_id),) + (fdb["mac"],) + (if_name,))
 
         return
@@ -141,11 +141,11 @@ class NbrBase(object):
 
         self.nbrdata = natsorted(output, key=lambda x: x[0])
 
-        print tabulate(self.nbrdata, self.HEADER)
-        print "Total number of entries {0} ".format(self.NBR_COUNT)
+        print(tabulate(self.nbrdata, self.HEADER))
+        print("Total number of entries {0} ".format(self.NBR_COUNT))
 
     def display_err(self):
-        print "Error fetching Neighbors: {} ".format(self.err)
+        print("Error fetching Neighbors: {} ".format(self.err))
 
 
 class ArpShow(NbrBase):
@@ -258,7 +258,7 @@ def main():
             arp.display()
 
     except Exception as e:
-        print e.message
+        print(e.message)
         sys.exit(1)
 
 

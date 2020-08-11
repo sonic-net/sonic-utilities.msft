@@ -105,9 +105,9 @@ class Pfcstat(object):
                         data.pfc6, data.pfc7))
 
         if rx:
-            print tabulate(table, header_Rx, tablefmt='simple', stralign='right')
+            print(tabulate(table, header_Rx, tablefmt='simple', stralign='right'))
         else:
-            print tabulate(table, header_Tx, tablefmt='simple', stralign='right')
+            print(tabulate(table, header_Tx, tablefmt='simple', stralign='right'))
 
     def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, rx):
         """
@@ -150,9 +150,9 @@ class Pfcstat(object):
                             cntr.pfc6, cntr.pfc7))
 
         if rx:
-            print tabulate(table, header_Rx, tablefmt='simple', stralign='right')
+            print(tabulate(table, header_Rx, tablefmt='simple', stralign='right'))
         else:
-            print tabulate(table, header_Tx, tablefmt='simple', stralign='right')
+            print(tabulate(table, header_Tx, tablefmt='simple', stralign='right'))
 
 def main():
     parser  = argparse.ArgumentParser(description='Display the pfc counters',
@@ -189,7 +189,7 @@ Examples:
             os.rmdir(cnstat_dir)
             sys.exit(0)
         except IOError as e:
-            print e.errno, e
+            print(e.errno, e)
             sys.exit(e)
 
     """
@@ -207,7 +207,7 @@ Examples:
         try:
             os.makedirs(cnstat_dir)
         except IOError as e:
-            print e.errno, e
+            print(e.errno, e)
             sys.exit(1)
 
     if save_fresh_stats:
@@ -215,10 +215,10 @@ Examples:
             pickle.dump(cnstat_dict_rx, open(cnstat_fqn_file_rx, 'w'))
             pickle.dump(cnstat_dict_tx, open(cnstat_fqn_file_tx, 'w'))
         except IOError as e:
-            print e.errno, e
+            print(e.errno, e)
             sys.exit(e.errno)
         else:
-            print "Clear saved counters"
+            print("Clear saved counters")
             sys.exit(0)
 
 
@@ -228,24 +228,25 @@ Examples:
     if os.path.isfile(cnstat_fqn_file_rx):
         try:
             cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_rx, 'r'))
-            print "Last cached time was " + str(cnstat_cached_dict.get('time'))
+            print("Last cached time was " + str(cnstat_cached_dict.get('time')))
             pfcstat.cnstat_diff_print(cnstat_dict_rx, cnstat_cached_dict, True)
         except IOError as e:
-            print e.errno, e
+            print(e.errno, e)
     else:
         pfcstat.cnstat_print(cnstat_dict_rx, True)
 
-    print
+    print()
+
     """
         Print the counters of pfc tx counter
     """
     if os.path.isfile(cnstat_fqn_file_tx):
         try:
             cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_tx, 'r'))
-            print "Last cached time was " + str(cnstat_cached_dict.get('time'))
+            print("Last cached time was " + str(cnstat_cached_dict.get('time')))
             pfcstat.cnstat_diff_print(cnstat_dict_tx, cnstat_cached_dict, False)
         except IOError as e:
-            print e.errno, e
+            print(e.errno, e)
     else:
         pfcstat.cnstat_print(cnstat_dict_tx, False)
 

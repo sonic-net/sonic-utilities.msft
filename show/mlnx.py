@@ -95,7 +95,7 @@ def is_issu_status_enabled():
     try:
         sai_xml_path = sai_profile_kvs['SAI_INIT_CONFIG_FILE']
     except KeyError:
-        print >> sys.stderr, "Failed to get SAI XML from sai profile"
+        click.echo("Failed to get SAI XML from sai profile", err=True)
         sys.exit(1)
 
     # Get ISSU from SAI XML
@@ -105,7 +105,7 @@ def is_issu_status_enabled():
     try:
         root = ET.fromstring(sai_xml_content)
     except ET.ParseError:
-        print >> sys.stderr, "Failed to parse SAI xml"
+        click.echo("Failed to parse SAI xml", err=True)
         sys.exit(1)
 
     el = root.find('platform_info').find('issu-enabled')
@@ -124,9 +124,9 @@ def sniffer_status():
     for index in range(len(components)):
         enabled = sniffer_status_get(env_variable_strings[index])
         if enabled is True:
-            print components[index] + " sniffer is enabled"
+            click.echo(components[index] + " sniffer is enabled")
         else:
-            print components[index] + " sniffer is disabled"
+            click.echo(components[index] + " sniffer is disabled")
 
 
 @mlnx.command('issu')
@@ -135,5 +135,5 @@ def issu_status():
 
     res = is_issu_status_enabled()
 
-    print 'ISSU is enabled' if res else 'ISSU is disabled'
+    click.echo('ISSU is enabled' if res else 'ISSU is disabled')
 

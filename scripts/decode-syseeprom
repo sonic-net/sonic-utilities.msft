@@ -92,7 +92,7 @@ def run(target, opts, args, support_eeprom_db):
             return 0
 
     status = target.check_status()
-    if status <> 'ok':
+    if status != 'ok':
         sys.stderr.write("Device is not ready: " + status + "\n")
         exit(0)
 
@@ -126,30 +126,30 @@ def run(target, opts, args, support_eeprom_db):
     if opts.init:
         err = target.update_eeprom_db(e)
         if err:
-            print "Failed to update eeprom database"
+            print("Failed to update eeprom database")
             return -1
     elif opts.mgmtmac:
         mm = target.mgmtaddrstr(e)
         if mm != None:
-            print mm
+            print(mm)
     elif opts.serial:
         try:
             serial = target.serial_number_str(e)
         except NotImplementedError as e:
-            print e
+            print(e)
         else:
-            print serial or "Undefined."
+            print(serial or "Undefined.")
     elif opts.modelstr:
         mm = target.modelstr(e)
         if mm != None:
-            print mm
+            print(mm)
     else:
         target.decode_eeprom(e)
         (is_valid, valid_crc) = target.is_checksum_valid(e)
         if is_valid:
-            print '(checksum valid)'
+            print('(checksum valid)')
         else:
-            print '(*** checksum invalid)'
+            print('(*** checksum invalid)')
             # + ', should be 0x' + binascii.b2a_hex(array('I', [valid_crc])).upper() + ')'
     return 0
 
@@ -172,6 +172,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         sys.stderr.write("\nInterrupted\n")
         exit(1)
-    except (RuntimeError, OSError, IOError), errstr:
+    except (RuntimeError, OSError, IOError) as errstr:
         sys.stderr.write("%s : ERROR : %s\n" % (sys.argv[0], str(errstr)))
         exit(1)

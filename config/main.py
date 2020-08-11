@@ -818,7 +818,7 @@ def config(ctx):
     try:
         version_info = device_info.get_sonic_version_info()
         asic_type = version_info['asic_type']
-    except KeyError, TypeError:
+    except (KeyError, TypeError):
         raise click.Abort()
 
     if asic_type == 'mellanox':

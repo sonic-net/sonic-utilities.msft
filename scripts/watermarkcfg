@@ -28,9 +28,9 @@ class Watermarkcfg(object):
 
         wm_info = configdb.get_entry('WATERMARK_TABLE', 'TELEMETRY_INTERVAL')
         if wm_info:
-            print '\nTelemetry interval: ' + wm_info['interval'] + ' second(s)\n'
+            print('\nTelemetry interval: ' + wm_info['interval'] + ' second(s)\n')
         else:
-            print '\nTelemetry interval 120 second(s)\n'
+            print('\nTelemetry interval 120 second(s)\n')
 
 
 def main():

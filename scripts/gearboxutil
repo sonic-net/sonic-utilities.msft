@@ -123,7 +123,7 @@ class PhyStatus(object):
 
         # Sorting and tabulating the result table.
         sorted_table = natsorted(table)
-        print tabulate(sorted_table, phy_header_status, tablefmt="simple", stralign='right')
+        print(tabulate(sorted_table, phy_header_status, tablefmt="simple", stralign='right'))
 
     def __init__(self):
         self.appl_db = db_connect_appl()
@@ -180,7 +180,7 @@ class InterfaceStatus(object):
 
         # Sorting and tabulating the result table.
         sorted_table = natsorted(table)
-        print tabulate(sorted_table, intf_header_status, tablefmt="simple", stralign='right')
+        print(tabulate(sorted_table, intf_header_status, tablefmt="simple", stralign='right'))
 
     def __init__(self):
         self.appl_db = db_connect_appl()
@@ -201,17 +201,17 @@ def main(args):
     """
 
     if len(args) == 0:
-        print "No valid arguments provided"
+        print("No valid arguments provided")
         return
 
     cmd1 = args[0]
     if cmd1 != "phys" and cmd1 != "interfaces":
-        print "No valid command provided"
+        print("No valid command provided")
         return
 
     cmd2 = args[1]
     if cmd2 != "status" and cmd2 != "counters":
-        print "No valid command provided"
+        print("No valid command provided")
         return
 
     if cmd1 == "phys" and cmd2 == "status":

@@ -94,7 +94,7 @@ def get_map_bridge_port_id_2_iface_name(db):
         if port_id in port_id_2_iface:
             bridge_port_id_2_iface_name[bridge_port_id] = port_id_2_iface[port_id]
         else:
-            print "Not found"
+            print("Not found")
 
     return bridge_port_id_2_iface_name
 
@@ -268,7 +268,7 @@ def main():
     args = parser.parse_args()
     root_dir = args.target
     if not os.path.isdir(root_dir):
-        print "Target directory '%s' not found" % root_dir
+        print("Target directory '%s' not found" % root_dir)
         return 3
     all_available_macs, map_mac_ip_per_vlan = generate_fdb_entries(root_dir + '/fdb.json')
     arp_entries = generate_arp_entries(root_dir + '/arp.json', all_available_macs)

@@ -20,7 +20,7 @@ def consutil():
     """consutil - Command-line utility for interacting with switches via console device"""
 
     if os.geteuid() != 0:
-        print "Root privileges are required for this operation"
+        click.echo("Root privileges are required for this operation")
         sys.exit(1)
 
 # 'show' subcommand

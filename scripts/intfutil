@@ -409,7 +409,7 @@ class IntfStatus(object):
 
         # Sorting and tabulating the result table.
         sorted_table = natsorted(table)
-        print tabulate(sorted_table, header_stat if not sub_intf_only else header_stat_sub_intf, tablefmt="simple", stralign='right')
+        print(tabulate(sorted_table, header_stat if not sub_intf_only else header_stat_sub_intf, tablefmt="simple", stralign='right'))
 
 
     def __init__(self, intf_name):
@@ -494,7 +494,7 @@ class IntfDescription(object):
 
         # Sorting and tabulating the result table.
         sorted_table = natsorted(table)
-        print tabulate(sorted_table, header_desc, tablefmt="simple", stralign='right')
+        print(tabulate(sorted_table, header_desc, tablefmt="simple", stralign='right'))
 
     def __init__(self, intf_name):
 
@@ -519,12 +519,12 @@ class IntfDescription(object):
 
 def main(args):
     if len(args) == 0:
-        print "No valid arguments provided"
+        print("No valid arguments provided")
         return
 
     command = args[0]
     if command != "status" and command != "description":
-        print "No valid command provided"
+        print("No valid command provided")
         return
 
     intf_name = args[1] if len(args) == 2 else None

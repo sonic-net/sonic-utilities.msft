@@ -57,14 +57,12 @@ def main():
         nat = NatClear()
         if clear_translations:
             nat.send_entries_notification("ENTRIES", "ALL")
-            print ""
-            print("Dynamic NAT entries are cleared.")
+            print("\nDynamic NAT entries are cleared.")
         elif clear_statistics:
             nat.send_statistics_notification("STATISTICS", "ALL")
-            print ""
-            print("NAT statistics are cleared.")
+            print("\nNAT statistics are cleared.")
     except Exception as e:
-        print e.message
+        print(e.message)
         sys.exit(1)
 
 if __name__ == "__main__":

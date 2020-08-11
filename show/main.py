@@ -1298,7 +1298,7 @@ def get_if_admin_state(iface):
     try:
         state_file = open(admin_file.format(iface), "r")
     except IOError as e:
-        print "Error: unable to open file: %s" % str(e)
+        print("Error: unable to open file: %s" % str(e))
         return "error"
 
     content = state_file.readline().rstrip()
@@ -1321,7 +1321,7 @@ def get_if_oper_state(iface):
     try:
         state_file = open(oper_file.format(iface), "r")
     except IOError as e:
-        print "Error: unable to open file: %s" % str(e)
+        print("Error: unable to open file: %s" % str(e))
         return "error"
 
     oper_state = state_file.readline().rstrip()
@@ -1394,7 +1394,7 @@ def interfaces():
             for ifaddr in ifaddresses[1:]:
                 data.append(["", "", ifaddr[1], ""])
 
-    print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
+    print(tabulate(data, header, tablefmt="simple", stralign='left', missingval=""))
 
 # get bgp peering info
 def get_bgp_peer():
@@ -1536,7 +1536,7 @@ def interfaces():
                     data.append(["", "", ifaddr[1], admin + "/" + oper, neighbor_info[0][0], neighbor_info[0][1]])
                     neighbor_info.pop(0)
 
-    print tabulate(data, header, tablefmt="simple", stralign='left', missingval="")
+    print(tabulate(data, header, tablefmt="simple", stralign='left', missingval=""))
 
 
 #
@@ -1955,7 +1955,7 @@ def ntp(verbose):
             ntp_server = line.split(" ")[1]
             ntp_servers.append(ntp_server)
     ntp_dict['NTP Servers'] = ntp_servers
-    print tabulate(ntp_dict, headers=ntp_dict.keys(), tablefmt="simple", stralign='left', missingval="")
+    print(tabulate(ntp_dict, headers=ntp_dict.keys(), tablefmt="simple", stralign='left', missingval=""))
 
 
 # 'syslog' subcommand ("show runningconfiguration syslog")
@@ -1973,7 +1973,7 @@ def syslog(verbose):
             server = line[0][5:]
             syslog_servers.append(server)
     syslog_dict['Syslog Servers'] = syslog_servers
-    print tabulate(syslog_dict, headers=syslog_dict.keys(), tablefmt="simple", stralign='left', missingval="")
+    print(tabulate(syslog_dict, headers=syslog_dict.keys(), tablefmt="simple", stralign='left', missingval=""))
 
 
 #
@@ -2147,7 +2147,7 @@ def services():
                 print("---------------------------")
                 cmd = "sudo docker exec {} ps aux | sed '$d'".format(line.rstrip())
                 proc1 = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                print proc1.stdout.read()
+                print(proc1.stdout.read())
         else:
                 break
 
@@ -2940,7 +2940,7 @@ def neighbors():
                     r = ["", ip, mac, intf]
                     table.append(r)
         click.echo(tabulate(table, header))
-        click.echo("\n")
+        click.echo()
 
     if not bool(vnet_intfs):
         click.echo(tabulate(table, header))
@@ -2973,7 +2973,7 @@ def all():
 
     click.echo(tabulate(table, header))
 
-    click.echo("\n")
+    click.echo()
 
     header = ['vnet name', 'prefix', 'endpoint', 'mac address', 'vni']
 

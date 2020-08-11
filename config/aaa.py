@@ -70,7 +70,7 @@ authentication.add_command(fallback)
 def login(auth_protocol):
     """Switch login authentication [ {tacacs+, local} | default ]"""
     if len(auth_protocol) is 0:
-        print 'Not support empty argument'
+        click.echo('Argument "auth_protocol" is required')
         return
 
     if 'default' in auth_protocol:
@@ -107,7 +107,7 @@ def timeout(ctx, second):
     elif second:
         add_table_kv('TACPLUS', 'global', 'timeout', second)
     else:
-        click.echo('Not support empty argument')
+        click.echo('Argument "second" is required')
 tacacs.add_command(timeout)
 default.add_command(timeout)
 
@@ -122,7 +122,7 @@ def authtype(ctx, type):
     elif type:
         add_table_kv('TACPLUS', 'global', 'auth_type', type)
     else:
-        click.echo('Not support empty argument')
+        click.echo('Argument "type" is required')
 tacacs.add_command(authtype)
 default.add_command(authtype)
 
@@ -137,7 +137,7 @@ def passkey(ctx, secret):
     elif secret:
         add_table_kv('TACPLUS', 'global', 'passkey', secret)
     else:
-        click.echo('Not support empty argument')
+        click.echo('Argument "secret" is required')
 tacacs.add_command(passkey)
 default.add_command(passkey)
 

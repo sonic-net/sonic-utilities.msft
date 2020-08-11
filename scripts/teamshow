@@ -81,7 +81,7 @@ class Teamshow(object):
             p = subprocess.Popen(teamdctl_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
             (output, err) = p.communicate()
             rc = p.wait()
-	    if rc == 0:
+            if rc == 0:
                 self.teamsraw[self.get_team_id(team)] = output
             else:
                 self.err = err
@@ -138,7 +138,7 @@ class Teamshow(object):
         output = []
         for team_id in natsorted(self.summary):
             output.append([team_id, 'PortChannel'+team_id, self.summary[team_id]['protocol'], self.summary[team_id]['ports']])
-        print tabulate(output, header)
+        print(tabulate(output, header))
 
 def main():
     if os.geteuid() != 0:

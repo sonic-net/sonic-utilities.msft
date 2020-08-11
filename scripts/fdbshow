@@ -87,7 +87,7 @@ class FdbShow(object):
                     vlan_id = port_util.get_vlan_id_from_bvid(self.db, fdb["bvid"])
                 except Exception:
                     vlan_id = fdb["bvid"]
-                    print "Failed to get Vlan id for bvid {}\n".format(fdb["bvid"])
+                    print("Failed to get Vlan id for bvid {}\n".format(fdb["bvid"]))
             self.bridge_mac_list.append((int(vlan_id),) + (fdb["mac"],) + (if_name,) + (fdb_type,))
 
         self.bridge_mac_list.sort(key = lambda x: x[0])
@@ -129,8 +129,8 @@ class FdbShow(object):
             self.FDB_COUNT += 1
             output.append([self.FDB_COUNT, fdb[0], fdb[1], fdb[2], fdb[3]])
 
-        print tabulate(output, self.HEADER)
-        print "Total number of entries {0} ".format(self.FDB_COUNT)
+        print(tabulate(output, self.HEADER))
+        print("Total number of entries {0}".format(self.FDB_COUNT))
 
 
 def main():
@@ -145,7 +145,7 @@ def main():
         fdb = FdbShow()
         fdb.display(args.vlan, args.port)
     except Exception as e:
-        print e.message
+        print(e.message)
         sys.exit(1)
 
 if __name__ == "__main__":

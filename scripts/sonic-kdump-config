@@ -410,14 +410,14 @@ def cmd_kdump_num_dumps(verbose, num_dumps):
 
 ## Command: Display kdump status
 def cmd_kdump_status():
-    print 'Kdump Administrative Mode: ',
+    print('Kdump Administrative Mode: ', end='')
     kdump_enabled = get_kdump_administrative_mode()
     if kdump_enabled:
         print('Enabled')
     else:
         print('Disabled')
 
-    print 'Kdump Operational State:   ',
+    print('Kdump Operational State:   ', end='')
     (rc, lines, err_str) = run_command("/usr/sbin/kdump-config status", use_shell=False);
     if len(lines) >= 1 and ": ready to kdump" in lines[0]:
         use_kdump_in_cfg = read_use_kdump()

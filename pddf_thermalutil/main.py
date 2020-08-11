@@ -135,19 +135,19 @@ def gettemp(index):
 
             except NotImplementedError:
                pass
-	else:
-        	label, value = platform_thermalutil.show_thermal_temp_values(thermal)
+        else:
+            label, value = platform_thermalutil.show_thermal_temp_values(thermal)
 
-	if label is None:
-        	status_table.append([thermal_name, value])
-	else:
-        	status_table.append([thermal_name, label, value])
+        if label is None:
+            status_table.append([thermal_name, value])
+        else:
+            status_table.append([thermal_name, label, value])
 
     if status_table:
-	if label is None:
-		header = ['Temp Sensor', 'Value']
-	else:
-    		header = ['Temp Sensor', 'Label', 'Value']
+        if label is None:
+            header = ['Temp Sensor', 'Value']
+        else:
+            header = ['Temp Sensor', 'Label', 'Value']
         click.echo(tabulate(status_table, header, tablefmt="simple"))
 
 @cli.group()
@@ -159,11 +159,11 @@ def debug():
 def dump_sysfs():
     """Dump all Temp Sensor related SysFS paths"""
     if platform_chassis is not None:
-    	supported_thermal = range(1,  _wrapper_get_num_thermals()+ 1)
-    	for index in supported_thermal:
-    	    status = platform_chassis.get_thermal(index-1).dump_sysfs()
+        supported_thermal = range(1,  _wrapper_get_num_thermals()+ 1)
+        for index in supported_thermal:
+            status = platform_chassis.get_thermal(index-1).dump_sysfs()
     else:
-    	status = platform_thermalutil.dump_sysfs()
+        status = platform_thermalutil.dump_sysfs()
 
     if status:
         for i in status:

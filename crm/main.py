@@ -29,9 +29,9 @@ class Crm:
         crm_info = configdb.get_entry('CRM', 'Config')
 
         if crm_info:
-            print '\nPolling Interval: ' + crm_info['polling_interval'] + ' second(s)\n'
+            click.echo('\nPolling Interval: ' + crm_info['polling_interval'] + ' second(s)\n')
         else:
-            print '\nError! Could not get CRM configuration.\n'
+            click.echo('\nError! Could not get CRM configuration.\n')
 
     def show_thresholds(self, resource):
         """
@@ -54,11 +54,11 @@ class Crm:
             else:
                 data.append([resource, crm_info[resource + "_threshold_type"], crm_info[resource + "_low_threshold"], crm_info[resource + "_high_threshold"]])
         else:
-            print '\nError! Could not get CRM configuration.'
+            click.echo('\nError! Could not get CRM configuration.')
 
-        print '\n'
-        print tabulate(data, headers=header, tablefmt="simple", missingval="")
-        print '\n'
+        click.echo()
+        click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
+        click.echo()
 
     def show_resources(self, resource):
         """
@@ -80,11 +80,11 @@ class Crm:
             else:
                 data.append([resource, crm_stats['crm_stats_' + resource + "_used"], crm_stats['crm_stats_' + resource + "_available"]])
         else:
-            print '\nCRM counters are not ready. They would be populated after the polling interval.'
+            click.echo('\nCRM counters are not ready. They would be populated after the polling interval.')
 
-        print '\n'
-        print tabulate(data, headers=header, tablefmt="simple", missingval="")
-        print '\n'
+        click.echo()
+        click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
+        click.echo()
 
     def show_acl_resources(self):
         """
@@ -108,9 +108,9 @@ class Crm:
                                         crm_stats['crm_stats_' + res + "_available"]
                                     ])
 
-        print '\n'
-        print tabulate(data, headers=header, tablefmt="simple", missingval="")
-        print '\n'
+        click.echo()
+        click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
+        click.echo()
 
     def show_acl_table_resources(self):
         """
@@ -136,9 +136,9 @@ class Crm:
                     if ('crm_stats_' + res + '_used' in crm_stats) and ('crm_stats_' + res + '_available' in crm_stats):
                         data.append([id, res, crm_stats['crm_stats_' + res + '_used'], crm_stats['crm_stats_' + res + '_available']])
 
-            print '\n'
-            print tabulate(data, headers=header, tablefmt="simple", missingval="")
-            print '\n'
+            click.echo()
+            click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
+            click.echo()
 
 
 @click.group()

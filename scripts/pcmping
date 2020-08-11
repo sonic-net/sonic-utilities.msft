@@ -48,7 +48,7 @@ def find_probe_packet(interface, dst_out, dst_in, sockets, exp_socket, max_iter)
     src_out = dst_in
     decap_valid = False
     for x in range(0, max_iter):
-        print "---------- Attempting to create probe packet that goes through %s, iteration: %d ---------" % (interface, x)
+        print("---------- Attempting to create probe packet that goes through %s, iteration: %d ---------" % (interface, x))
         ip_src = socket.inet_ntoa(struct.pack('>I', random.randint(1, 0xffffffff)))
         ip_src =ipaddress.IPv4Address(unicode(ip_src,'utf-8'))
         while ip_src == ipaddress.IPv4Address(unicode(dst_in,'utf-8')) or \
@@ -70,10 +70,10 @@ def find_probe_packet(interface, dst_out, dst_in, sockets, exp_socket, max_iter)
             decap_valid = True
 
     if decap_valid:
-       print ("Decap works properly. link %s is unreachable, Please check!\n" % interface)
+       print("Decap works properly. link %s is unreachable, Please check!\n" % interface)
        sys.exit(0)
     else:
-       print ("Decap using %s doesn't work properly, Please Check!\n" % (dst_out))
+       print("Decap using %s doesn't work properly, Please Check!\n" % (dst_out))
        sys.exit(0)
 
 def get_portchannel(interface):
@@ -126,8 +126,8 @@ def create_socket(interface, portchannel):
     return sockets, exp_socket
 
 def print_statistics(interface, total_count, recv_count):
-    print "\n--- %s ping statistics ---" % interface
-    print ("%d packets transmitted, %d received, %0.2f%% packet loss" % (total_count, recv_count, (total_count-recv_count)*1.0/total_count*100))
+    print("\n--- %s ping statistics ---" % interface)
+    print("%d packets transmitted, %d received, %0.2f%% packet loss" % (total_count, recv_count, (total_count-recv_count)*1.0/total_count*100))
 
 def main():
     parser = argparse.ArgumentParser(description='Check portchannel member link state',
@@ -156,8 +156,8 @@ def main():
     portchannel_ip = get_portchannel_ipv4(portchannel_name)
     sockets, exp_socket = create_socket(interface, portchannel)
     pkt, exp_pkt = find_probe_packet(interface, decap_ip, portchannel_ip, sockets, exp_socket, max_trial)
-    print "Preparation done! Start probing ............"
-    print "PORTCHANNEL Member PING %d btyes of data. PORTCHANNEL: %s, INTERFACE: %s" % (PROBE_PACKET_LEN, portchannel_name, interface)
+    print("Preparation done! Start probing ............")
+    print("PORTCHANNEL Member PING %d btyes of data. PORTCHANNEL: %s, INTERFACE: %s" % (PROBE_PACKET_LEN, portchannel_name, interface))
     recv_count = 0
     total_count = 0
     try:
@@ -167,10 +167,10 @@ def main():
             have_received, delay, recv_socket = receive(sockets, SELECT_TIMEOUT, exp_pkt, time_sent)
             total_count = total_count + 1
             if have_received:
-                print "%d bytes from %s: time=%0.4fms" % (PROBE_PACKET_LEN, interface, delay)
+                print("%d bytes from %s: time=%0.4fms" % (PROBE_PACKET_LEN, interface, delay))
                 recv_count = recv_count + 1
             else:
-                print "packet not received!"
+                print("packet not received!")
             if total_count == exp_count:
                 break;
             time.sleep(1)

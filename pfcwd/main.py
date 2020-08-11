@@ -3,7 +3,6 @@
 import click
 import swsssdk
 import os
-import sys
 from tabulate import tabulate
 from natsort import natsorted
 
@@ -171,7 +170,7 @@ def start(action, restoration_time, ports, detection_time):
         pfcwd_info['restoration_time'] = restoration_time
     else:
         pfcwd_info['restoration_time'] = 2 * detection_time
-        print "restoration time not defined; default to 2 times detection time: %d ms" % (2 * detection_time)
+        click.echo("restoration time not defined; default to 2 times detection time: %d ms" % (2 * detection_time))
 
     for port in ports:
         if port == "all":
@@ -209,7 +208,7 @@ def interval(poll_interval):
                 entry_min = restoration_time_entry_value
                 entry_min_str = "restoration time"
         if entry_min < poll_interval:
-            print >> sys.stderr, "unable to use polling interval = {}ms, value is bigger than one of the configured {} values, please choose a smaller polling_interval".format(poll_interval,entry_min_str)
+            click.echo("unable to use polling interval = {}ms, value is bigger than one of the configured {} values, please choose a smaller polling_interval".format(poll_interval,entry_min_str), err=True)
             exit(1)
         
         pfcwd_info['POLL_INTERVAL'] = poll_interval

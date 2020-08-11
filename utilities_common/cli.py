@@ -259,7 +259,7 @@ def is_port_router_interface(config_db, port):
         if port == intf[0]:
             return True
 
-	return False
+    return False
 
 def is_pc_router_interface(config_db, pc):
     """Check if portchannel is a router interface"""

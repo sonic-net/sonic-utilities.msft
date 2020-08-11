@@ -56,7 +56,7 @@ def is_number(s):
 # ==================== Entry point ====================
 def ssdutil():
     if os.geteuid() != 0:
-        print "Root privileges are required for this operation"
+        print("Root privileges are required for this operation")
         sys.exit(1)
 
     parser = argparse.ArgumentParser()
@@ -67,14 +67,14 @@ def ssdutil():
 
     ssd = import_ssd_api(args.device)
 
-    print "Device Model : {}".format(ssd.get_model())
+    print("Device Model : {}".format(ssd.get_model()))
     if args.verbose:
-        print "Firmware     : {}".format(ssd.get_firmware())
-        print "Serial       : {}".format(ssd.get_serial())
-    print "Health       : {}{}".format(ssd.get_health(),      "%" if is_number(ssd.get_health()) else "")
-    print "Temperature  : {}{}".format(ssd.get_temperature(), "C" if is_number(ssd.get_temperature()) else "")
+        print("Firmware     : {}".format(ssd.get_firmware()))
+        print("Serial       : {}".format(ssd.get_serial()))
+    print("Health       : {}{}".format(ssd.get_health(),      "%" if is_number(ssd.get_health()) else ""))
+    print("Temperature  : {}{}".format(ssd.get_temperature(), "C" if is_number(ssd.get_temperature()) else ""))
     if args.vendor:
-        print ssd.get_vendor_output()
+        print(ssd.get_vendor_output())
 
 if __name__ == '__main__':
     ssdutil()
