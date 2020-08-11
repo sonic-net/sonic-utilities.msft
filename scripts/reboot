@@ -80,8 +80,8 @@ function reboot_pre_check()
     fi
     rm ${filename}
 
-    # Verify the next image by sonic_installer
-    local message=$(sonic_installer verify-next-image 2>&1)
+    # Verify the next image by sonic-installer
+    local message=$(sonic-installer verify-next-image 2>&1)
     if [ $? -ne 0 ]; then
         VERBOSE=yes debug "Failed to verify next image: ${message}"
         exit ${EXIT_SONIC_INSTALLER_VERIFY_REBOOT}

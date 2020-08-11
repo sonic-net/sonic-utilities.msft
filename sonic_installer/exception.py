@@ -1,5 +1,5 @@
 """
-Module sonic_installer exceptions
+Module sonic-installer exceptions
 """
 
 class SonicRuntimeException(Exception):

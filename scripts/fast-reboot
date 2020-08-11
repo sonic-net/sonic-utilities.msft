@@ -315,9 +315,9 @@ function reboot_pre_check()
         exit ${EXIT_FILE_SYSTEM_FULL}
     fi
 
-    # Verify the next image by sonic_installer
+    # Verify the next image by sonic-installer
     INSTALLER_VERIFY_RC=0
-    sonic_installer verify-next-image > /dev/null || INSTALLER_VERIFY_RC=$?
+    sonic-installer verify-next-image > /dev/null || INSTALLER_VERIFY_RC=$?
     if [[ INSTALLER_VERIFY_RC -ne 0 ]]; then
         error "Failed to verify next image. Exit code: $INSTALLER_VERIFY_RC"
         exit ${EXIT_SONIC_INSTALLER_VERIFY_REBOOT}
