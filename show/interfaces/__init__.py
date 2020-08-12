@@ -5,6 +5,7 @@ from natsort import natsorted
 from tabulate import tabulate
 
 import utilities_common.cli as clicommon
+import portchannel
 
 def try_convert_interfacename_from_alias(ctx, db, interfacename):
     """try to convert interface name from alias"""
@@ -87,14 +88,6 @@ def naming_mode(verbose):
     """Show interface naming_mode status"""
 
     click.echo(clicommon.get_interface_naming_mode())
-
-# 'portchannel' subcommand ("show interfaces portchannel")
-@interfaces.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def portchannel(verbose):
-    """Show PortChannel information"""
-    cmd = "sudo teamshow"
-    clicommon.run_command(cmd, display_cmd=verbose)
 
 @interfaces.command()
 @click.argument('interfacename', required=False)
@@ -261,6 +254,8 @@ def expected(db, interfacename):
 
     click.echo(tabulate(body, header))
 
+interfaces.add_command(portchannel.portchannel)
+
 #
 # transceiver group (show interfaces trasceiver ...)
 #
@@ -389,3 +384,4 @@ def rif(interface, period, verbose):
         cmd += " -i {}".format(interface)
 
     clicommon.run_command(cmd, display_cmd=verbose)
+

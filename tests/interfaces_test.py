@@ -1,4 +1,5 @@
 import os
+import traceback
 
 from click.testing import CliRunner
 
@@ -66,6 +67,30 @@ show_interfaces_neighbor_expected_output_etp29="""\
 LocalPort    Neighbor    NeighborPort    NeighborLoopback    NeighborMgmt    NeighborType
 -----------  ----------  --------------  ------------------  --------------  --------------
 etp29        ARISTA01T1  Ethernet1       None                10.250.0.51     LeafRouter
+"""
+
+show_interfaces_portchannel_output="""\
+Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available,
+       S - selected, D - deselected, * - not synced
+  No.  Team Dev         Protocol     Ports
+-----  ---------------  -----------  --------------
+ 0001  PortChannel0001  LACP(A)(Dw)  Ethernet112(D)
+ 0002  PortChannel0002  LACP(A)(Up)  Ethernet116(S)
+ 0003  PortChannel0003  LACP(A)(Up)  Ethernet120(S)
+ 0004  PortChannel0004  LACP(A)(Up)  N/A
+ 1001  PortChannel1001  N/A
+"""
+
+show_interfaces_portchannel_in_alias_mode_output="""\
+Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available,
+       S - selected, D - deselected, * - not synced
+  No.  Team Dev         Protocol     Ports
+-----  ---------------  -----------  --------
+ 0001  PortChannel0001  LACP(A)(Dw)  etp29(D)
+ 0002  PortChannel0002  LACP(A)(Up)  etp30(S)
+ 0003  PortChannel0003  LACP(A)(Up)  etp31(S)
+ 0004  PortChannel0004  LACP(A)(Up)  N/A
+ 1001  PortChannel1001  N/A
 """
 
 class TestInterfaces(object):
@@ -169,6 +194,26 @@ class TestInterfaces(object):
         # traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
         assert result.output.rstrip() == "No neighbor information available for interface Ethernet0"
+
+    def test_show_interfaces_portchannel(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["portchannel"], [])
+        print(result.exit_code)
+        print(result.output)
+        traceback.print_tb(result.exc_info[2])
+        assert result.exit_code == 0
+        assert result.output == show_interfaces_portchannel_output
+
+    def test_show_interfaces_portchannel_in_alias_mode(self):
+        runner = CliRunner()
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        result = runner.invoke(show.cli.commands["interfaces"].commands["portchannel"], [])
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+        print(result.exit_code)
+        print(result.output)
+        traceback.print_tb(result.exc_info[2])
+        assert result.exit_code == 0
+        assert result.output == show_interfaces_portchannel_in_alias_mode_output
 
     @classmethod
     def teardown_class(cls):

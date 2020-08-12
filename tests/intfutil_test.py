@@ -19,10 +19,10 @@ show_interface_status_output="""\
     Ethernet116      89,90,91,92      40G   9100     rs      etp30  PortChannel0002      up       up              N/A         off
     Ethernet120  101,102,103,104      40G   9100     rs      etp31  PortChannel0003      up       up              N/A         off
     Ethernet124     97,98,99,100      40G   9100     rs      etp32  PortChannel0004      up       up              N/A         off
-PortChannel0001              N/A      40G   9100    N/A        N/A           routed     N/A      N/A              N/A         N/A
-PortChannel0002              N/A      40G   9100    N/A        N/A           routed     N/A      N/A              N/A         N/A
-PortChannel0003              N/A      40G   9100    N/A        N/A           routed     N/A      N/A              N/A         N/A
-PortChannel0004              N/A      40G   9100    N/A        N/A           routed     N/A      N/A              N/A         N/A
+PortChannel0001              N/A      40G   9100    N/A        N/A           routed    down       up              N/A         N/A
+PortChannel0002              N/A      40G   9100    N/A        N/A           routed      up       up              N/A         N/A
+PortChannel0003              N/A      40G   9100    N/A        N/A           routed      up       up              N/A         N/A
+PortChannel0004              N/A      40G   9100    N/A        N/A           routed      up       up              N/A         N/A
 PortChannel1001              N/A      40G   9100    N/A        N/A           routed     N/A      N/A              N/A         N/A
 """
 

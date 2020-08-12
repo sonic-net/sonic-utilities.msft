@@ -109,5 +109,37 @@
         "index": "200",
         "line_speed": "50000",
         "system_speed": "25000"
+    },
+    "LAG_MEMBER_TABLE:PortChannel0001:Ethernet112": {
+        "status": "disabled"
+    },
+    "LAG_MEMBER_TABLE:PortChannel0002:Ethernet116": {
+        "status": "enabled"
+    },
+    "LAG_MEMBER_TABLE:PortChannel0003:Ethernet120": {
+        "status": "enabled"
+    },
+    "LAG_MEMBER_TABLE:PortChannel0004:Ethernet124": {
+        "status": "enabled"
+    },
+    "LAG_TABLE:PortChannel0001": {
+        "admin_status": "up",
+        "mtu": "9100",
+        "oper_status": "down"
+    },
+    "LAG_TABLE:PortChannel0002": {
+        "admin_status": "up",
+        "mtu": "9100",
+        "oper_status": "up"
+    },
+    "LAG_TABLE:PortChannel0003": {
+        "admin_status": "up",
+        "mtu": "9100",
+        "oper_status": "up"
+    },
+    "LAG_TABLE:PortChannel0004": {
+        "admin_status": "up",
+        "mtu": "9100",
+        "oper_status": "up"
     }
 }
