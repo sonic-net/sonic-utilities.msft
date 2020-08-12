@@ -56,22 +56,6 @@ CFG_LOOPBACK_NO="<0-999>"
 asic_type = None
 
 #
-# Load breakout config file for Dynamic Port Breakout
-#
-
-try:
-    (platform, hwsku) = device_info.get_platform_and_hwsku()
-except Exception as e:
-    click.secho("Failed to get platform and hwsku with error:{}".format(str(e)), fg='red')
-    raise click.Abort()
-
-try:
-    breakout_cfg_file = get_port_config_file_name(hwsku, platform)
-except Exception as e:
-    click.secho("Breakout config file not found with error:{}".format(str(e)), fg='red')
-    raise click.Abort()
-
-#
 # Breakout Mode Helper functions
 #
 
@@ -84,10 +68,31 @@ def readJsonFile(fileName):
         raise Exception(str(e))
     return result
 
-def _get_option(ctx,args,incomplete):
+def _get_breakout_cfg_file_name():
+    """
+    Get name of config file for Dynamic Port Breakout
+    """
+    try:
+        (platform, hwsku) = device_info.get_platform_and_hwsku()
+    except Exception as e:
+        click.secho("Failed to get platform and hwsku with error:{}".format(str(e)), fg='red')
+        raise click.Abort()
+
+    try:
+        breakout_cfg_file_name = get_port_config_file_name(hwsku, platform)
+    except Exception as e:
+        click.secho("Breakout config file not found with error:{}".format(str(e)), fg='red')
+        raise click.Abort()
+
+    return breakout_cfg_file_name
+
+
+def _get_breakout_options(ctx, args, incomplete):
     """ Provides dynamic mode option as per user argument i.e. interface name """
     all_mode_options = []
     interface_name = args[-1]
+
+    breakout_cfg_file = _get_breakout_cfg_file_name()
 
     if not os.path.isfile(breakout_cfg_file) or not breakout_cfg_file.endswith('.json'):
         return []
@@ -2140,14 +2145,16 @@ def speed(ctx, interface_name, interface_speed, verbose):
 
 @interface.command()
 @click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.argument('mode', required=True, type=click.STRING, autocompletion=_get_option)
-@click.option('-f', '--force-remove-dependencies', is_flag=True,  help='Clear all depenedecies internally first.')
+@click.argument('mode', required=True, type=click.STRING, autocompletion=_get_breakout_options)
+@click.option('-f', '--force-remove-dependencies', is_flag=True,  help='Clear all dependencies internally first.')
 @click.option('-l', '--load-predefined-config', is_flag=True,  help='load predefied user configuration (alias, lanes, speed etc) first.')
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false, expose_value=False, prompt='Do you want to Breakout the port, continue?')
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 @click.pass_context
 def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load_predefined_config):
     """ Set interface breakout mode """
+    breakout_cfg_file = _get_breakout_cfg_file_name()
+
     if not os.path.isfile(breakout_cfg_file) or not breakout_cfg_file.endswith('.json'):
         click.secho("[ERROR] Breakout feature is not available without platform.json file", fg='red')
         raise click.Abort()
