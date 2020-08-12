@@ -2,7 +2,7 @@
 
 #####################################################################
 #
-# intfstat is a tool for summarizing l3 network statistics. 
+# intfstat is a tool for summarizing l3 network statistics.
 #
 #####################################################################
 
@@ -17,7 +17,7 @@ import time
 
 # mock the redis for unit test purposes #
 try:
-    if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
         modules_path = os.path.join(os.path.dirname(__file__), "..")
         test_path = os.path.join(modules_path, "tests")
         sys.path.insert(0, modules_path)
@@ -34,7 +34,7 @@ from utilities_common.netstat import ns_diff, ns_brate, ns_prate, table_as_json,
 NStats = namedtuple("NStats", "rx_b_ok, rx_p_ok, tx_b_ok, tx_p_ok,\
                     rx_b_err, rx_p_err, tx_b_err, tx_p_err,")
 
-header = ['IFACE', 'RX_OK', 'RX_BPS', 'RX_PPS', 'RX_ERR', 
+header = ['IFACE', 'RX_OK', 'RX_BPS', 'RX_PPS', 'RX_ERR',
               'TX_OK', 'TX_BPS', 'TX_PPS', 'TX_ERR']
 
 counter_names = (
@@ -95,7 +95,7 @@ class Intfstat(object):
         if counter_rif_name_map is None:
             print("No %s in the DB!" % COUNTERS_RIF_NAME_MAP)
             sys.exit(1)
-        
+
         if rif and not rif in counter_rif_name_map:
             print("Interface %s missing from %s! Make sure it exists" % (rif, COUNTERS_RIF_NAME_MAP))
             sys.exit(2)
@@ -105,7 +105,7 @@ class Intfstat(object):
             return cnstat_dict
 
         for rif in natsorted(counter_rif_name_map):
-            cnstat_dict[rif] = get_counters(counter_rif_name_map[rif]) 
+            cnstat_dict[rif] = get_counters(counter_rif_name_map[rif])
         return cnstat_dict
 
     def get_intf_state(self, port_name):
@@ -187,12 +187,12 @@ class Intfstat(object):
             print(tabulate(table, header, tablefmt='simple', stralign='right'))
 
     def cnstat_single_interface(self, rif, cnstat_new_dict, cnstat_old_dict):
-        
+
         header = rif + '\n' + '-'*len(rif)
         body = """
         RX:
-        %10s packets 
-        %10s bytes 
+        %10s packets
+        %10s bytes
         %10s error packets
         %10s error bytes
         TX:
@@ -202,7 +202,7 @@ class Intfstat(object):
         %10s error bytes"""
 
         cntr = cnstat_new_dict.get(rif)
-        
+
         if cnstat_old_dict:
             old_cntr = cnstat_old_dict.get(rif)
             if old_cntr:

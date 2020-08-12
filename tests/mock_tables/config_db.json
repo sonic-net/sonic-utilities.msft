@@ -565,5 +565,141 @@
         "state": "enabled",
         "auto_restart": "enabled",
         "high_mem_alert": "disabled"
+    },
+    "DEVICE_NEIGHBOR|Ethernet4": {
+        "name": "Servers0",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet8": {
+        "name": "Servers1",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet12": {
+        "name": "Servers2",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet16": {
+        "name": "Servers3",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet20": {
+        "name": "Servers4",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet24": {
+        "name": "Servers5",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet28": {
+        "name": "Servers6",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet32": {
+        "name": "Servers7",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet36": {
+        "name": "Servers8",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet40": {
+        "name": "Servers9",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet44": {
+        "name": "Servers10",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet48": {
+        "name": "Servers11",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet52": {
+        "name": "Servers12",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet56": {
+        "name": "Servers13",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet60": {
+        "name": "Servers14",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet64": {
+        "name": "Servers15",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet68": {
+        "name": "Servers16",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet72": {
+        "name": "Servers17",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet76": {
+        "name": "Servers18",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet80": {
+        "name": "Servers19",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet84": {
+        "name": "Servers20",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet88": {
+        "name": "Servers21",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet92": {
+        "name": "Servers22",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet96": {
+        "name": "Servers23",
+        "port": "eth0"
+    },
+    "DEVICE_NEIGHBOR|Ethernet112": {
+        "name": "ARISTA01T1",
+        "port": "Ethernet1"
+    },
+    "DEVICE_NEIGHBOR|Ethernet116": {
+        "name": "ARISTA02T1",
+        "port": "Ethernet1"
+    },
+    "DEVICE_NEIGHBOR|Ethernet120": {
+        "name": "ARISTA03T1",
+        "port": "Ethernet1"
+    },
+    "DEVICE_NEIGHBOR|Ethernet124": {
+        "name": "ARISTA04T1",
+        "port": "Ethernet1"
+    },
+    "DEVICE_NEIGHBOR_METADATA|ARISTA01T1": {
+        "hwsku": "Arista-VM",
+        "lo_addr": "None",
+        "mgmt_addr": "10.250.0.51",
+        "type": "LeafRouter"
+    },
+    "DEVICE_NEIGHBOR_METADATA|ARISTA02T1": {
+        "hwsku": "Arista-VM",
+        "lo_addr": "None",
+        "mgmt_addr": "10.250.0.52",
+        "type": "LeafRouter"
+    },
+    "DEVICE_NEIGHBOR_METADATA|ARISTA03T1": {
+        "hwsku": "Arista-VM",
+        "lo_addr": "None",
+        "mgmt_addr": "10.250.0.53",
+        "type": "LeafRouter"
+    },
+    "DEVICE_NEIGHBOR_METADATA|ARISTA04T1": {
+        "hwsku": "Arista-VM",
+        "lo_addr": "None",
+        "mgmt_addr": "10.250.0.54",
+        "type": "LeafRouter"
     }
 }

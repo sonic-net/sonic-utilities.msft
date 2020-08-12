@@ -1,5 +1,7 @@
 import sys
 import os
+import traceback
+
 from click.testing import CliRunner
 
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -9,33 +11,41 @@ sys.path.insert(0, test_path)
 sys.path.insert(0, modules_path)
 
 import mock_tables.dbconnector
-import show.main as show 
+import show.main as show
 import clear.main as clear
+
+show_interfaces_counters_rif_output="""\
+          IFACE    RX_OK    RX_BPS    RX_PPS    RX_ERR    TX_OK    TX_BPS    TX_PPS    TX_ERR
+---------------  -------  --------  --------  --------  -------  --------  --------  --------
+     Ethernet20        4       N/A       N/A         2        8       N/A       N/A         6
+PortChannel0001      883       N/A       N/A         0        0       N/A       N/A         0
+PortChannel0002      883       N/A       N/A         0        0       N/A       N/A         0
+PortChannel0003        0       N/A       N/A         0        0       N/A       N/A         0
+PortChannel0004      883       N/A       N/A         0        0       N/A       N/A         0
+       Vlan1000        0       N/A       N/A         0        0       N/A       N/A         0
+"""
 
 class TestIntfstat(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
         os.environ["PATH"] += os.pathsep + scripts_path
-        os.environ["UTILITIES_UNIT_TESTING"] = "1"
+        os.environ["UTILITIES_UNIT_TESTING"] = "2"
 
     def test_no_param(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["counters"].commands["rif"], [])
-        interfaces = ["Ethernet20", "PortChannel0001", "PortChannel0002", "PortChannel0003", "PortChannel0004", "Vlan1000"]
+        print(result.exit_code)
         print(result.output)
-        result_lines = result.output.split('\n')
-        #assert all interfaces are present in the output and in the correct order
-        for i, interface in enumerate(interfaces):
-            assert interface in result_lines[i+2]
-        header_lines = 3
-        assert len(result_lines) == header_lines + len(interfaces)
+        traceback.print_tb(result.exc_info[2])
+        assert result.exit_code == 0
+        assert result.output == show_interfaces_counters_rif_output
 
     def test_verbose(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["counters"].commands["rif"], ["--verbose"])
         print(result.output)
-        assert result.output.split('\n')[0] == "Command: intfstat"
+        assert result.output.split('\n')[0] == "Running command: intfstat"
 
     def test_period(self):
         runner = CliRunner()
@@ -56,8 +66,8 @@ class TestIntfstat(object):
 ----------
 
         RX:
-                 4 packets 
-                 3 bytes 
+                 4 packets
+                 3 bytes
                  2 error packets
               1128 error bytes
         TX:
@@ -78,8 +88,8 @@ class TestIntfstat(object):
 ----------
 
         RX:
-                 0 packets 
-                 0 bytes 
+                 0 packets
+                 0 bytes
                  0 error packets
                  0 error bytes
         TX:
@@ -116,8 +126,11 @@ class TestIntfstat(object):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["counters"].commands["rif"], [])
         # no aliases for Portchannels and Vlans for now
-        interfaces = ["etp6", "PortChannel0001", "PortChannel0002", "PortChannel0003", "PortChannel0004", "Vlan1000"]
+        print(result.exit_code)
         print(result.output)
+        traceback.print_tb(result.exc_info[2])
+        assert result.exit_code == 0
+        interfaces = ["etp6", "PortChannel0001", "PortChannel0002", "PortChannel0003", "PortChannel0004", "Vlan1000"]
         result_lines = result.output.split('\n')
         #assert all interfaces are present in the output and in the correct order
         for i, interface in enumerate(interfaces):

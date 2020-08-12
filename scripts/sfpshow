@@ -1,7 +1,7 @@
 #!/usr/bin/python
 """
     Script to show sfp eeprom and presence status.
-    Not like sfputil this scripts get the sfp data from DB directly.  
+    Not like sfputil this scripts get the sfp data from DB directly.
 """
 import sys
 import click
@@ -15,14 +15,14 @@ from tabulate import tabulate
 
 # Mock the redis for unit test purposes #
 try:
-    if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
         modules_path = os.path.join(os.path.dirname(__file__), "..")
         test_path = os.path.join(modules_path, "tests")
         sys.path.insert(0, modules_path)
         sys.path.insert(0, test_path)
         import mock_tables.dbconnector
 except KeyError:
-    pass 
+    pass
 
 qsfp_data_map = {'model': 'Vendor PN',
                  'vendor_oui': 'Vendor OUI',
@@ -159,7 +159,7 @@ class SFPShow(object):
                                dom_unit_map[key])
                 out_put  = out_put + current_val + '\n'
         return out_put
-     
+
     # Convert dom sensor info in DB to cli output string
     def convert_dom_to_output_string(self, sfp_type, dom_info_dict):
         ident = '        '
@@ -253,7 +253,7 @@ class SFPShow(object):
     def convert_sfp_info_to_output_string(self, sfp_info_dict):
         ident = '        '
         out_put = ''
-        
+
         sorted_qsfp_data_map = sorted(qsfp_data_map.items(), key=operator.itemgetter(1))
         for key in sorted_qsfp_data_map:
             key1 = key[0]
@@ -299,7 +299,7 @@ class SFPShow(object):
             if presence:
                 out_put = self.convert_interface_sfp_info_to_cli_output_string(self.sdb, interfacename, dump_dom)
             else:
-               out_put = out_put + interfacename + ': ' + 'SFP EEPROM Not detected' + '\n' 
+               out_put = out_put + interfacename + ': ' + 'SFP EEPROM Not detected' + '\n'
         else:
             port_table_keys = self.adb.keys(self.adb.APPL_DB, "PORT_TABLE:*")
             sorted_table_keys = natsorted(port_table_keys)
@@ -310,9 +310,9 @@ class SFPShow(object):
                     if presence:
                         out_put = out_put + self.convert_interface_sfp_info_to_cli_output_string(self.sdb, interface, dump_dom)
                     else:
-                       out_put = out_put + interface + ': ' + 'SFP EEPROM Not detected' + '\n' 
+                       out_put = out_put + interface + ': ' + 'SFP EEPROM Not detected' + '\n'
 
-                out_put = out_put + '\n' 
+                out_put = out_put + '\n'
 
         click.echo(out_put)
 
@@ -336,7 +336,7 @@ class SFPShow(object):
                         port_table.append((key,'Present'))
                     else:
                         port_table.append((key,'Not present'))
-        
+
         sorted_port_table = natsorted(port_table)
         click.echo(tabulate(sorted_port_table, header))
 

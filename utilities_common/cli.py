@@ -1,9 +1,11 @@
 import os
+import re
 import sys
 import netaddr
 import subprocess
 
 import click
+from natsort import natsorted
 
 from utilities_common.db import Db
 
@@ -182,6 +184,9 @@ class InterfaceAliasConverter(object):
         # interface_alias not in port_dict. Just return interface_alias
         return interface_alias if sub_intf_sep_idx == -1 else interface_alias + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
+# Global class instance for SONiC interface name to alias conversion
+iface_alias_converter = InterfaceAliasConverter()
+
 def get_interface_naming_mode():
     mode = os.getenv('SONIC_CLI_IFACE_MODE')
     if mode is None:
@@ -251,6 +256,22 @@ def is_port_vlan_member(config_db, port, vlan):
 
     return False
 
+def interface_is_in_vlan(vlan_member_table, interface_name):
+    """ Check if an interface  is in a vlan """
+    for _,intf in vlan_member_table.keys():
+        if intf == interface_name:
+            return True
+
+    return False
+
+def interface_is_in_portchannel(portchannel_member_table, interface_name):
+    """ Check if an interface is part of portchannel """
+    for _,intf in portchannel_member_table.keys():
+        if intf == interface_name:
+            return True
+
+    return False
+
 def is_port_router_interface(config_db, port):
     """Check if port is a router interface"""
 
@@ -272,7 +293,7 @@ def is_pc_router_interface(config_db, pc):
     return False
 
 def is_port_mirror_dst_port(config_db, port):
-    """ Check if port is already configured as mirror destination port """
+    """Check if port is already configured as mirror destination port """
     mirror_table = config_db.get_table('MIRROR_SESSION')
     for _,v in mirror_table.items():
         if 'dst_port' in v and v['dst_port'] == port:
@@ -280,7 +301,177 @@ def is_port_mirror_dst_port(config_db, port):
 
     return False
 
-def run_command(command, display_cmd=False, ignore_error=False):
+def interface_has_mirror_config(mirror_table, interface_name):
+    """Check if port is already configured with mirror config """
+    for _,v in mirror_table.items():
+        if 'src_port' in v and v['src_port'] == interface_name:
+            return True
+        if 'dst_port' in v and v['dst_port'] == interface_name:
+            return True
+
+    return False
+
+def print_output_in_alias_mode(output, index):
+    """Convert and print all instances of SONiC interface
+       name to vendor-sepecific interface aliases.
+    """
+
+    alias_name = ""
+    interface_name = ""
+
+    # Adjust tabulation width to length of alias name
+    if output.startswith("---"):
+        word = output.split()
+        dword = word[index]
+        underline = dword.rjust(iface_alias_converter.alias_max_length,
+                                '-')
+        word[index] = underline
+        output = '  ' .join(word)
+
+    # Replace SONiC interface name with vendor alias
+    word = output.split()
+    if word:
+        interface_name = word[index]
+        interface_name = interface_name.replace(':', '')
+    for port_name in natsorted(iface_alias_converter.port_dict.keys()):
+            if interface_name == port_name:
+                alias_name = iface_alias_converter.port_dict[port_name]['alias']
+    if alias_name:
+        if len(alias_name) < iface_alias_converter.alias_max_length:
+            alias_name = alias_name.rjust(
+                                iface_alias_converter.alias_max_length)
+        output = output.replace(interface_name, alias_name, 1)
+
+    click.echo(output.rstrip('\n'))
+
+def run_command_in_alias_mode(command):
+    """Run command and replace all instances of SONiC interface names
+       in output with vendor-sepecific interface aliases.
+    """
+
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+
+    while True:
+        output = process.stdout.readline()
+        if output == '' and process.poll() is not None:
+            break
+
+        if output:
+            index = 1
+            raw_output = output
+            output = output.lstrip()
+
+            if command.startswith("portstat"):
+                """Show interface counters"""
+                index = 0
+                if output.startswith("IFACE"):
+                    output = output.replace("IFACE", "IFACE".rjust(
+                               iface_alias_converter.alias_max_length))
+                print_output_in_alias_mode(output, index)
+
+            elif command.startswith("intfstat"):
+                """Show RIF counters"""
+                index = 0
+                if output.startswith("IFACE"):
+                    output = output.replace("IFACE", "IFACE".rjust(
+                               iface_alias_converter.alias_max_length))
+                print_output_in_alias_mode(output, index)
+
+            elif command == "pfcstat":
+                """Show pfc counters"""
+                index = 0
+                if output.startswith("Port Tx"):
+                    output = output.replace("Port Tx", "Port Tx".rjust(
+                                iface_alias_converter.alias_max_length))
+
+                elif output.startswith("Port Rx"):
+                    output = output.replace("Port Rx", "Port Rx".rjust(
+                                iface_alias_converter.alias_max_length))
+                print_output_in_alias_mode(output, index)
+
+            elif (command.startswith("sudo sfputil show eeprom")):
+                """show interface transceiver eeprom"""
+                index = 0
+                print_output_in_alias_mode(raw_output, index)
+
+            elif (command.startswith("sudo sfputil show")):
+                """show interface transceiver lpmode,
+                   presence
+                """
+                index = 0
+                if output.startswith("Port"):
+                    output = output.replace("Port", "Port".rjust(
+                               iface_alias_converter.alias_max_length))
+                print_output_in_alias_mode(output, index)
+
+            elif command == "sudo lldpshow":
+                """show lldp table"""
+                index = 0
+                if output.startswith("LocalPort"):
+                    output = output.replace("LocalPort", "LocalPort".rjust(
+                               iface_alias_converter.alias_max_length))
+                print_output_in_alias_mode(output, index)
+
+            elif command.startswith("queuestat"):
+                """show queue counters"""
+                index = 0
+                if output.startswith("Port"):
+                    output = output.replace("Port", "Port".rjust(
+                               iface_alias_converter.alias_max_length))
+                print_output_in_alias_mode(output, index)
+
+            elif command == "fdbshow":
+                """show mac"""
+                index = 3
+                if output.startswith("No."):
+                    output = "  " + output
+                    output = re.sub(
+                                'Type', '      Type', output)
+                elif output[0].isdigit():
+                    output = "    " + output
+                print_output_in_alias_mode(output, index)
+
+            elif command.startswith("nbrshow"):
+                """show arp"""
+                index = 2
+                if "Vlan" in output:
+                    output = output.replace('Vlan', '  Vlan')
+                print_output_in_alias_mode(output, index)
+
+            elif command.startswith("sudo teamshow"):
+                """
+                sudo teamshow
+                Search for port names either at the start of a line or preceded immediately by
+                whitespace and followed immediately by either the end of a line or whitespace
+                OR followed immediately by '(D)', '(S)', '(D*)' or '(S*)'
+                """
+                converted_output = raw_output
+                for port_name in iface_alias_converter.port_dict.keys():
+                    converted_output = re.sub(r"(^|\s){}(\([DS]\*{{0,1}}\)(?:$|\s))".format(port_name),
+                            r"\1{}\2".format(iface_alias_converter.name_to_alias(port_name)),
+                            converted_output)
+                click.echo(converted_output.rstrip('\n'))
+
+            else:
+                """
+                Default command conversion
+                Search for port names either at the start of a line or preceded immediately by
+                whitespace and followed immediately by either the end of a line or whitespace
+                or a comma followed by whitespace
+                """
+                converted_output = raw_output
+                for port_name in iface_alias_converter.port_dict.keys():
+                    converted_output = re.sub(r"(^|\s){}($|,{{0,1}}\s)".format(port_name),
+                            r"\1{}\2".format(iface_alias_converter.name_to_alias(port_name)),
+                            converted_output)
+                click.echo(converted_output.rstrip('\n'))
+
+    rc = process.poll()
+    if rc != 0:
+        sys.exit(rc)
+
+
+def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False, interactive_mode=False):
     """Run bash command and print output to stdout
     """
 
@@ -290,11 +481,37 @@ def run_command(command, display_cmd=False, ignore_error=False):
     if os.environ["UTILITIES_UNIT_TESTING"] == "1":
         return
 
+    # No conversion needed for intfutil commands as it already displays
+    # both SONiC interface name and alias name for all interfaces.
+    if get_interface_naming_mode() == "alias" and not command.startswith("intfutil"):
+        run_command_in_alias_mode(command)
+        raise sys.exit(0)
+
     proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    (out, err) = proc.communicate()
 
-    if len(out) > 0:
-        click.echo(out)
+    if return_cmd:
+        output = proc.communicate()[0].decode("utf-8")
+        return output
 
-    if proc.returncode != 0 and not ignore_error:
-        sys.exit(proc.returncode)
+    if not interactive_mode:
+        (out, err) = proc.communicate()
+
+        if len(out) > 0:
+            click.echo(out.rstrip('\n'))
+
+        if proc.returncode != 0 and not ignore_error:
+            sys.exit(proc.returncode)
+
+        return
+
+    # interactive mode
+    while True:
+        output = proc.stdout.readline()
+        if output == "" and proc.poll() is not None:
+            break
+        if output:
+            click.echo(output.rstrip('\n'))
+
+    rc = proc.poll()
+    if rc != 0:
+        sys.exit(rc)
