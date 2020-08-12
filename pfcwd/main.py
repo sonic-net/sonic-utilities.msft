@@ -39,7 +39,7 @@ def cli():
 
 def get_all_queues(db):
     queue_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_QUEUE_NAME_MAP')
-    return natsorted(queue_names.keys())
+    return natsorted(queue_names.keys() if queue_names else {})
 
 def get_all_ports(db):
     all_port_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_PORT_NAME_MAP')
