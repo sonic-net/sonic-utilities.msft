@@ -6,9 +6,12 @@
 #
 #####################################################################
 
+from __future__ import print_function
+
 import argparse
 import json
 import sys
+
 import swsssdk
 from natsort import natsorted
 from tabulate import tabulate
