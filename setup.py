@@ -85,6 +85,7 @@ setup(
         'scripts/intfstat',
         'scripts/lldpshow',
         'scripts/log_ssd_health',
+        'scripts/mellanox_buffer_migrator.py',
         'scripts/mmuconfig',
         'scripts/natclear',
         'scripts/natconfig',
