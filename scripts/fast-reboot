@@ -456,7 +456,7 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
 
     FILTER_FDB_ENTRIES_RC=0
     # Filter FDB entries using MAC addresses from ARP table
-    /usr/bin/filter_fdb_entries.py -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json -c $CONFIG_DB_FILE || FILTER_FDB_ENTRIES_RC=$?
+    /usr/bin/filter_fdb_entries -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json -c $CONFIG_DB_FILE || FILTER_FDB_ENTRIES_RC=$?
     if [[ FILTER_FDB_ENTRIES_RC -ne 0 ]]; then
         error "Failed to filter FDb entries. Exit code: $FILTER_FDB_ENTRIES_RC"
         unload_kernel
