@@ -1,4 +1,20 @@
 {
+    "SFLOW_SESSION_TABLE:Ethernet0": {
+        "admin_state": "up",
+        "sample_rate": "2500"
+    },
+    "SFLOW_SESSION_TABLE:Ethernet4": {
+        "admin_state": "up",
+        "sample_rate": "1000"
+    },
+    "SFLOW_SESSION_TABLE:Ethernet112": {
+        "admin_state": "up",
+        "sample_rate": "1000"
+    },
+    "SFLOW_SESSION_TABLE:Ethernet116": {
+        "admin_state": "up",
+        "sample_rate": "5000"
+    },
     "PORT_TABLE:Ethernet0": {
         "index": "0",
         "lanes": "0",
