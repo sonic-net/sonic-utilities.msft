@@ -1562,63 +1562,35 @@ def reload():
                 click.secho(
                     "Command 'qos reload' failed with invalid namespace '{}'".
                         format(ns),
-                    fg='yellow'
+                    fg="yellow"
                 )
                 raise click.Abort()
             asic_id_suffix = str(asic_id)
 
-        buffer_template_file = os.path.join(
-            hwsku_path,
-            asic_id_suffix,
-            'buffers.json.j2'
-        )
-        buffer_output_file = "/tmp/buffers{}.json".format(asic_id_suffix)
-        qos_output_file = "/tmp/qos{}.json".format(asic_id_suffix)
-
-        cmd_ns = "" if ns is DEFAULT_NAMESPACE else "-n {}".format(ns)
+        buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers.json.j2")
         if os.path.isfile(buffer_template_file):
-            command = "{} {} -d -t {} > {}".format(
-                SONIC_CFGGEN_PATH,
-                cmd_ns,
-                buffer_template_file,
-                buffer_output_file
-            )
-            clicommon.run_command(command, display_cmd=True)
-            qos_template_file = os.path.join(
-                hwsku_path,
-                asic_id_suffix,
-                'qos.json.j2'
-            )
-            sonic_version_file = os.path.join(
-                '/etc/sonic/', 'sonic_version.yml'
-            )
+            qos_template_file = os.path.join(hwsku_path, asic_id_suffix, "qos.json.j2")
             if os.path.isfile(qos_template_file):
-                command = "{} {} -d -t {} -y {} > {}".format(
+                cmd_ns = "" if ns is DEFAULT_NAMESPACE else "-n {}".format(ns)
+                sonic_version_file = os.path.join('/', "etc", "sonic", "sonic_version.yml")
+                command = "{} {} -d -t {},config-db -t {},config-db -y {} --write-to-db".format(
                     SONIC_CFGGEN_PATH,
                     cmd_ns,
+                    buffer_template_file,
                     qos_template_file,
-                    sonic_version_file,
-                    qos_output_file
+                    sonic_version_file
                 )
-                clicommon.run_command(command, display_cmd=True)
                 # Apply the configurations only when both buffer and qos
-                # configuration files are presented
-                command = "{} {} -j {} --write-to-db".format(
-                    SONIC_CFGGEN_PATH, cmd_ns, buffer_output_file
-                )
-                clicommon.run_command(command, display_cmd=True)
-                command = "{} {} -j {} --write-to-db".format(
-                    SONIC_CFGGEN_PATH, cmd_ns, qos_output_file
-                )
+                # configuration files are present
                 clicommon.run_command(command, display_cmd=True)
             else:
-                click.secho('QoS definition template not found at {}'.format(
+                click.secho("QoS definition template not found at {}".format(
                     qos_template_file
-                ), fg='yellow')
+                ), fg="yellow")
         else:
-            click.secho('Buffer definition template not found at {}'.format(
+            click.secho("Buffer definition template not found at {}".format(
                 buffer_template_file
-            ), fg='yellow')
+            ), fg="yellow")
 
 #
 # 'warm_restart' group ('config warm_restart ...')
