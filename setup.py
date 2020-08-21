@@ -59,7 +59,12 @@ setup(
     ],
     package_data={
         'show': ['aliases.ini'],
-        'tests': ['acl_input/*', 'mock_tables/*.py', 'mock_tables/*.json', 'filter_fdb_input/*']
+        'tests': ['acl_input/*',
+                  'mock_tables/*.py',
+                  'mock_tables/*.json',
+                  'mock_tables/asic0/*.json',
+                  'mock_tables/asic1/*.json',
+                  'filter_fdb_input/*']
     },
     scripts=[
         'scripts/aclshow',

@@ -1,0 +1,55 @@
+{
+    "DEVICE_METADATA|localhost": {
+        "asic_id": "08:00.0",
+        "asic_name": "asic1",
+        "bgp_asn": "65100",
+        "cloudtype": "None",
+        "default_bgp_status": "down",
+        "default_pfcwd_status": "enable",
+        "deployment_id": "None",
+        "docker_routing_config_mode": "separated",
+        "hostname": "sonic",
+        "hwsku": "multi_asic",
+        "mac": "02:42:f0:7f:01:06",
+        "platform": "multi_asic",
+        "region": "None",
+        "sub_role": "BackEnd",
+        "type": "LeafRouter"
+    },
+    "PORT|Ethernet-BP256": {
+        "admin_status": "up",
+        "alias": "Ethernet-BP256",
+        "asic_port_name": "Eth0-ASIC1",
+        "description": "ASIC0:Eth16-ASIC0",
+        "lanes": "61,62,63,64",
+        "mtu": "9100",
+        "pfc_asym": "off",
+        "role": "Int",
+        "speed": "40000"
+    },
+    "PORT|Ethernet-BP260": {
+        "lanes": "57,58,59,60",
+        "description": "ASIC0:Eth17-ASIC0",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet-BP260",
+        "admin_status": "up",
+        "speed": "40000",
+        "role": "Int",
+        "asic_port_name": "Eth1-ASIC1"
+    },
+    "PORTCHANNEL|PortChannel4009": {
+        "admin_status": "up",
+        "members": [
+            "Ethernet-BP256,Ethernet-BP260"
+        ],
+        "min_links": "2",
+        "mtu": "9100"
+    },
+    "PORTCHANNEL_MEMBER|PortChannel4009|Ethernet-BP256": {
+        "NULL": "NULL"
+    },
+    "PORTCHANNEL_MEMBER|PortChannel4009|Ethernet-BP260" : {
+        "NULL": "NULL"
+    }
+}

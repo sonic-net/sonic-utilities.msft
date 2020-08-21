@@ -1,0 +1,161 @@
+{
+    "COUNTERS:oid:0x60000000005a3": {
+            "SAI_ROUTER_INTERFACE_STAT_IN_ERROR_OCTETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_IN_ERROR_PACKETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_IN_OCTETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_IN_PACKETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_ERROR_OCTETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_ERROR_PACKETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_OCTETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_PACKETS": "0"
+    },
+    "COUNTERS:oid:0x60000000005a1": {
+            "SAI_ROUTER_INTERFACE_STAT_IN_ERROR_OCTETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_IN_ERROR_PACKETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_IN_OCTETS": "608985",
+            "SAI_ROUTER_INTERFACE_STAT_IN_PACKETS": "883",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_ERROR_OCTETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_ERROR_PACKETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_OCTETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_PACKETS": "0"
+    },
+    "COUNTERS:oid:0x600000000065f": {
+            "SAI_ROUTER_INTERFACE_STAT_IN_ERROR_OCTETS": "1128",
+            "SAI_ROUTER_INTERFACE_STAT_IN_ERROR_PACKETS": "2",
+            "SAI_ROUTER_INTERFACE_STAT_IN_OCTETS": "3",
+            "SAI_ROUTER_INTERFACE_STAT_IN_PACKETS": "4",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_ERROR_OCTETS": "5",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_ERROR_PACKETS": "6",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_OCTETS": "754",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_PACKETS": "8"
+    },
+    "COUNTERS:oid:0x60000000005a2": {
+            "SAI_ROUTER_INTERFACE_STAT_IN_ERROR_OCTETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_IN_ERROR_PACKETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_IN_OCTETS": "608985",
+            "SAI_ROUTER_INTERFACE_STAT_IN_PACKETS": "883",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_ERROR_OCTETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_ERROR_PACKETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_OCTETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_PACKETS": "0"
+    },
+    "COUNTERS:oid:0x600000000063c": {
+            "SAI_ROUTER_INTERFACE_STAT_IN_ERROR_OCTETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_IN_ERROR_PACKETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_IN_OCTETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_IN_PACKETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_ERROR_OCTETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_ERROR_PACKETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_OCTETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_PACKETS": "0"
+    },
+    "COUNTERS:oid:0x600000000063d": {
+            "SAI_ROUTER_INTERFACE_STAT_IN_ERROR_OCTETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_IN_ERROR_PACKETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_IN_OCTETS": "608985",
+            "SAI_ROUTER_INTERFACE_STAT_IN_PACKETS": "883",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_ERROR_OCTETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_ERROR_PACKETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_OCTETS": "0",
+            "SAI_ROUTER_INTERFACE_STAT_OUT_PACKETS": "0"
+    },
+    "COUNTERS_RIF_NAME_MAP": {
+            "Ethernet20": "oid:0x600000000065f",
+            "PortChannel0001": "oid:0x60000000005a1",
+            "PortChannel0002": "oid:0x60000000005a2",
+            "PortChannel0003": "oid:0x600000000063c",
+            "PortChannel0004": "oid:0x600000000063d",
+            "Vlan1000": "oid:0x60000000005a3"
+    },
+    "COUNTERS_RIF_TYPE_MAP": {
+            "oid:0x60000000005a1": "SAI_ROUTER_INTERFACE_TYPE_PORT",
+            "oid:0x60000000005a2": "SAI_ROUTER_INTERFACE_TYPE_PORT",
+            "oid:0x60000000005a3": "SAI_ROUTER_INTERFACE_TYPE_VLAN",
+            "oid:0x600000000063c": "SAI_ROUTER_INTERFACE_TYPE_PORT",
+            "oid:0x600000000063d": "SAI_ROUTER_INTERFACE_TYPE_PORT",
+            "oid:0x600000000065f": "SAI_ROUTER_INTERFACE_TYPE_PORT"
+    },
+    "COUNTERS:DATAACL:DEFAULT_RULE": {
+            "Bytes": "1",
+            "Packets": "2"
+    },
+    "COUNTERS:DATAACL:RULE_1": {
+            "Bytes": "100",
+            "Packets": "101"
+    },
+    "COUNTERS:DATAACL:RULE_2": {
+            "Bytes": "200",
+            "Packets": "201"
+    },
+    "COUNTERS:DATAACL:RULE_3": {
+            "Bytes": "300",
+            "Packets": "301"
+    },
+    "COUNTERS:DATAACL:RULE_4": {
+            "Bytes": "400",
+            "Packets": "401"
+    },
+    "COUNTERS:DATAACL:RULE_05": {
+            "Bytes": "0",
+            "Packets": "0"
+    },
+    "COUNTERS:EVERFLOW:RULE_6": {
+            "Bytes": "600",
+            "Packets": "601"
+    },
+    "COUNTERS:DATAACL:RULE_7":{
+            "Bytes": "700",
+            "Packets": "701"
+    },
+    "COUNTERS:EVERFLOW:RULE_08": {
+            "Bytes": "0",
+            "Packets": "0"
+    },
+    "COUNTERS:DATAACL:RULE_9": {
+            "Bytes": "900",
+            "Packets": "901"
+    },
+    "COUNTERS:DATAACL:RULE_10": {
+            "Bytes": "1000",
+            "Packets": "1001"
+    },
+    "COUNTERS:oid:0x1000000000002": {
+        "SAI_PORT_STAT_IF_IN_ERRORS": "10",
+        "SAI_PORT_STAT_IF_IN_DISCARDS": "100",
+        "SAI_PORT_STAT_IN_DROP_REASON_RANGE_BASE": "80",
+        "SAI_PORT_STAT_OUT_CONFIGURED_DROP_REASONS_1_DROPPED_PKTS": "20"
+    },
+    "COUNTERS:oid:0x1000000000004": {
+        "SAI_PORT_STAT_IF_IN_ERRORS": "0",
+        "SAI_PORT_STAT_IF_IN_DISCARDS": "1000",
+        "SAI_PORT_STAT_IN_DROP_REASON_RANGE_BASE": "800",
+        "SAI_PORT_STAT_OUT_CONFIGURED_DROP_REASONS_1_DROPPED_PKTS": "100"
+    },
+    "COUNTERS:oid:0x1000000000006": {
+        "SAI_PORT_STAT_IF_IN_ERRORS": "100",
+        "SAI_PORT_STAT_IF_IN_DISCARDS": "10",
+        "SAI_PORT_STAT_IN_DROP_REASON_RANGE_BASE": "10",
+        "SAI_PORT_STAT_OUT_CONFIGURED_DROP_REASONS_1_DROPPED_PKTS": "0"
+    },
+    "COUNTERS:oid:0x21000000000000": {
+        "SAI_SWITCH_STAT_IN_DROP_REASON_RANGE_BASE": "1000"
+    },
+    "COUNTERS_PORT_NAME_MAP": {
+        "Ethernet0": "oid:0x1000000000002",
+        "Ethernet4": "oid:0x1000000000004",
+        "Ethernet8": "oid:0x1000000000006"
+    },
+    "COUNTERS_LAG_NAME_MAP": {
+        "PortChannel0001": "oid:0x60000000005a1",
+        "PortChannel0002": "oid:0x60000000005a2",
+        "PortChannel0003": "oid:0x600000000063c",
+        "PortChannel0004": "oid:0x600000000063d"
+    },
+    "COUNTERS_DEBUG_NAME_PORT_STAT_MAP": {
+        "DEBUG_0": "SAI_PORT_STAT_IN_DROP_REASON_RANGE_BASE",
+        "DEBUG_2": "SAI_PORT_STAT_OUT_CONFIGURED_DROP_REASONS_1_DROPPED_PKTS"
+    },
+    "COUNTERS_DEBUG_NAME_SWITCH_STAT_MAP": {
+        "DEBUG_1": "SAI_SWITCH_STAT_IN_DROP_REASON_RANGE_BASE"
+    }
+}

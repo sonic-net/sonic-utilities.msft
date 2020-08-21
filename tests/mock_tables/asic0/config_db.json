@@ -1,0 +1,87 @@
+{
+    "DEVICE_METADATA|localhost": {
+        "asic_id": "01.00.0",
+        "asic_name": "asic0",
+        "bgp_asn": "65100",
+        "cloudtype": "None",
+        "default_bgp_status": "down",
+        "default_pfcwd_status": "enable",
+        "deployment_id": "None",
+        "docker_routing_config_mode": "separated",
+        "hostname": "sonic",
+        "hwsku": "multi_asic",
+        "mac": "02:42:f0:7f:01:05",
+        "platform": "multi_asic",
+        "region": "None",
+        "sub_role": "FrontEnd",
+        "type": "LeafRouter"
+    },
+    "PORT|Ethernet0": {
+        "admin_status": "up",
+        "alias": "Ethernet1/1",
+        "asic_port_name": "Eth0-ASIC0",
+        "description": "ARISTA01T2:Ethernet3/1/1",
+        "lanes": "33,34,35,36",
+        "mtu": "9100",
+        "pfc_asym": "off",
+        "role": "Ext",
+        "speed": "40000"
+    },
+    "PORT|Ethernet4": {
+        "lanes": "29,30,31,32",
+        "description": "ARISTA01T2:Ethernet3/2/1",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet1/2",
+        "admin_status": "up",
+        "role": "Ext",
+        "speed": "40000",
+        "asic_port_name": "Eth1-ASIC0"
+    },
+    "PORT|Ethernet-BP0" : {
+        "lanes": "93,94,95,96",
+        "description": "ASIC1:Eth0-ASIC1",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet-BP0",
+        "admin_status": "up",
+        "role": "Int",
+        "speed": "40000",
+        "asic_port_name": "Eth16-ASIC0"
+    },
+    "PORT|Ethernet-BP4" : {
+        "lanes": "97,98,99,100",
+        "description": "ASIC1:Eth1-ASIC1",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet-BP4",
+        "admin_status": "up",
+        "role": "Int",
+        "speed": "40000",
+        "asic_port_name": "Eth17-ASIC0"
+    },
+    "PORTCHANNEL|PortChannel1002": {
+        "admin_status": "up",
+        "members@": "Ethernet0,Ethernet4",
+        "min_links": "2",
+        "mtu": "9100"
+    },
+    "PORTCHANNEL|PortChannel4001": {
+        "admin_status": "up",
+        "members@": "Ethernet-BP0,Ethernet-BP4",
+        "min_links": "2",
+        "mtu": "9100"
+    },
+    "PORTCHANNEL_MEMBER|PortChannel1002|Ethernet0": {
+        "NULL": "NULL"
+    },
+    "PORTCHANNEL_MEMBER|PortChannel1002|Ethernet4": {
+        "NULL": "NULL"
+    },
+    "PORTCHANNEL_MEMBER|PortChannel4001|Ethernet-BP0": {
+        "NULL": "NULL"
+    },
+    "PORTCHANNEL_MEMBER|PortChannel4001|Ethernet-BP4": {
+        "NULL": "NULL"
+    }
+}

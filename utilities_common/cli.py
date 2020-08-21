@@ -8,8 +8,7 @@ import click
 from natsort import natsorted
 
 from utilities_common.db import Db
-
-from swsssdk import ConfigDBConnector
+from sonic_py_common import multi_asic
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
@@ -122,13 +121,12 @@ class InterfaceAliasConverter(object):
     def __init__(self, db=None):
 
         if db is None:
-            self.config_db = ConfigDBConnector()
-            self.config_db.connect()
+            self.port_dict = multi_asic.get_port_table()
         else:
             self.config_db = db.cfgdb
-
+            self.port_dict = self.config_db.get_table('PORT')
         self.alias_max_length = 0
-        self.port_dict = self.config_db.get_table('PORT')
+        
 
         if not self.port_dict:
             click.echo(message="Warning: failed to retrieve PORT table from ConfigDB!", err=True)

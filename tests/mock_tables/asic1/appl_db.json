@@ -1,0 +1,35 @@
+{
+    "PORT_TABLE:Ethernet-BP256": {
+        "oper_status": "up",
+        "lanes": "61,62,63,64",
+        "description": "ASIC0:Eth16-ASIC0",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet-BP256",
+        "admin_status": "up",
+        "speed": "40000",
+        "asic_port_name": "Eth0-ASIC1"
+    },
+    "PORT_TABLE:Ethernet-BP260": {
+        "oper_status": "up",
+        "lanes": "57,58,59,60",
+        "description": "ASIC0:Eth17-ASIC0",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet-BP260",
+        "admin_status": "up",
+        "speed": "40000",
+        "asic_port_name": "Eth1-ASIC1"
+    },
+    "LAG_TABLE:PortChannel4009": {
+        "admin_status": "up",
+        "oper_status": "up",
+        "mtu": "9100"
+    },
+    "LAG_MEMBER_TABLE:PortChannel4009:Ethernet-BP256": {
+        "status": "enabled"
+    },
+    "LAG_MEMBER_TABLE:PortChannel4009:Ethernet-BP260": {
+        "status": "enabled"
+    }
+}
