@@ -11,39 +11,46 @@ import binascii
 import argparse
 import syslog
 import traceback
+import ipaddress
 
 
 ARP_CHUNK = binascii.unhexlify('08060001080006040001') # defines a part of the packet for ARP Request
 ARP_PAD = binascii.unhexlify('00' * 18)
 
-def generate_arp_entries(filename, all_available_macs):
+def generate_neighbor_entries(filename, all_available_macs):
     db = swsssdk.SonicV2Connector(host='127.0.0.1')
     db.connect(db.APPL_DB, False)   # Make one attempt only
 
     arp_output = []
-    arp_entries = []
+    neighbor_entries = []
     keys = db.keys(db.APPL_DB, 'NEIGH_TABLE:*')
     keys = [] if keys is None else keys
     for key in keys:
         vlan_name = key.split(':')[1]
-        ip_addr = key.split(':')[2]
         entry = db.get_all(db.APPL_DB, key)
-        if (vlan_name, entry['neigh'].lower()) not in all_available_macs:
+        mac = entry['neigh'].lower()
+        if (vlan_name, mac) not in all_available_macs:
             # FIXME: print me to log
             continue
         obj = {
           key: entry,
           'OP': 'SET'
         }
-        arp_entries.append((vlan_name, entry['neigh'].lower(), ip_addr))
         arp_output.append(obj)
+
+        ip_addr = key.split(':')[2]
+        if ipaddress.ip_interface(ip_addr).ip.version != 4:
+            #This is ipv6 address
+            ip_addr = key.replace(key.split(':')[0] + ':' + key.split(':')[1] + ':', '')
+        neighbor_entries.append((vlan_name, mac, ip_addr))
+        syslog.syslog(syslog.LOG_INFO, "Neighbor entry: [Vlan: %s, Mac: %s, Ip: %s]" % (vlan_name, mac, ip_addr))
 
     db.close(db.APPL_DB)
 
     with open(filename, 'w') as fp:
         json.dump(arp_output, fp, indent=2, separators=(',', ': '))
 
-    return arp_entries
+    return neighbor_entries
 
 def is_mac_unicast(mac):
     first_octet = mac.split(':')[0]
@@ -201,14 +208,19 @@ def send_arp(s, src_mac, src_ip, dst_mac_s, dst_ip_s):
 
     return
 
-def garp_send(arp_entries, map_mac_ip_per_vlan):
+def send_ndp(s, src_mac, src_ip, dst_mac_s, dst_ip_s):
+    #TODO: Implement send in neighbor solicitation format
+
+    return
+
+def send_garp_nd(neighbor_entries, map_mac_ip_per_vlan):
     ETH_P_ALL = 0x03
 
     # generate source ip addresses for arp packets
-    src_ip_addrs = {vlan_name:get_iface_ip_addr(vlan_name) for vlan_name,_,_ in arp_entries}
+    src_ip_addrs = {vlan_name:get_iface_ip_addr(vlan_name) for vlan_name,_,_ in neighbor_entries}
 
     # generate source mac addresses for arp packets
-    src_ifs = {map_mac_ip_per_vlan[vlan_name][dst_mac] for vlan_name, dst_mac, _ in arp_entries}
+    src_ifs = {map_mac_ip_per_vlan[vlan_name][dst_mac] for vlan_name, dst_mac, _ in neighbor_entries}
     src_mac_addrs = {src_if:get_iface_mac_addr(src_if) for src_if in src_ifs}
 
     # open raw sockets for all required interfaces
@@ -217,10 +229,13 @@ def garp_send(arp_entries, map_mac_ip_per_vlan):
         sockets[src_if] = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(ETH_P_ALL))
         sockets[src_if].bind((src_if, 0))
 
-    # send arp packets
-    for vlan_name, dst_mac, dst_ip in arp_entries:
+    # send arp/ndp packets
+    for vlan_name, dst_mac, dst_ip in neighbor_entries:
         src_if = map_mac_ip_per_vlan[vlan_name][dst_mac]
-        send_arp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[vlan_name], dst_mac, dst_ip)
+        if ipaddress.ip_interface(dst_ip).ip.version == 4:
+            send_arp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[vlan_name], dst_mac, dst_ip)
+        else:
+            send_ndp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[vlan_name], dst_mac, dst_ip)
 
     # close the raw sockets
     for s in sockets.values():
@@ -271,9 +286,9 @@ def main():
         print("Target directory '%s' not found" % root_dir)
         return 3
     all_available_macs, map_mac_ip_per_vlan = generate_fdb_entries(root_dir + '/fdb.json')
-    arp_entries = generate_arp_entries(root_dir + '/arp.json', all_available_macs)
+    neighbor_entries = generate_neighbor_entries(root_dir + '/arp.json', all_available_macs)
     generate_default_route_entries(root_dir + '/default_routes.json')
-    garp_send(arp_entries, map_mac_ip_per_vlan)
+    send_garp_nd(neighbor_entries, map_mac_ip_per_vlan)
     return 0
 
 if __name__ == '__main__':
