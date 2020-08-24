@@ -17,6 +17,9 @@ REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
 VERBOSE=no
 EXIT_NEXT_IMAGE_NOT_EXISTS=4
 EXIT_SONIC_INSTALLER_VERIFY_REBOOT=21
+SSD_FW_UPDATE="ssd-fw-upgrade"
+REBOOT_SCRIPT_NAME=$(basename $0)
+REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
 
 function debug()
 {
@@ -131,6 +134,11 @@ sleep 3
 # sync the current system time to CMOS
 if [ -x /sbin/hwclock ]; then
     /sbin/hwclock -w || /bin/true
+fi
+
+if [ -x ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ]; then
+    debug "updating ssd fw for${REBOOT_TYPE}"
+    ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ${REBOOT_TYPE}
 fi
 
 if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
