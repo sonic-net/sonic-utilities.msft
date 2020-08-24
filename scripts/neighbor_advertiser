@@ -11,14 +11,13 @@ import argparse
 import json
 import os
 import requests
-import subprocess
 import sys
 import time
 import traceback
 import warnings
 
 from sonic_py_common import logger
-from swsssdk import ConfigDBConnector
+from swsssdk import ConfigDBConnector, SonicV2Connector
 from netaddr import IPAddress, IPNetwork
 
 
@@ -76,6 +75,15 @@ def connect_config_db():
     config_db = ConfigDBConnector()
     config_db.connect()
 
+#
+# Global variable of app_db
+#
+appl_db = None
+
+def connect_app_db():
+    global appl_db
+    appl_db = SonicV2Connector(host="127.0.0.1")
+    appl_db.connect(appl_db.APPL_DB)
 
 #
 # Check if a DIP returned from ferret is in any of this switch's VLANs
@@ -125,13 +133,9 @@ def get_switch_hwsku():
 
 
 def extract_ip_ver_addr(ip_prefix):
-    addr = ip_prefix.split('/')[0]
-
-    if ':' in addr:
-        ver = 6
-    else:
-        ver = 4
-
+    ip = IPNetwork(ip_prefix)
+    addr = str(ip.ip)
+    ver = ip.ip.version
     return (ver, addr)
 
 
@@ -201,20 +205,24 @@ def get_vlan_interface_vxlan_id(vlan_intf_name):
     return vlan_intf_name[4:]
 
 
-def get_vlan_addr(vlan_intf_name, ip_ver):
+def get_vlan_addr_prefix(vlan_intf_name, ip_ver):
     vlan_intfs = config_db.get_table('VLAN_INTERFACE')
     vlan_addr = []
+    vlan_prefix = []
 
     for intf in vlan_intfs.keys():
         if not is_ip_prefix_in_key(intf):
              continue
         if vlan_intf_name in intf:
-            intf_ip_prefix = intf[1]
-            (intf_ip_ver, intf_ip_addr) = extract_ip_ver_addr(intf_ip_prefix)
+            intf_ip = IPNetwork(intf[1])
+            intf_ip_addr = str(intf_ip.ip)
+            intf_ip_ver = intf_ip.ip.version
+            intf_prefixlen = intf_ip.prefixlen
             if intf_ip_ver == ip_ver:
                 vlan_addr.append(intf_ip_addr)
+                vlan_prefix.append(intf_prefixlen)
 
-    return vlan_addr
+    return vlan_addr, vlan_prefix
 
 
 def get_vlan_addresses(vlan_interface):
@@ -222,44 +230,15 @@ def get_vlan_addresses(vlan_interface):
     vxlan_id = get_vlan_interface_vxlan_id(vlan_interface)
 
     mac_addr = None
-    ipv4_addr = []
-    ipv6_addr = []
+    ipv4_addr, ipv4_prefix = get_vlan_addr_prefix(vlan_interface, 4)
+    ipv6_addr, ipv6_prefix = get_vlan_addr_prefix(vlan_interface, 6)
 
-    '''
-    Sample output for "ip addr show Vlan101"
-
-	218: Vlan101@Bridge: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
-		link/ether 98:5d:82:01:d8:48 brd ff:ff:ff:ff:ff:ff
-		inet 10.171.22.113/29 scope global Vlan101
-		   valid_lft forever preferred_lft forever
-		inet6 2603:10b0:10f:843c::1/64 scope global
-		   valid_lft forever preferred_lft forever
-		inet6 fe80::9a5d:82ff:fe01:d848/64 scope link
-		   valid_lft forever preferred_lft forever
-    '''
-    try:
-        out = subprocess.check_output(['ip', 'addr', 'show', vlan_interface])
-        for line in out.splitlines():
-            keys=line.strip().split(' ')
-            if keys[0] == 'inet':
-                ipv4_addr.append(keys[1].split('/')[0])
-            elif keys[0] == 'inet6':
-                ipv6_addr.append(keys[1].split('/')[0])
-            elif keys[0] == 'link/ether':
-                mac_addr = keys[1]
-    except Exception:
-        log.log_error('failed to get %s addresses from o.s.' % vlan_interface)
-
+    metadata = config_db.get_table('DEVICE_METADATA')
+    mac_addr = metadata['localhost']['mac']
     if not mac_addr:
         mac_addr = get_vlan_interface_mac_address(vlan_interface)
 
-    if not ipv4_addr:
-        ipv4_addr = get_vlan_addr(vlan_interface, 4)
-
-    if not ipv6_addr:
-        ipv6_addr = get_vlan_addr(vlan_interface, 6)
-
-    return vlan_id, vxlan_id, ipv4_addr, ipv6_addr, mac_addr
+    return vlan_id, vxlan_id, ipv4_addr, ipv4_prefix, ipv6_addr, ipv6_prefix, mac_addr
 
 #
 # Set up neighbor advertiser slice on Ferret
@@ -281,28 +260,46 @@ def construct_neighbor_advertiser_slice():
 
     all_vlan_interfaces = get_vlan_interfaces()
 
+    vlan_intf_table = config_db.get_table('VLAN_INTERFACE')
+
+    vxlanPort = appl_db.get(appl_db.APPL_DB, 'SWITCH_TABLE:switch', 'vxlan_port')
+
     for vlan_interface in all_vlan_interfaces:
-        vlan_id, vxlan_id, ipv4_addr, ipv6_addr, mac_addr = get_vlan_addresses(vlan_interface)
+        vlan_id, vxlan_id, ipv4_addr, ipv4_prefix, ipv6_addr, ipv6_prefix, mac_addr = get_vlan_addresses(vlan_interface)
 
         if not mac_addr:
             log.log_warning('Cannot find mac addr of vlan interface {}'.format(vlan_interface))
             continue
 
         ipv4_mappings = []
+        ipv6_mappings = []
+        ctr = 0
         for addr in ipv4_addr:
+            if 'proxy_arp' in vlan_intf_table[vlan_interface] and vlan_intf_table[vlan_interface]['proxy_arp'] == 'enabled':
+                ipPrefixLen = str(ipv4_prefix[ctr])
+            else:
+                ipPrefixLen = '32'
             mapping = {
                 'ipAddr': addr,
+                'ipPrefixLen': ipPrefixLen,
                 'macAddr': mac_addr
             }
             ipv4_mappings.append(mapping)
+            ctr += 1
 
-        ipv6_mappings = []
+        ctr = 0
         for addr in ipv6_addr:
+            if 'proxy_arp' in vlan_intf_table[vlan_interface] and vlan_intf_table[vlan_interface]['proxy_arp'] == 'enabled':
+                ipPrefixLen = str(ipv6_prefix[ctr])
+            else:
+                ipPrefixLen = '128'
             mapping = {
                 'ipAddr': addr,
+                'ipPrefixLen': ipPrefixLen,
                 'macAddr': mac_addr
             }
             ipv6_mappings.append(mapping)
+            ctr += 1
 
         vlan_interface_obj = {
             'vlanId': vlan_id,
@@ -310,6 +307,9 @@ def construct_neighbor_advertiser_slice():
             'ipv4AddrMappings': ipv4_mappings,
             'ipv6AddrMappings': ipv6_mappings
         }
+
+        if vxlanPort:
+            vlan_interface_obj['vxlanPort'] = vxlanPort
 
         vlan_interfaces_obj.append(vlan_interface_obj)
 
@@ -539,7 +539,7 @@ def main():
         sys.exit(1)
 
     connect_config_db()
-
+    connect_app_db()
     if operation_mode == 'set':
         set_success = False
 

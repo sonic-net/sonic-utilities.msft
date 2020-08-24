@@ -157,5 +157,8 @@
         "admin_status": "up",
         "mtu": "9100",
         "oper_status": "up"
+    },
+    "SWITCH_TABLE:switch": {
+        "vxlan_port": "13550"
     }
 }

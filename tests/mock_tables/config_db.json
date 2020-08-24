@@ -424,8 +424,15 @@
         "dhcp_servers@": "192.0.0.1,192.0.0.2,192.0.0.3,192.0.0.4",
         "vlanid": "1000"
     },
+    "VLAN|Vlan2000": {
+        "dhcp_servers@": "192.0.0.1,192.0.0.2,192.0.0.3,192.0.0.4",
+        "vlanid": "2000"
+    },
     "VLAN_INTERFACE|Vlan1000": {
         "NULL": "NULL"
+    },
+    "VLAN_INTERFACE|Vlan2000": {
+        "proxy_arp": "enabled"
     },
     "VLAN_INTERFACE|Vlan1000|192.168.0.1/21": {
         "NULL": "NULL"
@@ -443,6 +450,18 @@
         "tagging_mode": "untagged"
     },
     "VLAN_MEMBER|Vlan1000|Ethernet16": {
+        "tagging_mode": "untagged"
+    },
+    "VLAN_INTERFACE|Vlan2000|192.168.0.10/21": {
+        "NULL": "NULL"
+    },
+    "VLAN_INTERFACE|Vlan2000|fc02:1011::1/64": {
+        "NULL": "NULL"
+    },
+    "VLAN_MEMBER|Vlan2000|Ethernet24": {
+        "tagging_mode": "untagged"
+    },
+    "VLAN_MEMBER|Vlan2000|Ethernet28": {
         "tagging_mode": "untagged"
     },
     "PORTCHANNEL|PortChannel1001": {
@@ -578,6 +597,17 @@
         "state": "enabled",
         "auto_restart": "enabled",
         "high_mem_alert": "disabled"
+    },
+    "DEVICE_METADATA|localhost": {
+        "default_bgp_status": "down",
+        "default_pfcwd_status": "enable",
+        "deployment_id": "1",
+        "docker_routing_config_mode": "separated",
+        "hostname": "sonic-switch",
+        "hwsku": "Mellanox-SN3800-D112C8",
+        "mac": "1d:34:db:16:a6:00",
+        "platform": "x86_64-mlnx_msn3800-r0",
+        "type": "ToRRouter"
     },
     "DEVICE_NEIGHBOR|Ethernet4": {
         "name": "Servers0",
