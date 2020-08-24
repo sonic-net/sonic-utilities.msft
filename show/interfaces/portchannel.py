@@ -1,9 +1,13 @@
+
+import os
+import sys
+
 import click
-
-from tabulate import tabulate
-from natsort import natsorted
-
 import utilities_common.cli as clicommon
+from natsort import natsorted
+from tabulate import tabulate
+import utilities_common.multi_asic as multi_asic_util
+from utilities_common.constants import PORT_CHANNEL_OBJ
 
 """
     Script to show LAG and LAG member status in a summary view
@@ -24,7 +28,6 @@ import utilities_common.cli as clicommon
 
 """
 
-
 PORT_CHANNEL_APPL_TABLE_PREFIX = "LAG_TABLE:"
 PORT_CHANNEL_CFG_TABLE_PREFIX = "PORTCHANNEL|"
 PORT_CHANNEL_STATE_TABLE_PREFIX = "LAG_TABLE|"
@@ -35,21 +38,33 @@ PORT_CHANNEL_MEMBER_STATE_TABLE_PREFIX = "LAG_MEMBER_TABLE|"
 PORT_CHANNEL_MEMBER_STATUS_FIELD = "status"
 
 class Teamshow(object):
-    def __init__(self, db):
+    def __init__(self, namespace_option, display_option):
         self.teams = []
         self.teamsraw = {}
         self.summary = {}
-        self.db = db.db
-        self.db2 = db
+        self.err = None
+        self.db = None
+        self.multi_asic = multi_asic_util.MultiAsic(display_option, namespace_option)
+
+    @multi_asic_util.run_on_multi_asic
+    def get_teams_info(self):
+        self.get_portchannel_names()
+        self.get_teamdctl()
+        self.get_teamshow_result()
 
     def get_portchannel_names(self):
         """
             Get the portchannel names from database.
         """
+        self.teams = []
         team_keys = self.db.keys(self.db.CONFIG_DB, PORT_CHANNEL_CFG_TABLE_PREFIX+"*")
         if team_keys is None:
             return
-        self.teams = [key[len(PORT_CHANNEL_CFG_TABLE_PREFIX):] for key in team_keys]
+        for key in team_keys:
+            team_name = key[len(PORT_CHANNEL_CFG_TABLE_PREFIX):]
+            if self.multi_asic.skip_display(PORT_CHANNEL_OBJ, team_name) is True:
+                continue
+            self.teams.append(team_name)
 
     def get_portchannel_status(self, port_channel_name):
         """
@@ -120,7 +135,7 @@ class Teamshow(object):
                     pstate = self.db.get_all(self.db.STATE_DB, PORT_CHANNEL_MEMBER_STATE_TABLE_PREFIX+team+'|'+port)
                     selected = True if pstate['runner.aggregator.selected'] == "true" else False
                     if clicommon.get_interface_naming_mode() == "alias":
-                        alias = clicommon.InterfaceAliasConverter(self.db2).name_to_alias(port)
+                        alias = clicommon.InterfaceAliasConverter().name_to_alias(port)
                         info["ports"] += alias + "("
                     else:
                         info["ports"] += port + "("
@@ -146,12 +161,10 @@ class Teamshow(object):
 
 # 'portchannel' subcommand ("show interfaces portchannel")
 @click.command()
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-@clicommon.pass_db
-def portchannel(db, verbose):
+def portchannel(namespace, display, verbose):
     """Show PortChannel information"""
-    team = Teamshow(db)
-    team.get_portchannel_names()
-    team.get_teamdctl()
-    team.get_teamshow_result()
+    team = Teamshow(namespace, display)
+    team.get_teams_info()
     team.display_summary()
