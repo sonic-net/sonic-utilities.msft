@@ -1,5 +1,6 @@
 import click
-from show.main import AliasedGroup, ip, run_command, get_bgp_summary_extended
+from show.main import AliasedGroup, ip, run_command
+from utilities_common.bgp_util import get_bgp_summary_extended
 
 
 ###############################################################################

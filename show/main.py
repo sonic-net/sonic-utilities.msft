@@ -7,7 +7,7 @@ import os
 import re
 import subprocess
 import sys
-import ipaddress
+
 
 import click
 from natsort import natsorted
@@ -35,7 +35,7 @@ VLAN_SUB_INTERFACE_SEPARATOR = '.'
 # location (configdb?), so that we prevent the continous execution of this
 # bash oneliner. To be revisited once routing-stack info is tracked somewhere.
 def get_routing_stack():
-    command = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1"
+    command = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1 | head -n 1"
 
     try:
         proc = subprocess.Popen(command,
@@ -95,33 +95,6 @@ def run_command(command, display_cmd=False, return_cmd=False):
 iface_alias_converter = clicommon.InterfaceAliasConverter()
 
 
-def get_bgp_summary_extended(command_output):
-    """
-    Adds Neighbor name to the show ip[v6] bgp summary command
-    :param command: command to get bgp summary
-    """
-    static_neighbors, dynamic_neighbors = get_bgp_neighbors_dict()
-    modified_output = []
-    my_list = iter(command_output.splitlines())
-    for element in my_list:
-        if element.startswith("Neighbor"):
-            element = "{}\tNeighborName".format(element)
-            modified_output.append(element)
-        elif not element or element.startswith("Total number "):
-            modified_output.append(element)
-        elif re.match(r"(\*?([0-9A-Fa-f]{1,4}:|\d+.\d+.\d+.\d+))", element.split()[0]):
-            first_element = element.split()[0]
-            ip = first_element[1:] if first_element.startswith("*") else first_element
-            name = get_bgp_neighbor_ip_to_name(ip, static_neighbors, dynamic_neighbors)
-            if len(element.split()) == 1:
-                modified_output.append(element)
-                element = next(my_list)
-            element = "{}\t{}".format(element, name)
-            modified_output.append(element)
-        else:
-            modified_output.append(element)
-    click.echo("\n".join(modified_output))
-
 
 def connect_config_db():
     """
@@ -131,108 +104,6 @@ def connect_config_db():
     config_db.connect()
     return config_db
 
-
-def get_neighbor_dict_from_table(db,table_name):
-    """
-    returns a dict with bgp neighbor ip as key and neighbor name as value
-    :param table_name: config db table name
-    :param db: config_db
-    """
-    neighbor_dict = {}
-    neighbor_data = db.get_table(table_name)
-    try:
-        for entry in neighbor_data.keys():
-            neighbor_dict[entry] = neighbor_data[entry].get(
-                'name') if 'name' in neighbor_data[entry].keys() else 'NotAvailable'
-        return neighbor_dict
-    except Exception:
-        return neighbor_dict
-
-
-def is_ipv4_address(ipaddress):
-    """
-    Checks if given ip is ipv4
-    :param ipaddress: unicode ipv4
-    :return: bool
-    """
-    try:
-        ipaddress.IPv4Address(ipaddress)
-        return True
-    except ipaddress.AddressValueError as err:
-        return False
-
-
-def is_ipv6_address(ipaddress):
-    """
-    Checks if given ip is ipv6
-    :param ipaddress: unicode ipv6
-    :return: bool
-    """
-    try:
-        ipaddress.IPv6Address(ipaddress)
-        return True
-    except ipaddress.AddressValueError as err:
-        return False
-
-
-def get_dynamic_neighbor_subnet(db):
-    """
-    Returns dict of description and subnet info from bgp_peer_range table
-    :param db: config_db
-    """
-    dynamic_neighbor = {}
-    v4_subnet = {}
-    v6_subnet = {}
-    neighbor_data = db.get_table('BGP_PEER_RANGE')
-    try:
-        for entry in neighbor_data.keys():
-            new_key = neighbor_data[entry]['ip_range'][0]
-            new_value = neighbor_data[entry]['name']
-            if is_ipv4_address(unicode(neighbor_data[entry]['src_address'])):
-                v4_subnet[new_key] = new_value
-            elif is_ipv6_address(unicode(neighbor_data[entry]['src_address'])):
-                v6_subnet[new_key] = new_value
-        dynamic_neighbor["v4"] = v4_subnet
-        dynamic_neighbor["v6"] = v6_subnet
-        return dynamic_neighbor
-    except Exception:
-        return neighbor_data
-
-
-def get_bgp_neighbors_dict():
-    """
-    Uses config_db to get the bgp neighbors and names in dictionary format
-    :return:
-    """
-    dynamic_neighbors = {}
-    config_db = connect_config_db()
-    static_neighbors = get_neighbor_dict_from_table(config_db, 'BGP_NEIGHBOR')
-    bgp_monitors = get_neighbor_dict_from_table(config_db, 'BGP_MONITORS')
-    static_neighbors.update(bgp_monitors)
-    dynamic_neighbors = get_dynamic_neighbor_subnet(config_db)
-    return static_neighbors, dynamic_neighbors
-
-
-def get_bgp_neighbor_ip_to_name(ip, static_neighbors, dynamic_neighbors):
-    """
-    return neighbor name for the ip provided
-    :param ip: ip address unicode
-    :param static_neighbors: statically defined bgp neighbors dict
-    :param dynamic_neighbors: subnet of dynamically defined neighbors dict
-    :return: name of neighbor
-    """
-    if ip in static_neighbors.keys():
-        return static_neighbors[ip]
-    elif is_ipv4_address(unicode(ip)):
-        for subnet in dynamic_neighbors["v4"].keys():
-            if ipaddress.IPv4Address(unicode(ip)) in ipaddress.IPv4Network(unicode(subnet)):
-                return dynamic_neighbors["v4"][subnet]
-    elif is_ipv6_address(unicode(ip)):
-        for subnet in dynamic_neighbors["v6"].keys():
-            if ipaddress.IPv6Address(unicode(ip)) in ipaddress.IPv6Network(unicode(subnet)):
-                return dynamic_neighbors["v6"][subnet]
-    else:
-        return "NotAvailable"
 
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
@@ -1037,7 +908,6 @@ def protocol(verbose):
     """Show IPv6 protocol information"""
     cmd = 'sudo vtysh -c "show ipv6 protocol"'
     run_command(cmd, display_cmd=verbose)
-
 
 #
 # Inserting BGP functionality into cli's show parse-chain.
