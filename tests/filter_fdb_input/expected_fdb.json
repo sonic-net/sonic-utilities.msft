@@ -182,6 +182,13 @@
     "OP": "SET"
   },
   {
+    "FDB_TABLE:Vlan1000:24-8A-07-4C-F5-18": {
+      "type": "dynamic",
+      "port": "Ethernet24"
+    },
+    "OP": "SET"
+  },
+  {
     "FDB_TABLE:Vlan1000:72-06-00-01-02-72": {
       "type": "dynamic",
       "port": "Ethernet37"

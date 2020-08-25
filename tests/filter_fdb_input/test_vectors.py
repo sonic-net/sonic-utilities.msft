@@ -43,7 +43,9 @@ filterFdbEntriesTestVector = [
                 "Vlan1000": {}
             },
             "VLAN_INTERFACE": {
-                "Vlan1000|192.168.0.1/21": {}
+                "Vlan1000": {}, 
+                "Vlan1000|192.168.0.1/21": {},
+                "Vlan1000|fc02:1000::1/64": {}
             }, 
         },
         "expected_fdb": [
@@ -80,7 +82,8 @@ filterFdbEntriesTestVector = [
                 "Vlan1000": {}
             },
             "VLAN_INTERFACE": {
-                "Vlan1000|192.168.0.1/21": {}
+                "Vlan1000|192.168.0.1/21": {},
+                "Vlan1000|fc02:1000::1/64": {}
             }, 
         },
         "expected_fdb": [
@@ -154,8 +157,10 @@ filterFdbEntriesTestVector = [
                 "Vlan1": {}
             },
             "VLAN_INTERFACE": {
-                "Vlan1|25.103.178.1/21": {}
-            }, 
+                "Vlan1|25.103.178.1/21": {},
+                "Vlan1": {}, 
+                "Vlan1|fc02:1000::1/64": {}
+            },
         },
         "expected_fdb": [
             {
