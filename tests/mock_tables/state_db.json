@@ -164,5 +164,44 @@
         "runner.fast_rate": "false",
         "setup.kernel_team_mode_name": "loadbalance",
         "runner.active": "true"
+    },
+    "FAN_INFO|fan1": {
+        "drawer_name": "drawer1",
+        "presence": "True",
+        "model": "N/A",
+        "serial": "N/A",
+        "status": "True",
+        "direction": "intake",
+        "speed": "30",
+        "speed_tolerance": "50",
+        "speed_target": "20",
+        "led_status": "red",
+        "timestamp": "20200813 01:32:30"
+    },
+    "FAN_INFO|fan2": {
+        "drawer_name": "drawer2",
+        "presence": "True",
+        "model": "N/A",
+        "serial": "N/A",
+        "status": "False",
+        "direction": "intake",
+        "speed": "50",
+        "speed_tolerance": "50",
+        "speed_target": "50",
+        "led_status": "green",
+        "timestamp": "20200813 01:32:30"
+    },
+    "FAN_INFO|fan3": {
+        "drawer_name": "drawer3",
+        "presence": "True",
+        "model": "N/A",
+        "serial": "N/A",
+        "status": "Updating",
+        "direction": "intake",
+        "speed": "50",
+        "speed_tolerance": "50",
+        "speed_target": "50",
+        "led_status": "green",
+        "timestamp": "20200813 01:32:30"
     }
 }

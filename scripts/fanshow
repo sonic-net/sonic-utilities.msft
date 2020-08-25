@@ -4,9 +4,22 @@
 """
 from __future__ import print_function
 
+import os
+import sys
 from tabulate import tabulate
 from swsssdk import SonicV2Connector
 from natsort import natsorted
+
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        test_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, test_path)
+        import mock_tables.dbconnector
+except KeyError:
+    pass
 
 
 header = ['Drawer', 'LED', 'FAN', 'Speed', 'Direction', 'Presence', 'Status', 'Timestamp']
@@ -52,13 +65,13 @@ class FanShow(object):
 
             presence = data_dict[PRESENCE_FIELD_NAME].lower()
             presence = 'Present' if presence == 'true' else 'Not Present'
-            status = data_dict[STATUS_FIELD_NAME].lower()
-            if status == 'true':
+            
+            status = data_dict[STATUS_FIELD_NAME]
+            status_lower = status.lower()
+            if status_lower == 'true':
                 status = 'OK'
-            elif status == 'false':
+            elif status_lower == 'false':
                 status = 'Not OK'
-            else:
-                status = 'N/A'
 
             table.append((data_dict[DRAWER_FIELD_NAME], data_dict[LED_STATUS_FIELD_NAME], name, speed, data_dict[DIRECTION_FIELD_NAME], presence, status, 
                           data_dict[TIMESTAMP_FIELD_NAME]))
