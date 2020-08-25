@@ -13,7 +13,7 @@ import threading
 import time
 
 from minigraph import parse_device_desc_xml
-from portconfig import get_child_ports, get_port_config_file_name
+from portconfig import get_child_ports
 from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from utilities_common.db import Db
@@ -68,31 +68,12 @@ def readJsonFile(fileName):
         raise Exception(str(e))
     return result
 
-def _get_breakout_cfg_file_name():
-    """
-    Get name of config file for Dynamic Port Breakout
-    """
-    try:
-        (platform, hwsku) = device_info.get_platform_and_hwsku()
-    except Exception as e:
-        click.secho("Failed to get platform and hwsku with error:{}".format(str(e)), fg='red')
-        raise click.Abort()
-
-    try:
-        breakout_cfg_file_name = get_port_config_file_name(hwsku, platform)
-    except Exception as e:
-        click.secho("Breakout config file not found with error:{}".format(str(e)), fg='red')
-        raise click.Abort()
-
-    return breakout_cfg_file_name
-
-
 def _get_breakout_options(ctx, args, incomplete):
     """ Provides dynamic mode option as per user argument i.e. interface name """
     all_mode_options = []
     interface_name = args[-1]
 
-    breakout_cfg_file = _get_breakout_cfg_file_name()
+    breakout_cfg_file = device_info.get_path_to_port_config_file()
 
     if not os.path.isfile(breakout_cfg_file) or not breakout_cfg_file.endswith('.json'):
         return []
@@ -2125,7 +2106,7 @@ def speed(ctx, interface_name, interface_speed, verbose):
 @click.pass_context
 def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load_predefined_config):
     """ Set interface breakout mode """
-    breakout_cfg_file = _get_breakout_cfg_file_name()
+    breakout_cfg_file = device_info.get_path_to_port_config_file()
 
     if not os.path.isfile(breakout_cfg_file) or not breakout_cfg_file.endswith('.json'):
         click.secho("[ERROR] Breakout feature is not available without platform.json file", fg='red')
