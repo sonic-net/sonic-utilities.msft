@@ -14,7 +14,8 @@ import time
 
 from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports
-from sonic_py_common import device_info
+from sonic_py_common import device_info, multi_asic
+from sonic_py_common.interface import front_panel_prefix, portchannel_prefix, vlan_prefix, loopback_prefix
 from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
@@ -92,12 +93,12 @@ def shutdown_interfaces(ctx, del_intf_dict):
     for intf in del_intf_dict.keys():
         config_db = ctx.obj['config_db']
         if clicommon.get_interface_naming_mode() == "alias":
-            interface_name = interface_alias_to_name(intf)
+            interface_name = interface_alias_to_name(config_db, intf)
             if interface_name is None:
                 click.echo("[ERROR] interface name is None!")
                 return False
 
-        if interface_name_is_valid(intf) is False:
+        if interface_name_is_valid(config_db, intf) is False:
             click.echo("[ERROR] Interface name is invalid. Please enter a valid interface name!!")
             return False
 
@@ -208,7 +209,7 @@ def execute_systemctl_per_asic_instance(inst, event, service, action):
 
 # Execute action on list of systemd services
 def execute_systemctl(list_of_services, action):
-    num_asic = device_info.get_num_npus()
+    num_asic = multi_asic.get_num_asics()
     generated_services_list, generated_multi_instance_services = _get_sonic_generated_services(num_asic)
     if ((generated_services_list == []) and
         (generated_multi_instance_services == [])):
@@ -226,7 +227,7 @@ def execute_systemctl(list_of_services, action):
 
         if (service + '.service' in generated_multi_instance_services):
             # With Multi NPU, Start a thread per instance to do the "action" on multi instance services.
-            if device_info.is_multi_npu():
+            if multi_asic.is_multi_asic():
                 threads = []
                 # Use this event object to co-ordinate if any threads raised exception
                 e = threading.Event()
@@ -263,24 +264,21 @@ def _get_device_type():
 
     return device_type
 
+# TODO move to sonic-py-common package
 # Validate whether a given namespace name is valid in the device.
 def validate_namespace(namespace):
-    if not device_info.is_multi_npu():
+    if not multi_asic.is_multi_asic():
         return True
 
-    namespaces = device_info.get_all_namespaces()
+    namespaces = multi_asic.get_all_namespaces()
     if namespace in namespaces['front_ns'] + namespaces['back_ns']:
         return True
     else:
         return False
 
-def interface_alias_to_name(interface_alias):
+def interface_alias_to_name(config_db, interface_alias):
     """Return default interface name if alias name is given as argument
     """
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    port_dict = config_db.get_table('PORT')
-
     vlan_id = ""
     sub_intf_sep_idx = -1
     if interface_alias is not None:
@@ -289,6 +287,17 @@ def interface_alias_to_name(interface_alias):
             vlan_id = interface_alias[sub_intf_sep_idx + 1:]
             # interface_alias holds the parent port name so the subsequent logic still applies
             interface_alias = interface_alias[:sub_intf_sep_idx]
+
+    # If the input parameter config_db is None, derive it from interface.
+    # In single ASIC platform, get_port_namespace() returns DEFAULT_NAMESPACE.
+    if config_db is None:
+        namespace = get_port_namespace(interface_alias)
+        if namespace is None:
+            return None
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+
+    config_db.connect()
+    port_dict = config_db.get_table('PORT')
 
     if interface_alias is not None:
         if not port_dict:
@@ -302,18 +311,24 @@ def interface_alias_to_name(interface_alias):
     # portchannel is passed in as argument, which does not have an alias
     return interface_alias if sub_intf_sep_idx == -1 else interface_alias + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
-
-def interface_name_is_valid(interface_name):
+def interface_name_is_valid(config_db, interface_name):
     """Check if the interface name is valid
     """
-    config_db = ConfigDBConnector()
+    # If the input parameter config_db is None, derive it from interface.
+    # In single ASIC platform, get_port_namespace() returns DEFAULT_NAMESPACE.
+    if config_db is None:
+        namespace = get_port_namespace(interface_name)
+        if namespace is None:
+            return False
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+
     config_db.connect()
     port_dict = config_db.get_table('PORT')
     port_channel_dict = config_db.get_table('PORTCHANNEL')
     sub_port_intf_dict = config_db.get_table('VLAN_SUB_INTERFACE')
 
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
 
     if interface_name is not None:
         if not port_dict:
@@ -332,10 +347,17 @@ def interface_name_is_valid(interface_name):
                     return True
     return False
 
-def interface_name_to_alias(interface_name):
+def interface_name_to_alias(config_db, interface_name):
     """Return alias interface name if default name is given as argument
     """
-    config_db = ConfigDBConnector()
+    # If the input parameter config_db is None, derive it from interface.
+    # In single ASIC platform, get_port_namespace() returns DEFAULT_NAMESPACE.
+    if config_db is None:
+        namespace = get_port_namespace(interface_name)
+        if namespace is None:
+            return None
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+
     config_db.connect()
     port_dict = config_db.get_table('PORT')
 
@@ -349,20 +371,21 @@ def interface_name_to_alias(interface_name):
 
     return None
 
+# TODO move to sonic-py-common package
 def get_interface_table_name(interface_name):
     """Get table name by interface_name prefix
     """
-    if interface_name.startswith("Ethernet"):
+    if interface_name.startswith(front_panel_prefix()):
         if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
             return "VLAN_SUB_INTERFACE"
         return "INTERFACE"
-    elif interface_name.startswith("PortChannel"):
+    elif interface_name.startswith(portchannel_prefix()):
         if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
             return "VLAN_SUB_INTERFACE"
         return "PORTCHANNEL_INTERFACE"
-    elif interface_name.startswith("Vlan"):
+    elif interface_name.startswith(vlan_prefix()):
         return "VLAN_INTERFACE"
-    elif interface_name.startswith("Loopback"):
+    elif interface_name.startswith(loopback_prefix()):
         return "LOOPBACK_INTERFACE"
     else:
         return ""
@@ -391,6 +414,59 @@ def is_interface_bind_to_vrf(config_db, interface_name):
         return True
     return False
 
+# TODO move to sonic-py-common package
+# Get the table name based on the interface type
+def get_port_table_name(interface_name):
+    """Get table name by port_name prefix
+    """
+    if interface_name.startswith(front_panel_prefix()):
+        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
+            return "VLAN_SUB_INTERFACE"
+        return "PORT"
+    elif interface_name.startswith(portchannel_prefix()):
+        if VLAN_SUB_INTERFACE_SEPARATOR in interface_name:
+            return "VLAN_SUB_INTERFACE"
+        return "PORTCHANNEL"
+    elif interface_name.startswith(vlan_prefix()):
+        return "VLAN_INTERFACE"
+    elif interface_name.startswith(loopback_prefix()):
+        return "LOOPBACK_INTERFACE"
+    else:
+        return ""
+
+# Return the namespace where an interface belongs
+# The port name input could be in default mode or in alias mode.
+def get_port_namespace(port):
+    # If it is a non multi-asic platform, or if the interface is management interface
+    # return DEFAULT_NAMESPACE
+    if not multi_asic.is_multi_asic() or port == 'eth0':
+        return DEFAULT_NAMESPACE
+
+    # Get the table to check for interface presence
+    table_name = get_port_table_name(port)
+    if table_name == "":
+        return None
+
+    ns_list = multi_asic.get_all_namespaces()
+    namespaces = ns_list['front_ns'] + ns_list['back_ns']
+    for namespace in namespaces:
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        config_db.connect()
+
+        # If the interface naming mode is alias, search the tables for alias_name.
+        if clicommon.get_interface_naming_mode() == "alias":
+            port_dict = config_db.get_table(table_name)
+            if port_dict:
+                for port_name in port_dict.keys():
+                    if port == port_dict[port_name]['alias']:
+                        return namespace
+        else:
+            entry = config_db.get_entry(table_name, port)
+            if entry:
+                return namespace
+
+    return None
+
 def del_interface_bind_to_vrf(config_db, vrf_name):
     """del interface bind to vrf
     """
@@ -411,8 +487,18 @@ def set_interface_naming_mode(mode):
     user = os.getenv('SUDO_USER')
     bashrc_ifacemode_line = "export SONIC_CLI_IFACE_MODE={}".format(mode)
 
+    # In case of multi-asic, we can check for the alias mode support in any of
+    # the namespaces as this setting of alias mode should be identical everywhere.
+    # Here by default we set the namespaces to be a list just having '' which
+    # represents the linux host. In case of multi-asic, we take the first namespace
+    # created for the front facing ASIC.
+
+    namespaces = [DEFAULT_NAMESPACE]
+    if multi_asic.is_multi_asic():
+        namespaces = multi_asic.get_all_namespaces()['front_ns']
+
     # Ensure all interfaces have an 'alias' key in PORT dict
-    config_db = ConfigDBConnector()
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespaces[0])
     config_db.connect()
     port_dict = config_db.get_table('PORT')
 
@@ -567,8 +653,8 @@ def _clear_qos():
             'BUFFER_QUEUE']
 
     namespace_list = [DEFAULT_NAMESPACE]
-    if device_info.get_num_npus() > 1:
-        namespace_list = device_info.get_namespaces()
+    if multi_asic.get_num_asics() > 1:
+        namespace_list = multi_asic.get_namespaces_from_linux()
 
     for ns in namespace_list:
         if ns is DEFAULT_NAMESPACE:
@@ -752,7 +838,7 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
     portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
 
     if dst_port:
-        if not interface_name_is_valid(dst_port):
+        if not interface_name_is_valid(config_db, dst_port):
             click.echo("Error: Destination Interface {} is invalid".format(dst_port))
             return False
 
@@ -774,7 +860,7 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 
     if src_port:
         for port in src_port.split(","):
-            if not interface_name_is_valid(port):
+            if not interface_name_is_valid(config_db, port):
                 click.echo("Error: Source Interface {} is invalid".format(port))
                 return False
             if dst_port and dst_port == port:
@@ -816,8 +902,6 @@ def config(ctx):
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
 
-    SonicDBConfig.load_sonic_global_db_config()
-
     ctx.obj = Db()
 
 config.add_command(aaa.aaa)
@@ -835,11 +919,11 @@ def save(filename):
     """Export current config DB to a file on disk.\n
        <filename> : Names of configuration file(s) to save, separated by comma with no spaces in between
     """
-    num_asic = device_info.get_num_npus()
+    num_asic = multi_asic.get_num_asics()
     cfg_files = []
 
     num_cfg_file = 1
-    if device_info.is_multi_npu():
+    if multi_asic.is_multi_asic():
         num_cfg_file += num_asic
 
     # If the user give the filename[s], extract the file names.
@@ -850,12 +934,11 @@ def save(filename):
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
-    """In case of multi-asic mode we have additional config_db{NS}.json files for
-       various namespaces created per ASIC. {NS} is the namespace index.
-    """
+    # In case of multi-asic mode we have additional config_db{NS}.json files for
+    # various namespaces created per ASIC. {NS} is the namespace index.
     for inst in range(-1, num_cfg_file-1):
         #inst = -1, refers to the linux host where there is no namespace.
-        if inst is -1:
+        if inst == -1:
             namespace = None
         else:
             namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
@@ -892,11 +975,11 @@ def load(filename, yes):
     if not yes:
         click.confirm(message, abort=True)
 
-    num_asic = device_info.get_num_npus()
+    num_asic = multi_asic.get_num_asics()
     cfg_files = []
 
     num_cfg_file = 1
-    if device_info.is_multi_npu():
+    if multi_asic.is_multi_asic():
         num_cfg_file += num_asic
 
     # If the user give the filename[s], extract the file names.
@@ -907,12 +990,11 @@ def load(filename, yes):
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
-    """In case of multi-asic mode we have additional config_db{NS}.json files for
-       various namespaces created per ASIC. {NS} is the namespace index.
-    """
+    # In case of multi-asic mode we have additional config_db{NS}.json files for
+    # various namespaces created per ASIC. {NS} is the namespace index.
     for inst in range(-1, num_cfg_file-1):
         #inst = -1, refers to the linux host where there is no namespace.
-        if inst is -1:
+        if inst == -1:
             namespace = None
         else:
             namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
@@ -960,11 +1042,11 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
 
     log.log_info("'reload' executing...")
 
-    num_asic = device_info.get_num_npus()
+    num_asic = multi_asic.get_num_asics()
     cfg_files = []
 
     num_cfg_file = 1
-    if device_info.is_multi_npu():
+    if multi_asic.is_multi_asic():
         num_cfg_file += num_asic
 
     # If the user give the filename[s], extract the file names.
@@ -990,14 +1072,13 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
         log.log_info("'reload' stopping services...")
         _stop_services(db.cfgdb)
 
-    """ In Single AISC platforms we have single DB service. In multi-ASIC platforms we have a global DB
-        service running in the host + DB services running in each ASIC namespace created per ASIC.
-        In the below logic, we get all namespaces in this platform and add an empty namespace ''
-        denoting the current namespace which we are in ( the linux host )
-    """
+    # In Single AISC platforms we have single DB service. In multi-ASIC platforms we have a global DB
+    # service running in the host + DB services running in each ASIC namespace created per ASIC.
+    # In the below logic, we get all namespaces in this platform and add an empty namespace ''
+    # denoting the current namespace which we are in ( the linux host )
     for inst in range(-1, num_cfg_file-1):
         # Get the namespace name, for linux host it is None
-        if inst is -1:
+        if inst == -1:
             namespace = None
         else:
             namespace = "{}{}".format(NAMESPACE_PREFIX, inst)
@@ -1011,7 +1092,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
             else:
                 file = "/etc/sonic/config_db{}.json".format(inst)
 
-        #Check the file exists before proceeding.
+        # Check the file exists before proceeding.
         if not os.path.isfile(file):
             click.echo("The config_db file {} doesn't exist".format(file))
             continue
@@ -1034,7 +1115,6 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
         # For the database service running in linux host we use the file user gives as input
         # or by default DEFAULT_CONFIG_DB_FILE. In the case of database service running in namespace,
         # the default config_db<namespaceID>.json format is used.
-
         if namespace is None:
             if os.path.isfile(INIT_CFG_FILE):
                 command = "{} -j {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, file)
@@ -1108,9 +1188,9 @@ def load_minigraph(db, no_service_restart):
     # for mulit Asic platform the empty string to generate the config
     # for host
     namespace_list = [DEFAULT_NAMESPACE]
-    num_npus = device_info.get_num_npus()
+    num_npus = multi_asic.get_num_asics()
     if num_npus > 1:
-        namespace_list += device_info.get_namespaces()
+        namespace_list += multi_asic.get_namespaces_from_linux()
 
     for namespace in namespace_list:
         if namespace is DEFAULT_NAMESPACE:
@@ -1188,11 +1268,18 @@ def hostname(new_hostname):
 # 'portchannel' group ('config portchannel ...')
 #
 @config.group(cls=clicommon.AbbreviationGroup)
+# TODO add "hidden=True if this is a single ASIC platform, once we have click 7.0 in all branches.
+@click.option('-n', '--namespace', help='Namespace name',
+             required=True if multi_asic.is_multi_asic() else False, type=click.Choice(multi_asic.get_namespace_list()))
 @click.pass_context
-def portchannel(ctx):
-    config_db = ConfigDBConnector()
+def portchannel(ctx, namespace):
+    # Set namespace to default_namespace if it is None.
+    if namespace is None:
+        namespace = DEFAULT_NAMESPACE
+
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=str(namespace))
     config_db.connect()
-    ctx.obj = {'db': config_db}
+    ctx.obj = {'db': config_db, 'namespace': str(namespace)}
 
 @portchannel.command('add')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -1232,6 +1319,11 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     db = ctx.obj['db']
     if clicommon.is_port_mirror_dst_port(db, port_name):
         ctx.fail("{} is configured as mirror destination port".format(port_name))
+
+    # Check if the member interface given by user is valid in the namespace.
+    if interface_name_is_valid(db, port_name) is False:
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})
 
@@ -1242,6 +1334,11 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
 def del_portchannel_member(ctx, portchannel_name, port_name):
     """Remove member from portchannel"""
     db = ctx.obj['db']
+
+    # Check if the member interface given by user is valid in the namespace.
+    if interface_name_is_valid(db, port_name) is False:
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
     db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
 
@@ -1307,7 +1404,7 @@ def gather_session_info(session_info, policer, queue, src_port, direction):
         if clicommon.get_interface_naming_mode() == "alias":
             src_port_list = []
             for port in src_port.split(","):
-                src_port_list.append(interface_alias_to_name(port))
+                src_port_list.append(interface_alias_to_name(None, port))
             src_port=",".join(src_port_list)
 
         session_info['src_port'] = src_port
@@ -1334,7 +1431,7 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
-    namespaces = device_info.get_all_namespaces()
+    namespaces = multi_asic.get_all_namespaces()
     if not namespaces['front_ns']:
         config_db = ConfigDBConnector()
         config_db.connect()
@@ -1369,7 +1466,7 @@ def add(session_name, dst_port, src_port, direction, queue, policer):
 
 def add_span(session_name, dst_port, src_port, direction, queue, policer):
     if clicommon.get_interface_naming_mode() == "alias":
-        dst_port = interface_alias_to_name(dst_port)
+        dst_port = interface_alias_to_name(None, dst_port)
         if dst_port is None:
             click.echo("Error: Destination Interface {} is invalid".format(dst_port))
             return
@@ -1384,7 +1481,7 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
-    namespaces = device_info.get_all_namespaces()
+    namespaces = multi_asic.get_all_namespaces()
     if not namespaces['front_ns']:
         config_db = ConfigDBConnector()
         config_db.connect()
@@ -1409,7 +1506,7 @@ def remove(session_name):
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
-    namespaces = device_info.get_all_namespaces()
+    namespaces = multi_asic.get_all_namespaces()
     if not namespaces['front_ns']:
         config_db = ConfigDBConnector()
         config_db.connect()
@@ -1531,14 +1628,14 @@ def reload():
     _, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
 
     namespace_list = [DEFAULT_NAMESPACE]
-    if device_info.get_num_npus() > 1:
-        namespace_list = device_info.get_namespaces()
+    if multi_asic.get_num_asics() > 1:
+        namespace_list = multi_asic.get_namespaces_from_linux()
 
     for ns in namespace_list:
         if ns is DEFAULT_NAMESPACE:
             asic_id_suffix = ""
         else:
-            asic_id = device_info.get_npu_id_from_name(ns)
+            asic_id = multi_asic.get_asic_id_from_name(ns)
             if asic_id is None:
                 click.secho(
                     "Command 'qos reload' failed with invalid namespace '{}'".
@@ -1854,8 +1951,8 @@ def all(verbose):
     namespaces = [DEFAULT_NAMESPACE]
     ignore_local_hosts = False
 
-    if device_info.is_multi_npu():
-        ns_list = device_info.get_all_namespaces()
+    if multi_asic.is_multi_asic():
+        ns_list = multi_asic.get_all_namespaces()
         namespaces = ns_list['front_ns']
         ignore_local_hosts = True
 
@@ -1880,8 +1977,8 @@ def neighbor(ipaddr_or_hostname, verbose):
     namespaces = [DEFAULT_NAMESPACE]
     found_neighbor = False
 
-    if device_info.is_multi_npu():
-        ns_list = device_info.get_all_namespaces()
+    if multi_asic.is_multi_asic():
+        ns_list = multi_asic.get_all_namespaces()
         namespaces = ns_list['front_ns'] + ns_list['back_ns']
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
@@ -1911,8 +2008,8 @@ def all(verbose):
     namespaces = [DEFAULT_NAMESPACE]
     ignore_local_hosts = False
 
-    if device_info.is_multi_npu():
-        ns_list = device_info.get_all_namespaces()
+    if multi_asic.is_multi_asic():
+        ns_list = multi_asic.get_all_namespaces()
         namespaces = ns_list['front_ns']
         ignore_local_hosts = True
 
@@ -1937,8 +2034,8 @@ def neighbor(ipaddr_or_hostname, verbose):
     namespaces = [DEFAULT_NAMESPACE]
     found_neighbor = False
 
-    if device_info.is_multi_npu():
-        ns_list = device_info.get_all_namespaces()
+    if multi_asic.is_multi_asic():
+        ns_list = multi_asic.get_all_namespaces()
         namespaces = ns_list['front_ns'] + ns_list['back_ns']
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
@@ -1970,8 +2067,8 @@ def remove_neighbor(neighbor_ip_or_hostname):
     namespaces = [DEFAULT_NAMESPACE]
     removed_neighbor = False
 
-    if device_info.is_multi_npu():
-        ns_list = device_info.get_all_namespaces()
+    if multi_asic.is_multi_asic():
+        ns_list = multi_asic.get_all_namespaces()
         namespaces = ns_list['front_ns'] + ns_list['back_ns']
 
     # Connect to CONFIG_DB in linux host (in case of single ASIC) or CONFIG_DB in all the
@@ -1990,14 +2087,18 @@ def remove_neighbor(neighbor_ip_or_hostname):
 #
 
 @config.group(cls=clicommon.AbbreviationGroup)
+# TODO add "hidden=True if this is a single ASIC platform, once we have click 7.0 in all branches.
+@click.option('-n', '--namespace', help='Namespace name',
+             required=True if multi_asic.is_multi_asic() else False, type=click.Choice(multi_asic.get_namespace_list()))
 @click.pass_context
-def interface(ctx):
+def interface(ctx, namespace):
     """Interface-related configuration tasks"""
-    config_db = ConfigDBConnector()
+    # Set namespace to default_namespace if it is None.
+    if namespace is None:
+        namespace = DEFAULT_NAMESPACE
+    config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=str(namespace))
     config_db.connect()
-    ctx.obj = {}
-    ctx.obj['config_db'] = config_db
-
+    ctx.obj = {'config_db': config_db, 'namespace': str(namespace)}
 #
 # 'startup' subcommand
 #
@@ -2007,15 +2108,19 @@ def interface(ctx):
 @click.pass_context
 def startup(ctx, interface_name):
     """Start up interface"""
-
+    # Get the config_db connector
     config_db = ctx.obj['config_db']
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
     intf_fs = parse_interface_in_filter(interface_name)
-    if len(intf_fs) == 1 and interface_name_is_valid(interface_name) is False:
+    if len(intf_fs) > 1 and multi_asic.is_multi_asic():
+         ctx.fail("Interface range not supported in multi-asic platforms !!")
+
+    if len(intf_fs) == 1 and interface_name_is_valid(config_db, interface_name) is False:
          ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
     log.log_info("'interface startup {}' executing...".format(interface_name))
@@ -2044,14 +2149,19 @@ def startup(ctx, interface_name):
 def shutdown(ctx, interface_name):
     """Shut down interface"""
     log.log_info("'interface shutdown {}' executing...".format(interface_name))
+    # Get the config_db connector
     config_db = ctx.obj['config_db']
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
     intf_fs = parse_interface_in_filter(interface_name)
-    if len(intf_fs) == 1 and interface_name_is_valid(interface_name) is False:
+    if len(intf_fs) > 1 and multi_asic.is_multi_asic():
+         ctx.fail("Interface range not supported in multi-asic platforms !!")
+
+    if len(intf_fs) == 1 and interface_name_is_valid(config_db, interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
     port_dict = config_db.get_table('PORT')
@@ -2080,14 +2190,21 @@ def shutdown(ctx, interface_name):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def speed(ctx, interface_name, interface_speed, verbose):
     """Set interface speed"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
     log.log_info("'interface speed {} {}' executing...".format(interface_name, interface_speed))
 
-    command = "portconfig -p {} -s {}".format(interface_name, interface_speed)
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -s {}".format(interface_name, interface_speed)
+    else:
+        command = "portconfig -p {} -s {} -n {}".format(interface_name, interface_speed, ctx.obj['namespace'])
+
     if verbose:
         command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
@@ -2112,10 +2229,8 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         click.secho("[ERROR] Breakout feature is not available without platform.json file", fg='red')
         raise click.Abort()
 
-    # Connect to config db and get the context
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    ctx.obj['config_db'] = config_db
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
 
     target_brkout_mode = mode
 
@@ -2245,12 +2360,18 @@ def mgmt_ip_restart_services():
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def mtu(ctx, interface_name, interface_mtu, verbose):
     """Set interface mtu"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    command = "portconfig -p {} -m {}".format(interface_name, interface_mtu)
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -m {}".format(interface_name, interface_mtu)
+    else:
+        command = "portconfig -p {} -m {} -n {}".format(interface_name, interface_mtu, ctx.obj['namespace'])
+
     if verbose:
         command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
@@ -2262,14 +2383,21 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
 def fec(ctx, interface_name, interface_fec, verbose):
     """Set interface fec"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
     if interface_fec not in ["rs", "fc", "none"]:
         ctx.fail("'fec not in ['rs', 'fc', 'none']!")
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    command = "portconfig -p {} -f {}".format(interface_name, interface_fec)
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -f {}".format(interface_name, interface_fec)
+    else:
+        command = "portconfig -p {} -f {} -n {}".format(interface_name, interface_fec, ctx.obj['namespace'])
+
     if verbose:
         command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
@@ -2295,9 +2423,11 @@ def ip(ctx):
 @click.pass_context
 def add(ctx, interface_name, ip_addr, gw):
     """Add an IP address towards the interface"""
-    config_db = ctx.obj["config_db"]
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
@@ -2354,9 +2484,11 @@ def add(ctx, interface_name, ip_addr, gw):
 @click.pass_context
 def remove(ctx, interface_name, ip_addr):
     """Remove an IP address from the interface"""
-    config_db = ctx.obj["config_db"]
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
@@ -2378,7 +2510,10 @@ def remove(ctx, interface_name, ip_addr):
         if len(interface_dependent) == 0 and is_interface_bind_to_vrf(config_db, interface_name) is False:
             config_db.set_entry(table_name, interface_name, None)
 
-        command = "ip neigh flush dev {} {}".format(interface_name, ip_addr)
+        if multi_asic.is_multi_asic():
+            command = "sudo ip netns exec {} ip neigh flush dev {} {}".format(ctx.obj['namespace'], interface_name, ip_addr)
+        else:
+            command = "ip neigh flush dev {} {}".format(interface_name, ip_addr)
         clicommon.run_command(command)
     except ValueError:
         ctx.fail("'ip_addr' is not valid.")
@@ -2403,12 +2538,15 @@ def transceiver(ctx):
 @click.pass_context
 def lpmode(ctx, interface_name, state):
     """Enable/disable low-power mode for SFP transceiver module"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name_is_valid(interface_name) is False:
+    if interface_name_is_valid(config_db, interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
     cmd = "sudo sfputil lpmode {} {}".format("on" if state == "enable" else "off", interface_name)
@@ -2423,12 +2561,15 @@ def lpmode(ctx, interface_name, state):
 @click.pass_context
 def reset(ctx, interface_name):
     """Reset SFP transceiver module"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    if interface_name_is_valid(interface_name) is False:
+    if interface_name_is_valid(config_db, interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
     cmd = "sudo sfputil reset {}".format(interface_name)
@@ -2454,9 +2595,11 @@ def vrf(ctx):
 @click.pass_context
 def bind(ctx, interface_name, vrf_name):
     """Bind the interface to VRF"""
-    config_db = ctx.obj["config_db"]
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
@@ -2472,7 +2615,10 @@ def bind(ctx, interface_name, vrf_name):
         config_db.set_entry(table_name, interface_del, None)
     config_db.set_entry(table_name, interface_name, None)
     # When config_db del entry and then add entry with same key, the DEL will lost.
-    state_db = SonicV2Connector(host='127.0.0.1')
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        state_db = SonicV2Connector(use_unix_socket_path=True)
+    else:
+        state_db = SonicV2Connector(use_unix_socket_path=True, namespace=ctx.obj['namespace'])
     state_db.connect(state_db.STATE_DB, False)
     _hash = '{}{}'.format('INTERFACE_TABLE|', interface_name)
     while state_db.get(state_db.STATE_DB, _hash, "state") == "ok":
@@ -2489,9 +2635,11 @@ def bind(ctx, interface_name, vrf_name):
 @click.pass_context
 def unbind(ctx, interface_name):
     """Unbind the interface to VRF"""
-    config_db = ctx.obj["config_db"]
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("interface is None!")
 
@@ -2919,8 +3067,11 @@ def pfc(ctx):
 @click.pass_context
 def asymmetric(ctx, interface_name, status):
     """Set asymmetric PFC configuration."""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
@@ -2937,8 +3088,11 @@ def asymmetric(ctx, interface_name, status):
 @click.pass_context
 def priority(ctx, interface_name, priority, status):
     """Set PFC priority configuration."""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
     if clicommon.get_interface_naming_mode() == "alias":
-        interface_name = interface_alias_to_name(interface_name)
+        interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
@@ -3335,11 +3489,11 @@ def interface(ctx):
 @click.argument('ifname', metavar='<interface_name>', required=True, type=str)
 @click.pass_context
 def enable(ctx, ifname):
-    if not interface_name_is_valid(ifname) and ifname != 'all':
+    config_db = ctx.obj['db']
+    if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
         click.echo("Invalid interface name")
         return
 
-    config_db = ctx.obj['db']
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
     if intf_dict and ifname in intf_dict.keys():
@@ -3355,11 +3509,11 @@ def enable(ctx, ifname):
 @click.argument('ifname', metavar='<interface_name>', required=True, type=str)
 @click.pass_context
 def disable(ctx, ifname):
-    if not interface_name_is_valid(ifname) and ifname != 'all':
+    config_db = ctx.obj['db']
+    if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
         click.echo("Invalid interface name")
         return
 
-    config_db = ctx.obj['db']
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
     if intf_dict and ifname in intf_dict.keys():
@@ -3377,14 +3531,14 @@ def disable(ctx, ifname):
 @click.argument('rate', metavar='<sample_rate>', required=True, type=int)
 @click.pass_context
 def sample_rate(ctx, ifname, rate):
-    if not interface_name_is_valid(ifname) and ifname != 'all':
+    config_db = ctx.obj['db']
+    if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
         click.echo('Invalid interface name')
         return
     if not is_valid_sample_rate(rate):
         click.echo('Error: Sample rate must be between 256 and 8388608')
         return
 
-    config_db = ctx.obj['db']
     sess_dict = config_db.get_table('SFLOW_SESSION')
 
     if sess_dict and ifname in sess_dict.keys():

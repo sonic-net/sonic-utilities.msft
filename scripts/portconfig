@@ -4,7 +4,7 @@ portconfig is the utility to show and change ECN configuration
 
 usage: portconfig [-h] [-v] [-s] [-f] [-m] [-p PROFILE] [-gmin GREEN_MIN]
                  [-gmax GREEN_MAX] [-ymin YELLOW_MIN] [-ymax YELLOW_MAX]
-                 [-rmin RED_MIN] [-rmax RED_MAX] [-vv]
+                 [-rmin RED_MIN] [-rmax RED_MAX] [-vv] [-n namespace]
 
 optional arguments:
   -h     --help                show this help message and exit
@@ -14,6 +14,7 @@ optional arguments:
   -s     --speed               port speed in Mbits
   -f     --fec                 port fec mode
   -m     --mtu                 port mtu in bytes
+  -n     --namesapce           Namespace name
 """
 from __future__ import print_function
 
@@ -30,12 +31,16 @@ class portconfig(object):
     """
     Process aclstat
     """
-    def __init__(self, verbose, port):
+    def __init__(self, verbose, port, namespace):
         self.verbose = verbose
 
         # Set up db connections
-        self.db = swsssdk.ConfigDBConnector()
+        if namespace is None:
+            self.db = swsssdk.ConfigDBConnector()
+        else:
+            self.db = swsssdk.ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         self.db.connect()
+
         # check whether table for this port exists
         port_tables = self.db.get_table(PORT_TABLE_NAME)
         if not port_tables.has_key(port):
@@ -72,10 +77,15 @@ def main():
     parser.add_argument('-f', '--fec', type=str, help='port fec mode value in (none, rs, fc)', default=None)
     parser.add_argument('-m', '--mtu', type=int, help='port mtu value in bytes', default=None)
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
+    parser.add_argument('-n', '--namespace', metavar='namespace details', type = str, required = False,
+                        help = 'The asic namespace whose DB instance we need to connect', default=None)
     args = parser.parse_args()
 
+    if args.namespace is not None:
+        swsssdk.SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
+
     try:
-        port = portconfig(args.verbose, args.port)
+        port = portconfig(args.verbose, args.port, args.namespace)
         if args.list:
             port.list_params(args.port)
         elif args.speed or args.fec or args.mtu:
