@@ -2381,9 +2381,9 @@ This show command displays the port capability for all interfaces i.e. index, la
           "alias_at_lanes": "Eth1/1, Eth1/2, Eth1/3, Eth1/4"
       },... continue
   }
-
+  ```
 The "current-mode" subcommand is used to display current breakout mode for all interfaces.
-
+  ```
   admin@lnos-x1-a-fab01:~$ show interfaces  breakout current-mode
   +-------------+-------------------------+
   | Interface   | Current Breakout Mode   |
@@ -2450,7 +2450,7 @@ The "errors" subcommand is used to display the interface errors.
     Ethernet4        U         0         0         0         0         0         0
     Ethernet8        U         0         1         0         0         0         0
    Ethernet12        U         0         0         0         0         0         0
-```
+   ```
 
 The "rates" subcommand is used to disply only the interface rates. 
 
@@ -2463,7 +2463,7 @@ The "rates" subcommand is used to disply only the interface rates.
     Ethernet4        U   469679       N/A       N/A        N/A   469245       N/A       N/A        N/A
     Ethernet8        U   466660       N/A       N/A        N/A   465982       N/A       N/A        N/A
    Ethernet12        U   466579       N/A       N/A        N/A   466318       N/A       N/A        N/A
-```
+   ```
 
 
 The "rif" subcommand is used to display l3 interface counters. Layer 3 interfaces include router interfaces, portchannels and vlan interfaces.
