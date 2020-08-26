@@ -83,6 +83,8 @@ def stats(empty, queues):
     for queue in queues:
         stats_list = []
         queue_oid = db.get(db.COUNTERS_DB, 'COUNTERS_QUEUE_NAME_MAP', queue)
+        if queue_oid is None:
+            continue
         stats = db.get_all(db.COUNTERS_DB, 'COUNTERS:' + queue_oid)
         if stats is None:
             continue
