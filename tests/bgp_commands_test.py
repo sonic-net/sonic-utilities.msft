@@ -40,6 +40,8 @@ Neighbhor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down 
 10.0.0.59      4  64014          0          0         0      0       0  never      Active          ARISTA14T0
 10.0.0.61      4  64015          0          0         0      0       0  never      Active          ARISTA15T0
 10.0.0.63      4  64016          0          0         0      0       0  never      Active          ARISTA16T0
+
+Total number of neighbors 24
 """
 
 show_bgp_summary_v6 = """\
@@ -78,6 +80,8 @@ fc00::66       4  64010          0          0         0      0       0  never   
 fc00::72       4  64013          0          0         0      0       0  never      Active          ARISTA13T0
 fc00::76       4  64014          0          0         0      0       0  never      Active          ARISTA14T0
 fc00::a        4  65200       6665       6671         0      0       0  2d09h38m   6402            ARISTA03T2
+
+Total number of neighbors 24
 """
 
 show_error_invalid_json = """\

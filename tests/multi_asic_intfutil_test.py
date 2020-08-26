@@ -180,3 +180,4 @@ class TestInterfacesMultiAsic(object):
         os.environ["PATH"] = os.pathsep.join(
             os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""

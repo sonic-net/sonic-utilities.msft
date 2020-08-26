@@ -231,6 +231,8 @@ def display_bgp_summary(bgp_summary, af):
         click.echo("\n")
 
         click.echo(tabulate(natsorted(bgp_summary['peers']), headers=headers))
+        click.echo("\nTotal number of neighbors {}".
+                   format(len(bgp_summary['peers'])))
     except KeyError as e:
         ctx = click.get_current_context()
         ctx.fail("{} missing in the bgp_summary".format(e.args[0]))
