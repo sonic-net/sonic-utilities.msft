@@ -877,6 +877,24 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 
     return True
 
+def update_sonic_environment():
+    """Prepare sonic environment variable using SONiC environment template file.
+    """
+    SONIC_ENV_TEMPLATE_FILE = os.path.join('/', "usr", "share", "sonic", "templates", "sonic-environment.j2")
+    SONIC_VERSION_YML_FILE = os.path.join('/', "etc", "sonic", "sonic_version.yml")
+    SONIC_ENV_FILE = os.path.join('/', "etc", "sonic", "sonic-environment")
+
+    if os.path.isfile(SONIC_ENV_TEMPLATE_FILE) and os.path.isfile(SONIC_VERSION_YML_FILE):
+        clicommon.run_command(
+            "{} -d -y {} -t {},{}".format(
+                SONIC_CFGGEN_PATH,
+                SONIC_VERSION_YML_FILE,
+                SONIC_ENV_TEMPLATE_FILE,
+                SONIC_ENV_FILE
+            ),
+            display_cmd=True
+        )
+
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
 @click.pass_context
@@ -1218,6 +1236,9 @@ def load_minigraph(db, no_service_restart):
         if num_npus == 1 or namespace is not DEFAULT_NAMESPACE:
             if device_type != 'MgmtToRRouter':
                 clicommon.run_command('{}pfcwd start_default'.format(ns_cmd_prefix), display_cmd=True)
+
+    # Update SONiC environmnet file
+    update_sonic_environment()
 
     if os.path.isfile('/etc/sonic/acl.json'):
         clicommon.run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
