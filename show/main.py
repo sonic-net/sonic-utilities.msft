@@ -16,8 +16,10 @@ from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector
 from swsssdk import SonicV2Connector
 from tabulate import tabulate
-from utilities_common.db import Db
+
 import utilities_common.cli as clicommon
+from utilities_common.db import Db
+from utilities_common.multi_asic import multi_asic_click_options
 
 import mlnx
 import feature
@@ -366,11 +368,14 @@ def pfc():
 
 # 'counters' subcommand ("show interfaces pfccounters")
 @pfc.command()
+@multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def counters(verbose):
+def counters(namespace, display, verbose):
     """Show pfc counters"""
 
-    cmd = "pfcstat"
+    cmd = "pfcstat -s {}".format(display)
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
     run_command(cmd, display_cmd=verbose)
 

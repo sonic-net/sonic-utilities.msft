@@ -3,6 +3,8 @@ import subprocess
 
 from click.testing import CliRunner
 
+from utils import get_result_and_return_code
+
 root_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(root_path)
 scripts_path = os.path.join(modules_path, "scripts")
@@ -93,85 +95,73 @@ class TestInterfacesMultiAsic(object):
     def setUp(self):
         self.runner = CliRunner()
 
-    def get_result_and_return_code(self, cmd):
-        return_code = 0
-        try:
-            output = subprocess.check_output(
-            cmd, stderr=subprocess.STDOUT, shell=True)
-        except subprocess.CalledProcessError as e: 
-            return_code = e.returncode
-            #store only the error, no need for the traceback
-            output = e.output.strip().split("\n")[-1]
-
-        return(return_code, output)
-
     def test_multi_asic_interface_status_all(self):
-        return_code, result = self.get_result_and_return_code( 'intfutil -c status -d all')
+        return_code, result = get_result_and_return_code( 'intfutil -c status -d all')
         print("return_code: {}".format(return_code))
-        print("result = {}".format(result))  
+        print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_status_all
 
     def test_multi_asic_interface_status(self):
-        return_code, result = self.get_result_and_return_code('intfutil -c status')
+        return_code, result = get_result_and_return_code('intfutil -c status')
         print("return_code: {}".format(return_code))
-        print("result = {}".format(result))  
+        print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_status
 
     def test_multi_asic_interface_status_asic0_all(self):
-        return_code, result = self.get_result_and_return_code('intfutil -c status -n asic0 -d all')
+        return_code, result = get_result_and_return_code('intfutil -c status -n asic0 -d all')
         print("return_code: {}".format(return_code))
-        print("result = {}".format(result))  
+        print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_status_asic0_all
 
     def test_multi_asic_interface_status_asic0(self):
-        return_code, result = self.get_result_and_return_code('intfutil -c status -n asic0')
+        return_code, result = get_result_and_return_code('intfutil -c status -n asic0')
         print("return_code: {}".format(return_code))
-        print("result = {}".format(result))  
+        print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_status_asic0
 
     def test_multi_asic_interface_desc(self):
-        return_code, result = self.get_result_and_return_code('intfutil -c description')
+        return_code, result = get_result_and_return_code('intfutil -c description')
         print("return_code: {}".format(return_code))
-        print("result = {}".format(result))  
+        print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_description
 
     def test_multi_asic_interface_desc_all(self):
-        return_code, result = self.get_result_and_return_code( 'intfutil -c description -d all')
+        return_code, result = get_result_and_return_code( 'intfutil -c description -d all')
         print("return_code: {}".format(return_code))
-        print("result = {}".format(result))  
+        print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_description_all
 
     def test_multi_asic_interface_asic0(self):
-        return_code, result = self.get_result_and_return_code( 'intfutil -c description -n asic0')
+        return_code, result = get_result_and_return_code( 'intfutil -c description -n asic0')
         print("return_code: {}".format(return_code))
-        print("result = {}".format(result))  
+        print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_description_asic0
 
     def test_multi_asic_interface_desc_asic0_all(self):
-        return_code, result = self.get_result_and_return_code('intfutil -c description -n asic0 -d all')
+        return_code, result = get_result_and_return_code('intfutil -c description -n asic0 -d all')
         print("return_code: {}".format(return_code))
-        print("result = {}".format(result))  
+        print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_description_asic0_all
-        
+
     def test_invalid_asic_name(self):
-        return_code, result = self.get_result_and_return_code('intfutil -c description -n asic99 -d all')
+        return_code, result = get_result_and_return_code('intfutil -c description -n asic99 -d all')
         print("return_code: {}".format(return_code))
-        print("result = {}".format(result))  
+        print("result = {}".format(result))
         assert return_code == 1
         assert result == intf_invalid_asic_error
 
     def test_invalid_asic_name(self):
-        return_code, result = self.get_result_and_return_code('intfutil -c status -n asic99')
+        return_code, result = get_result_and_return_code('intfutil -c status -n asic99')
         print("return_code: {}".format(return_code))
-        print("result = {}".format(result))  
+        print("result = {}".format(result))
         assert return_code == 1
         assert result == intf_invalid_asic_error
 

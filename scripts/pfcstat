@@ -2,11 +2,10 @@
 
 #####################################################################
 #
-# pfcstat is a tool for summarizing Priority-based Flow Control (PFC) statistics. 
+# pfcstat is a tool for summarizing Priority-based Flow Control (PFC) statistics.
 #
 #####################################################################
 
-import swsssdk
 import sys
 import argparse
 import cPickle as pickle
@@ -17,6 +16,24 @@ from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
 
+from sonic_py_common.multi_asic import get_external_ports
+from utilities_common import multi_asic as multi_asic_util
+from utilities_common import constants
+
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+        import mock_tables.mock_multi_asic
+        mock_tables.dbconnector.load_namespace_config()
+
+except KeyError:
+    pass
 
 PStats = namedtuple("PStats", "pfc0, pfc1, pfc2, pfc3, pfc4, pfc5, pfc6, pfc7")
 header_Rx = ['Port Rx', 'PFC0', 'PFC1', 'PFC2', 'PFC3', 'PFC4', 'PFC5', 'PFC6', 'PFC7']
@@ -51,11 +68,14 @@ COUNTER_TABLE_PREFIX = "COUNTERS:"
 COUNTERS_PORT_NAME_MAP = "COUNTERS_PORT_NAME_MAP"
 
 class Pfcstat(object):
-    def __init__(self):
-        self.db = swsssdk.SonicV2Connector(host='127.0.0.1')
-        self.db.connect(self.db.COUNTERS_DB)
+    def __init__(self, namespace, display):
+        self.multi_asic = multi_asic_util.MultiAsic(display, namespace)
+        self.db = None
+        self.config_db = None
+        self.cnstat_dict = OrderedDict()
 
-    def get_cnstat(self, rx):
+    @multi_asic_util.run_on_multi_asic
+    def collect_cnstat(self, rx):
         """
             Get the counters info from database.
         """
@@ -70,7 +90,9 @@ class Pfcstat(object):
                 bucket_dict = counter_bucket_tx_dict
             for counter_name, pos in bucket_dict.iteritems():
                 full_table_id = COUNTER_TABLE_PREFIX + table_id
-                counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name)
+                counter_data =  self.db.get(
+                    self.db.COUNTERS_DB, full_table_id, counter_name
+                )
                 if counter_data is None:
                     fields[pos] = STATUS_NA
                 else:
@@ -79,15 +101,34 @@ class Pfcstat(object):
             return cntr
 
         # Get the info from database
-        counter_port_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_PORT_NAME_MAP)
+        counter_port_name_map = self.db.get_all(
+            self.db.COUNTERS_DB, COUNTERS_PORT_NAME_MAP
+        )
+        if counter_port_name_map is None:
+            return
+        display_ports_set = set(counter_port_name_map.keys())
+        if self.multi_asic.display_option == constants.DISPLAY_EXTERNAL:
+            display_ports_set = get_external_ports(
+                display_ports_set, self.multi_asic.current_namespace
+            )
         # Build a dictionary of the stats
         cnstat_dict = OrderedDict()
         cnstat_dict['time'] = datetime.datetime.now()
-        if counter_port_name_map is None:
-            return cnstat_dict
-        for port in natsorted(counter_port_name_map):
-            cnstat_dict[port] = get_counters(counter_port_name_map[port]) 
-        return cnstat_dict
+        if counter_port_name_map is not None:
+            for port in natsorted(counter_port_name_map):
+                if port in display_ports_set:
+                    cnstat_dict[port] = get_counters(
+                        counter_port_name_map[port]
+                    )
+            self.cnstat_dict.update(cnstat_dict)
+
+    def get_cnstat(self, rx):
+        """
+            Get the counters info from database.
+        """
+        self.cnstat_dict.clear()
+        self.collect_cnstat(rx)
+        return self.cnstat_dict
 
     def cnstat_print(self, cnstat_dict, rx):
         """
@@ -163,10 +204,22 @@ Examples:
   pfcstat
   pfcstat -c
   pfcstat -d
+  pfcstat -n asic1
+  pfcstat -s all -n asic0
 """)
 
-    parser.add_argument('-c', '--clear', action='store_true', help='Clear previous stats and save new ones')
-    parser.add_argument('-d', '--delete', action='store_true', help='Delete saved stats')
+    parser.add_argument( '-c', '--clear', action='store_true',
+        help='Clear previous stats and save new ones'
+    )
+    parser.add_argument(
+        '-d', '--delete', action='store_true', help='Delete saved stats'
+    )
+    parser.add_argument('-s', '--show', default=constants.DISPLAY_EXTERNAL,
+        help='Display all interfaces or only external interfaces'
+    )
+    parser.add_argument('-n', '--namespace', default=None,
+        help='Display interfaces for specific namespace'
+    )
     args = parser.parse_args()
 
     save_fresh_stats = args.clear
@@ -175,15 +228,20 @@ Examples:
     uid = str(os.getuid())
     cnstat_file = uid
 
-    cnstat_dir = "/tmp/pfcstat-" + uid
-    cnstat_fqn_file_rx = cnstat_dir + "/" + cnstat_file + "rx"
-    cnstat_fqn_file_tx = cnstat_dir + "/" + cnstat_file + "tx"
+    cnstat_dir = os.path.join(os.sep, "tmp", "pfcstat-{}".format(uid))
+    cnstat_fqn_file_rx = os.path.join(cnstat_dir, "{}rx".format(cnstat_file))
+    cnstat_fqn_file_tx = os.path.join(cnstat_dir, "{}tx".format(cnstat_file))
 
-    pfcstat = Pfcstat()
+    # if '-c' option is provided get stats from all (frontend and backend) ports
+    if save_fresh_stats:
+        args.namespace = None
+        args.show = constants.DISPLAY_ALL
+
+    pfcstat = Pfcstat(args.namespace, args.show)
 
     if delete_all_stats:
         for file in os.listdir(cnstat_dir):
-            os.remove(cnstat_dir + "/" + file)
+            os.remove(os.path.join(cnstat_dir, file))
 
         try:
             os.rmdir(cnstat_dir)
@@ -235,7 +293,7 @@ Examples:
     else:
         pfcstat.cnstat_print(cnstat_dict_rx, True)
 
-    print()
+    print("")
 
     """
         Print the counters of pfc tx counter
