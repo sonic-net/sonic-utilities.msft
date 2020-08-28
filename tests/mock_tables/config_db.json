@@ -1210,5 +1210,25 @@
         "name": "ARISTA03T2",
         "nhopself": "0",
         "rrclient": "0"
+    },
+    "FLEX_COUNTER_TABLE|QUEUE": {
+            "POLL_INTERVAL": "10000",
+            "FLEX_COUNTER_STATUS": "enable"
+    },
+    "FLEX_COUNTER_TABLE|PORT": {
+        "POLL_INTERVAL": "1000",
+        "FLEX_COUNTER_STATUS": "enable"
+    },
+    "FLEX_COUNTER_TABLE|PORT_BUFFER_DROP": {
+        "POLL_INTERVAL": "60000",
+        "FLEX_COUNTER_STATUS": "enable"
+    },
+    "FLEX_COUNTER_TABLE|QUEUE_WATERMARK": {
+        "POLL_INTERVAL": "10000",
+        "FLEX_COUNTER_STATUS": "enable"
+    },
+    "FLEX_COUNTER_TABLE|PG_WATERMARK": {
+        "POLL_INTERVAL": "10000",
+        "FLEX_COUNTER_STATUS": "enable"
     }
 }
