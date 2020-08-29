@@ -8,3 +8,7 @@ class Db(object):
         self.db.connect(self.db.APPL_DB)
         self.db.connect(self.db.CONFIG_DB)
         self.db.connect(self.db.STATE_DB)
+
+    def get_data(self, table, key):
+        data = self.cfgdb.get_table(table)
+        return data[key] if key in data else None

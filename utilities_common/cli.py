@@ -499,3 +499,9 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
     rc = proc.poll()
     if rc != 0:
         sys.exit(rc)
+
+
+def do_exit(msg):
+    m = "FATAL failure: {}. Exiting...".format(msg)
+    _log_msg(syslog.LOG_ERR, True, inspect.stack()[1][1], inspect.stack()[1][2], m)
+    raise SystemExit(m)

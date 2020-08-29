@@ -24,9 +24,10 @@ from .utils import log
 
 
 import aaa
+import feature
+import kube
 import mlnx
 import nat
-import feature
 import vlan
 from config_mgmt import ConfigMgmtDPB
 
@@ -801,7 +802,7 @@ def _restart_services(config_db):
     execute_systemctl(services_to_restart, SYSTEMCTL_ACTION_RESTART)
 
 
-def  interface_is_in_vlan(vlan_member_table, interface_name):
+def interface_is_in_vlan(vlan_member_table, interface_name):
     """ Check if an interface  is in a vlan """
     for _,intf in vlan_member_table.keys():
         if intf == interface_name:
@@ -809,7 +810,7 @@ def  interface_is_in_vlan(vlan_member_table, interface_name):
 
     return False
 
-def  interface_is_in_portchannel(portchannel_member_table, interface_name):
+def interface_is_in_portchannel(portchannel_member_table, interface_name):
     """ Check if an interface is part of portchannel """
     for _,intf in portchannel_member_table.keys():
         if intf == interface_name:
@@ -922,12 +923,15 @@ def config(ctx):
 
     ctx.obj = Db()
 
+
+# Add groups from other modules
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
 config.add_command(feature.feature)
-# === Add NAT Configuration ==========
+config.add_command(kube.kubernetes)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
+
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
