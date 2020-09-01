@@ -64,7 +64,8 @@ setup(
                   'mock_tables/*.json',
                   'mock_tables/asic0/*.json',
                   'mock_tables/asic1/*.json',
-                  'filter_fdb_input/*']
+                  'filter_fdb_input/*',
+                  'pfcwd_input/*']
     },
     scripts=[
         'scripts/aclshow',
