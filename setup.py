@@ -59,6 +59,7 @@ setup(
     ],
     package_data={
         'show': ['aliases.ini'],
+        'sonic_installer': ['aliases.ini'],
         'tests': ['acl_input/*',
                   'mock_tables/*.py',
                   'mock_tables/*.json',
