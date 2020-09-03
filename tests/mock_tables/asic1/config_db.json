@@ -51,5 +51,19 @@
     },
     "PORTCHANNEL_MEMBER|PortChannel4009|Ethernet-BP260" : {
         "NULL": "NULL"
+    },
+    "PFC_WD|Ethernet-BP256": {
+        "action": "drop",
+        "detection_time": "200",
+        "restoration_time": "200"
+    },
+    "PFC_WD|Ethernet-BP260": {
+        "action": "drop",
+        "detection_time": "200",
+        "restoration_time": "200"
+    },
+    "PFC_WD|GLOBAL": {
+        "BIG_RED_SWITCH": "enable",
+        "POLL_INTERVAL": "199"
     }
 }
