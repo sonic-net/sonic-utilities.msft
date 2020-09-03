@@ -2,9 +2,16 @@
 
 # Collect all parameters in order and build a file name prefix
 PREFIX=""
-while [[ $# > 0 ]]; do
+while [[ $# > 1 ]]; do
     PREFIX=${PREFIX}$1.
     shift
 done
+
+if [ $# > 0 ]; then
+    ns=`xargs -0 -L1 -a /proc/${1}/environ | grep -e "^NAMESPACE_ID" | cut -f2 -d'='`
+    if [ ! -z ${ns} ]; then
+        PREFIX=${PREFIX}${ns}.
+    fi
+fi
 
 /bin/gzip -1 - > /var/core/${PREFIX}core.gz
