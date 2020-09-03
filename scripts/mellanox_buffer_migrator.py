@@ -354,7 +354,7 @@ class MellanoxBufferMigrator():
             return True
 
         for name, profile in buffer_profile_old_configure.iteritems():
-            if name in buffer_profile_conf.keys() and profile == buffer_profile_old_configure[name]:
+            if name in buffer_profile_conf.keys() and profile == buffer_profile_conf[name]:
                 continue
             # return if any default profile isn't in cofiguration
             log.log_notice("Default profile {} isn't in database or doesn't match default value".format(name))
@@ -363,3 +363,5 @@ class MellanoxBufferMigrator():
         for name, profile in buffer_profile_new_configure.iteritems():
             log.log_info("Successfully migrate profile {}".format(name))
             self.configDB.set_entry('BUFFER_PROFILE', name, profile)
+
+        return True
