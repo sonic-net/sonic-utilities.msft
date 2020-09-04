@@ -284,8 +284,10 @@ def transceiver():
 @transceiver.command()
 @click.argument('interfacename', required=False)
 @click.option('-d', '--dom', 'dump_dom', is_flag=True, help="Also display Digital Optical Monitoring (DOM) data")
+@click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()), help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def eeprom(interfacename, dump_dom, verbose):
+def eeprom(interfacename, dump_dom, namespace, verbose):
     """Show interface transceiver EEPROM information"""
 
     ctx = click.get_current_context()
@@ -299,6 +301,9 @@ def eeprom(interfacename, dump_dom, verbose):
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
         cmd += " -p {}".format(interfacename)
+
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -321,9 +326,11 @@ def lpmode(interfacename, verbose):
 
 @transceiver.command()
 @click.argument('interfacename', required=False)
+@click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()), help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @clicommon.pass_db
-def presence(db, interfacename, verbose):
+def presence(db, interfacename, namespace, verbose):
     """Show interface transceiver presence"""
 
     ctx = click.get_current_context()
@@ -334,6 +341,9 @@ def presence(db, interfacename, verbose):
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
         cmd += " -p {}".format(interfacename)
+
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
     clicommon.run_command(cmd, display_cmd=verbose)
 

@@ -16,6 +16,17 @@
         "sub_role": "BackEnd",
         "type": "LeafRouter"
     },
+    "PORT|Ethernet64": {
+        "admin_status": "up",
+        "alias": "Ethernet1/17",
+        "asic_port_name": "Eth0-ASIC1",
+        "description": "ARISTA01T2:Ethernet3/1/1",
+        "lanes": "33,34,35,36",
+        "mtu": "9100",
+        "pfc_asym": "off",
+        "role": "Ext",
+        "speed": "40000"
+    },
     "PORT|Ethernet-BP256": {
         "admin_status": "up",
         "alias": "Ethernet-BP256",

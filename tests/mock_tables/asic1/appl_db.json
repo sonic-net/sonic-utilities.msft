@@ -1,4 +1,16 @@
 {
+    "PORT_TABLE:Ethernet64": {
+        "oper_status": "up",
+        "lanes": "29,30,31,32",
+        "description": "ARISTA01T2:Ethernet3/2/1",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet1/17",
+        "admin_status": "up",
+        "role": "Ext",
+        "speed": "40000",
+        "asic_port_name": "Eth0-ASIC1"
+    },
     "PORT_TABLE:Ethernet-BP256": {
         "oper_status": "up",
         "lanes": "61,62,63,64",
