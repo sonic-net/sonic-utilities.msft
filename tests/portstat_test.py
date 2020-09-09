@@ -1,0 +1,402 @@
+import os
+import shutil
+
+from click.testing import CliRunner
+
+import clear.main as clear
+import show.main as show
+from utils import get_result_and_return_code
+
+root_path = os.path.dirname(os.path.abspath(__file__))
+modules_path = os.path.dirname(root_path)
+scripts_path = os.path.join(modules_path, "scripts")
+
+intf_counters_before_clear = """\
+    IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
+Ethernet0        D        8       N/A        N/A        10       100       N/A       10       N/A        N/A       N/A       N/A       N/A
+Ethernet4      N/A        4       N/A        N/A         0      1000       N/A       40       N/A        N/A       N/A       N/A       N/A
+Ethernet8      N/A        6       N/A        N/A       100        10       N/A       60       N/A        N/A       N/A       N/A       N/A
+"""
+
+intf_counters_ethernet4 = """\
+    IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
+Ethernet4      N/A        4       N/A        N/A         0      1000       N/A       40       N/A        N/A       N/A       N/A       N/A
+"""
+
+intf_counters_all = """\
+    IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    Tx_PPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  --------  --------  ---------  --------  --------  --------  -------  --------  --------  ---------  --------  --------  --------
+Ethernet0        D        8       N/A       N/A        N/A        10       100       N/A       10       N/A       N/A        N/A       N/A       N/A       N/A
+Ethernet4      N/A        4       N/A       N/A        N/A         0      1000       N/A       40       N/A       N/A        N/A       N/A       N/A       N/A
+Ethernet8      N/A        6       N/A       N/A        N/A       100        10       N/A       60       N/A       N/A        N/A       N/A       N/A       N/A
+"""
+
+intf_counters_period = """\
+The rates are calculated within 3 seconds period
+    IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
+Ethernet0        D        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet4      N/A        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet8      N/A        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+"""
+
+intf_counter_after_clear = """\
+    IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
+Ethernet0        D        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet4      N/A        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet8      N/A        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A"""
+
+clear_counter = """\
+Cleared counters"""
+
+multi_asic_external_intf_counters = """\
+    IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
+Ethernet0        U        8       N/A        N/A        10       100       N/A       10       N/A        N/A       N/A       N/A       N/A
+Ethernet4        U        4       N/A        N/A         0      1000       N/A       40       N/A        N/A       N/A       N/A       N/A
+"""
+
+multi_asic_all_intf_counters = """\
+         IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+--------------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
+     Ethernet0        U        8       N/A        N/A        10       100       N/A       10       N/A        N/A       N/A       N/A       N/A
+     Ethernet4        U        4       N/A        N/A         0      1000       N/A       40       N/A        N/A       N/A       N/A       N/A
+  Ethernet-BP0        U        6       N/A        N/A         0      1000       N/A       60       N/A        N/A       N/A       N/A       N/A
+  Ethernet-BP4        U        8       N/A        N/A         0      1000       N/A       80       N/A        N/A       N/A       N/A       N/A
+Ethernet-BP256        U        8       N/A        N/A        10       100       N/A       10       N/A        N/A       N/A       N/A       N/A
+Ethernet-BP260        U        4       N/A        N/A         0      1000       N/A       40       N/A        N/A       N/A       N/A       N/A
+"""
+multi_asic_intf_counters_asic0 = """\
+       IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+------------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
+   Ethernet0        U        8       N/A        N/A        10       100       N/A       10       N/A        N/A       N/A       N/A       N/A
+   Ethernet4        U        4       N/A        N/A         0      1000       N/A       40       N/A        N/A       N/A       N/A       N/A
+Ethernet-BP0        U        6       N/A        N/A         0      1000       N/A       60       N/A        N/A       N/A       N/A       N/A
+Ethernet-BP4        U        8       N/A        N/A         0      1000       N/A       80       N/A        N/A       N/A       N/A       N/A
+"""
+
+multi_asic_external_intf_counters_printall = """\
+    IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    Tx_PPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  --------  --------  ---------  --------  --------  --------  -------  --------  --------  ---------  --------  --------  --------
+Ethernet0        U        8       N/A       N/A        N/A        10       100       N/A       10       N/A       N/A        N/A       N/A       N/A       N/A
+Ethernet4        U        4       N/A       N/A        N/A         0      1000       N/A       40       N/A       N/A        N/A       N/A       N/A       N/A
+"""
+
+multi_asic_intf_counters_printall = """\
+         IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    Tx_PPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+--------------  -------  -------  --------  --------  ---------  --------  --------  --------  -------  --------  --------  ---------  --------  --------  --------
+     Ethernet0        U        8       N/A       N/A        N/A        10       100       N/A       10       N/A       N/A        N/A       N/A       N/A       N/A
+     Ethernet4        U        4       N/A       N/A        N/A         0      1000       N/A       40       N/A       N/A        N/A       N/A       N/A       N/A
+  Ethernet-BP0        U        6       N/A       N/A        N/A         0      1000       N/A       60       N/A       N/A        N/A       N/A       N/A       N/A
+  Ethernet-BP4        U        8       N/A       N/A        N/A         0      1000       N/A       80       N/A       N/A        N/A       N/A       N/A       N/A
+Ethernet-BP256        U        8       N/A       N/A        N/A        10       100       N/A       10       N/A       N/A        N/A       N/A       N/A       N/A
+Ethernet-BP260        U        4       N/A       N/A        N/A         0      1000       N/A       40       N/A       N/A        N/A       N/A       N/A       N/A
+"""
+
+multi_asic_intf_counters_asic0_printall = """\
+       IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    Tx_PPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+------------  -------  -------  --------  --------  ---------  --------  --------  --------  -------  --------  --------  ---------  --------  --------  --------
+   Ethernet0        U        8       N/A       N/A        N/A        10       100       N/A       10       N/A       N/A        N/A       N/A       N/A       N/A
+   Ethernet4        U        4       N/A       N/A        N/A         0      1000       N/A       40       N/A       N/A        N/A       N/A       N/A       N/A
+Ethernet-BP0        U        6       N/A       N/A        N/A         0      1000       N/A       60       N/A       N/A        N/A       N/A       N/A       N/A
+Ethernet-BP4        U        8       N/A       N/A        N/A         0      1000       N/A       80       N/A       N/A        N/A       N/A       N/A       N/A
+"""
+multi_asic_intf_counters_period = """\
+The rates are calculated within 3 seconds period
+    IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
+Ethernet0        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+"""
+
+multi_asic_intf_counters_period_all = """\
+The rates are calculated within 3 seconds period
+         IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+--------------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
+     Ethernet0        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+     Ethernet4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+  Ethernet-BP0        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+  Ethernet-BP4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet-BP256        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet-BP260        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+"""
+
+multi_asic_intf_counter_period_asic_all = """\
+The rates are calculated within 3 seconds period
+       IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+------------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
+   Ethernet0        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+   Ethernet4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet-BP0        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet-BP4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+"""
+
+mutli_asic_intf_counters_after_clear = """\
+         IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+--------------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
+     Ethernet0        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+     Ethernet4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+  Ethernet-BP0        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+  Ethernet-BP4        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet-BP256        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet-BP260        U        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A"""
+
+intf_invalid_asic_error = """ValueError: Unknown Namespace asic99"""
+
+TEST_PERIOD = 3
+
+
+def remove_tmp_cnstat_file():
+    # remove the tmp portstat
+    uid = str(os.getuid())
+    cnstat_dir = os.path.join(os.sep, "tmp", "portstat-{}".format(uid))
+    shutil.rmtree(cnstat_dir, ignore_errors=True, onerror=None)
+
+
+def verify_after_clear(output, expected_out):
+    lines = output.splitlines()
+    assert lines[0].startswith('Last cached time was') == True
+    # ignore the first line as it has time stamp and is diffcult to compare
+    new_output = '\n'.join(lines[1:])
+    assert new_output == expected_out
+
+
+class TestPortStat(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        os.environ["PATH"] += os.pathsep + scripts_path
+        os.environ["UTILITIES_UNIT_TESTING"] = "2"
+        remove_tmp_cnstat_file()
+
+    def test_show_intf_counters(self):
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["interfaces"].commands["counters"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == intf_counters_before_clear
+
+        return_code, result = get_result_and_return_code('portstat')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == intf_counters_before_clear
+
+    def test_show_intf_counters_ethernet4(self):
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["interfaces"].commands["counters"], ["-i Ethernet4"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == intf_counters_ethernet4
+
+        return_code, result = get_result_and_return_code(
+            'portstat -i Ethernet4')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == intf_counters_ethernet4
+
+    def test_show_intf_counters_all(self):
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["interfaces"].commands["counters"], ["--printall"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == intf_counters_all
+
+        return_code, result = get_result_and_return_code('portstat -a')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == intf_counters_all
+
+    def test_show_intf_counters_period(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["counters"], [
+                               "-p {}".format(TEST_PERIOD)])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == intf_counters_period
+
+        return_code, result = get_result_and_return_code(
+            'portstat -p {}'.format(TEST_PERIOD))
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == intf_counters_period
+
+    def test_clear_intf_counters(self):
+        runner = CliRunner()
+        result = runner.invoke(clear.cli.commands["counters"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output.rstrip() == clear_counter
+
+        return_code, result = get_result_and_return_code('portstat -c')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result.rstrip() == clear_counter
+
+        # check counters after clear
+        result = runner.invoke(
+            show.cli.commands["interfaces"].commands["counters"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        verify_after_clear(result.output, intf_counter_after_clear)
+
+        return_code, result = get_result_and_return_code('portstat')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        verify_after_clear(result, intf_counter_after_clear)
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ["PATH"] = os.pathsep.join(
+            os.environ["PATH"].split(os.pathsep)[:-1])
+        os.environ["UTILITIES_UNIT_TESTING"] = "0"
+        remove_tmp_cnstat_file()
+
+
+class TestMultiAsicPortStat(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        os.environ["PATH"] += os.pathsep + scripts_path
+        os.environ["UTILITIES_UNIT_TESTING"] = "2"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
+        remove_tmp_cnstat_file()
+
+    def test_multi_show_intf_counters(self):
+        return_code, result = get_result_and_return_code('portstat')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_external_intf_counters
+
+    def test_multi_show_intf_counters_all(self):
+        return_code, result = get_result_and_return_code('portstat -s all')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_all_intf_counters
+
+    def test_multi_show_intf_counters_asic(self):
+        return_code, result = get_result_and_return_code('portstat -n asic0')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_external_intf_counters
+
+    def test_multi_show_intf_counters_asic_all(self):
+        return_code, result = get_result_and_return_code(
+            'portstat -n asic0 -s all')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_intf_counters_asic0
+
+    def test_multi_show_external_intf_counters_printall(self):
+        return_code, result = get_result_and_return_code('portstat -a')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_external_intf_counters_printall
+
+    def test_multi_show_intf_counters_printall(self):
+        return_code, result = get_result_and_return_code('portstat -a -s all')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_intf_counters_printall
+
+    def test_multi_show_intf_counters_printall_asic(self):
+        return_code, result = get_result_and_return_code(
+            'portstat --a -n asic0')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_external_intf_counters_printall
+
+    def test_multi_show_intf_counters_printall_asic_all(self):
+        return_code, result = get_result_and_return_code(
+            'portstat -a -n asic0 -s all')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_intf_counters_asic0_printall
+
+    def test_multi_show_intf_counters_period(self):
+        return_code, result = get_result_and_return_code(
+            'portstat -p {}'.format(TEST_PERIOD))
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_intf_counters_period
+
+    def test_multi_show_intf_counters_period_all(self):
+        return_code, result = get_result_and_return_code(
+            'portstat -p {} -s all'.format(TEST_PERIOD))
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_intf_counters_period_all
+
+    def test_multi_show_intf_counters_period_asic(self):
+        return_code, result = get_result_and_return_code(
+            'portstat -p {} -n asic0'.format(TEST_PERIOD))
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_intf_counters_period
+
+    def test_multi_show_intf_counters_period_asic_all(self):
+        return_code, result = get_result_and_return_code(
+            'portstat -p {} -n asic0 -s all'.format(TEST_PERIOD))
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_intf_counter_period_asic_all
+
+    def test_multi_asic_clear_intf_counters(self):
+        return_code, result = get_result_and_return_code('portstat -c')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result.rstrip() == clear_counter
+
+        # check stats for all the interfaces are cleared
+        return_code, result = get_result_and_return_code('portstat -s all')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        verify_after_clear(result, mutli_asic_intf_counters_after_clear)
+
+    def test_multi_asic_invalid_asic(self):
+        return_code, result = get_result_and_return_code('portstat -n asic99')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 1
+        assert result == intf_invalid_asic_error
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ["PATH"] = os.pathsep.join(
+            os.environ["PATH"].split(os.pathsep)[:-1])
+        os.environ["UTILITIES_UNIT_TESTING"] = "0"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
+        remove_tmp_cnstat_file()

@@ -10,15 +10,35 @@ import argparse
 import cPickle as pickle
 import datetime
 import os.path
-import swsssdk
 import sys
 import time
+from collections import OrderedDict, namedtuple
 
-from collections import namedtuple, OrderedDict
+
 from natsort import natsorted
 from tabulate import tabulate
-from utilities_common.netstat import ns_diff, ns_brate, ns_prate, ns_util, table_as_json
+from sonic_py_common import multi_asic
+
+from utilities_common import constants
 from utilities_common.intf_filter import parse_interface_in_filter
+import  utilities_common.multi_asic as multi_asic_util
+from utilities_common.netstat import (ns_brate, ns_diff, ns_prate, ns_util,
+                                      table_as_json)
+
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+        import mock_tables.mock_multi_asic
+        mock_tables.dbconnector.load_namespace_config()
+           
+except KeyError:
+    pass
 
 PORT_RATE = 40
 
@@ -62,11 +82,25 @@ PORT_STATE_UP = 'U'
 PORT_STATE_DOWN = 'D'
 PORT_STATE_DISABLED = 'X'
 
+
 class Portstat(object):
-    def __init__(self):
-        self.db = swsssdk.SonicV2Connector(host='127.0.0.1')
-        self.db.connect(self.db.COUNTERS_DB)
-        self.db.connect(self.db.APPL_DB)
+    def __init__(self, namespace, display_option):
+        self.db = None
+        self.multi_asic = multi_asic_util.MultiAsic(display_option, namespace)
+
+    def get_cnstat_dict(self):
+        self.cnstat_dict = OrderedDict()
+        self.cnstat_dict['time'] = datetime.datetime.now()
+        self.collect_stat()
+        return self.cnstat_dict
+
+    @multi_asic_util.run_on_multi_asic
+    def collect_stat(self):
+        """
+        Collect the statisitics from all the asics present on the 
+        device and store in a dict
+        """
+        self.cnstat_dict.update(self.get_cnstat())
 
     def get_cnstat(self):
         """
@@ -91,10 +125,12 @@ class Portstat(object):
         counter_port_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_PORT_NAME_MAP);
         # Build a dictionary of the stats
         cnstat_dict = OrderedDict()
-        cnstat_dict['time'] = datetime.datetime.now()
         if counter_port_name_map is None:
             return cnstat_dict
         for port in natsorted(counter_port_name_map):
+            port_name = port.split(":")[0]
+            if self.multi_asic.skip_display(constants.PORT_OBJ, port_name):
+                continue
             cnstat_dict[port] = get_counters(counter_port_name_map[port])
         return cnstat_dict
 
@@ -104,11 +140,12 @@ class Portstat(object):
         """
         # Get speed from APPL_DB
         full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
-        speed = self.db.get(self.db.APPL_DB, full_table_id, PORT_SPEED_FIELD)
-        if speed is None:
-            speed = PORT_RATE
-        else:
-            speed = int(speed)//1000
+        speed = PORT_RATE
+        for ns in self.multi_asic.get_ns_list_based_on_options():
+            self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
+            speed = self.db.get(self.db.APPL_DB, full_table_id, PORT_SPEED_FIELD)
+            if speed is not None:
+                return int(speed)//1000
         return speed
 
     def get_port_state(self, port_name):
@@ -116,18 +153,23 @@ class Portstat(object):
             Get the port state
         """
         full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
-        admin_state = self.db.get(self.db.APPL_DB, full_table_id, PORT_ADMIN_STATUS_FIELD)
-        oper_state = self.db.get(self.db.APPL_DB, full_table_id, PORT_OPER_STATUS_FIELD)
-        if admin_state is None or oper_state is None:
-             return STATUS_NA
-        elif admin_state.upper() == PORT_STATUS_VALUE_DOWN:
-            return PORT_STATE_DISABLED
-        elif admin_state.upper() == PORT_STATUS_VALUE_UP and oper_state.upper() == PORT_STATUS_VALUE_UP:
-            return PORT_STATE_UP
-        elif admin_state.upper() == PORT_STATUS_VALUE_UP and oper_state.upper() == PORT_STATUS_VALUE_DOWN:
-            return PORT_STATE_DOWN
-        else:
-            return STATUS_NA
+        for ns in self.multi_asic.get_ns_list_based_on_options():
+            self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
+            admin_state = self.db.get(self.db.APPL_DB, full_table_id, PORT_ADMIN_STATUS_FIELD)
+            oper_state = self.db.get(self.db.APPL_DB, full_table_id, PORT_OPER_STATUS_FIELD)
+            
+            if admin_state is None or oper_state is None:
+                continue
+            if admin_state.upper() == PORT_STATUS_VALUE_DOWN:
+                return PORT_STATE_DISABLED
+            elif admin_state.upper() == PORT_STATUS_VALUE_UP and oper_state.upper() == PORT_STATUS_VALUE_UP:
+                return PORT_STATE_UP
+            elif admin_state.upper() == PORT_STATUS_VALUE_UP and oper_state.upper() == PORT_STATUS_VALUE_DOWN:
+                return PORT_STATE_DOWN
+            else:
+                return STATUS_NA
+        return STATUS_NA
+
 
     def cnstat_print(self, cnstat_dict, intf_list, use_json, print_all, errors_only, rates_only):
         """
@@ -171,6 +213,7 @@ class Portstat(object):
         else:
             print(tabulate(table, header, tablefmt='simple', stralign='right'))
 
+    
     def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, intf_list, use_json, print_all, errors_only, rates_only):
         """
             Print the difference between two cnstat results.
@@ -311,6 +354,8 @@ Examples:
     parser.add_argument('-t', '--tag', type=str, help='Save stats with name TAG', default=None)
     parser.add_argument('-p', '--period', type=int, help='Display stats over a specified period (in seconds).', default=0)
     parser.add_argument('-i', '--interface', type=str, help='Display stats for interface lists.', default=None)
+    parser.add_argument('-s','--show',   default=constants.DISPLAY_EXTERNAL, help='Display all interfaces or only external interfaces')
+    parser.add_argument('-n','--namespace',   default=None, help='Display interfaces for specific namespace')
     args = parser.parse_args()
 
     save_fresh_stats = args.clear
@@ -325,6 +370,9 @@ Examples:
     wait_time_in_seconds = args.period
     print_all = args.all
     intf_fs = args.interface
+    namespace = args.namespace
+    display_option = args.show
+
     if tag_name is not None:
         cnstat_file = uid + "-" + tag_name
     else:
@@ -358,9 +406,14 @@ Examples:
 
     intf_list = parse_interface_in_filter(intf_fs)
 
-    portstat = Portstat()
-    # The cnstat_dict just give an ordered dict of all output. 
-    cnstat_dict = portstat.get_cnstat()
+    # When saving counters to the file, save counters
+    # for all ports(Internal and External)
+    if save_fresh_stats:
+        namespace = None
+        display_option = constants.DISPLAY_ALL
+
+    portstat = Portstat(namespace, display_option)
+    cnstat_dict = portstat.get_cnstat_dict()
 
     # Now decide what information to display
     if raw_stats:
@@ -403,8 +456,8 @@ Examples:
     else:
         #wait for the specified time and then gather the new stats and output the difference.
         time.sleep(wait_time_in_seconds)
-        print("The rates are calculated within %s seconds period" % wait_time_in_seconds)
-        cnstat_new_dict = portstat.get_cnstat()
+        print "The rates are calculated within %s seconds period" % wait_time_in_seconds
+        cnstat_new_dict = portstat.get_cnstat_dict()
         portstat.cnstat_diff_print(cnstat_new_dict, cnstat_dict, intf_list, use_json, print_all, errors_only, rates_only)
 
 if __name__ == "__main__":

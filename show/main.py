@@ -1,31 +1,26 @@
 #! /usr/bin/python -u
 
 import json
-import netaddr
-import netifaces
 import os
-import re
 import subprocess
 import sys
 
-
 import click
 from natsort import natsorted
+import netifaces
 from pkg_resources import parse_version
-from sonic_py_common import device_info
-from swsssdk import ConfigDBConnector
-from swsssdk import SonicV2Connector
-from tabulate import tabulate
-
-import utilities_common.cli as clicommon
-from utilities_common.db import Db
-from utilities_common import multi_asic as multi_asic_util
 
 import feature
 import interfaces
 import kube
 import mlnx
+import utilities_common.cli as clicommon
 import vlan
+from sonic_py_common import device_info
+from swsssdk import ConfigDBConnector, SonicV2Connector
+from tabulate import tabulate
+from utilities_common.db import Db
+import utilities_common.multi_asic as  multi_asic_util
 
 # Global Variables
 PLATFORM_JSON = 'platform.json'

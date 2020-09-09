@@ -76,6 +76,25 @@ Ethernet-BP4     800     801     802     803     804     805     806     807
 Ethernet-BP0     600     601     602     603     604     605     606     607
 Ethernet-BP4     800     801     802     803     804     805     806     807
 """
+show_pfc_counters_all = """\
+       Port Rx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
+--------------  ------  ------  ------  ------  ------  ------  ------  ------
+     Ethernet0     400     201     202     203     204     205     206     207
+     Ethernet4     400     401     402     403     404     405     406     407
+  Ethernet-BP0     600     601     602     603     604     605     606     607
+  Ethernet-BP4     800     801     802     803     804     805     806     807
+Ethernet-BP256     400     201     202     203     204     205     206     207
+Ethernet-BP260     400     401     402     403     404     405     406     407
+
+       Port Tx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
+--------------  ------  ------  ------  ------  ------  ------  ------  ------
+     Ethernet0     400     201     202     203     204     205     206     207
+     Ethernet4     400     401     402     403     404     405     406     407
+  Ethernet-BP0     600     601     602     603     604     605     606     607
+  Ethernet-BP4     800     801     802     803     804     805     806     807
+Ethernet-BP256     400     201     202     203     204     205     206     207
+Ethernet-BP260     400     401     402     403     404     405     406     407
+"""
 
 show_pfc_counters_asic0_frontend = """\
   Port Rx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
@@ -96,8 +115,8 @@ show_pfc_counters_msaic_output_diff = """\
      Ethernet4       0       0       0       0       0       0       0       0
   Ethernet-BP0       0       0       0       0       0       0       0       0
   Ethernet-BP4       0       0       0       0       0       0       0       0
-Ethernet-BP256     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A
-Ethernet-BP260     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A
+Ethernet-BP256       0       0       0       0       0       0       0       0
+Ethernet-BP260       0       0       0       0       0       0       0       0
 
        Port Tx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
 --------------  ------  ------  ------  ------  ------  ------  ------  ------
@@ -105,8 +124,8 @@ Ethernet-BP260     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A
      Ethernet4       0       0       0       0       0       0       0       0
   Ethernet-BP0       0       0       0       0       0       0       0       0
   Ethernet-BP4       0       0       0       0       0       0       0       0
-Ethernet-BP256     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A
-Ethernet-BP260     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A
+Ethernet-BP256       0       0       0       0       0       0       0       0
+Ethernet-BP260       0       0       0       0       0       0       0       0
 """
 
 
