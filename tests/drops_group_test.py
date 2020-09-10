@@ -28,11 +28,12 @@ SWITCH_EGRESS_DROPS
 	L3_ANY
 """
 
-expected_counter_configuration = """Counter    Alias         Group         Type                 Reasons    Description
----------  ------------  ------------  -------------------  ---------  --------------------------------------------------
-DEBUG_0    DEBUG_0       N/A           PORT_INGRESS_DROPS   None       N/A
-DEBUG_1    SWITCH_DROPS  PACKET_DROPS  SWITCH_EGRESS_DROPS  None       Outgoing packet drops, tracked at the switch level
-DEBUG_2    DEBUG_2       N/A           PORT_INGRESS_DROPS   None
+expected_counter_configuration = """Counter            Alias              Group         Type                 Reasons    Description
+-----------------  -----------------  ------------  -------------------  ---------  --------------------------------------------------
+DEBUG_0            DEBUG_0            N/A           PORT_INGRESS_DROPS   None       N/A
+DEBUG_1            SWITCH_DROPS       PACKET_DROPS  SWITCH_EGRESS_DROPS  None       Outgoing packet drops, tracked at the switch level
+DEBUG_2            DEBUG_2            N/A           PORT_INGRESS_DROPS   None
+lowercase_counter  lowercase_counter  N/A           SWITCH_EGRESS_DROPS  None       N/A
 """
 
 expected_counter_configuration_with_group = """Counter    Alias         Group         Type                 Reasons    Description
@@ -46,9 +47,9 @@ Ethernet0        D        10         100         0           0         20       
 Ethernet4      N/A         0        1000         0           0        100        800
 Ethernet8      N/A       100          10         0           0          0         10
 
-          DEVICE    SWITCH_DROPS
-----------------  --------------
-sonic_drops_test            1000
+          DEVICE    SWITCH_DROPS    lowercase_counter
+----------------  --------------  -------------------
+sonic_drops_test            1000                    0
 """
 
 expected_counts_with_group = """
@@ -71,9 +72,9 @@ Ethernet0        D         0           0         0           0          0       
 Ethernet4      N/A         0           0         0           0          0          0
 Ethernet8      N/A         0           0         0           0          0          0
 
-          DEVICE    SWITCH_DROPS
-----------------  --------------
-sonic_drops_test               0
+          DEVICE    SWITCH_DROPS    lowercase_counter
+----------------  --------------  -------------------
+sonic_drops_test               0                    0
 """
 
 dropstat_path = "/tmp/dropstat"

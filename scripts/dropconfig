@@ -30,7 +30,7 @@ except KeyError:
 
 # CONFIG_DB Tables
 DEBUG_COUNTER_CONFIG_TABLE = 'DEBUG_COUNTER'
-DROP_REASON_TABLE_PREFIX = 'DEBUG_COUNTER_DROP_REASON'
+DROP_REASON_CONFIG_TABLE = 'DEBUG_COUNTER_DROP_REASON'
 
 # STATE_DB Tables
 DEBUG_COUNTER_CAPABILITY_TABLE = 'DEBUG_COUNTER_CAPABILITIES'
@@ -136,10 +136,7 @@ class DropConfig(object):
             raise InvalidArgumentError('One or more provided drop reason not supported on this device')
 
         for reason in reasons:
-            self.config_db.set_entry(self.config_db.serialize_key(
-                                     (DROP_REASON_TABLE_PREFIX, counter_name)),
-                                     reason,
-                                     {})
+            self.config_db.set_entry(DROP_REASON_CONFIG_TABLE, (counter_name, reason), {})
 
         drop_counter_entry = {'type': counter_type}
 
@@ -168,8 +165,12 @@ class DropConfig(object):
         self.config_db.set_entry(DEBUG_COUNTER_CONFIG_TABLE,
                                  counter_name,
                                  None)
-        self.config_db.delete_table(self.config_db.serialize_key(
-                                    (DROP_REASON_TABLE_PREFIX, counter_name)))
+
+        # We can't use `delete_table` here because table names are normalized to uppercase.
+        # Counter names can be lowercase (e.g. "test_counter|ACL_ANY"), so we have to go
+        # through and treat each drop reason as an entry to get the correct behavior.
+        for reason in self.get_counter_drop_reasons(counter_name):
+            self.config_db.set_entry(DROP_REASON_CONFIG_TABLE, reason, None)
 
     def add_reasons(self, counter_name, reasons):
         """
@@ -192,10 +193,7 @@ class DropConfig(object):
             raise InvalidArgumentError('One or more provided drop reason not supported on this device')
 
         for reason in reasons:
-            self.config_db.set_entry(self.config_db.serialize_key(
-                                     (DROP_REASON_TABLE_PREFIX, counter_name)),
-                                     reason,
-                                     {})
+            self.config_db.set_entry(DROP_REASON_CONFIG_TABLE, (counter_name, reason), {})
 
     def remove_reasons(self, counter_name, reasons):
         """
@@ -212,10 +210,7 @@ class DropConfig(object):
             raise InvalidArgumentError('Counter \'{}\' not found'.format(counter_name))
 
         for reason in reasons:
-            self.config_db.set_entry(self.config_db.serialize_key(
-                                     (DROP_REASON_TABLE_PREFIX, counter_name)),
-                                     reason,
-                                     None)
+            self.config_db.set_entry(DROP_REASON_CONFIG_TABLE, (counter_name, reason), None)
 
     def get_config(self, group):
         """
@@ -236,7 +231,7 @@ class DropConfig(object):
             }
 
             # Get the drop reasons for this counter
-            drop_reason_keys = sorted(self.config_db.get_keys(self.config_db.serialize_key((DROP_REASON_TABLE_PREFIX, counter_name))), key=lambda x: x[1])
+            drop_reason_keys = sorted(self.get_counter_drop_reasons(counter_name), key=lambda x: x[1])
 
             # Fill in the first drop reason
             num_reasons = len(drop_reason_keys)
@@ -307,6 +302,11 @@ class DropConfig(object):
             return None
 
         return deserialize_reason_list(cap_query.get('reasons', ''))
+
+    def get_counter_drop_reasons(self, counter_name):
+        # get_keys won't filter on counter_name for us because the counter name is case sensitive and
+        # get_keys will normalize the table name to uppercase.
+        return [key for key in self.config_db.get_keys(DROP_REASON_CONFIG_TABLE) if key[0] == counter_name]
 
 
 def deserialize_reason_list(list_str):
