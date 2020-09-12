@@ -28,7 +28,9 @@ class Level(Enum):
     def __str__(self):
         return self.value
 
+
 report_level = syslog.LOG_ERR
+
 
 def set_level(lvl):
     global report_level
@@ -48,6 +50,7 @@ def print_message(lvl, *args):
         print(msg)
         syslog.syslog(lvl, msg)
 
+
 def add_prefix(ip):
     if ip.find(IPV6_SEPARATOR) == -1:
         ip = ip + PREFIX_SEPARATOR + "32"
@@ -55,12 +58,20 @@ def add_prefix(ip):
         ip = ip + PREFIX_SEPARATOR + "128"
     return ip
 
+
 def add_prefix_ifnot(ip):
     return ip if ip.find(PREFIX_SEPARATOR) != -1 else add_prefix(ip)
+
 
 def is_local(ip):
     t = ipaddress.ip_address(ip.split("/")[0].decode('utf-8'))
     return t.is_link_local
+
+
+def is_default_route(ip):
+    t = ipaddress.ip_address(ip.split("/")[0].decode('utf-8'))
+    return t.is_unspecified and ip.split("/")[1] == "0"
+
 
 def cmps(s1, s2):
     if (s1 == s2):
@@ -68,6 +79,7 @@ def cmps(s1, s2):
     if (s1 < s2):
         return -1
     return 1
+
 
 def do_diff(t1, t2):
     t1_x = t2_x = 0
@@ -111,6 +123,7 @@ def get_routes():
     print_message(syslog.LOG_DEBUG, json.dumps({"ROUTE_TABLE": sorted(valid_rt)}, indent=4))
     return sorted(valid_rt)
 
+
 def get_route_entries():
     db = ConfigDBConnector()
     db.db_connect('ASIC_DB')
@@ -147,6 +160,7 @@ def get_interfaces():
     print_message(syslog.LOG_DEBUG, json.dumps({"APPL_DB_INTF": sorted(intf)}, indent=4))
     return sorted(intf)
 
+
 def filter_out_local_interfaces(keys):
     rt = []
     local_if = set(['eth0', 'lo', 'docker0'])
@@ -163,6 +177,17 @@ def filter_out_local_interfaces(keys):
             rt.append(k)
 
     return rt
+
+
+def filter_out_default_routes(lst):
+    upd = []
+
+    for rt in lst:
+        if not is_default_route(rt):
+            upd.append(rt)
+
+    return upd
+
 
 def check_routes():
     intf_appl_miss = []
@@ -181,6 +206,7 @@ def check_routes():
 
     # Check missed ASIC routes against APPL-DB INTF_TABLE
     _, rt_asic_miss = do_diff(intf_appl, rt_asic_miss)
+    rt_asic_miss = filter_out_default_routes(rt_asic_miss)
 
     # Check APPL-DB INTF_TABLE with ASIC table route entries
     intf_appl_miss, _ = do_diff(intf_appl, rt_asic)
@@ -207,6 +233,7 @@ def check_routes():
     else:
         print_message(syslog.LOG_INFO, "All good!")
         return 0
+
 
 def main(argv):
     interval = 0
