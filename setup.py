@@ -163,6 +163,7 @@ setup(
     # - tabulate
     install_requires=[
         'click',
+        'ipaddress',
         'natsort',
         'm2crypto'
     ],
