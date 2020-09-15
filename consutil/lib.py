@@ -10,6 +10,7 @@ try:
     import re
     import subprocess
     import sys
+    from swsssdk import ConfigDBConnector
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
