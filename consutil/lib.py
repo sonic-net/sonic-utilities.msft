@@ -20,6 +20,7 @@ ERR_CMD = 1
 ERR_DEV = 2
 
 CONSOLE_PORT_TABLE = "CONSOLE_PORT"
+LINE_KEY = "LINE"
 BAUD_KEY = "baud_rate"
 DEVICE_KEY = "remote_device"
 FLOW_KEY = "flow_control"
@@ -46,22 +47,42 @@ def run_command(cmd):
         sys.exit(ERR_CMD)
     return output
 
-# returns a sorted list of all devices (whose name matches DEVICE_PREFIX)
+# returns a sorted list of all devices
 def getAllDevices():
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    # Querying CONFIG_DB to get configured console ports
+    keys = config_db.get_keys(CONSOLE_PORT_TABLE)
+    devices = []
+    for k in keys:
+        device = config_db.get_entry(CONSOLE_PORT_TABLE, k)
+        device[LINE_KEY] = k
+        devices.append(device)
+
+    # Querying device directory to get all available console ports 
     cmd = "ls " + DEVICE_PREFIX + "*"
     output = run_command(cmd)
 
-    devices = output.split('\n')
-    devices = list(filter(lambda dev: re.match(DEVICE_PREFIX + r"\d+", dev) != None, devices))
-    devices.sort(key=lambda dev: int(dev[len(DEVICE_PREFIX):]))
-
+    availableTtys = output.split('\n')
+    availableTtys = list(filter(lambda dev: re.match(DEVICE_PREFIX + r"\d+", dev) != None, availableTtys))
+    for tty in availableTtys:
+        k = tty[len(DEVICE_PREFIX):]
+        if k not in keys:
+            device = { LINE_KEY: k }
+            devices.append(device)
+    
+    devices.sort(key=lambda dev: int(dev[LINE_KEY]))
     return devices
 
 # exits if inputted line number does not correspond to a device
 # input: linenum
 def checkDevice(linenum):
-    devices = getAllDevices()
-    if DEVICE_PREFIX + str(linenum) not in devices:
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    entry = config_db.get_entry(CONSOLE_PORT_TABLE, str(linenum))
+    if not entry:
         click.echo("Line number {} does not exist".format(linenum))
         sys.exit(ERR_DEV)
 
@@ -120,12 +141,9 @@ def getLineNumber(target, deviceBool):
     config_db.connect()
 
     devices = getAllDevices()
-    linenums = list(map(lambda dev: dev[len(DEVICE_PREFIX):], devices))
-
-    for linenum in linenums:
-        entry = config_db.get_entry(CONSOLE_PORT_TABLE, linenum)
-        if DEVICE_KEY in entry and entry[DEVICE_KEY] == target:
-            return linenum
+    for device in devices:
+        if DEVICE_KEY in device and device[DEVICE_KEY] == target:
+            return device[LINE_KEY]
 
     click.echo("Device {} does not exist".format(target))
     sys.exit(ERR_DEV)

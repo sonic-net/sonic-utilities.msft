@@ -30,20 +30,21 @@ def show():
     devices = getAllDevices()
     busyDevices = getBusyDevices()
 
-    header = ["Line", "Actual/Configured Baud", "PID", "Start Time"]
+    header = ["Line", "Actual/Configured Baud", "PID", "Start Time", "Device"]
     body = []
     for device in devices:
-        lineNum = device[11:]
+        lineNum = device[LINE_KEY]
         busy = " "
         pid = ""
         date = ""
+        remoteDevice = '-' if DEVICE_KEY not in device else device[DEVICE_KEY]
         if lineNum in busyDevices:
             pid, date = busyDevices[lineNum]
             busy = "*"
         actBaud, confBaud, _ = getConnectionInfo(lineNum)
         # repeated "~" will be replaced by spaces - hacky way to align the "/"s
         baud = "{}/{}{}".format(actBaud, confBaud, "~"*(15-len(confBaud)))
-        body.append([busy+lineNum, baud, pid, date])
+        body.append([busy+lineNum, baud, pid, date, remoteDevice])
         
     # replace repeated "~" with spaces - hacky way to align the "/"s
     click.echo(tabulate(body, header, stralign="right").replace('~', ' ')) 
