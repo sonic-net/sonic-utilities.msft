@@ -14,7 +14,6 @@ except ImportError:
     pkg_resources.require('fastentrypoints')
     import fastentrypoints
 
-import glob
 from setuptools import setup
 
 setup(
@@ -118,10 +117,6 @@ setup(
         'scripts/watermarkcfg',
         'scripts/sonic-kdump-config'
     ],
-    data_files=[
-        ('/etc/bash_completion.d', glob.glob('data/etc/bash_completion.d/*')),
-        ('/usr/share/sonic/templates', ['sonic_installer/templates/sonic-environment.j2']),
-    ],
     entry_points={
         'console_scripts': [
             'acl-loader = acl_loader.main:cli',
@@ -151,21 +146,18 @@ setup(
             'watchdogutil = watchdogutil.main:watchdogutil',
         ]
     },
-    # NOTE: sonic-utilities also depends on other packages that are either only
-    # available as .whl files or the latest available Debian packages are
-    # out-of-date and we must install newer versions via pip. These
-    # dependencies cannot be listed here, as this package is built as a .deb,
-    # therefore all dependencies will be assumed to also be available as .debs.
-    # These unlistable dependencies are as follows:
-    # - sonic-config-engine
-    # - sonic-py-common
-    # - sonic-py-swsssdk
-    # - tabulate
     install_requires=[
         'click',
         'ipaddress',
+        'jsondiff==1.2.0',
+        'm2crypto',
         'natsort',
-        'm2crypto'
+        'pexpect',
+        'sonic-config-engine',
+        'sonic-py-common',
+        'swsssdk>=2.0.1',
+        'tabulate==0.8.2',
+        'xmltodict==0.12.0'
     ],
     setup_requires= [
         'pytest-runner'

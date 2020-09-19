@@ -1101,7 +1101,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
         client.set(config_db.INIT_INDICATOR, 1)
 
         # Migrate DB contents to latest version
-        db_migrator='/usr/bin/db_migrator.py'
+        db_migrator='/usr/local/bin/db_migrator.py'
         if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
             if namespace is None:
                 command = "{} -o migrate".format(db_migrator)
@@ -1200,7 +1200,7 @@ def load_minigraph(db, no_service_restart):
     clicommon.run_command("config qos reload", display_cmd=True)
 
     # Write latest db version string into db
-    db_migrator='/usr/bin/db_migrator.py'
+    db_migrator='/usr/local/bin/db_migrator.py'
     if os.path.isfile(db_migrator) and os.access(db_migrator, os.X_OK):
         for namespace in namespace_list:
             if namespace is DEFAULT_NAMESPACE:

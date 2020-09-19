@@ -12,12 +12,12 @@ FORCE=no
 STRICT=no
 REBOOT_METHOD="/sbin/kexec -e"
 ASSISTANT_IP_LIST=""
-ASSISTANT_SCRIPT="/usr/bin/neighbor_advertiser"
-WATCHDOG_UTIL="/usr/bin/watchdogutil"
+ASSISTANT_SCRIPT="/usr/local/bin/neighbor_advertiser"
+WATCHDOG_UTIL="/usr/local/bin/watchdogutil"
 DEVPATH="/usr/share/sonic/device"
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
-LOG_SSD_HEALTH="/usr/bin/log_ssd_health"
+LOG_SSD_HEALTH="/usr/local/bin/log_ssd_health"
 SSD_FW_UPDATE="ssd-fw-upgrade"
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
@@ -324,7 +324,7 @@ function reboot_pre_check()
     fi
     
     # Make sure ASIC configuration has not changed between images
-    ASIC_CONFIG_CHECK_SCRIPT="/usr/bin/asic_config_check"
+    ASIC_CONFIG_CHECK_SCRIPT="/usr/local/bin/asic_config_check"
     ASIC_CONFIG_CHECK_SUCCESS=0
     if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
         ASIC_CONFIG_CHECK_EXIT_CODE=0
@@ -447,7 +447,7 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     CONFIG_DB_FILE=/etc/sonic/config_db.json
     mkdir -p $DUMP_DIR
     FAST_REBOOT_DUMP_RC=0
-    /usr/bin/fast-reboot-dump.py -t $DUMP_DIR || FAST_REBOOT_DUMP_RC=$?
+    /usr/local/bin/fast-reboot-dump.py -t $DUMP_DIR || FAST_REBOOT_DUMP_RC=$?
     if [[ FAST_REBOOT_DUMP_RC -ne 0 ]]; then
         error "Failed to run fast-reboot-dump.py. Exit code: $FAST_REBOOT_DUMP_RC"
         unload_kernel
@@ -456,7 +456,7 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
 
     FILTER_FDB_ENTRIES_RC=0
     # Filter FDB entries using MAC addresses from ARP table
-    /usr/bin/filter_fdb_entries -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json -c $CONFIG_DB_FILE || FILTER_FDB_ENTRIES_RC=$?
+    /usr/local/bin/filter_fdb_entries -f $DUMP_DIR/fdb.json -a $DUMP_DIR/arp.json -c $CONFIG_DB_FILE || FILTER_FDB_ENTRIES_RC=$?
     if [[ FILTER_FDB_ENTRIES_RC -ne 0 ]]; then
         error "Failed to filter FDb entries. Exit code: $FILTER_FDB_ENTRIES_RC"
         unload_kernel
@@ -497,7 +497,7 @@ fi
 
 # Kill nat docker after saving the conntrack table
 debug "Stopping nat ..."
-/usr/bin/dump_nat_entries.py
+/usr/local/bin/dump_nat_entries.py
 docker kill nat > /dev/null || true
 systemctl stop nat
 debug "Stopped nat ..."

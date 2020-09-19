@@ -167,7 +167,7 @@ def get_kdump_administrative_mode():
 #
 #  @return The current memory string used for kdump (read from running configuration)
 def get_kdump_memory():
-    (rc, lines, err_str) = run_command("/usr/bin/show kdump memory", use_shell=False)
+    (rc, lines, err_str) = run_command("show kdump memory", use_shell=False)
     try:
         if rc == 0 and len(lines) == 1:
             p = lines[0].find(': ')
@@ -185,7 +185,7 @@ def get_kdump_memory():
 #  @return The maximum number of kernel dump files stored locally
 #          (read from running configuration)
 def get_kdump_num_dumps():
-    (rc, lines, err_str) = run_command("/usr/bin/show kdump num_dumps", use_shell=False)
+    (rc, lines, err_str) = run_command("show kdump num_dumps", use_shell=False)
     try:
         if rc == 0 and len(lines) == 1:
             p = lines[0].find(': ')
@@ -386,7 +386,7 @@ def cmd_kdump_disable(verbose, image=get_current_image()):
 #                 If None, display current value read from running configuration
 def cmd_kdump_memory(verbose, memory):
     if memory is None:
-        (rc, lines, err_str) = run_command("/usr/bin/show kdump memory", use_shell=False);
+        (rc, lines, err_str) = run_command("show kdump memory", use_shell=False);
         print('\n'.join(lines))
     else:
         use_kdump_in_cfg = read_use_kdump()
@@ -403,7 +403,7 @@ def cmd_kdump_memory(verbose, memory):
 #                 If None, display current value read from running configuration
 def cmd_kdump_num_dumps(verbose, num_dumps):
     if num_dumps is None:
-        (rc, lines, err_str) = run_command("/usr/bin/show kdump num_dumps", use_shell=False);
+        (rc, lines, err_str) = run_command("show kdump num_dumps", use_shell=False);
         print('\n'.join(lines))
     else:
         write_num_dumps(num_dumps)
