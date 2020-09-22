@@ -5,14 +5,7 @@
 # under scripts/. Consider stop using scripts and use console_scripts instead
 #
 # https://stackoverflow.com/questions/18787036/difference-between-entry-points-console-scripts-and-scripts-in-setup-py
-try:
-    import fastentrypoints
-except ImportError:
-    from setuptools.command import easy_install
-    import pkg_resources
-    easy_install.main(['fastentrypoints'])
-    pkg_resources.require('fastentrypoints')
-    import fastentrypoints
+import fastentrypoints
 
 from setuptools import setup
 
@@ -151,21 +144,25 @@ setup(
         'ipaddress',
         'jsondiff==1.2.0',
         'm2crypto',
-        'natsort',
+        'natsort==6.2.1', # 6.2.1 is the last version which supports Python 2
+        'netaddr',
+        'netifaces',
         'pexpect',
-        'sonic-config-engine',
         'sonic-py-common',
+        'sonic-yang-mgmt',
         'swsssdk>=2.0.1',
         'tabulate==0.8.2',
         'xmltodict==0.12.0'
     ],
     setup_requires= [
-        'pytest-runner'
+        'pytest-runner',
+        'wheel'
     ],
     tests_require = [
         'pytest',
         'mock>=2.0.0',
-        'mockredispy>=2.9.3'
+        'mockredispy>=2.9.3',
+        'sonic-config-engine'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
