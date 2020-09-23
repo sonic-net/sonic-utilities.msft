@@ -1182,13 +1182,10 @@ def load_minigraph(db, no_service_restart):
         clicommon.run_command(command, display_cmd=True)
         client.set(config_db.INIT_INDICATOR, 1)
 
-        # get the device type
-        device_type = _get_device_type()
-
-        # These commands are not run for host on multi asic platform
-        if num_npus == 1 or namespace is not DEFAULT_NAMESPACE:
-            if device_type != 'MgmtToRRouter':
-                clicommon.run_command('{}pfcwd start_default'.format(ns_cmd_prefix), display_cmd=True)
+    # get the device type
+    device_type = _get_device_type()
+    if device_type != 'MgmtToRRouter':
+        clicommon.run_command("pfcwd start_default", display_cmd=True)
 
     # Update SONiC environmnet file
     update_sonic_environment()
