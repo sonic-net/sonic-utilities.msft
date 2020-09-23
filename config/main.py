@@ -1239,6 +1239,31 @@ def hostname(new_hostname):
     click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
 
 #
+# 'synchronous_mode' command ('config synchronous_mode ...')
+#
+@config.command('synchronous_mode')
+@click.argument('sync_mode', metavar='<enable|disable>', required=True)
+def synchronous_mode(sync_mode):
+    """ Enable or disable synchronous mode between orchagent and syncd \n
+        swss restart required to apply the configuration \n
+        Options to restart swss and apply the configuration: \n
+            1. config save -y \n
+               config reload -y \n
+            2. systemctl restart swss
+    """
+    
+    if sync_mode == 'enable' or sync_mode == 'disable':
+        config_db = ConfigDBConnector()
+        config_db.connect()
+        config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"synchronous_mode" : sync_mode})
+        click.echo("""Wrote %s synchronous mode into CONFIG_DB, swss restart required to apply the configuration: \n
+    Option 1. config save -y \n
+              config reload -y \n
+    Option 2. systemctl restart swss""" % sync_mode)
+    else:
+        raise click.BadParameter("Error: Invalid argument %s, expect either enable or disable" % sync_mode)
+
+#
 # 'portchannel' group ('config portchannel ...')
 #
 @config.group(cls=clicommon.AbbreviationGroup)
