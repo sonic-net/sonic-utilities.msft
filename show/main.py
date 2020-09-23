@@ -1,6 +1,7 @@
 #! /usr/bin/python -u
 
 import json
+import netaddr
 import os
 import subprocess
 import sys
