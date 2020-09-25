@@ -21,50 +21,56 @@ def consutil():
 
     if os.geteuid() != 0:
         click.echo("Root privileges are required for this operation")
-        sys.exit(1)
+        sys.exit(ERR_CMD)
 
 # 'show' subcommand
 @consutil.command()
 def show():
-    """Show all /dev/ttyUSB lines and their info"""
-    devices = getAllDevices()
-    busyDevices = getBusyDevices()
+    """Show all lines and their info"""
+    lines = getAllLines()
+    busyLines = getBusyLines()
 
-    header = ["Line", "Actual/Configured Baud", "PID", "Start Time", "Device"]
+    # sort lines for table rendering
+    lines.sort(key=lambda dev: int(dev[LINE_KEY]))
+
+    # set table header style
+    header = ["Line",  "Baud",   "PID",   "Start Time", "Device"]
     body = []
-    for device in devices:
-        lineNum = device[LINE_KEY]
+    for line in lines:
+        # configured information
+        lineNum = line[LINE_KEY]
+        baud = '-' if BAUD_KEY not in line else line[BAUD_KEY]
+        remoteDevice = '-' if DEVICE_KEY not in line else line[DEVICE_KEY]
+
+        # runtime information
         busy = " "
         pid = ""
         date = ""
-        remoteDevice = '-' if DEVICE_KEY not in device else device[DEVICE_KEY]
-        if lineNum in busyDevices:
-            pid, date = busyDevices[lineNum]
+        if lineNum in busyLines:
+            pid, date = busyLines[lineNum]
             busy = "*"
-        actBaud, confBaud, _ = getConnectionInfo(lineNum)
-        # repeated "~" will be replaced by spaces - hacky way to align the "/"s
-        baud = "{}/{}{}".format(actBaud, confBaud, "~"*(15-len(confBaud)))
         body.append([busy+lineNum, baud, pid, date, remoteDevice])
-        
-    # replace repeated "~" with spaces - hacky way to align the "/"s
-    click.echo(tabulate(body, header, stralign="right").replace('~', ' ')) 
+    click.echo(tabulate(body, header, stralign='right')) 
 
 # 'clear' subcommand
 @consutil.command()
-@click.argument('linenum')
-def clear(linenum):
+@click.argument('target')
+def clear(target):
     """Clear preexisting connection to line"""
-    checkDevice(linenum)
-    linenum = str(linenum)
+    targetLine = getLine(target)
+    if not targetLine:
+        click.echo("Target [{}] does not exist".format(linenum))
+        sys.exit(ERR_DEV)
+    lineNumber = targetLine[LINE_KEY]
 
-    busyDevices = getBusyDevices()
-    if linenum in busyDevices:
-        pid, _ = busyDevices[linenum]
+    busyLines = getBusyLines()
+    if lineNumber in busyLines:
+        pid, _ = busyLines[lineNumber]
         cmd = "sudo kill -SIGTERM " + pid
         click.echo("Sending SIGTERM to process " + pid)
         run_command(cmd)
     else:
-        click.echo("No process is connected to line " + linenum)
+        click.echo("No process is connected to line " + lineNumber)
 
 # 'connect' subcommand
 @consutil.command()
@@ -72,15 +78,23 @@ def clear(linenum):
 @click.option('--devicename', '-d', is_flag=True, help="connect by name - if flag is set, interpret linenum as device name instead")
 def connect(target, devicename):
     """Connect to switch via console device - TARGET is line number or device name of switch"""
-    lineNumber = getLineNumber(target, devicename)
-    checkDevice(lineNumber)
-    lineNumber = str(lineNumber)
+    # identify the target line
+    targetLine = getLine(target, devicename)
+    if not targetLine:
+        click.echo("Cannot connect: target [{}] does not exist".format(target))
+        sys.exit(ERR_DEV)
+    lineNumber = targetLine[LINE_KEY]
 
     # build and start picocom command
-    actBaud, _, flowBool = getConnectionInfo(lineNumber)
+    if BAUD_KEY in targetLine:
+        baud = targetLine[BAUD_KEY]
+    else:
+        click.echo("Cannot connect: line [{}] has no baud rate".format(lineNumber))
+        sys.exit(ERR_CFG)
+    flowBool = True if FLOW_KEY in targetLine and targetLine[FLOW_KEY] == "1" else False
     flowCmd = "h" if flowBool else "n"
     quietCmd = "-q" if QUIET else ""
-    cmd = "sudo picocom -b {} -f {} {} {}{}".format(actBaud, flowCmd, quietCmd, DEVICE_PREFIX, lineNumber)
+    cmd = "sudo picocom -b {} -f {} {} {}{}".format(baud, flowCmd, quietCmd, DEVICE_PREFIX, lineNumber)
     proc = pexpect.spawn(cmd)
     proc.send("\n")
 
