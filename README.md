@@ -9,10 +9,34 @@
 
 Command-line utilities for SONiC
 
-## How to run unit test
-```python
-python2 -m py.test -v
+This repository produces two packages, as follows:
+
+### sonic-utilities
+
+A Python wheel package, containing all the Python source code for the command-line utilities
+
+#### To build
+
 ```
+python2 setup.py bdist_wheel
+```
+
+#### To run unit tests
+
+```
+python2 setup.py test
+```
+
+
+### sonic-utilities-data
+
+A Debian package, containing data files needed by the utilities (bash_completion files, Jinja2 templates, etc.)
+
+#### To build
+
+Instructions for building the sonic-utilities-data package can be found in [sonic-utilities-data/README.md](https://github.com/Azure/sonic-utilities/blob/master/sonic-utilities-data/README.md)
+
+---
 
 ## Contribution guide
 
