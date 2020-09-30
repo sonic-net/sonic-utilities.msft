@@ -24,6 +24,7 @@ from .utils import log
 
 
 import aaa
+import console
 import feature
 import kube
 import mlnx
@@ -876,6 +877,7 @@ def config(ctx):
 # Add groups from other modules
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
+config.add_command(console.console)
 config.add_command(feature.feature)
 config.add_command(kube.kubernetes)
 config.add_command(nat.nat)
