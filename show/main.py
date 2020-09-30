@@ -1624,13 +1624,10 @@ def show_sflow_interface(config_db):
         click.echo("No ports configured")
         return
 
-    idx_to_port_map = {int(port_tbl[name]['index']): name for name in
-                       port_tbl.keys()}
     click.echo("\nsFlow interface configurations")
     header = ['Interface', 'Admin State', 'Sampling Rate']
     body = []
-    for idx in sorted(idx_to_port_map.keys()):
-        pname = idx_to_port_map[idx]
+    for pname in natsorted(port_tbl.keys()):
         intf_key = 'SFLOW_SESSION_TABLE:' + pname
         sess_info = sess_db.get_all(sess_db.APPL_DB, intf_key)
         if sess_info is None:
