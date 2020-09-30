@@ -1,7 +1,6 @@
 {
     "SFLOW|global": {
         "admin_state": "up",
-        "agent_id": "eth0",
         "polling_interval": "0"
     },
     "SFLOW_COLLECTOR|prod": {
