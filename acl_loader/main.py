@@ -413,7 +413,9 @@ class AclLoader(object):
     def convert_ip(self, table_name, rule_idx, rule):
         rule_props = {}
 
-        if rule.ip.config.protocol or rule.ip.config.protocol == 0:  # 0 is a valid protocol number
+        # FIXME: 0 is a valid protocol number, but openconfig seems to use it as a default value,
+        # so there isn't currently a good way to check if the user defined proto=0 or not.
+        if rule.ip.config.protocol:
             if self.ip_protocol_map.has_key(rule.ip.config.protocol):
                 rule_props["IP_PROTOCOL"] = self.ip_protocol_map[rule.ip.config.protocol]
             else:
