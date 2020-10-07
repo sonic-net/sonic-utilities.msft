@@ -16,15 +16,15 @@ scripts_path = os.path.join(modules_path, "scripts")
 show_pfc_counters_output = """\
   Port Rx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
 ---------  ------  ------  ------  ------  ------  ------  ------  ------
-Ethernet0       0       0       0       0       0       0       0       0
+Ethernet0     200     201     202     203     204     205     206     207
 Ethernet4     400     401     402     403     404     405     406     407
 Ethernet8     800     801     802     803     804     805     806     807
 
   Port Tx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
 ---------  ------  ------  ------  ------  ------  ------  ------  ------
-Ethernet0       0       0       0       0       0       0       0       0
-Ethernet4     400     401     402     403     404     405     406     407
-Ethernet8     800     801     802     803     804     805     806     807
+Ethernet0     210     211     212     213     214     215     216     217
+Ethernet4     410     411     412     413     414     415     416     417
+Ethernet8     810     811     812     813     814     815     816     817
 """
 
 show_pfc_counters_output_diff = """\
@@ -44,7 +44,7 @@ Ethernet8       0       0       0       0       0       0       0       0
 show_pfc_counters_all = """\
        Port Rx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
 --------------  ------  ------  ------  ------  ------  ------  ------  ------
-     Ethernet0     400     201     202     203     204     205     206     207
+     Ethernet0     200     201     202     203     204     205     206     207
      Ethernet4     400     401     402     403     404     405     406     407
   Ethernet-BP0     600     601     602     603     604     605     606     607
   Ethernet-BP4     800     801     802     803     804     805     806     807
@@ -53,10 +53,10 @@ Ethernet-BP260     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A
 
        Port Tx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
 --------------  ------  ------  ------  ------  ------  ------  ------  ------
-     Ethernet0     400     201     202     203     204     205     206     207
-     Ethernet4     400     401     402     403     404     405     406     407
-  Ethernet-BP0     600     601     602     603     604     605     606     607
-  Ethernet-BP4     800     801     802     803     804     805     806     807
+     Ethernet0     210     211     212     213     214     215     216     217
+     Ethernet4     410     411     412     413     414     415     416     417
+  Ethernet-BP0     610     611     612     613     614     615     616     617
+  Ethernet-BP4     810     811     812     813     814     815     816     817
 Ethernet-BP256     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A
 Ethernet-BP260     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A
 """
@@ -64,48 +64,48 @@ Ethernet-BP260     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A
 show_pfc_counters_all_asic = """\
      Port Rx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
 ------------  ------  ------  ------  ------  ------  ------  ------  ------
-   Ethernet0     400     201     202     203     204     205     206     207
+   Ethernet0     200     201     202     203     204     205     206     207
    Ethernet4     400     401     402     403     404     405     406     407
 Ethernet-BP0     600     601     602     603     604     605     606     607
 Ethernet-BP4     800     801     802     803     804     805     806     807
 
      Port Tx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
 ------------  ------  ------  ------  ------  ------  ------  ------  ------
-   Ethernet0     400     201     202     203     204     205     206     207
-   Ethernet4     400     401     402     403     404     405     406     407
-Ethernet-BP0     600     601     602     603     604     605     606     607
-Ethernet-BP4     800     801     802     803     804     805     806     807
+   Ethernet0     210     211     212     213     214     215     216     217
+   Ethernet4     410     411     412     413     414     415     416     417
+Ethernet-BP0     610     611     612     613     614     615     616     617
+Ethernet-BP4     810     811     812     813     814     815     816     817
 """
 show_pfc_counters_all = """\
        Port Rx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
 --------------  ------  ------  ------  ------  ------  ------  ------  ------
-     Ethernet0     400     201     202     203     204     205     206     207
+     Ethernet0     200     201     202     203     204     205     206     207
      Ethernet4     400     401     402     403     404     405     406     407
   Ethernet-BP0     600     601     602     603     604     605     606     607
   Ethernet-BP4     800     801     802     803     804     805     806     807
-Ethernet-BP256     400     201     202     203     204     205     206     207
-Ethernet-BP260     400     401     402     403     404     405     406     407
+Ethernet-BP256     900     901     902     903     904     905     906     907
+Ethernet-BP260     100     101     102     103     104     105     106     107
 
        Port Tx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
 --------------  ------  ------  ------  ------  ------  ------  ------  ------
-     Ethernet0     400     201     202     203     204     205     206     207
-     Ethernet4     400     401     402     403     404     405     406     407
-  Ethernet-BP0     600     601     602     603     604     605     606     607
-  Ethernet-BP4     800     801     802     803     804     805     806     807
-Ethernet-BP256     400     201     202     203     204     205     206     207
-Ethernet-BP260     400     401     402     403     404     405     406     407
+     Ethernet0     210     211     212     213     214     215     216     217
+     Ethernet4     410     411     412     413     414     415     416     417
+  Ethernet-BP0     610     611     612     613     614     615     616     617
+  Ethernet-BP4     810     811     812     813     814     815     816     817
+Ethernet-BP256     910     911     912     913     914     915     916     917
+Ethernet-BP260     110     111     112     113     114     115     116     117
 """
 
 show_pfc_counters_asic0_frontend = """\
   Port Rx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
 ---------  ------  ------  ------  ------  ------  ------  ------  ------
-Ethernet0     400     201     202     203     204     205     206     207
+Ethernet0     200     201     202     203     204     205     206     207
 Ethernet4     400     401     402     403     404     405     406     407
 
   Port Tx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
 ---------  ------  ------  ------  ------  ------  ------  ------  ------
-Ethernet0     400     201     202     203     204     205     206     207
-Ethernet4     400     401     402     403     404     405     406     407
+Ethernet0     210     211     212     213     214     215     216     217
+Ethernet4     410     411     412     413     414     415     416     417
 """
 
 show_pfc_counters_msaic_output_diff = """\

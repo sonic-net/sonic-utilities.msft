@@ -13,6 +13,7 @@ import datetime
 import os.path
 
 from collections import namedtuple, OrderedDict
+from copy import deepcopy
 from natsort import natsorted
 from tabulate import tabulate
 
@@ -253,12 +254,12 @@ Examples:
     """
         Get the counters of pfc rx counter
     """
-    cnstat_dict_rx = pfcstat.get_cnstat(True)
+    cnstat_dict_rx = deepcopy(pfcstat.get_cnstat(True))
 
     """
         Get the counters of pfc tx counter
     """
-    cnstat_dict_tx = pfcstat.get_cnstat(False)
+    cnstat_dict_tx = deepcopy(pfcstat.get_cnstat(False))
 
     # At this point, either we'll create a file or open an existing one.
     if not os.path.exists(cnstat_dir):
