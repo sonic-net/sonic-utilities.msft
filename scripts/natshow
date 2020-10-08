@@ -139,7 +139,7 @@ class NatShow(object):
 
             ent = self.asic_db.get_all('ASIC_DB', s, blocking=True)
 
-            nat_type = ent[b"SAI_NAT_ENTRY_ATTR_NAT_TYPE"]
+            nat_type = nat['nat_type']
 
             if nat_type == "SAI_NAT_TYPE_DESTINATION_NAT":
                 translated_dst_ip = ent[b"SAI_NAT_ENTRY_ATTR_DST_IP"]
@@ -169,6 +169,8 @@ class NatShow(object):
                     translated_src = translated_src_ip + ":" + translated_src_port
                 else:
                     translated_src = translated_src_ip
+            else:
+                continue
 
             source_ip = nat['nat_data']['key']["src_ip"]
             destination_ip = nat['nat_data']['key']["dst_ip"]
