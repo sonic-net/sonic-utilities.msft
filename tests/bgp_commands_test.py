@@ -86,7 +86,7 @@ Total number of neighbors 24
 
 show_error_invalid_json = """\
 Usage: summary [OPTIONS]
-Try 'summary --help' for help.
+Try "summary --help" for help.
 
 Error: bgp summary from bgp container not in json format
 """

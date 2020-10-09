@@ -47,7 +47,7 @@ class TestCounterpoll(object):
         runner = CliRunner()
         result = runner.invoke(counterpoll.cli.commands["port-buffer-drop"].commands["interval"], ["1000"])
         print(result.output)
-        expected = "Invalid value for 'POLL_INTERVAL': 1000 is not in the valid range of 30000 to 300000."
+        expected = "Invalid value for \"POLL_INTERVAL\": 1000 is not in the valid range of 30000 to 300000."
         assert result.exit_code == 2
         assert expected in result.output
 
