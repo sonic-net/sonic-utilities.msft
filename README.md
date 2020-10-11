@@ -15,6 +15,44 @@ This repository produces two packages, as follows:
 
 A Python wheel package, containing all the Python source code for the command-line utilities
 
+#### Setting up a build/test environment
+
+The sonic-utilities package depends on a number of other packages, many of which are available via PyPI, but some are part of the SONiC codebase. When building/testing the package, setuptools/pip will attempt to install the packages available from PyPI. However, you will need to manually build and install the SONiC dependencies before attempting to build or test the package.
+
+Currently, this list of dependencies is as follows:
+
+
+- libyang_1.0.73_amd64.deb
+- libyang-cpp_1.0.73_amd64.deb
+- python2-yang_1.0.73_amd64.deb
+- python3-yang_1.0.73_amd64.deb
+- redis_dump_load-1.1-py2-none-any.whl
+- swsssdk-2.0.1-py2-none-any.whl
+- sonic_py_common-1.0-py2-none-any.whl
+- sonic_config_engine-1.0-py2-none-any.whl
+- sonic_yang_mgmt-1.0-py2-none-any.whl
+- sonic_yang_models-1.0-py3-none-any.whl
+
+
+A convenient alternative is to let the SONiC build system configure a build enviroment for you. This can be done by cloning the [sonic-buildimage](https://github.com/Azure/sonic-buildimage) repo, building the sonic-utilities package inside the Debian Buster slave container, and staying inside the container once the build finishes. During the build process, the SONiC build system will build and install all the necessary dependencies inside the container. After following the instructions to clone and initialize the sonic-buildimage repo, this can be done as follows:
+
+1. Configure the build environment for an ASIC type (any type will do, here we use `generic`)
+    ```
+    make configure PLATFORM=generic
+    ```
+
+2. Build the sonic-utilities Python wheel package inside the Buster slave container, and tell the build system to keep the container alive when finished
+    ```
+    make NOJESSIE=1 NOSTRETCH=1 KEEP_SLAVE_ON=yes target/python-wheels/sonic_utilities-1.2-py2-none-any.whl
+    ```
+
+3. When the build finishes, your prompt will change to indicate you are inside the slave container. Change into the `src/sonic-utilities/` directory
+    ```
+    user@911799f161a0:/sonic$ cd src/sonic-utilities/
+    ```
+
+4. You can now make changes to the sonic-utilities source and build the package or run unit tests with the commands below. When finished, you can exit the container by calling `exit`.
+
 #### To build
 
 ```
