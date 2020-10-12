@@ -17,11 +17,14 @@ import kube
 import mlnx
 import utilities_common.cli as clicommon
 import vlan
+import system_health
+
 from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector, SonicV2Connector
 from tabulate import tabulate
 from utilities_common.db import Db
 import utilities_common.multi_asic as  multi_asic_util
+
 
 # Global Variables
 PLATFORM_JSON = 'platform.json'
@@ -126,6 +129,7 @@ cli.add_command(feature.feature)
 cli.add_command(interfaces.interfaces)
 cli.add_command(kube.kubernetes)
 cli.add_command(vlan.vlan)
+cli.add_command(system_health.system_health)
 
 #
 # 'vrf' command ("show vrf")
@@ -2430,7 +2434,6 @@ def tunnel():
         table.append(r)
 
     click.echo(tabulate(table, header))
-
 
 if __name__ == '__main__':
     cli()
