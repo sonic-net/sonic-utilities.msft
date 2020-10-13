@@ -57,16 +57,65 @@ Ethernet120  ARISTA03T1  Ethernet1       None                10.250.0.53     Lea
 Ethernet124  ARISTA04T1  Ethernet1       None                10.250.0.54     LeafRouter
 """
 
+show_interfaces_neighbor_expected_output_t1="""\
+LocalPort    Neighbor    NeighborPort    NeighborLoopback    NeighborMgmt    NeighborType
+-----------  ----------  --------------  ------------------  --------------  --------------
+Ethernet0    ARISTA01T2  Ethernet1       None                172.16.137.56   SpineRouter
+Ethernet4    ARISTA01T2  Ethernet2       None                172.16.137.56   SpineRouter
+Ethernet8    ARISTA03T2  Ethernet1       None                172.16.137.57   SpineRouter
+Ethernet12   ARISTA03T2  Ethernet2       None                172.16.137.57   SpineRouter
+Ethernet16   ARISTA05T2  Ethernet1       None                172.16.137.58   SpineRouter
+Ethernet20   ARISTA05T2  Ethernet2       None                172.16.137.58   SpineRouter
+Ethernet24   ARISTA07T2  Ethernet1       None                172.16.137.59   SpineRouter
+Ethernet28   ARISTA07T2  Ethernet2       None                172.16.137.59   SpineRouter
+Ethernet32   ARISTA09T2  Ethernet1       None                172.16.137.60   SpineRouter
+Ethernet36   ARISTA09T2  Ethernet2       None                172.16.137.60   SpineRouter
+Ethernet40   ARISTA11T2  Ethernet1       None                172.16.137.61   SpineRouter
+Ethernet44   ARISTA11T2  Ethernet2       None                172.16.137.61   SpineRouter
+Ethernet48   ARISTA13T2  Ethernet1       None                172.16.137.62   SpineRouter
+Ethernet52   ARISTA13T2  Ethernet2       None                172.16.137.62   SpineRouter
+Ethernet56   ARISTA15T2  Ethernet1       None                172.16.137.63   SpineRouter
+Ethernet60   ARISTA15T2  Ethernet2       None                172.16.137.63   SpineRouter
+Ethernet64   ARISTA01T0  Ethernet1       None                172.16.137.64   ToRRouter
+Ethernet68   ARISTA02T0  Ethernet1       None                172.16.137.65   ToRRouter
+Ethernet72   ARISTA03T0  Ethernet1       None                172.16.137.66   ToRRouter
+Ethernet76   ARISTA04T0  Ethernet1       None                172.16.137.67   ToRRouter
+Ethernet80   ARISTA05T0  Ethernet1       None                172.16.137.68   ToRRouter
+Ethernet84   ARISTA06T0  Ethernet1       None                172.16.137.69   ToRRouter
+Ethernet88   ARISTA07T0  Ethernet1       None                172.16.137.70   ToRRouter
+Ethernet92   ARISTA08T0  Ethernet1       None                172.16.137.71   ToRRouter
+Ethernet96   ARISTA09T0  Ethernet1       None                172.16.137.72   ToRRouter
+Ethernet100  ARISTA10T0  Ethernet1       None                172.16.137.73   ToRRouter
+Ethernet104  ARISTA11T0  Ethernet1       None                172.16.137.74   ToRRouter
+Ethernet108  ARISTA12T0  Ethernet1       None                172.16.137.75   ToRRouter
+Ethernet112  ARISTA13T0  Ethernet1       None                172.16.137.76   ToRRouter
+Ethernet116  ARISTA14T0  Ethernet1       None                172.16.137.77   ToRRouter
+Ethernet120  ARISTA15T0  Ethernet1       None                172.16.137.78   ToRRouter
+Ethernet124  ARISTA16T0  Ethernet1       None                172.16.137.79   ToRRouter
+"""
+
 show_interfaces_neighbor_expected_output_Ethernet112="""\
 LocalPort    Neighbor    NeighborPort    NeighborLoopback    NeighborMgmt    NeighborType
 -----------  ----------  --------------  ------------------  --------------  --------------
 Ethernet112  ARISTA01T1  Ethernet1       None                10.250.0.51     LeafRouter
 """
 
+show_interfaces_neighbor_expected_output_t1_Ethernet0="""\
+LocalPort    Neighbor    NeighborPort    NeighborLoopback    NeighborMgmt    NeighborType
+-----------  ----------  --------------  ------------------  --------------  --------------
+Ethernet0    ARISTA01T2  Ethernet1       None                172.16.137.56   SpineRouter
+"""
+
 show_interfaces_neighbor_expected_output_etp29="""\
 LocalPort    Neighbor    NeighborPort    NeighborLoopback    NeighborMgmt    NeighborType
 -----------  ----------  --------------  ------------------  --------------  --------------
 etp29        ARISTA01T1  Ethernet1       None                10.250.0.51     LeafRouter
+"""
+
+show_interfaces_neighbor_expected_output_t1_Ethernet1_1="""\
+LocalPort    Neighbor    NeighborPort    NeighborLoopback    NeighborMgmt    NeighborType
+-----------  ----------  --------------  ------------------  --------------  --------------
+Ethernet1/1  ARISTA01T2  Ethernet1       None                172.16.137.56   SpineRouter
 """
 
 show_interfaces_portchannel_output="""\
@@ -166,6 +215,15 @@ class TestInterfaces(object):
         assert result.exit_code == 0
         assert result.output == show_interfaces_neighbor_expected_output
 
+    def test_show_interfaces_neighbor_expected_t1(self, setup_t1_topo):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["neighbor"].commands["expected"], [])
+        print(result.exit_code)
+        print(result.output)
+        # traceback.print_tb(result.exc_info[2])
+        assert result.exit_code == 0
+        assert result.output == show_interfaces_neighbor_expected_output_t1
+
     def test_show_interfaces_neighbor_expected_Ethernet112(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["neighbor"].commands["expected"], ["Ethernet112"])
@@ -174,6 +232,15 @@ class TestInterfaces(object):
         # traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
         assert result.output == show_interfaces_neighbor_expected_output_Ethernet112
+
+    def test_show_interfaces_neighbor_expected_t1_Ethernet0(self, setup_t1_topo):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["neighbor"].commands["expected"], ["Ethernet0"])
+        print(result.exit_code)
+        print(result.output)
+        # traceback.print_tb(result.exc_info[2])
+        assert result.exit_code == 0
+        assert result.output == show_interfaces_neighbor_expected_output_t1_Ethernet0
 
     def test_show_interfaces_neighbor_expected_etp29(self):
         runner = CliRunner()
@@ -185,6 +252,17 @@ class TestInterfaces(object):
         # traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
         assert result.output == show_interfaces_neighbor_expected_output_etp29
+
+    def test_show_interfaces_neighbor_expected_t1_Ethernet1_1(self, setup_t1_topo):
+        runner = CliRunner()
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        result = runner.invoke(show.cli.commands["interfaces"].commands["neighbor"].commands["expected"], ["Ethernet1/1"])
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+        print(result.exit_code)
+        print(result.output)
+        # traceback.print_tb(result.exc_info[2])
+        assert result.exit_code == 0
+        assert result.output == show_interfaces_neighbor_expected_output_t1_Ethernet1_1
 
     def test_show_interfaces_neighbor_expected_Ethernet0(self):
         runner = CliRunner()

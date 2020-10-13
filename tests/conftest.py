@@ -70,6 +70,11 @@ def setup_single_broacom_asic():
     config.asic_type = mock.MagicMock(return_value="broadcom")
     config._get_device_type = mock.MagicMock(return_value="ToRRouter")
 
+@pytest.fixture
+def setup_t1_topo():
+    mock_tables.dbconnector.topo = "t1"
+    yield
+    mock_tables.dbconnector.topo = None
 
 @pytest.fixture
 def setup_single_bgp_instance(request):

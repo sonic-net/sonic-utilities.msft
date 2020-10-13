@@ -249,25 +249,29 @@ def expected(db, interfacename):
     header = ['LocalPort', 'Neighbor', 'NeighborPort', 'NeighborLoopback', 'NeighborMgmt', 'NeighborType']
     body = []
     if interfacename:
-        for device in natsorted(neighbor_metadata_dict.keys()):
-            if device2interface_dict[device]['localPort'] == interfacename:
-                body.append([device2interface_dict[device]['localPort'],
-                             device,
-                             device2interface_dict[device]['neighborPort'],
-                             neighbor_metadata_dict[device]['lo_addr'],
-                             neighbor_metadata_dict[device]['mgmt_addr'],
-                             neighbor_metadata_dict[device]['type']])
-        if len(body) == 0:
-            click.echo("No neighbor information available for interface {}".format(interfacename))
-            return
-    else:
-        for device in natsorted(neighbor_metadata_dict.keys()):
-            body.append([device2interface_dict[device]['localPort'],
+        try:
+            device = neighbor_dict[interfacename]['name']
+            body.append([interfacename,
                          device,
-                         device2interface_dict[device]['neighborPort'],
+                         neighbor_dict[interfacename]['port'],
                          neighbor_metadata_dict[device]['lo_addr'],
                          neighbor_metadata_dict[device]['mgmt_addr'],
                          neighbor_metadata_dict[device]['type']])
+        except KeyError:
+            click.echo("No neighbor information available for interface {}".format(interfacename))
+            return
+    else:
+        for port in natsorted(neighbor_dict.keys()):
+            try:
+                device = neighbor_dict[port]['name']
+                body.append([port,
+                             device,
+                             neighbor_dict[port]['port'],
+                             neighbor_metadata_dict[device]['lo_addr'],
+                             neighbor_metadata_dict[device]['mgmt_addr'],
+                             neighbor_metadata_dict[device]['type']])
+            except KeyError:
+                pass
 
     click.echo(tabulate(body, header))
 
@@ -387,7 +391,7 @@ def errors(verbose, period, namespace, display):
     cmd = "portstat -e"
     if period is not None:
         cmd += " -p {}".format(period)
-    
+
     cmd += " -s {}".format(display)
     if namespace is not None:
         cmd += " -n {}".format(namespace)
