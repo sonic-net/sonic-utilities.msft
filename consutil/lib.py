@@ -10,7 +10,9 @@ try:
     import re
     import subprocess
     import sys
+    import os
     from swsssdk import ConfigDBConnector
+    from sonic_py_common import device_info
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
@@ -27,6 +29,8 @@ DEVICE_KEY = "remote_device"
 FLOW_KEY = "flow_control"
 DEFAULT_BAUD = "9600"
 
+FILENAME = "udevprefix.conf"
+
 # QUIET == True => picocom will not output any messages, and pexpect will wait for console
 #                  switch login or command line to let user interact with shell
 #        Downside: if console switch output ever does not match DEV_READY_MSG, program will think connection failed
@@ -36,6 +40,15 @@ DEFAULT_BAUD = "9600"
 QUIET = False
 DEV_READY_MSG = r"([Ll]ogin:|[Pp]assword:|[$>#])" # login prompt or command line prompt
 TIMEOUT_SEC = 0.2
+
+platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
+PLUGIN_PATH = "/".join([platform_path, "plugins", FILENAME])
+
+if os.path.exists(PLUGIN_PATH):
+    fp = open(PLUGIN_PATH, 'r')
+    line = fp.readlines()
+    DEVICE_PREFIX = "/dev/" + line[0]
+
 
 # runs command, exit if stderr is written to, returns stdout otherwise
 # input: cmd (str), output: output of cmd (str)
