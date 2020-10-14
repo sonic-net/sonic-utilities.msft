@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 #####################################################################
 #
@@ -10,12 +10,24 @@ from __future__ import print_function
 
 import argparse
 import json
+import os
 import sys
 
 import swsssdk
 from natsort import natsorted
 from tabulate import tabulate
 
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+
+except KeyError:
+    pass
 
 headerBufferPool = ['Pool', 'Bytes']
 
