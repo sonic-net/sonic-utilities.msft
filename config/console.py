@@ -65,6 +65,92 @@ def remove_console_setting(db, linenum):
         ctx = click.get_current_context()
         ctx.fail("Trying to delete console port setting, which is not present.")
 
+#
+# 'console remote_device' group ('config console remote_device ...')
+#
+@console.command('remote_device')
+@clicommon.pass_db
+@click.argument('linenum', metavar='<line_number>', required=True, type=click.IntRange(0, 65535))
+@click.argument('devicename', metavar='<device_name>', required=False)
+def upate_console_remote_device_name(db, linenum, devicename):
+    """Update remote device name for a console line"""
+    config_db = db.cfgdb
+    ctx = click.get_current_context()
+
+    table = "CONSOLE_PORT"
+    dataKey = 'remote_device'
+
+    data = config_db.get_entry(table, linenum)
+    if data:
+        if dataKey in data and devicename == data[dataKey]:
+            # do nothing if the device name is same with existing configurtion
+            return
+        elif not devicename:
+            # remove configuration key from console setting if user not give a remote device name
+            data.pop(dataKey, None)
+            config_db.mod_entry(table, linenum, data)
+        elif isExistingSameDevice(config_db, devicename, table):
+            ctx.fail("Given device name {} has been used. Please enter a valid device name or remove the existing one !!".format(devicename))
+        else:
+            data[dataKey] = devicename
+            config_db.mod_entry(table, linenum, data)
+    else:
+        ctx.fail("Trying to update console port setting, which is not present.")
+
+#
+# 'console baud' group ('config console baud ...')
+#
+@console.command('baud')
+@clicommon.pass_db
+@click.argument('linenum', metavar='<line_number>', required=True, type=click.IntRange(0, 65535))
+@click.argument('baud', metavar='<baud>', required=True, type=click.INT)
+def update_console_baud(db, linenum, baud):
+    """Update baud for a console line"""
+    config_db = db.cfgdb
+    ctx = click.get_current_context()
+
+    table = "CONSOLE_PORT"
+    dataKey = 'baud_rate'
+
+    data = config_db.get_entry(table, linenum)
+    if data:
+        baud = str(baud)
+        if dataKey in data and baud == data[dataKey]:
+            # do nothing if the baud is same with existing configurtion
+            return
+        else:
+            data[dataKey] = baud
+            config_db.mod_entry(table, linenum, data)
+    else:
+        ctx.fail("Trying to update console port setting, which is not present.")
+
+#
+# 'console flow_control' group ('config console flow_control ...')
+#
+@console.command('flow_control')
+@clicommon.pass_db
+@click.argument('mode', metavar='<mode>', required=True, type=click.Choice(["enable", "disable"]))
+@click.argument('linenum', metavar='<line_number>', required=True, type=click.IntRange(0, 65535))
+def update_console_flow_control(db, mode, linenum):
+    """Update flow control setting for a console line"""
+    config_db = db.cfgdb
+    ctx = click.get_current_context()
+
+    table = "CONSOLE_PORT"
+    dataKey = 'flow_control'
+
+    innerMode = "1" if mode == "enable" else "0"
+
+    data = config_db.get_entry(table, linenum)
+    if data:
+        if dataKey in data and innerMode == data[dataKey]:
+            # do nothing if the flow control setting is same with existing configurtion
+            return
+        else:
+            data[dataKey] = innerMode
+            config_db.mod_entry(table, linenum, data)
+    else:
+        ctx.fail("Trying to update console port setting, which is not present.")
 
 def isExistingSameDevice(config_db, deviceName, table):
     """Check if the given device name is conflict with existing device"""
