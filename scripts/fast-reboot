@@ -509,8 +509,7 @@ debug "Stopped radv service..."
 
 # Kill bgpd to start the bgp graceful restart procedure
 debug "Stopping bgp ..."
-docker exec -i bgp pkill -9 zebra
-docker exec -i bgp pkill -9 bgpd || [ $? == 1 ]
+systemctl stop bgp
 debug "Stopped  bgp ..."
 
 # Kill lldp, otherwise it sends informotion about reboot.
