@@ -262,6 +262,10 @@ def interface_is_in_vlan(vlan_member_table, interface_name):
 
     return False
 
+def is_valid_vlan_interface(config_db, interface):
+    """ Check an interface is a valid VLAN interface """
+    return interface in config_db.get_table("VLAN_INTERFACE")
+
 def interface_is_in_portchannel(portchannel_member_table, interface_name):
     """ Check if an interface is part of portchannel """
     for _,intf in portchannel_member_table.keys():

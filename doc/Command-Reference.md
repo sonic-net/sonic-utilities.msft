@@ -6134,7 +6134,7 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#System
 
 **show vlan brief**
 
-This command displays brief information about all the vlans configured in the device. It displays the vlan ID, IP address (if configured for the vlan), list of vlan member ports, whether the port is tagged or in untagged mode and the DHCP Helper Address.
+This command displays brief information about all the vlans configured in the device. It displays the vlan ID, IP address (if configured for the vlan), list of vlan member ports, whether the port is tagged or in untagged mode, the DHCP Helper Address, and the proxy ARP status
 
 - Usage:
   ```
@@ -6145,13 +6145,13 @@ This command displays brief information about all the vlans configured in the de
   ```
   admin@sonic:~$ show vlan brief
 
-  +-----------+--------------+-----------+----------------+-----------------------+
-  |   VLAN ID | IP Address   | Ports     | Port Tagging   | DHCP Helper Address   |
-  +===========+==============+===========+================+=======================+
-  |       100 | 1.1.2.2/16   | Ethernet0 | tagged         | 192.0.0.1             |
-  |           |              | Ethernet4 | tagged         | 192.0.0.2             |
-  |           |              |           |                | 192.0.0.3             |
-  +-----------+--------------+-----------+----------------+-----------------------+
+  +-----------+--------------+-----------+----------------+-----------------------+-------------+
+  |   VLAN ID | IP Address   | Ports     | Port Tagging   | DHCP Helper Address   | Proxy ARP   |
+  +===========+==============+===========+================+=======================+=============+
+  |       100 | 1.1.2.2/16   | Ethernet0 | tagged         | 192.0.0.1             | disabled    |
+  |           |              | Ethernet4 | tagged         | 192.0.0.2             |             |
+  |           |              |           |                | 192.0.0.3             |             |
+  +-----------+--------------+-----------+----------------+-----------------------+-------------+
   ```
 
 **show vlan config**
@@ -6210,6 +6210,21 @@ This command is to add or delete a member port into the already created vlan.
 
   admin@sonic:~$ sudo config vlan member add 100 Ethernet4
   This command will add Ethernet4 as member of the vlan 100.
+  ```
+
+**config proxy_arp enabled/disabled**
+
+This command is used to enable or disable proxy ARP for a VLAN interface
+
+- Usage:
+  ```
+  config vlan proxy_arp <vlan_id> enabled/disabled
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config vlan proxy_arp 1000 enabled
+  This command will enable proxy ARP for the interface 'Vlan1000'
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#vlan--FDB)

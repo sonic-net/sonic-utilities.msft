@@ -14,7 +14,7 @@ def vlan():
 @clicommon.pass_db
 def brief(db, verbose):
     """Show all bridge information"""
-    header = ['VLAN ID', 'IP Address', 'Ports', 'Port Tagging', 'DHCP Helper Address']
+    header = ['VLAN ID', 'IP Address', 'Ports', 'Port Tagging', 'DHCP Helper Address', 'Proxy ARP']
     body = []
 
     # Fetching data from config db for VLAN, VLAN_INTERFACE and VLAN_MEMBER
@@ -28,6 +28,7 @@ def brief(db, verbose):
     vlan_ip_dict = {}
     vlan_ports_dict = {}
     vlan_tagging_dict = {}
+    vlan_proxy_arp_dict = {}
 
     # Parsing DHCP Helpers info
     for key in natsorted(vlan_dhcp_helper_data.keys()):
@@ -39,14 +40,25 @@ def brief(db, verbose):
 
     # Parsing VLAN Gateway info
     for key in natsorted(vlan_ip_data.keys()):
-        if not clicommon.is_ip_prefix_in_key(key):
-            continue
-        interface_key = str(key[0].strip("Vlan"))
-        interface_value = str(key[1])
-        if interface_key in vlan_ip_dict:
-            vlan_ip_dict[interface_key].append(interface_value)
+
+        if clicommon.is_ip_prefix_in_key(key):
+            interface_key = str(key[0].strip("Vlan"))
+            interface_value = str(key[1])
+
+            if interface_key in vlan_ip_dict:
+                vlan_ip_dict[interface_key].append(interface_value)
+            else:
+                vlan_ip_dict[interface_key] = [interface_value]
         else:
-            vlan_ip_dict[interface_key] = [interface_value]
+            interface_key = str(key.strip("Vlan"))
+            if 'proxy_arp' in vlan_ip_data[key]:
+                proxy_arp_status = vlan_ip_data[key]['proxy_arp'] 
+            else:
+                proxy_arp_status = "disabled"
+            
+            vlan_proxy_arp_dict[interface_key] = proxy_arp_status
+            
+            
 
     iface_alias_converter = clicommon.InterfaceAliasConverter(db)
 
@@ -88,7 +100,8 @@ def brief(db, verbose):
             vlan_tagging = ""
         else:
             vlan_tagging = ','.replace(',', '\n').join((vlan_tagging_dict[key]))
-        body.append([key, ip_address, vlan_ports, vlan_tagging, dhcp_helpers])
+        vlan_proxy_arp = vlan_proxy_arp_dict.get(key, "disabled")
+        body.append([key, ip_address, vlan_ports, vlan_tagging, dhcp_helpers, vlan_proxy_arp])
     click.echo(tabulate(body, header, tablefmt="grid"))
 
 @vlan.command()
