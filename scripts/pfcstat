@@ -18,6 +18,7 @@ from natsort import natsorted
 from tabulate import tabulate
 
 from sonic_py_common.multi_asic import get_external_ports
+from utilities_common.netstat import ns_diff, STATUS_NA
 from utilities_common import multi_asic as multi_asic_util
 from utilities_common import constants
 
@@ -63,7 +64,6 @@ counter_bucket_tx_dict = {
     'SAI_PORT_STAT_PFC_7_TX_PKTS': 7
 }
 
-STATUS_NA = 'N/A'
 
 COUNTER_TABLE_PREFIX = "COUNTERS:"
 COUNTERS_PORT_NAME_MAP = "COUNTERS_PORT_NAME_MAP"
@@ -155,16 +155,6 @@ class Pfcstat(object):
         """
             Print the difference between two cnstat results.
         """
-        def ns_diff(newstr, oldstr):
-            """
-                Calculate the diff.
-            """
-            if newstr == STATUS_NA or oldstr == STATUS_NA:
-                return STATUS_NA
-            else:
-                new, old = int(newstr), int(oldstr)
-                return '{:,}'.format(new - old)
-
         table = []
 
         for key, cntr in cnstat_new_dict.iteritems():

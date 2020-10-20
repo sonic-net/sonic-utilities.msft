@@ -28,8 +28,7 @@ counter_bucket_dict = {
     'SAI_QUEUE_STAT_DROPPED_BYTES': 5,
 }
 
-STATUS_NA = 'N/A'
-STATUS_INVALID = 'INVALID'
+from utilities_common.netstat import ns_diff, STATUS_NA
 
 QUEUE_TYPE_MC = 'MC'
 QUEUE_TYPE_UC = 'UC'
@@ -158,16 +157,6 @@ class Queuestat(object):
         """
             Print the difference between two cnstat results.
         """
-        def ns_diff(newstr, oldstr):
-            """
-                Calculate the diff.
-            """
-            if newstr == STATUS_NA or oldstr == STATUS_NA:
-                return STATUS_NA
-            else:
-                new, old = int(newstr), int(oldstr)
-                return '{:,}'.format(new - old)
-
         table = []
 
         for key, cntr in cnstat_new_dict.iteritems():

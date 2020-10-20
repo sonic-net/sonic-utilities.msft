@@ -9,11 +9,15 @@ def ns_diff(newstr, oldstr):
     """
         Calculate the diff.
     """
-    if newstr == STATUS_NA or oldstr == STATUS_NA:
+    if newstr == STATUS_NA:
         return STATUS_NA
-    else:
-        new, old = int(newstr), int(oldstr)
-        return '{:,}'.format(max(0, new - old))
+
+    # if new is valid but old is not we should return new
+    if oldstr == STATUS_NA:
+        oldstr = '0'
+
+    new, old = int(newstr), int(oldstr)
+    return '{:,}'.format(max(0, new - old))
 
 def ns_brate(newstr, oldstr, delta):
     """

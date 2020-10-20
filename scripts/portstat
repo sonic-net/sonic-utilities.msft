@@ -140,13 +140,12 @@ class Portstat(object):
         """
         # Get speed from APPL_DB
         full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
-        speed = PORT_RATE
         for ns in self.multi_asic.get_ns_list_based_on_options():
             self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
             speed = self.db.get(self.db.APPL_DB, full_table_id, PORT_SPEED_FIELD)
             if speed is not None:
                 return int(speed)//1000
-        return speed
+        return PORT_RATE
 
     def get_port_state(self, port_name):
         """
@@ -294,13 +293,13 @@ class Portstat(object):
                     table.append((key, self.get_port_state(key),
                                   ns_diff(cntr.rx_ok, old_cntr.rx_ok),
                                   ns_brate(cntr.rx_byt, old_cntr.rx_byt, time_gap),
-                                  ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap),
+                                  ns_util(cntr.rx_byt, old_cntr.rx_byt, time_gap, port_speed),
                                   ns_diff(cntr.rx_err, old_cntr.rx_err),
                                   ns_diff(cntr.rx_drop, old_cntr.rx_drop),
                                   ns_diff(cntr.rx_ovr, old_cntr.rx_ovr),
                                   ns_diff(cntr.tx_ok, old_cntr.tx_ok),
                                   ns_brate(cntr.tx_byt, old_cntr.tx_byt, time_gap),
-                                  ns_util(cntr.tx_byt, old_cntr.tx_byt, time_gap),
+                                  ns_util(cntr.tx_byt, old_cntr.tx_byt, time_gap, port_speed),
                                   ns_diff(cntr.tx_err, old_cntr.tx_err),
                                   ns_diff(cntr.tx_drop, old_cntr.tx_drop),
                                   ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
