@@ -25,9 +25,10 @@ def consutil():
 
 # 'show' subcommand
 @consutil.command()
-def show():
-    """Show all lines and their info"""
-    lines = getAllLines()
+@click.option('--brief', '-b', metavar='<brief_mode>', required=False, is_flag=True)
+def show(brief):
+    """Show all lines and their info include available ttyUSB devices unless specified brief mode"""
+    lines = getAllLines(brief)
     busyLines = getBusyLines()
 
     # sort lines for table rendering
@@ -59,7 +60,7 @@ def clear(target):
     """Clear preexisting connection to line"""
     targetLine = getLine(target)
     if not targetLine:
-        click.echo("Target [{}] does not exist".format(linenum))
+        click.echo("Target [{}] does not exist".format(target))
         sys.exit(ERR_DEV)
     lineNumber = targetLine[LINE_KEY]
 

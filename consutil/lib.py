@@ -61,7 +61,7 @@ def run_command(cmd, abort=True):
     return output if abort else (output, error)
 
 # returns a list of all lines
-def getAllLines():
+def getAllLines(brief=False):
     config_db = ConfigDBConnector()
     config_db.connect()
 
@@ -73,16 +73,17 @@ def getAllLines():
         line[LINE_KEY] = k
         lines.append(line)
 
-    # Querying device directory to get all available console ports 
-    cmd = "ls " + DEVICE_PREFIX + "*"
-    output, _ = run_command(cmd, abort=False)
-    availableTtys = output.split('\n')
-    availableTtys = list(filter(lambda dev: re.match(DEVICE_PREFIX + r"\d+", dev) != None, availableTtys))
-    for tty in availableTtys:
-        k = tty[len(DEVICE_PREFIX):]
-        if k not in keys:
-            line = { LINE_KEY: k }
-            lines.append(line)
+    # Querying device directory to get all available console ports
+    if not brief:
+        cmd = "ls " + DEVICE_PREFIX + "*"
+        output, _ = run_command(cmd, abort=False)
+        availableTtys = output.split('\n')
+        availableTtys = list(filter(lambda dev: re.match(DEVICE_PREFIX + r"\d+", dev) != None, availableTtys))
+        for tty in availableTtys:
+            k = tty[len(DEVICE_PREFIX):]
+            if k not in keys:
+                line = { LINE_KEY: k }
+                lines.append(line)
     return lines
 
 # returns a dictionary of busy lines and their info

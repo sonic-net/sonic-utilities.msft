@@ -1827,10 +1827,11 @@ def reboot_cause():
 # 'line' command ("show line")
 #
 @cli.command('line')
+@click.option('--brief', '-b', metavar='<brief_mode>', required=False, is_flag=True)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def line(verbose):
-    """Show all /dev/ttyUSB lines and their info"""
-    cmd = "consutil show"
+def line(brief, verbose):
+    """Show all console lines and their info include available ttyUSB devices unless specified brief mode"""
+    cmd = "consutil show" + (" -b" if brief else "")
     run_command(cmd, display_cmd=verbose)
     return
 
