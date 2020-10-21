@@ -1,6 +1,7 @@
 #! /usr/bin/python -u
 
 import click
+import json
 import swsssdk
 from tabulate import tabulate
 
@@ -233,4 +234,38 @@ def show():
         data.append(["BUFFER_POOL_WATERMARK_STAT", buffer_pool_wm_info.get("POLL_INTERVAL", DEFLT_10_SEC), buffer_pool_wm_info.get("FLEX_COUNTER_STATUS", DISABLE)])
 
     click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
+
+def _update_config_db(status, filename):
+    """ Update counter configuration in config_db file """
+    with open(filename) as config_db_file:
+        config_db = json.load(config_db_file)
+
+    write_config_db = False
+    if "FLEX_COUNTER_TABLE" in config_db:
+        for counter, counter_config in config_db["FLEX_COUNTER_TABLE"].items():
+            if "FLEX_COUNTER_STATUS" in counter_config and \
+                counter_config["FLEX_COUNTER_STATUS"] is not status:
+                counter_config["FLEX_COUNTER_STATUS"] = status
+                write_config_db = True
+
+    if write_config_db:
+        with open(filename, 'w') as config_db_file:
+            json.dump(config_db, config_db_file, indent=4)
+
+# Working on Config DB
+@cli.group()
+def config_db():
+    """ Config DB counter commands """
+
+@config_db.command()
+@click.argument("filename", default="/etc/sonic/config_db.json", type=click.Path(exists=True))
+def enable(filename):
+    """ Enable counter configuration in config_db file """
+    _update_config_db("enable", filename)
+
+@config_db.command()
+@click.argument("filename", default="/etc/sonic/config_db.json", type=click.Path(exists=True))
+def disable(filename):
+    """ Disable counter configuration in config_db file """
+    _update_config_db("disable", filename)
 

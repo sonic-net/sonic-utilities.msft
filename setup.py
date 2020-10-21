@@ -53,6 +53,7 @@ setup(
         'show': ['aliases.ini'],
         'sonic_installer': ['aliases.ini'],
         'tests': ['acl_input/*',
+                  'counterpoll_input/*',
                   'mock_tables/*.py',
                   'mock_tables/*.json',
                   'mock_tables/asic0/*.json',
