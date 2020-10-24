@@ -40,7 +40,7 @@ class FdbShow(object):
 
     def __init__(self):
         super(FdbShow,self).__init__()
-        self.db = SonicV2Connector(host="127.0.0.1")
+        self.db = SonicV2Connector(host="127.0.0.1", decode_responses=True)
         self.if_name_map, \
         self.if_oid_map = port_util.get_interface_oid_map(self.db)
         self.if_br_oid_map = port_util.get_bridge_port_map(self.db)
@@ -64,7 +64,7 @@ class FdbShow(object):
 
         oid_pfx = len("oid:0x")
         for s in fdb_str:
-            fdb_entry = s.decode()
+            fdb_entry = s
             fdb = json.loads(fdb_entry .split(":", 2)[-1])
             if not fdb:
                 continue
