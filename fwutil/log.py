@@ -15,9 +15,11 @@ except ImportError as e:
 
 SYSLOG_IDENTIFIER = "fwutil"
 
+# ========================= Variables ==========================================
+
 # Global logger instance
 log = logger.Logger(SYSLOG_IDENTIFIER)
-
+log.set_min_log_priority_info()
 
 # ========================= Helper classes =====================================
 
