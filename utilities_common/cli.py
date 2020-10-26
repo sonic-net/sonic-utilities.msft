@@ -1,10 +1,12 @@
 import os
 import re
-import sys
-import netaddr
 import subprocess
+import sys
 
 import click
+import json
+import netaddr
+
 from natsort import natsorted
 
 from utilities_common.db import Db
@@ -126,7 +128,7 @@ class InterfaceAliasConverter(object):
             self.config_db = db.cfgdb
             self.port_dict = self.config_db.get_table('PORT')
         self.alias_max_length = 0
-        
+
 
         if not self.port_dict:
             click.echo(message="Warning: failed to retrieve PORT table from ConfigDB!", err=True)
@@ -509,3 +511,12 @@ def do_exit(msg):
     m = "FATAL failure: {}. Exiting...".format(msg)
     _log_msg(syslog.LOG_ERR, True, inspect.stack()[1][1], inspect.stack()[1][2], m)
     raise SystemExit(m)
+
+
+def json_dump(data):
+    """
+    Dump data in JSON format
+    """
+    return json.dumps(
+        data, sort_keys=True, indent=2, ensure_ascii=False
+    )

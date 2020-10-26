@@ -19,11 +19,11 @@ import utilities_common.cli as clicommon
 import vlan
 import system_health
 
-from sonic_py_common import device_info
+from sonic_py_common import device_info, multi_asic
 from swsssdk import ConfigDBConnector, SonicV2Connector
 from tabulate import tabulate
 from utilities_common.db import Db
-import utilities_common.multi_asic as  multi_asic_util
+import utilities_common.multi_asic as multi_asic_util
 
 
 # Global Variables
@@ -991,6 +991,7 @@ def get_hw_info_dict():
     hw_info_dict['platform'] = device_info.get_platform()
     hw_info_dict['hwsku'] = device_info.get_hwsku()
     hw_info_dict['asic_type'] = version_info['asic_type']
+    hw_info_dict['asic_count'] = multi_asic.get_num_asics()
 
     return hw_info_dict
 
@@ -1005,12 +1006,18 @@ if (version_info and version_info.get('asic_type') == 'mellanox'):
 
 # 'summary' subcommand ("show platform summary")
 @platform.command()
-def summary():
+@click.option('--json', is_flag=True, help="JSON output")
+def summary(json):
     """Show hardware platform information"""
+
     hw_info_dict = get_hw_info_dict()
-    click.echo("Platform: {}".format(hw_info_dict['platform']))
-    click.echo("HwSKU: {}".format(hw_info_dict['hwsku']))
-    click.echo("ASIC: {}".format(hw_info_dict['asic_type']))
+    if json:
+        click.echo(clicommon.json_dump(hw_info_dict))
+    else:
+        click.echo("Platform: {}".format(hw_info_dict['platform']))
+        click.echo("HwSKU: {}".format(hw_info_dict['hwsku']))
+        click.echo("ASIC: {}".format(hw_info_dict['asic_type']))
+        click.echo("ASIC Count: {}".format(hw_info_dict['asic_count']))
 
 # 'syseeprom' subcommand ("show platform syseeprom")
 @platform.command()
