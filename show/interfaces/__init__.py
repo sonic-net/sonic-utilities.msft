@@ -237,14 +237,11 @@ def expected(db, interfacename):
         click.echo("DEVICE_NEIGHBOR_METADATA information is not present.")
         return
 
-    #Swap Key and Value from interface: name to name: interface
-    device2interface_dict = {}
     for port in natsorted(neighbor_dict.keys()):
         temp_port = port
         if clicommon.get_interface_naming_mode() == "alias":
             port = clicommon.InterfaceAliasConverter().name_to_alias(port)
             neighbor_dict[port] = neighbor_dict.pop(temp_port)
-        device2interface_dict[neighbor_dict[port]['name']] = {'localPort': port, 'neighborPort': neighbor_dict[port]['port']}
 
     header = ['LocalPort', 'Neighbor', 'NeighborPort', 'NeighborLoopback', 'NeighborMgmt', 'NeighborType']
     body = []
