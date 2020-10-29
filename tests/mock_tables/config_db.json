@@ -782,6 +782,12 @@
         "mgmt_addr": "10.250.0.54",
         "type": "LeafRouter"
     },
+    "FG_NHG_PREFIX|100.50.25.12/32": {
+	    "FG_NHG": "fgnhg_v4"
+	},
+    "FG_NHG_PREFIX|fc:05::/128": {
+	    "FG_NHG": "fgnhg_v6"
+	},
     "BGP_NEIGHBOR|10.0.0.1": {
         "asn": "65200",
         "holdtime": "10",

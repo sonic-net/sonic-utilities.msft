@@ -18,6 +18,7 @@ import mlnx
 import utilities_common.cli as clicommon
 import vlan
 import system_health
+import fgnhg
 
 from sonic_py_common import device_info, multi_asic
 from swsssdk import ConfigDBConnector, SonicV2Connector
@@ -130,6 +131,7 @@ cli.add_command(interfaces.interfaces)
 cli.add_command(kube.kubernetes)
 cli.add_command(vlan.vlan)
 cli.add_command(system_health.system_health)
+cli.add_command(fgnhg.fgnhg)
 
 #
 # 'vrf' command ("show vrf")
