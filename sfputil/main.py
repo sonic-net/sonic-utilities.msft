@@ -412,10 +412,11 @@ def presence(port):
                 click.echo("This functionality is currently not implemented for this platform")
                 sys.exit(5)
 
-            if presence:
-                output_table.append([port_name, "Present"])
+            if platform_sfputil._is_valid_port(physical_port):
+                status_string = "Present" if presence else "Not present"
+                output_table.append([port_name, status_string])
             else:
-                output_table.append([port_name, "Not present"])
+                output_table.append([port_name, "N/A"])
 
             i += 1
 
