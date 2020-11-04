@@ -9,127 +9,338 @@ try:
     import click
     import re
     import subprocess
+    import pexpect
     import sys
     import os
-    from swsssdk import ConfigDBConnector
     from sonic_py_common import device_info
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 
-DEVICE_PREFIX = "/dev/ttyUSB"
-
-ERR_CMD = 1
-ERR_DEV = 2
-ERR_CFG = 3
+ERR_DISABLE = 1
+ERR_CMD = 2
+ERR_DEV = 3
+ERR_CFG = 4
+ERR_BUSY = 5
 
 CONSOLE_PORT_TABLE = "CONSOLE_PORT"
 LINE_KEY = "LINE"
+CUR_STATE_KEY = "CUR_STATE"
+
+# CONFIG_DB Keys
 BAUD_KEY = "baud_rate"
 DEVICE_KEY = "remote_device"
 FLOW_KEY = "flow_control"
-DEFAULT_BAUD = "9600"
+
+# STATE_DB Keys
+STATE_KEY = "state"
+PID_KEY = "pid"
+START_TIME_KEY = "state_time"
+
+BUSY_FLAG = "busy"
+IDLE_FLAG = "idle"
+
+# picocom Constants
+PICOCOM_READY = "Terminal ready"
+PICOCOM_BUSY = "Resource temporarily unavailable"
 
 FILENAME = "udevprefix.conf"
 
-# QUIET == True => picocom will not output any messages, and pexpect will wait for console
-#                  switch login or command line to let user interact with shell
-#        Downside: if console switch output ever does not match DEV_READY_MSG, program will think connection failed
-# QUIET == False => picocom will output messages - welcome message is caught by pexpect, so successful
-#                   connection will always lead to user interacting with shell
-#         Downside: at end of session, picocom will print exit message, exposing picocom to user
-QUIET = False
-DEV_READY_MSG = r"([Ll]ogin:|[Pp]assword:|[$>#])" # login prompt or command line prompt
 TIMEOUT_SEC = 0.2
 
-platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
-PLUGIN_PATH = "/".join([platform_path, "plugins", FILENAME])
+class ConsolePortProvider(object):
+    """
+    The console ports' provider.
+    The provider can let user to get console ports information.
+    """
 
-if os.path.exists(PLUGIN_PATH):
-    fp = open(PLUGIN_PATH, 'r')
-    line = fp.readlines()
-    DEVICE_PREFIX = "/dev/" + line[0]
+    def __init__(self, db, configured_only):
+        self._db = db
+        self._configured_only = configured_only
+        self._ports = []
+        self._init_all()
 
-# runs command, exit if stderr is written to and abort argument is ture, returns stdout, stderr otherwise
-# input: cmd (str, bool), output: output of cmd (str) and error of cmd (str) if abort is not true
-def run_command(cmd, abort=True):
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    output = proc.stdout.read()
-    error = proc.stderr.read()
-    if abort and error != "":
-        click.echo("Command resulted in error: {}".format(error))
-        sys.exit(ERR_CMD)
-    return output if abort else (output, error)
+    def get_all(self):
+        """Gets all console ports information"""
+        for port in self._ports:
+            yield ConsolePortInfo(self._db, port)
 
-# returns a list of all lines
-def getAllLines(brief=False):
-    config_db = ConfigDBConnector()
-    config_db.connect()
+    def get(self, target, use_device=False):
+        """Gets information of a ports, the target is the line number by default"""
+        # figure out the search key
+        search_key = LINE_KEY
+        if use_device:
+            search_key = DEVICE_KEY
 
-    # Querying CONFIG_DB to get configured console ports
-    keys = config_db.get_keys(CONSOLE_PORT_TABLE)
-    lines = []
-    for k in keys:
-        line = config_db.get_entry(CONSOLE_PORT_TABLE, k)
-        line[LINE_KEY] = k
-        lines.append(line)
+        # identify the line number by searching configuration
+        for port in self._ports:
+            if search_key in port and port[search_key] == target:
+                return ConsolePortInfo(self._db, port)
 
-    # Querying device directory to get all available console ports
-    if not brief:
-        cmd = "ls " + DEVICE_PREFIX + "*"
-        output, _ = run_command(cmd, abort=False)
-        availableTtys = output.split('\n')
-        availableTtys = list(filter(lambda dev: re.match(DEVICE_PREFIX + r"\d+", dev) != None, availableTtys))
-        for tty in availableTtys:
-            k = tty[len(DEVICE_PREFIX):]
-            if k not in keys:
-                line = { LINE_KEY: k }
-                lines.append(line)
-    return lines
+        raise LineNotFoundError
 
-# returns a dictionary of busy lines and their info
-#     maps line number to (pid, process start time)
-def getBusyLines():
-    cmd = 'ps -eo pid,lstart,cmd | grep -E "(mini|pico)com"'
-    output = run_command(cmd)
-    processes = output.split('\n')
+    def _init_all(self):
+        config_db = self._db.cfgdb
+        state_db = self._db.db
 
-    # matches any number of spaces then any number of digits
-    regexPid = r" *(\d+)"
-    # matches anything of form: Xxx Xxx ( 0)or(00) 00:00:00 0000
-    regexDate = r"([A-Z][a-z]{2} [A-Z][a-z]{2} [\d ]\d \d{2}:\d{2}:\d{2} \d{4})"
-    # matches any non-whitespace characters ending in minicom or picocom,
-    # then a space and any chars followed by /dev/ttyUSB<any digits>,
-    # then a space and any chars
-    regexCmd = r"\S*(?:(?:mini)|(?:pico))com .*" + DEVICE_PREFIX + r"(\d+)(?: .*)?"
-    regexProcess = re.compile(r"^"+regexPid+r" "+regexDate+r" "+regexCmd+r"$")
+        # Querying CONFIG_DB to get configured console ports
+        keys = config_db.get_keys(CONSOLE_PORT_TABLE)
+        ports = []
+        for k in keys:
+            port = config_db.get_entry(CONSOLE_PORT_TABLE, k)
+            port[LINE_KEY] = k
+            port[CUR_STATE_KEY] = state_db.get_all(state_db.STATE_DB, "{}|{}".format(CONSOLE_PORT_TABLE, k))
+            ports.append(port)
 
-    busyLines = {}
-    for process in processes:
-        match = regexProcess.match(process)
-        if match != None:
-            pid = match.group(1)
-            date = match.group(2)
-            linenum_key = match.group(3)
-            busyLines[linenum_key] = (pid, date)
-    return busyLines
+        # Querying device directory to get all available console ports
+        if not self._configured_only:
+            available_ttys = SysInfoProvider.list_console_ttys()
+            for tty in available_ttys:
+                k = tty[len(SysInfoProvider.DEVICE_PREFIX):]
+                if k not in keys:
+                    port = { LINE_KEY: k }
+                    ports.append(port)
+        self._ports = ports
 
-# returns the target device corresponding to target, or None if line number connot be found
-# if deviceBool, interprets target as device name
-# otherwise interprets target as line number
-# input: target (str), deviceBool (bool), output: device (dict)
-def getLine(target, deviceBool=False):
-    lines = getAllLines()
+class ConsolePortInfo(object):
+    def __init__(self, db, info):
+        self._db = db
+        self._info = info
+        self._session = None
+    
+    def __str__(self):
+        return "({}, {}, {})".format(self.line_num, self.baud, self.remote_device)
 
-    # figure out the search key
-    searchKey = LINE_KEY
-    if deviceBool:
-        searchKey = DEVICE_KEY
+    @property
+    def line_num(self):
+        return self._info[LINE_KEY]
 
-    # identify the line number by searching configuration
-    lineNumber = None
-    for line in lines:
-        if searchKey in line and line[searchKey] == target:
-            lineNumber = line[LINE_KEY]
-            targetLine = line
+    @property
+    def baud(self):
+        return self._info[BAUD_KEY] if BAUD_KEY in self._info else None
 
-    return targetLine if lineNumber else None
+    @property
+    def flow_control(self):
+        return FLOW_KEY in self._info and self._info[FLOW_KEY] == "1"
+
+    @property
+    def remote_device(self):
+        return self._info[DEVICE_KEY] if DEVICE_KEY in self._info else None
+    
+    @property
+    def busy(self):
+        return STATE_KEY in self.cur_state and self.cur_state[STATE_KEY] == BUSY_FLAG
+
+    @property
+    def session_pid(self):
+        return self.cur_state[PID_KEY] if PID_KEY in self.cur_state else None
+
+    @property
+    def session_start_date(self):
+        return self.cur_state[START_TIME_KEY] if START_TIME_KEY in self.cur_state else None
+
+    @property
+    def cur_state(self):
+        if CUR_STATE_KEY not in self._info or self._info[CUR_STATE_KEY] is None:
+            self._info[CUR_STATE_KEY] = {}
+        return self._info[CUR_STATE_KEY]
+
+    def connect(self):
+        """Connect to current line"""
+        self.refresh()
+
+        # check if line is busy
+        if self.busy:
+            raise LineBusyError
+
+        # check required configuration
+        if self.baud is None:
+            raise InvalidConfigurationError("baud", "line [{}] has no baud rate".format(self.line_num))
+
+        # build and start picocom command
+        flow_cmd = "h" if self.flow_control else "n"
+        cmd = "sudo picocom -b {} -f {} {}{}".format(self.baud, flow_cmd, SysInfoProvider.DEVICE_PREFIX, self.line_num)
+
+        # start connection
+        try:
+            proc = pexpect.spawn(cmd)
+            proc.send("\n")
+            self._session = ConsoleSession(self, proc)
+        finally:
+            self.refresh()
+
+        # check if connection succeed
+        index = proc.expect([PICOCOM_READY, PICOCOM_BUSY, pexpect.EOF, pexpect.TIMEOUT], timeout=TIMEOUT_SEC)
+        if index == 0:
+            return self._session
+        elif index == 1:
+            self._session = None
+            raise LineBusyError
+        else:
+            self._session = None
+            raise ConnectionFailedError
+
+    def clear_session(self):
+        """Clear existing session on current line, returns True if the line has been clear"""
+        self.refresh()
+        if not self.busy:
+            return False
+
+        try:
+            if not self._session:
+                pid = self.session_pid
+                cmd = "sudo kill -SIGTERM " + pid
+                SysInfoProvider.run_command(cmd)
+            else:
+                self._session.close()
+        finally:
+            self.refresh()
+            self._session = None
+        
+        return True
+
+    def refresh(self):
+        """Refresh state for current console port"""
+        if self._session is not None:
+            proc_info = SysInfoProvider.get_active_console_process_info(self._session.proc.pid)
+            if proc_info is not None:
+                line_num, pid, date = proc_info
+                if line_num != self.line_num:
+                    # line mismatch which means the session is stale and shouldn't be use anymore
+                    self._update_state(BUSY_FLAG, pid, date, line_num)
+                    self._update_state(IDLE_FLAG, "", "")
+                    raise ConnectionFailedError
+                else:
+                    self._update_state(BUSY_FLAG, pid, date)
+            else:
+                self._update_state(IDLE_FLAG, "", "")
+        else:
+            # refresh all active ports' state because we already got newest state for all ports
+            busy_lines = SysInfoProvider.list_active_console_processes()
+            for line_num, proc_info in busy_lines.items():
+                pid, date = proc_info
+                self._update_state(BUSY_FLAG, pid, date, line_num)
+            if self.line_num not in busy_lines:
+                self._update_state(IDLE_FLAG, "", "")
+
+    def _update_state(self, state, pid, date, line_num=None):
+        state_db = self._db.db
+        line_key = "{}|{}".format(CONSOLE_PORT_TABLE, self.line_num if line_num is None else line_num)
+        state_db.set(state_db.STATE_DB, line_key, STATE_KEY, state)
+        state_db.set(state_db.STATE_DB, line_key, PID_KEY, pid)
+        state_db.set(state_db.STATE_DB, line_key, START_TIME_KEY, date)
+        self._info[CUR_STATE_KEY] = {} if CUR_STATE_KEY not in self._info else self._info[CUR_STATE_KEY]
+        self._info[CUR_STATE_KEY][STATE_KEY] = state
+        self._info[CUR_STATE_KEY][PID_KEY] = pid
+        self._info[CUR_STATE_KEY][START_TIME_KEY] = date
+
+class ConsoleSession(object):
+    """
+    The Console connection session.
+    """
+
+    def __init__(self, port, proc):
+        self.port = port
+        self.proc = proc
+
+    def interact(self):
+        """Interact with picocom"""
+        try:
+            self.proc.interact()
+        finally:
+            self.port.refresh()
+
+    def close(self):
+        """Close picocom session"""
+        self.proc.close(force=True)
+
+class SysInfoProvider(object):
+    """
+    The system level information provider.
+    """
+    DEVICE_PREFIX = "/dev/ttyUSB"
+
+    @staticmethod
+    def init_device_prefix():
+        platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
+        PLUGIN_PATH = "/".join([platform_path, "plugins", FILENAME])
+
+        if os.path.exists(PLUGIN_PATH):
+            fp = open(PLUGIN_PATH, 'r')
+            line = fp.readlines()
+            SysInfoProvider.DEVICE_PREFIX = "/dev/" + line[0]
+
+    @staticmethod
+    def list_console_ttys():
+        """Lists all console tty devices"""
+        cmd = "ls " + SysInfoProvider.DEVICE_PREFIX + "*"
+        output, _ = SysInfoProvider.run_command(cmd, abort=False)
+        ttys = output.split('\n')
+        ttys = list(filter(lambda dev: re.match(SysInfoProvider.DEVICE_PREFIX + r"\d+", dev) != None, ttys))
+        return ttys
+
+    @staticmethod
+    def list_active_console_processes():
+        """Lists all active console session processes"""
+        cmd = 'ps -eo pid,lstart,cmd | grep -E "(mini|pico)com"'
+        output = SysInfoProvider.run_command(cmd)
+        return SysInfoProvider._parse_processes_info(output)
+
+    @staticmethod
+    def get_active_console_process_info(pid):
+        """Gets active console process information by PID"""
+        cmd = 'ps -p {} -o pid,lstart,cmd | grep -E "(mini|pico)com"'.format(pid)
+        output = SysInfoProvider.run_command(cmd)
+        processes = SysInfoProvider._parse_processes_info(output)
+        if len(processes.keys()) == 1:
+            return (processes.keys()[0],) + list(processes.values())[0]
+        else:
+            return None
+
+    @staticmethod
+    def _parse_processes_info(output):
+        processes = output.split('\n')
+
+        # matches any number of spaces then any number of digits
+        regex_pid = r" *(\d+)"
+        # matches anything of form: Xxx Xxx ( 0)or(00) 00:00:00 0000
+        regex_date = r"([A-Z][a-z]{2} [A-Z][a-z]{2} [\d ]\d \d{2}:\d{2}:\d{2} \d{4})"
+        # matches any characters ending in minicom or picocom,
+        # then a space and any chars followed by /dev/ttyUSB<any digits>,
+        # then a space and any chars
+        regex_cmd = r".*(?:(?:mini)|(?:pico))com .*" + SysInfoProvider.DEVICE_PREFIX + r"(\d+)(?: .*)?"
+        regex_process = re.compile(r"^" + regex_pid + r" " + regex_date + r" " + regex_cmd + r"$")
+
+        console_processes = {}
+        for process in processes:
+            match = regex_process.match(process)
+            if match != None:
+                pid = match.group(1)
+                date = match.group(2)
+                line_num = match.group(3)
+                console_processes[line_num] = (pid, date)
+        return console_processes
+
+    @staticmethod
+    def run_command(cmd, abort=True):
+        """runs command, exit if stderr is written to and abort argument is ture, returns stdout, stderr otherwise"""
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        output = proc.stdout.read()
+        error = proc.stderr.read()
+        if abort and error != "":
+            click.echo("Command resulted in error: {}".format(error))
+            sys.exit(ERR_CMD)
+        return output if abort else (output, error)
+
+class InvalidConfigurationError(Exception):
+    def __init__(self, config_key, message):
+        self.config_key = config_key
+        self.message = message
+
+class LineBusyError(Exception):
+    pass
+
+class LineNotFoundError(Exception):
+    pass
+
+class ConnectionFailedError(Exception):
+    pass

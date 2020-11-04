@@ -1,5 +1,9 @@
 import os
 import sys
+import subprocess
+import pexpect
+
+import mock
 import pytest
 
 import config.main as config
@@ -7,6 +11,8 @@ import tests.mock_tables.dbconnector
 
 from click.testing import CliRunner
 from utilities_common.db import Db
+from consutil.lib import *
+from sonic_py_common import device_info
 
 class TestConfigConsoleCommands(object):
     @classmethod
@@ -214,3 +220,246 @@ class TestConfigConsoleCommands(object):
         print(result.exit_code)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
+
+class TestConsutilLib(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+
+    def test_console_port_provider_get_all_configured_only_empty(self):
+        db = Db()
+        provider = ConsolePortProvider(db, configured_only=True)
+        assert len(list(provider.get_all())) == 0
+
+    def test_console_port_provider_get_all_configured_only_nonempty(self):
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
+
+        provider = ConsolePortProvider(db, configured_only=True)
+        assert len(list(provider.get_all())) == 1
+
+    @mock.patch('consutil.lib.SysInfoProvider.list_console_ttys', mock.MagicMock(return_value=["/dev/ttyUSB0", "/dev/ttyUSB1"]))
+    def test_console_port_provider_get_all_with_ttys(self):
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
+
+        provider = ConsolePortProvider(db, configured_only=False)
+        ports = list(provider.get_all())
+        print('[{}]'.format(', '.join(map(str, ports))))
+        assert len(ports) == 2
+
+    def test_console_port_provider_get_line_success(self):
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
+
+        provider = ConsolePortProvider(db, configured_only=True)
+        port = provider.get("1")
+        assert port is not None
+        assert port.line_num == "1"
+
+    def test_console_port_provider_get_line_not_found(self):
+        with pytest.raises(LineNotFoundError):
+            db = Db()
+            provider = ConsolePortProvider(db, configured_only=True)
+            provider.get("1")
+
+    def test_console_port_provider_get_line_by_device_success(self):
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch2" })
+
+        provider = ConsolePortProvider(db, configured_only=True)
+        port = provider.get("switch2", use_device=True)
+        assert port is not None
+        assert port.line_num == "2"
+
+    def test_console_port_provider_get_line_by_device_not_found(self):
+        with pytest.raises(LineNotFoundError):
+            db = Db()
+            db.cfgdb.set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch2" })
+
+            provider = ConsolePortProvider(db, configured_only=True)
+            provider.get("switch1")
+
+    @mock.patch('consutil.lib.SysInfoProvider.list_active_console_processes', mock.MagicMock(return_value={ "1" : ("223", "2020/11/2")}))
+    def test_console_port_info_refresh_without_session(self):
+        db = Db()
+
+        port = ConsolePortInfo(db, { "LINE" : "1" })
+        port.refresh()
+        assert port.busy
+        assert port.session_pid == "223"
+        assert port.session_start_date == "2020/11/2"
+
+    @mock.patch('consutil.lib.SysInfoProvider.list_active_console_processes', mock.MagicMock(return_value={ "2" : ("223", "2020/11/2")}))
+    def test_console_port_info_refresh_without_session_idle(self):
+        db = Db()
+
+        port = ConsolePortInfo(db, { "LINE" : "1" })
+        port.refresh()
+        assert port.busy == False
+
+    @mock.patch('consutil.lib.SysInfoProvider.get_active_console_process_info', mock.MagicMock(return_value=("1", "223", "2020/11/2")))
+    def test_console_port_info_refresh_with_session(self):
+        db = Db()
+
+        port = ConsolePortInfo(db, { "LINE" : "1" })
+        port._session = ConsoleSession(port, mock.MagicMock(pid="223"))
+        print(port)
+
+        port.refresh()
+        assert port.busy == True
+        assert port.session_pid == "223"
+        assert port.session_start_date == "2020/11/2"
+
+    @mock.patch('consutil.lib.SysInfoProvider.get_active_console_process_info', mock.MagicMock(return_value=("2", "223", "2020/11/2")))
+    def test_console_port_info_refresh_with_session_line_mismatch(self):
+        db = Db()
+
+        port = ConsolePortInfo(db, { "LINE" : "1" })
+        port._session = ConsoleSession(port, mock.MagicMock(pid="223"))
+        print(port)
+
+        with pytest.raises(ConnectionFailedError):
+            port.refresh()
+
+        assert port.busy == False
+
+    @mock.patch('consutil.lib.SysInfoProvider.get_active_console_process_info', mock.MagicMock(return_value=None))
+    def test_console_port_info_refresh_with_session_process_ended(self):
+        db = Db()
+
+        port = ConsolePortInfo(db, { "LINE" : "1" })
+        port._session = ConsoleSession(port, mock.MagicMock(pid="223"))
+        print(port)
+
+        port.refresh()
+        assert port.busy == False
+
+    def test_console_port_info_connect_state_busy(self):
+        db = Db()
+        port = ConsolePortInfo(db, { "LINE" : "1", "CUR_STATE" : { "state" : "busy" } })
+
+        port.refresh = mock.MagicMock(return_value=None)
+        with pytest.raises(LineBusyError):
+            port.connect()
+
+    def test_console_port_info_connect_invalid_config(self):
+        db = Db()
+        port = ConsolePortInfo(db, { "LINE" : "1", "CUR_STATE" : { "state" : "idle" } })
+
+        port.refresh = mock.MagicMock(return_value=None)
+        with pytest.raises(InvalidConfigurationError):
+            port.connect()
+
+    def test_console_port_info_connect_device_busy(self):
+        db = Db()
+        port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "idle" } })
+
+        port.refresh = mock.MagicMock(return_value=None)
+        mock_proc = mock.MagicMock(spec=subprocess.Popen)
+        mock_proc.send = mock.MagicMock(return_value=None)
+        mock_proc.expect = mock.MagicMock(return_value=1)
+        with mock.patch('pexpect.spawn', mock.MagicMock(return_value=mock_proc)):
+            with pytest.raises(LineBusyError):
+                port.connect()
+
+    def test_console_port_info_connect_connection_fail(self):
+        db = Db()
+        port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "idle" } })
+
+        port.refresh = mock.MagicMock(return_value=None)
+        mock_proc = mock.MagicMock(spec=subprocess.Popen)
+        mock_proc.send = mock.MagicMock(return_value=None)
+        mock_proc.expect = mock.MagicMock(return_value=2)
+        with mock.patch('pexpect.spawn', mock.MagicMock(return_value=mock_proc)):
+            with pytest.raises(ConnectionFailedError):
+                port.connect()
+
+    def test_console_port_info_connect_success(self):
+        db = Db()
+        port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "idle" } })
+
+        port.refresh = mock.MagicMock(return_value=None)
+        mock_proc = mock.MagicMock(spec=subprocess.Popen, pid="223")
+        mock_proc.send = mock.MagicMock(return_value=None)
+        mock_proc.expect = mock.MagicMock(return_value=0)
+        with mock.patch('pexpect.spawn', mock.MagicMock(return_value=mock_proc)):
+            session = port.connect()
+            assert session.proc.pid == "223"
+            assert session.port.line_num == "1"
+
+    def test_console_port_info_clear_session_line_not_busy(self):
+        db = Db()
+        port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "idle" } })
+
+        port.refresh = mock.MagicMock(return_value=None)
+        assert not port.clear_session()
+
+    @mock.patch('consutil.lib.SysInfoProvider.run_command', mock.MagicMock(return_value=None))
+    def test_console_port_info_clear_session_with_state_db(self):
+        db = Db()
+        port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "busy", "pid" : "223" } })
+
+        port.refresh = mock.MagicMock(return_value=None)
+        assert port.clear_session()
+
+    def test_console_port_info_clear_session_with_existing_session(self):
+        db = Db()
+        port = ConsolePortInfo(db, { "LINE" : "1", "baud_rate" : "9600", "CUR_STATE" : { "state" : "busy" } })
+        port._session = ConsoleSession(port, None)
+        port._session.close = mock.MagicMock(return_value=None)
+        port.refresh = mock.MagicMock(return_value=None)
+        assert port.clear_session()
+
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
+    @mock.patch('os.path.exists', mock.MagicMock(return_value=False))
+    def test_sys_info_provider_init_device_prefix_plugin_nonexists(self):
+        SysInfoProvider.init_device_prefix()
+        assert SysInfoProvider.DEVICE_PREFIX == "/dev/ttyUSB"
+
+    @mock.patch('sonic_py_common.device_info.get_paths_to_platform_and_hwsku_dirs', mock.MagicMock(return_value=("dummy_path", None)))
+    @mock.patch('os.path.exists', mock.MagicMock(return_value=True))
+    def test_sys_info_provider_init_device_prefix_plugin(self):
+        with mock.patch("__builtin__.open", mock.mock_open(read_data="C0-")):
+            SysInfoProvider.init_device_prefix()
+            assert SysInfoProvider.DEVICE_PREFIX == "/dev/C0-"
+            SysInfoProvider.DEVICE_PREFIX = "/dev/ttyUSB"
+
+    @mock.patch('consutil.lib.SysInfoProvider.run_command', mock.MagicMock(return_value=("/dev/ttyUSB0\n/dev/ttyACM1", "")))
+    def test_sys_info_provider_list_console_ttys(self):
+        SysInfoProvider.DEVICE_PREFIX == "/dev/ttyUSB"
+        ttys = SysInfoProvider.list_console_ttys()
+        print(SysInfoProvider.DEVICE_PREFIX)
+        assert len(ttys) == 1
+
+    @mock.patch('consutil.lib.SysInfoProvider.run_command', mock.MagicMock(return_value=("", "ls: cannot access '/dev/ttyUSB*': No such file or directory")))
+    def test_sys_info_provider_list_console_ttys_device_not_exists(self):
+        ttys = SysInfoProvider.list_console_ttys()
+        assert len(ttys) == 0
+
+    all_active_processes_output = ''+ \
+        """    PID                  STARTED CMD
+      8 Mon Nov  2 04:29:41 2020 picocom /dev/ttyUSB0 
+        """
+    @mock.patch('consutil.lib.SysInfoProvider.run_command', mock.MagicMock(return_value=all_active_processes_output))
+    def test_sys_info_provider_list_active_console_processes(self):
+        SysInfoProvider.DEVICE_PREFIX == "/dev/ttyUSB"
+        procs = SysInfoProvider.list_active_console_processes()
+        assert len(procs.keys()) == 1
+        assert "0" in procs.keys()
+        assert procs["0"] == ("8", "Mon Nov  2 04:29:41 2020")
+
+    active_process_output = "13751 Wed Mar  6 08:31:35 2019 /usr/bin/sudo picocom -b 9600 -f n /dev/ttyUSB1"
+    @mock.patch('consutil.lib.SysInfoProvider.run_command', mock.MagicMock(return_value=active_process_output))
+    def test_sys_info_provider_get_active_console_process_info_exists(self):
+        SysInfoProvider.DEVICE_PREFIX == "/dev/ttyUSB"
+        proc = SysInfoProvider.get_active_console_process_info("13751")
+        assert proc is not None
+        assert proc == ("1", "13751",  "Wed Mar  6 08:31:35 2019")
+
+    active_process_empty_output = ""
+    @mock.patch('consutil.lib.SysInfoProvider.run_command', mock.MagicMock(return_value=active_process_empty_output))
+    def test_sys_info_provider_get_active_console_process_info_nonexists(self):
+        SysInfoProvider.DEVICE_PREFIX == "/dev/ttyUSB"
+        proc = SysInfoProvider.get_active_console_process_info("2")
+        assert proc is None
