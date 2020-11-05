@@ -49,7 +49,7 @@ def show(db, brief):
 @consutil.command()
 @clicommon.pass_db
 @click.argument('target')
-@click.option('--devicename', '-d', is_flag=True, help="clear by name - if flag is set, interpret linenum as device name instead")
+@click.option('--devicename', '-d', is_flag=True, help="clear by name - if flag is set, interpret target as device name instead")
 def clear(db, target, devicename):
     """Clear preexisting connection to line"""
     if os.geteuid() != 0:
@@ -71,7 +71,7 @@ def clear(db, target, devicename):
 @consutil.command()
 @clicommon.pass_db
 @click.argument('target')
-@click.option('--devicename', '-d', is_flag=True, help="connect by name - if flag is set, interpret linenum as device name instead")
+@click.option('--devicename', '-d', is_flag=True, help="connect by name - if flag is set, interpret target as device name instead")
 def connect(db, target, devicename):
     """Connect to switch via console device - TARGET is line number or device name of switch"""
     if os.geteuid() != 0:

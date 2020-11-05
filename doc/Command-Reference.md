@@ -31,6 +31,11 @@
 * [BGP](#bgp)
   * [BGP show commands](#bgp-show-commands)
   * [BGP config commands](#bgp-config-commands)
+* [Console](#console)
+  * [Console show commands](#console-show-commands)
+  * [Console config commands](#console-config-commands)
+  * [Console connect commands](#console-connect-commands)
+  * [Console clear commands](#console-clear-commands)
 * [Container Auto-restart](#container-auto-restart)
   * [Container Auto-restart show commands](#container-auto-restart-show-commands)
   * [Container Auto-restart config command](#container-auto-restart-config-command)
@@ -140,6 +145,7 @@
 
 | Version | Modification Date | Details |
 | --- | --- | --- |
+| v5 | Nov-05-2020 | Add document for console commands |
 | v4 | Oct-17-2019 | Unify usage statements and other formatting; Replace tabs with spaces; Modify heading sizes; Fix spelling, grammar and other errors; Fix organization of new commands |
 | v3 | Jun-26-2019 | Update based on 201904 (build#19) release, "config interface" command changes related to interfacename order, FRR/Quagga show command changes, platform specific changes, ACL show changes and few formatting changes |
 | v2 | Apr-22-2019 | CLI Guide for SONiC 201811 version (build#32) with complete "config" command set |
@@ -1901,6 +1907,177 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
+
+## Console
+
+This section explains all Console show commands and configuration options that are supported in SONiC.
+
+All commands are used only when SONiC is used as console switch.
+
+All commands under this section are not applicable when SONiC used as regular switch.
+
+### Console show commands
+
+**show line**
+
+This command displays serial port or a virtual network connection status.
+
+- Usage:
+  ```
+  show line (-b|--breif)
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show line
+  Line    Baud    PID    Start Time    Device
+  ------  ------  -----  ------------  --------
+      0       -      -             -
+      1    9600      -             -   switch1
+      2       -      -             -
+      3       -      -             -
+      4       -      -             -
+  ```
+
+Optionally, you can display configured console ports only by specifying the `-b` or `--breif` flag.
+
+- Example:
+  ```
+  admin@sonic:~$ show line -b
+    Line    Baud    PID    Start Time    Device
+  ------  ------  -----  ------------  --------
+       1    9600      -             -   switch1
+  ```
+
+## Console config commands
+
+This sub-section explains the list of configuration options available for console management module.
+
+**config console add**
+
+This command is used to add a console port setting.
+
+- Usage:
+  ```
+  config console add <port_name> [--baud|-b <baud_rate>] [--flowcontrol|-f] [--devicename|-d <remote_device>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config console add 1 --baud 9600 --devicename switch1
+  ```
+
+**config console del**
+
+This command is used to remove a console port setting.
+
+- Usage:
+  ```
+  config console del <port_name>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config console del 1
+  ```
+
+**config console remote_device**
+
+This command is used to update the remote device name for a console port.
+
+- Usage:
+  ```
+  config console remote_device <port_name> <remote_device>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config console remote_device 1 switch1
+  ```
+
+**config console baud**
+
+This command is used to update the baud rate for a console port.
+
+- Usage:
+  ```
+  config console baud <port_name> <baud_rate>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config console baud 1 9600
+  ```
+
+**config console flow_control**
+
+This command is used to enable or disable flow control feature for a console port.
+
+- Usage:
+  ```
+  config console flow_control {enable|disable} <port_name>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config console flow_control enable 1
+  ```
+
+### Console connect commands
+
+**connect line**
+
+This command allows user to connect to a remote device via console line with an interactive cli.
+
+- Usage:
+  ```
+  connect line <target> (-d|--devicename)
+  ```
+
+By default, the target is `port_name`.
+
+- Example:
+  ```
+  admin@sonic:~$ connect line 1
+  Successful connection to line 1
+  Press ^A ^X to disconnect
+  ```
+
+Optionally, you can connect with a remote device name by specifying the `-d` or `--devicename` flag.
+
+- Example:
+  ```
+  admin@sonic:~$ connect line --devicename switch1
+  Successful connection to line 1
+  Press ^A ^X to disconnect
+  ```
+
+### Console clear commands
+
+**sonic-clear line**
+
+This command allows user to connect to a remote device via console line with an interactive cli.
+
+- Usage:
+  ```
+  sonc-clear line <target> (-d|--devicename)
+  ```
+
+By default, the target is `port_name`.
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear line 1
+  ```
+
+Optionally, you can clear with a remote device name by specifying the `-d` or `--devicename` flag.
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear --devicename switch1
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#console)
 
 ## Container Auto-restart
 
@@ -5920,23 +6097,6 @@ This command displays virtual address to the physical address translation status
   pool        [BUFFER_POOL|ingress_lossless_pool]
   size        1248
   ----------  -----------------------------------
-  ```
-
-**show line**
-
-This command displays serial port or a virtual network connection status.
-This command is used only when SONiC is used as console switch.
-This command is not applicable when SONiC used as regular switch.
-NOTE: This command is not working. It crashes as follows. A bug ticket is opened for this issue.
-
-- Usage:
-  ```
-  show line
-  ```
-
-- Example:
-  ```
-  admin@sonic:~$ show line
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#System-State)
