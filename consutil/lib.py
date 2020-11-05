@@ -34,7 +34,7 @@ FLOW_KEY = "flow_control"
 # STATE_DB Keys
 STATE_KEY = "state"
 PID_KEY = "pid"
-START_TIME_KEY = "state_time"
+START_TIME_KEY = "start_time"
 
 BUSY_FLAG = "busy"
 IDLE_FLAG = "idle"

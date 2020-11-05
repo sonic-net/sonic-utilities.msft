@@ -7,6 +7,7 @@ import mock
 import pytest
 
 import config.main as config
+import consutil.main as consutil
 import tests.mock_tables.dbconnector
 
 from click.testing import CliRunner
@@ -463,3 +464,34 @@ class TestConsutilLib(object):
         SysInfoProvider.DEVICE_PREFIX == "/dev/ttyUSB"
         proc = SysInfoProvider.get_active_console_process_info("2")
         assert proc is None
+
+class TestConsutilShow(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+
+    expect_show_output = ''+ \
+        """  Line    Baud    PID                Start Time    Device
+------  ------  -----  ------------------------  --------
+     1    9600      -                         -   switch1
+    *2    9600    223  Wed Mar  6 08:31:35 2019   switch2
+     3    9600      -                         -
+"""
+    @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
+    def test_show(self):
+        runner = CliRunner()
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
+        db.cfgdb.set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch2", "baud_rate" : "9600" })
+        db.cfgdb.set_entry("CONSOLE_PORT", 3, { "baud_rate" : "9600" })
+
+        db.db.set(db.db.STATE_DB, "CONSOLE_PORT|2", "state", "busy")
+        db.db.set(db.db.STATE_DB, "CONSOLE_PORT|2", "pid", "223")
+        db.db.set(db.db.STATE_DB, "CONSOLE_PORT|2", "start_time", "Wed Mar  6 08:31:35 2019")
+
+        # use '--brief' option to avoid access system
+        result = runner.invoke(consutil.consutil.commands["show"], ['--brief'], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == TestConsutilShow.expect_show_output
