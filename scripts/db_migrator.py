@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 
 import argparse
+import json
+import os
 import sys
 import traceback
 
 from sonic_py_common import device_info, logger
 from swsssdk import ConfigDBConnector, SonicDBConfig, SonicV2Connector
 
-
+INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 SYSLOG_IDENTIFIER = 'db_migrator'
 
 
@@ -228,6 +230,23 @@ class DBMigrator():
         self.configDB.set_entry(self.TABLE_NAME, self.TABLE_KEY, entry)
 
 
+    def common_migration_ops(self):
+        try:
+            with open(INIT_CFG_FILE) as f:
+                init_db = json.load(f)
+        except Exception as e:
+            raise Exception(str(e))
+
+        for init_cfg_table, table_val in init_db.items():
+            data = self.configDB.get_table(init_cfg_table)
+            if data:
+                # Ignore overriding the values that pre-exist in configDB
+                continue
+            log.log_info("Migrating table {} from INIT_CFG to config_db".format(init_cfg_table))
+            # Update all tables that do not exist in configDB but are present in INIT_CFG
+            for init_table_key, init_table_val in table_val.items():
+                self.configDB.set_entry(init_cfg_table, init_table_key, init_table_val)
+
     def migrate(self):
         version = self.get_version()
         log.log_info('Upgrading from version ' + version)
@@ -236,7 +255,8 @@ class DBMigrator():
             if next_version == version:
                 raise Exception('Version migrate from %s stuck in same version' % version)
             version = next_version
-
+        # Perform common migration ops
+        self.common_migration_ops()
 
 def main():
     try:
