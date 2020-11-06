@@ -13,7 +13,7 @@ import argparse
 import json
 import sys
 
-from swsssdk import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector
 
 class NatClear(object):
 

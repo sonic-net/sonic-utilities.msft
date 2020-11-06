@@ -21,7 +21,8 @@ import system_health
 import fgnhg
 
 from sonic_py_common import device_info, multi_asic
-from swsssdk import ConfigDBConnector, SonicV2Connector
+from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 from utilities_common.db import Db
 import utilities_common.multi_asic as multi_asic_util

@@ -3,7 +3,7 @@
 import click
 import ipaddress
 from swsssdk import ConfigDBConnector
-from swsssdk import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector
 
 def is_valid_ipv4_address(address):
     """Check if the given ipv4 address is valid"""

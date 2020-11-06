@@ -16,7 +16,8 @@ from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name
-from swsssdk import ConfigDBConnector, SonicV2Connector, SonicDBConfig
+from swsssdk import ConfigDBConnector, SonicDBConfig
+from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 import utilities_common.cli as clicommon

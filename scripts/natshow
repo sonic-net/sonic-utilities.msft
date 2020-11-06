@@ -61,7 +61,7 @@ import json
 import sys
 import re
 
-from swsssdk import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 
 class NatShow(object):

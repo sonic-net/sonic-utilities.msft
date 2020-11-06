@@ -7,7 +7,6 @@ from __future__ import print_function
 import os
 import sys
 from tabulate import tabulate
-from swsssdk import SonicV2Connector
 from natsort import natsorted
 
 # mock the redis for unit test purposes #
@@ -21,6 +20,7 @@ try:
 except KeyError:
     pass
 
+from swsscommon.swsscommon import SonicV2Connector
 
 header = ['Drawer', 'LED', 'FAN', 'Speed', 'Direction', 'Presence', 'Status', 'Timestamp']
 

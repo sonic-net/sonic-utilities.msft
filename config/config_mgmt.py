@@ -14,7 +14,8 @@ try:
 
     # SONiC specific imports
     import sonic_yang
-    from swsssdk import ConfigDBConnector, SonicV2Connector, port_util
+    from swsssdk import ConfigDBConnector, port_util
+    from swsscommon.swsscommon import SonicV2Connector
 
     # Using load_source to 'import /usr/local/bin/sonic-cfggen as sonic_cfggen'
     # since /usr/local/bin/sonic-cfggen does not have .py extension.

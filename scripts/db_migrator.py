@@ -7,7 +7,8 @@ import sys
 import traceback
 
 from sonic_py_common import device_info, logger
-from swsssdk import ConfigDBConnector, SonicDBConfig, SonicV2Connector
+from swsssdk import ConfigDBConnector, SonicDBConfig
+from swsscommon.swsscommon import SonicV2Connector
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 SYSLOG_IDENTIFIER = 'db_migrator'

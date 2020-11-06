@@ -3,7 +3,6 @@
 import argparse
 import sys
 import os
-from swsssdk import SonicV2Connector
 from tabulate import tabulate
 
 # mock the redis for unit test purposes #
@@ -16,6 +15,8 @@ try:
         import mock_tables.dbconnector
 except KeyError:
     pass
+
+from swsscommon.swsscommon import SonicV2Connector
 
 def psu_status_show(index):
     db = SonicV2Connector(host="127.0.0.1")

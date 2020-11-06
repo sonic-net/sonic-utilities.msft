@@ -30,7 +30,8 @@ import json
 import sys
 
 from natsort import natsorted
-from swsssdk import SonicV2Connector, port_util
+from swsssdk import port_util
+from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 
 class FdbShow(object):

@@ -4,10 +4,11 @@ import os
 
 import mock
 import mockredis
-import swsssdk.interface
+import redis
+import swsssdk
 from sonic_py_common import multi_asic
 from swsssdk import SonicDBConfig, SonicV2Connector
-from swsssdk.interface import redis
+from swsscommon import swsscommon
 
 topo = None
 
@@ -137,3 +138,4 @@ swsssdk.interface.DBInterface._subscribe_keyspace_notification = _subscribe_keys
 mockredis.MockRedis.config_set = config_set
 redis.StrictRedis = SwssSyncClient
 SonicV2Connector.connect = connect_SonicV2Connector
+swsscommon.SonicV2Connector = SonicV2Connector

@@ -4,7 +4,7 @@ from collections import OrderedDict
 import click
 import utilities_common.cli as clicommon
 from swsssdk import ConfigDBConnector
-from swsssdk import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 
 

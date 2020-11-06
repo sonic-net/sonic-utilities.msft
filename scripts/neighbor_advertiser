@@ -17,7 +17,8 @@ import traceback
 import warnings
 
 from sonic_py_common import logger
-from swsssdk import ConfigDBConnector, SonicV2Connector
+from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import SonicV2Connector
 from netaddr import IPAddress, IPNetwork
 
 
