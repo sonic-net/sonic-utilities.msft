@@ -30,6 +30,7 @@ DUMPDIR=/var/dump
 TARDIR=$DUMPDIR/$BASE
 TARFILE=$DUMPDIR/$BASE.tar
 LOGDIR=$DUMPDIR/$BASE/dump
+NUM_ASICS=1
 
 ###############################################################################
 # Runs a comamnd and saves its output to the incrementally built tar.
@@ -83,8 +84,63 @@ save_cmd() {
         && $RM $V -rf "$filepath"
 }
 
+
 ###############################################################################
-# Runs a vtysh command and saves its output to the incrementally built tar.
+# Runs a given command in all namesapces in case of multi ASIC platform, in
+# default (host) namespace in single ASIC platform
+# Globals:
+#  NUM_ASICS
+# Arguments:
+#  cmd: The command to run. Make sure that arguments with spaces have quotes
+#  filename: the filename to save the output as in $BASE/dump
+#  do_gzip: (OPTIONAL) true or false. Should the output be gzipped
+# Returns:
+#  None
+###############################################################################
+save_cmd_all_ns() {
+    echo $1
+    echo $2
+    local do_zip=${3:-false}
+    echo ${do_zip}
+
+    # host or default namespace
+    save_cmd "$1" "$2" "$do_zip"
+
+    if [[ ( "$NUM_ASICS" > 1 ) ]] ; then
+      for (( i=0; i<$NUM_ASICS; i++ ))
+      do
+          local cmd="sonic-netns-exec asic$i $1"
+          local file="$2.$i"
+          save_cmd "$cmd" "$file" "$do_zip"
+      done
+    fi
+}
+
+###############################################################################
+# Returns namespace option to be used with vtysh commmand, based on the ASIC ID.
+# Returns empty string if no ASIC ID is provided
+# Globals:
+#  None
+# Arguments:
+#  asic_id: (OPTIONAL) ASIC ID
+# Returns:
+#  vtysh namespace option
+###############################################################################
+get_vtysh_namespace() {
+    local asic_id=${1:-""}
+    local ns=""
+    if [[ ( $asic_id = "" ) ]] ; then
+        ns=""
+    else
+        ns=" -n  ${asic_id}"
+    fi
+    echo "$ns"
+}
+
+###############################################################################
+# Runs a vtysh command in all namesapces for a multi ASIC platform, and in
+# default (host) namespace in single ASIC platforms. Saves its output to the
+# incrementally built tar.
 # Globals:
 #  None
 # Arguments:
@@ -98,7 +154,18 @@ save_vtysh() {
     local vtysh_cmd=$1
     local filename=$2
     local do_gzip=${3:-false}
-    save_cmd "vtysh -c '${vtysh_cmd}'" "$filename" $do_gzip
+
+    if [[ ( "$NUM_ASICS" == 1 ) ]] ; then
+        save_cmd "vtysh -c '${vtysh_cmd}'" "$filename" $do_gzip
+    else
+        for (( i=0; i<$NUM_ASICS; i++ ))
+        do
+            ns_cmd=$(get_vtysh_namespace $i)
+            local cmd="vtysh $ns_cmd -c '${vtysh_cmd}'"
+            local file=$filename.$i
+            save_cmd "$cmd" "$file" "$do_gzip"
+        done
+    fi
 }
 
 ###############################################################################
@@ -116,30 +183,55 @@ save_ip() {
     local ip_args=$1
     local filename="ip.$2"
     local do_gzip=${3:-false}
-    save_cmd "ip $ip_args" "$filename" $do_gzip
+    save_cmd_all_ns "ip $ip_args" "$filename" "$do_gzip"
 }
 
 ###############################################################################
 # Iterates all neighbors and runs save_vtysh to save each neighbor's
 # advertised-routes and received-routes
+# On multi ASIC platform, collects information from all namespaces
 # Globals:
 #  None
+# Arguments:
+#  Optional arg namespace
+# Returns:
+#  None
+###############################################################################
+save_bgp_neighbor() {
+    local asic_id=${1:-""}
+    local ns=$(get_vtysh_namespace $asic_id)
+
+    neighbor_list_v4=$(vtysh $ns -c "show ip bgp neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}')
+    for word in $neighbor_list_v4; do
+        save_cmd "vtysh $ns -c \"show ip bgp neighbors $word advertised-routes\"" "ip.bgp.neighbor.$word.adv$asic_id"
+        save_cmd "vtysh $ns -c \"show ip bgp neighbors $word routes\"" "ip.bgp.neighbor.$word.rcv$asic_id"
+    done
+    neighbor_list_v6=$(vtysh $ns -c "show bgp ipv6 neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}' | fgrep ':')
+    for word in $neighbor_list_v6; do
+        save_cmd "vtysh $ns -c \"show bgp ipv6 neighbors $word advertised-routes\"" "ipv6.bgp.neighbor.$word.adv$asic_id"
+        save_cmd "vtysh $ns -c \"show bgp ipv6 neighbors $word routes\"" "ipv6.bgp.neighbor.$word.rcv$asic_id"
+    done
+}
+
+###############################################################################
+# Iterates all ASIC namespaces on multi ASIC platform and on default (host)
+# namespace on single ASIC platform
+# Globals:
+#  NUM_ASICS
 # Arguments:
 #  None
 # Returns:
 #  None
 ###############################################################################
-save_bgp_neighbor() {
-    neighbor_list_v4=$(vtysh -c "show ip bgp neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}')
-    for word in $neighbor_list_v4; do
-        save_vtysh "show ip bgp neighbors $word advertised-routes" "ip.bgp.neighbor.$word.adv"
-        save_vtysh "show ip bgp neighbors $word routes" "ip.bgp.neighbor.$word.rcv"
-    done
-    neighbor_list_v6=$(vtysh -c "show bgp ipv6 neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}' | fgrep ':')
-    for word in $neighbor_list_v6; do
-        save_vtysh "show bgp ipv6 neighbors $word advertised-routes" "ipv6.bgp.neighbor.$word.adv"
-        save_vtysh "show bgp ipv6 neighbors $word routes" "ipv6.bgp.neighbor.$word.rcv"
-    done
+save_bgp_neighbor_all_ns() {
+    if [[ ( "$NUM_ASICS" == 1 ) ]] ; then
+        save_bgp_neighbor
+    else
+        for (( i=0; i<$NUM_ASICS; i++ ))
+        do
+            save_bgp_neighbor $i
+        done
+    fi
 }
 
 ###############################################################################
@@ -152,15 +244,67 @@ save_bgp_neighbor() {
 #  None
 ###############################################################################
 save_nat_info() {
-    save_cmd "iptables -t nat -nv -L" "nat.iptables"
-    save_cmd "conntrack -j -L" "nat.conntrack"
-    save_cmd "conntrack -j -L | wc" "nat.conntrackcount"
-    save_cmd "conntrack -L" "nat.conntrackall"
-    save_cmd "conntrack -L | wc" "nat.conntrackallcount"
-    save_cmd "show nat config" "nat.config"
+    save_cmd_all_ns "iptables -t nat -nv -L" "nat.iptables"
+    save_cmd_all_ns "conntrack -j -L" "nat.conntrack"
+    save_cmd_all_ns "conntrack -j -L | wc" "nat.conntrackcount"
+    save_cmd_all_ns "conntrack -L" "nat.conntrackall"
+    save_cmd_all_ns "conntrack -L | wc" "nat.conntrackallcount"
+    save_cmd_all_ns "show nat config" "nat.config"
 }
 
 ###############################################################################
+# Save IP related info
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_ip_info() {
+    save_ip "link" "link"
+    save_ip "addr" "addr"
+    save_ip "rule" "rule"
+    save_ip "route show table all" "route"
+    save_ip "neigh" "neigh"
+}
+
+###############################################################################
+# Save BGP related info
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_bgp_info() {
+    save_vtysh "show ip bgp summary" "bgp.summary"
+    save_vtysh "show ip bgp neighbors" "bgp.neighbors"
+    save_vtysh "show ip bgp" "bgp.table"
+    save_vtysh "show bgp ipv6 summary" "bgp.ipv6.summary"
+    save_vtysh "show bgp ipv6 neighbors" "bgp.ipv6.neighbors"
+    save_vtysh "show bgp ipv6" "bgp.ipv6.table"
+    save_bgp_neighbor_all_ns
+}
+
+###############################################################################
+# Save Redis DB contents
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_redis_info() {
+    save_redis "APPL_DB"
+    save_redis "ASIC_DB"
+    save_redis "COUNTERS_DB"
+    save_redis "CONFIG_DB"
+    save_redis "FLEX_COUNTER_DB"
+    save_redis "STATE_DB"
+}
 
 ###############################################################################
 # Given list of proc files, saves proc files to tar.
@@ -196,7 +340,27 @@ save_proc() {
 ###############################################################################
 save_redis() {
     local db_name=$1
-    save_cmd "sonic-db-dump -n '$db_name' -y" "$db_name.json"
+    save_cmd_all_ns "sonic-db-dump -n '$db_name' -y" "$db_name.json"
+}
+
+###############################################################################
+# SAI DUMP from syncd
+# Globals:
+#  NUM_ASICS
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_saidump() {
+    if [[ ( "$NUM_ASICS" == 1 ) ]] ; then
+        save_cmd "docker exec -it syncd saidump" "saidump"
+    else
+        for (( i=0; i<$NUM_ASICS; i++ ))
+        do
+            save_cmd "docker exec -it syncd$i saidump" "saidump$i"
+        done
+    fi
 }
 
 ###############################################################################
@@ -228,6 +392,23 @@ save_platform() {
 
     ($TAR $V -uhf $TARFILE -C $DUMPDIR "$tarpath" \
         || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.")
+}
+
+###############################################################################
+# Save platform related info
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_platform_info() {
+    save_platform "syseeprom" "platform"
+    save_platform "psustatus" "platform"
+    save_platform "ssdhealth" "platform"
+    save_platform "temperature" "platform"
+    save_platform "fan" "platform"
 }
 
 ###############################################################################
@@ -321,6 +502,147 @@ enable_logrotate() {
     sed -i '/\/usr\/sbin\/logrotate/s/^#*//g' /etc/cron.d/logrotate
 }
 
+
+###############################################################################
+# Collect Mellanox specific information
+# Globals:
+#  CMD_PREFIX
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+collect_mellanox() {
+    local sai_dump_filename="/tmp/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
+    ${CMD_PREFIX}docker exec -it syncd saisdkdump -f $sai_dump_filename
+    ${CMD_PREFIX}docker exec syncd tar Ccf $(dirname $sai_dump_filename) - $(basename $sai_dump_filename) | tar Cxf /tmp/ -
+    save_file $sai_dump_filename sai_sdk_dump true
+
+    local mst_dump_filename="/tmp/mstdump"
+    local max_dump_count="3"
+    for i in $(seq 1 $max_dump_count); do
+        ${CMD_PREFIX}/usr/bin/mstdump /dev/mst/mt*conf0 > "${mst_dump_filename}${i}"
+        save_file "${mst_dump_filename}${i}" mstdump true
+    done
+}
+
+###############################################################################
+# Collect Broadcom specific information
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+collect_broadcom() {
+    save_cmd "bcmcmd -t5 version" "broadcom.version"
+    save_cmd "bcmcmd -t5 soc" "broadcom.soc"
+    save_cmd "bcmcmd -t5 ps" "broadcom.ps"
+    save_cmd "cat /proc/bcm/knet/debug" "broadcom.knet.debug"
+    save_cmd "cat /proc/bcm/knet/dma" "broadcom.knet.dma"
+    save_cmd "cat /proc/bcm/knet/dstats" "broadcom.knet.dstats"
+    save_cmd "cat /proc/bcm/knet/link" "broadcom.knet.link"
+    save_cmd "cat /proc/bcm/knet/rate" "broadcom.knet.rate"
+    save_cmd "cat /proc/bcm/knet/stats" "broadcom.knet.stats"
+    save_cmd "bcmcmd \"l3 nat_ingress show\"" "broadcom.nat.ingress"
+    save_cmd "bcmcmd \"l3 nat_egress show\"" "broadcom.nat.egress"
+}
+
+###############################################################################
+# Collect Arista specific information
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+collect_arista() {
+    save_cmd "cat /proc/scd" "scd"
+    save_cmd "arista syseeprom" "arista.syseeprom"
+    save_cmd "arista dump" "arista.dump"
+}
+
+###############################################################################
+# Save log file
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_log_files() {
+    disable_logrotate
+    trap enable_logrotate HUP INT QUIT TERM KILL ABRT ALRM
+
+    # gzip up all log files individually before placing them in the incremental tarball
+    for file in $(find_files "/var/log/"); do
+        # ignore the sparse file lastlog
+        if [ "$file" = "/var/log/lastlog" ]; then
+            continue
+        fi
+        # don't gzip already-gzipped log files :)
+        if [ -z "${file##*.gz}" ]; then
+            save_file $file log false
+        else
+            save_file $file log true
+        fi
+    done
+
+    enable_logrotate
+}
+
+###############################################################################
+# Save crash files
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_crash_files() {
+    # archive core dump files
+    for file in $(find_files "/var/core/"); do
+        # don't gzip already-gzipped log files :)
+        if [ -z "${file##*.gz}" ]; then
+            save_file $file core false
+        else
+            save_file $file core true
+        fi
+    done
+
+    # archive kernel dump files
+    for file in $(find_files "/var/crash/"); do
+        # don't gzip already-gzipped dmesg files :)
+        if [ ! ${file} = "/var/crash/kexec_cmd" -a ! ${file} = "/var/crash/export" ]; then
+            if [[ ${file} == *"kdump."* ]]; then
+                save_file $file kdump false
+            else
+                save_file $file kdump true
+            fi
+        fi
+    done
+}
+
+###############################################################################
+# Get number of ASICs in the platform
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  ASIC Count
+###############################################################################
+get_asic_count() {
+    local cmd="show platform summary --json | python -c 'import sys, json; \
+               print(json.load(sys.stdin)[\"asic_count\"])'"
+    echo `eval ${cmd} 2>&1`
+}
+
+
 ###############################################################################
 # Main generate_dump routine
 # Globals:
@@ -336,6 +658,7 @@ main() {
         echo "$0: must be run as root (or in sudo)" >&2
         exit 10
     fi
+    NUM_ASICS=$(get_asic_count)
     ${CMD_PREFIX}renice +5 -p $$ >> /dev/null
     ${CMD_PREFIX}ionice -c 2 -n 5 -p $$ >> /dev/null
 
@@ -362,11 +685,7 @@ main() {
     save_cmd "systemd-analyze dump" "systemd.analyze.dump"
     save_cmd "systemd-analyze plot" "systemd.analyze.plot.svg"
 
-    save_platform "syseeprom" "platform"
-    save_platform "psustatus" "platform"
-    save_platform "ssdhealth" "platform"
-    save_platform "temperature" "platform"
-    save_platform "fan" "platform"
+    save_platform_info
 
     save_cmd "show version" "version"
     save_cmd "show platform summary" "platform.summary"
@@ -377,22 +696,12 @@ main() {
     save_cmd "lspci -vvv -xx" "lspci"
     save_cmd "lsusb -v" "lsusb"
     save_cmd "sysctl -a" "sysctl"
-    save_ip "link" "link"
-    save_ip "addr" "addr"
-    save_ip "rule" "rule"
-    save_ip "route show table all" "route"
-    save_ip "neigh" "neigh"
 
-    save_vtysh "show ip bgp summary" "bgp.summary"
-    save_vtysh "show ip bgp neighbors" "bgp.neighbors"
-    save_vtysh "show ip bgp" "bgp.table"
-    save_vtysh "show bgp ipv6 summary" "bgp.ipv6.summary"
-    save_vtysh "show bgp ipv6 neighbors" "bgp.ipv6.neighbors"
-    save_vtysh "show bgp ipv6" "bgp.ipv6.table"
-    save_bgp_neighbor
+    save_ip_info
+    save_bgp_info
 
-    save_cmd "show interface status" "interface.status"
-    save_cmd "show interface counters" "interface.counters"
+    save_cmd "show interface status -d all" "interface.status"
+    save_cmd "show interface counters -d all" "interface.counters"
     save_cmd "show interface transceiver presence" "interface.xcvrs.presence"
     save_cmd "show interface transceiver eeprom --dom" "interface.xcvrs.eeprom"
 
@@ -408,52 +717,24 @@ main() {
     save_cmd "dmesg" "dmesg"
 
     save_nat_info
-
-    save_redis "APPL_DB"
-    save_redis "ASIC_DB"
-    save_redis "COUNTERS_DB"
-    save_redis "CONFIG_DB"
-    save_redis "FLEX_COUNTER_DB"
-    save_redis "STATE_DB"
+    save_redis_info
 
     save_cmd "docker ps -a" "docker.ps"
     save_cmd "docker top pmon" "docker.pmon"
 
-    save_cmd "docker exec -it syncd saidump" "saidump"
+    save_saidump
 
     local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
     if [[ "$asic" = "mellanox" ]]; then
-        local sai_dump_filename="/tmp/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
-        ${CMD_PREFIX}docker exec -it syncd saisdkdump -f $sai_dump_filename
-        ${CMD_PREFIX}docker exec syncd tar Ccf $(dirname $sai_dump_filename) - $(basename $sai_dump_filename) | tar Cxf /tmp/ -
-        save_file $sai_dump_filename sai_sdk_dump true
-
-        local mst_dump_filename="/tmp/mstdump"
-        local max_dump_count="3"
-        for i in $(seq 1 $max_dump_count); do
-            ${CMD_PREFIX}/usr/bin/mstdump /dev/mst/mt*conf0 > "${mst_dump_filename}${i}"
-            save_file "${mst_dump_filename}${i}" mstdump true
-        done
+        collect_mellanox
     fi
 
     if [ "$asic" = "broadcom" ]; then
-        save_cmd "bcmcmd -t5 version" "broadcom.version"
-        save_cmd "bcmcmd -t5 soc" "broadcom.soc"
-        save_cmd "bcmcmd -t5 ps" "broadcom.ps"
-        save_cmd "cat /proc/bcm/knet/debug" "broadcom.knet.debug"
-        save_cmd "cat /proc/bcm/knet/dma" "broadcom.knet.dma"
-        save_cmd "cat /proc/bcm/knet/dstats" "broadcom.knet.dstats"
-        save_cmd "cat /proc/bcm/knet/link" "broadcom.knet.link"
-        save_cmd "cat /proc/bcm/knet/rate" "broadcom.knet.rate"
-        save_cmd "cat /proc/bcm/knet/stats" "broadcom.knet.stats"
-        save_cmd "bcmcmd \"l3 nat_ingress show\"" "broadcom.nat.ingress"
-        save_cmd "bcmcmd \"l3 nat_egress show\"" "broadcom.nat.egress"
+        collect_broadcom
     fi
 
     if $GREP -qi "aboot_platform=.*arista" /host/machine.conf; then
-        save_cmd "cat /proc/scd" "scd"
-        save_cmd "arista syseeprom" "arista.syseeprom"
-        save_cmd "arista dump" "arista.dump"
+        collect_arista
     fi
 
     $RM $V -rf $TARDIR
@@ -476,51 +757,18 @@ main() {
         || abort "${ERROR_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
         && $RM $V -rf $TARDIR
 
-    disable_logrotate
-    trap enable_logrotate HUP INT QUIT TERM KILL ABRT ALRM
-
-    # gzip up all log files individually before placing them in the incremental tarball
-    for file in $(find_files "/var/log/"); do
-        # ignore the sparse file lastlog
-        if [ "$file" = "/var/log/lastlog" ]; then
-            continue
-        fi
-        # don't gzip already-gzipped log files :)
-        if [ -z "${file##*.gz}" ]; then
-            save_file $file log false
-        else
-            save_file $file log true
-        fi
-    done
-
-    enable_logrotate
-
-    # archive core dump files
-    for file in $(find_files "/var/core/"); do
-        # don't gzip already-gzipped log files :)
-        if [ -z "${file##*.gz}" ]; then
-            save_file $file core false
-        else
-            save_file $file core true
-        fi
-    done
-
-    # archive kernel dump files
-    for file in $(find_files "/var/crash/"); do
-        # don't gzip already-gzipped dmesg files :)
-        if [ ! ${file} = "/var/crash/kexec_cmd" -a ! ${file} = "/var/crash/export" ]; then
-            if [[ ${file} == *"kdump."* ]]; then
-                save_file $file kdump false
-            else
-                save_file $file kdump true
-            fi
-        fi
-    done
+    save_log_files
+    save_crash_files
 
     # run 'hw-management-generate-dump.sh' script and save the result file
-    /usr/bin/hw-management-generate-dump.sh
-    save_file "/tmp/hw-mgmt-dump*" "hw-mgmt" false
-    rm -f /tmp/hw-mgmt-dump*
+    HW_DUMP_FILE=/usr/bin/hw-management-generate-dump.sh
+    if [ -f "$HW_DUMP_FILE" ]; then
+      /usr/bin/hw-management-generate-dump.sh
+      save_file "/tmp/hw-mgmt-dump*" "hw-mgmt" false
+      rm -f /tmp/hw-mgmt-dump*
+    else
+      echo "HW Mgmt dump script $HW_DUMP_FILE does not exist"
+    fi
 
     # clean up working tar dir before compressing
     $RM $V -rf $TARDIR
