@@ -12,27 +12,27 @@ from tabulate import tabulate
 from utilities_common import constants
 
 
-def is_ipv4_address(ipaddress):
+def is_ipv4_address(ip_address):
     """
     Checks if given ip is ipv4
-    :param ipaddress: unicode ipv4
+    :param ip_address: unicode ipv4
     :return: bool
     """
     try:
-        ipaddress.IPv4Address(ipaddress)
+        ipaddress.IPv4Address(ip_address)
         return True
     except ipaddress.AddressValueError as err:
         return False
 
 
-def is_ipv6_address(ipaddress):
+def is_ipv6_address(ip_address):
     """
     Checks if given ip is ipv6
-    :param ipaddress: unicode ipv6
+    :param ip_address: unicode ipv6
     :return: bool
     """
     try:
-        ipaddress.IPv6Address(ipaddress)
+        ipaddress.IPv6Address(ip_address)
         return True
     except ipaddress.AddressValueError as err:
         return False
