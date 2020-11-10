@@ -3,28 +3,39 @@
 import click
 import swsssdk
 from tabulate import tabulate
+from utilities_common import multi_asic as multi_asic_util
+from sonic_py_common import multi_asic
 
 class Crm:
-    def __init__(self):
+    def __init__(self, db=None):
         self.cli_mode = None
         self.addr_family = None
         self.res_type = None
+        self.db = None
+        self.cfgdb = db
+        self.multi_asic = multi_asic_util.MultiAsic()
 
+    @multi_asic_util.run_on_multi_asic
     def config(self, attr, val):
         """
         CRM handler for 'config' CLI commands.
         """
-        configdb = swsssdk.ConfigDBConnector()
-        configdb.connect()
-
-        configdb.mod_entry("CRM", 'Config', {attr: val})
+        if self.cfgdb:
+            self.config_db = self.cfgdb
+        self.config_db.mod_entry("CRM", 'Config', {attr: val})
 
     def show_summary(self):
         """
         CRM Handler to display general information.
         """
-        configdb = swsssdk.ConfigDBConnector()
-        configdb.connect()
+
+        configdb = self.cfgdb
+        if configdb is None:
+            # Get the namespace list
+            namespaces = multi_asic.get_namespace_list()
+
+            configdb = swsssdk.ConfigDBConnector(namespace=namespaces[0])
+            configdb.connect()
 
         crm_info = configdb.get_entry('CRM', 'Config')
 
@@ -37,8 +48,14 @@ class Crm:
         """
         CRM Handler to display thresholds information.
         """
-        configdb = swsssdk.ConfigDBConnector()
-        configdb.connect()
+
+        configdb = self.cfgdb
+        if configdb is None:
+            # Get the namespace list
+            namespaces = multi_asic.get_namespace_list()
+
+            configdb = swsssdk.ConfigDBConnector(namespace=namespaces[0])
+            configdb.connect()
 
         crm_info = configdb.get_entry('CRM', 'Config')
 
@@ -60,16 +77,11 @@ class Crm:
         click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
         click.echo()
 
-    def show_resources(self, resource):
+    def get_resources(self, resource):
         """
-        CRM Handler to display resources information.
+        CRM Handler to get resources information.
         """
-        countersdb = swsssdk.SonicV2Connector(host='127.0.0.1')
-        countersdb.connect(countersdb.COUNTERS_DB)
-
-        crm_stats = countersdb.get_all(countersdb.COUNTERS_DB, 'CRM:STATS')
-
-        header = ("Resource Name", "Used Count", "Available Count")
+        crm_stats = self.db.get_all(self.db.COUNTERS_DB, 'CRM:STATS')
         data = []
 
         if crm_stats:
@@ -79,26 +91,18 @@ class Crm:
                     data.append([res, crm_stats['crm_stats_' + res + "_used"], crm_stats['crm_stats_' + res + "_available"]])
             else:
                 data.append([resource, crm_stats['crm_stats_' + resource + "_used"], crm_stats['crm_stats_' + resource + "_available"]])
-        else:
-            click.echo('\nCRM counters are not ready. They would be populated after the polling interval.')
 
-        click.echo()
-        click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
-        click.echo()
+        return data
 
-    def show_acl_resources(self):
+    def get_acl_resources(self):
         """
-        CRM Handler to display ACL recources information.
+        CRM Handler to get ACL recources information.
         """
-        countersdb = swsssdk.SonicV2Connector(host='127.0.0.1')
-        countersdb.connect(countersdb.COUNTERS_DB)
-
-        header = ("Stage", "Bind Point", "Resource Name", "Used Count", "Available Count")
         data = []
 
         for stage in ["INGRESS", "EGRESS"]:
             for bind_point in ["PORT", "LAG", "VLAN", "RIF", "SWITCH"]:
-                crm_stats = countersdb.get_all(countersdb.COUNTERS_DB, 'CRM:ACL_STATS:{0}:{1}'.format(stage, bind_point))
+                crm_stats = self.db.get_all(self.db.COUNTERS_DB, 'CRM:ACL_STATS:{0}:{1}'.format(stage, bind_point))
 
                 if crm_stats:
                     for res in ["acl_group", "acl_table"]:
@@ -108,38 +112,83 @@ class Crm:
                                         crm_stats['crm_stats_' + res + "_available"]
                                     ])
 
-        click.echo()
-        click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
-        click.echo()
-
-    def show_acl_table_resources(self):
+        return data
+    def get_acl_table_resources(self):
         """
         CRM Handler to display ACL table information.
         """
-        countersdb = swsssdk.SonicV2Connector(host='127.0.0.1')
-        countersdb.connect(countersdb.COUNTERS_DB)
-
-        header = ("Table ID", "Resource Name", "Used Count", "Available Count")
-
         # Retrieve all ACL table keys from CRM:ACL_TABLE_STATS
-        crm_acl_keys = countersdb.keys(countersdb.COUNTERS_DB, 'CRM:ACL_TABLE_STATS*')
+        crm_acl_keys = self.db.keys(self.db.COUNTERS_DB, 'CRM:ACL_TABLE_STATS*')
+        data = []
 
         for key in crm_acl_keys or [None]:
-            data = []
-
             if key:
                 id = key.replace('CRM:ACL_TABLE_STATS:', '')
 
-                crm_stats = countersdb.get_all(countersdb.COUNTERS_DB, key)
+                crm_stats = self.db.get_all(self.db.COUNTERS_DB, key)
 
                 for res in ['acl_entry', 'acl_counter']:
                     if ('crm_stats_' + res + '_used' in crm_stats) and ('crm_stats_' + res + '_available' in crm_stats):
                         data.append([id, res, crm_stats['crm_stats_' + res + '_used'], crm_stats['crm_stats_' + res + '_available']])
 
+        return data
+
+    @multi_asic_util.run_on_multi_asic
+    def show_resources(self, resource):
+        """
+        CRM Handler to display resources information.
+        """
+        if multi_asic.is_multi_asic():
+            header = (self.multi_asic.current_namespace.upper() + "\n\nResource Name", "\n\nUsed Count", "\n\nAvailable Count")
+            err_msg = '\nCRM counters are not ready for '+ self.multi_asic.current_namespace.upper() + '. They would be populated after the polling interval.'
+        else:
+            header = ("Resource Name", "Used Count", "Available Count")
+            err_msg = '\nCRM counters are not ready. They would be populated after the polling interval.'
+
+        data = []
+        data = self.get_resources(resource)
+
+        if data:
             click.echo()
             click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
             click.echo()
+        else:
+            click.echo(err_msg)
 
+    @multi_asic_util.run_on_multi_asic
+    def show_acl_resources(self):
+        """
+        CRM Handler to display ACL recources information.
+        """
+
+        if multi_asic.is_multi_asic():
+            header = (self.multi_asic.current_namespace.upper() + "\n\nStage", "\n\nBind Point", "\n\nResource Name", "\n\nUsed Count", "\n\nAvailable Count")
+        else:
+            header = ("Stage", "Bind Point", "Resource Name", "Used Count", "Available Count")
+
+        data = []
+        data = self.get_acl_resources()
+
+        click.echo()
+        click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
+        click.echo()
+
+    @multi_asic_util.run_on_multi_asic
+    def show_acl_table_resources(self):
+        """
+        CRM Handler to display ACL table information.
+        """
+        if multi_asic.is_multi_asic():
+            header = (self.multi_asic.current_namespace.upper() + "\n\nTable ID", "\n\nResource Name", "\n\nUsed Count", "\n\nAvailable Count")
+        else:
+            header = ("Table ID", "Resource Name", "Used Count", "Available Count")
+
+        data = []
+        data = self.get_acl_table_resources()
+
+        click.echo()
+        click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
+        click.echo()
 
 @click.group()
 @click.pass_context
@@ -147,11 +196,17 @@ def cli(ctx):
     """
     Utility entry point.
     """
+    # Use the db object if given as input.
+    db = None if ctx.obj is None else ctx.obj.cfgdb
+
     context = {
-        "crm": Crm()
+        "crm": Crm(db)
     }
 
     ctx.obj = context
+
+    # Load the global config file database_global.json once.
+    swsssdk.SonicDBConfig.load_sonic_global_db_config()
 
 @cli.group()
 @click.pass_context
