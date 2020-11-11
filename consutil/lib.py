@@ -158,7 +158,7 @@ class ConsolePortInfo(object):
 
         # build and start picocom command
         flow_cmd = "h" if self.flow_control else "n"
-        cmd = "sudo picocom -b {} -f {} {}{}".format(self.baud, flow_cmd, SysInfoProvider.DEVICE_PREFIX, self.line_num)
+        cmd = "picocom -b {} -f {} {}{}".format(self.baud, flow_cmd, SysInfoProvider.DEVICE_PREFIX, self.line_num)
 
         # start connection
         try:
@@ -228,10 +228,11 @@ class ConsolePortInfo(object):
         state_db.set(state_db.STATE_DB, line_key, STATE_KEY, state)
         state_db.set(state_db.STATE_DB, line_key, PID_KEY, pid)
         state_db.set(state_db.STATE_DB, line_key, START_TIME_KEY, date)
-        self._info[CUR_STATE_KEY] = {} if CUR_STATE_KEY not in self._info else self._info[CUR_STATE_KEY]
-        self._info[CUR_STATE_KEY][STATE_KEY] = state
-        self._info[CUR_STATE_KEY][PID_KEY] = pid
-        self._info[CUR_STATE_KEY][START_TIME_KEY] = date
+        self._info[CUR_STATE_KEY] = {
+            STATE_KEY: state,
+            PID_KEY: pid,
+            START_TIME_KEY: date
+        }
 
 class ConsoleSession(object):
     """
