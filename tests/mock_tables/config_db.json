@@ -1299,5 +1299,8 @@
         "acl_entry_high_threshold": "85",
         "fdb_entry_low_threshold": "70",
         "ipv6_nexthop_high_threshold": "85"
+    },
+    "CHASSIS_MODULE|LINE-CARD1": {
+        "admin_status": "down"
     }
 }

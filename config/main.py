@@ -32,6 +32,7 @@ import mlnx
 import nat
 import vlan
 from config_mgmt import ConfigMgmtDPB
+import chassis_modules
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
@@ -887,7 +888,7 @@ config.add_command(feature.feature)
 config.add_command(kube.kubernetes)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
-
+config.add_command(chassis_modules.chassis_modules)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
