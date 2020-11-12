@@ -145,6 +145,19 @@ class DBMigrator():
             self.appDB.set(self.appDB.APPL_DB, table, 'NULL', 'NULL')
             if_db.append(if_name)
 
+    def migrate_copp_table(self):
+        '''
+        Delete the existing COPP table
+        '''
+        if self.appDB is None:
+            return
+
+        keys = self.appDB.keys(self.appDB.APPL_DB, "COPP_TABLE:*")
+        if keys is None:
+            return
+        for copp_key in keys:
+            self.appDB.delete(self.appDB.APPL_DB, copp_key)
+
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
@@ -247,6 +260,8 @@ class DBMigrator():
             # Update all tables that do not exist in configDB but are present in INIT_CFG
             for init_table_key, init_table_val in table_val.items():
                 self.configDB.set_entry(init_cfg_table, init_table_key, init_table_val)
+
+        self.migrate_copp_table()
 
     def migrate(self):
         version = self.get_version()
