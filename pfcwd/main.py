@@ -105,6 +105,7 @@ class PfcwdCli(object):
         self.config_db = None
         self.multi_asic = multi_asic_util.MultiAsic(display, namespace)
         self.table = []
+        self.all_ports = []
 
     @multi_asic_util.run_on_multi_asic
     def collect_stats(self, empty, queues):
@@ -148,8 +149,26 @@ class PfcwdCli(object):
         ))
 
     @multi_asic_util.run_on_multi_asic
+    def get_all_namespace_ports(self):
+        ports = get_all_ports(
+            self.db, self.multi_asic.current_namespace,
+            self.multi_asic.display_option
+        )
+        self.all_ports.extend(ports)
+
+    def get_invalid_ports(self, ports=[]):
+        if len(ports) == 0:
+            return []
+        self.get_all_namespace_ports()
+        port_set = set(ports)
+        # "all" is a valid option, remove before performing set diff
+        port_set.discard("all")
+        return port_set - set(self.all_ports)
+
+    @multi_asic_util.run_on_multi_asic
     def collect_config(self, ports):
         table = []
+
         if len(ports) == 0:
             ports = get_all_ports(
                 self.db, self.multi_asic.current_namespace,
@@ -208,23 +227,24 @@ class PfcwdCli(object):
             tablefmt='simple'
         ))
 
-    @multi_asic_util.run_on_multi_asic
     def start(self, action, restoration_time, ports, detection_time):
+        invalid_ports = self.get_invalid_ports(ports)
+        if len(invalid_ports):
+            click.echo("Failed to run command, invalid options:")
+            for opt in invalid_ports:
+                click.echo(opt)
+            exit()
+        self.start_cmd(action, restoration_time, ports, detection_time)
+
+    @multi_asic_util.run_on_multi_asic
+    def start_cmd(self, action, restoration_time, ports, detection_time):
         if os.geteuid() != 0:
             exit("Root privileges are required for this operation")
-        allowed_strs = ['ports', 'all', 'detection-time']
 
         all_ports = get_all_ports(
             self.db, self.multi_asic.current_namespace,
             self.multi_asic.display_option
         )
-        allowed_strs = allowed_strs + all_ports
-        for p in ports:
-            if p not in allowed_strs:
-                raise click.BadOptionUsage(
-                    "Bad command line format. Try 'pfcwd start --help' for "
-                    "usage"
-                )
 
         if len(ports) == 0:
             ports = all_ports
@@ -378,7 +398,6 @@ class PfcwdCli(object):
             CONFIG_DB_PFC_WD_TABLE_NAME, "GLOBAL",
             pfcwd_info
         )
-
 
 # Show stats
 class Show(object):
