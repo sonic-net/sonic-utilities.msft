@@ -5,11 +5,13 @@
     },
     "SFLOW_COLLECTOR|prod": {
         "collector_ip": "fe80::6e82:6aff:fe1e:cd8e",
-        "collector_port": "6343"
+        "collector_port": "6343",
+        "collector_vrf": "mgmt"
     },
     "SFLOW_COLLECTOR|ser5": {
         "collector_ip": "172.21.35.15",
-        "collector_port": "6343"
+        "collector_port": "6343",
+        "collector_vrf": "default"
     },
     "BREAKOUT_CFG|Ethernet0": {
         "brkout_mode": "4x25G[10G]"

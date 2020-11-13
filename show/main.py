@@ -1684,9 +1684,12 @@ def show_sflow_global(config_db):
     sflow_info = config_db.get_table('SFLOW_COLLECTOR')
     click.echo("\n  {} Collectors configured:".format(len(sflow_info)))
     for collector_name in sorted(sflow_info.keys()):
+        vrf_name = (sflow_info[collector_name]['collector_vrf']
+                    if 'collector_vrf' in sflow_info[collector_name] else 'default')
         click.echo("    Name: {}".format(collector_name).ljust(30) +
                    "IP addr: {} ".format(sflow_info[collector_name]['collector_ip']).ljust(25) +
-                   "UDP port: {}".format(sflow_info[collector_name]['collector_port']))
+                   "UDP port: {}".format(sflow_info[collector_name]['collector_port']).ljust(17) +
+                   "VRF: {}".format(vrf_name))
 
 
 #

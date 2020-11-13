@@ -20,8 +20,8 @@ sFlow Global Information:
   sFlow AgentID:              default
 
   2 Collectors configured:
-    Name: prod                IP addr: fe80::6e82:6aff:fe1e:cd8e UDP port: 6343
-    Name: ser5                IP addr: 172.21.35.15    UDP port: 6343
+    Name: prod                IP addr: fe80::6e82:6aff:fe1e:cd8e UDP port: 6343   VRF: mgmt
+    Name: ser5                IP addr: 172.21.35.15    UDP port: 6343   VRF: default
 """
 
 # Expected output for 'show sflow interface'
@@ -117,7 +117,8 @@ class TestShowSflow(object):
         # change the output
         global show_sflow_output
         show_sflow_output_local = \
-            show_sflow_output.replace('default', 'Ethernet0')
+            show_sflow_output.replace('sFlow AgentID:              default',
+                                      'sFlow AgentID:              Ethernet0')
 
         # run show and check
         result = runner.invoke(show.cli.commands["sflow"], [], obj=db)
@@ -154,10 +155,10 @@ class TestShowSflow(object):
         global show_sflow_output
         show_sflow_output_local = show_sflow_output.replace(\
     "2 Collectors configured:\n\
-    Name: prod                IP addr: fe80::6e82:6aff:fe1e:cd8e UDP port: 6343\n\
-    Name: ser5                IP addr: 172.21.35.15    UDP port: 6343", \
+    Name: prod                IP addr: fe80::6e82:6aff:fe1e:cd8e UDP port: 6343   VRF: mgmt\n\
+    Name: ser5                IP addr: 172.21.35.15    UDP port: 6343   VRF: default", \
     "1 Collectors configured:\n\
-    Name: ser5                IP addr: 172.21.35.15    UDP port: 6343")
+    Name: ser5                IP addr: 172.21.35.15    UDP port: 6343   VRF: default")
 
         # run show and check
         result = runner.invoke(show.cli.commands["sflow"], [], obj=db)
@@ -168,7 +169,7 @@ class TestShowSflow(object):
         # add collector
         result = runner.invoke(config.config.commands["sflow"].\
             commands["collector"].commands["add"], \
-            ["prod", "fe80::6e82:6aff:fe1e:cd8e"], obj=obj)
+            ["prod", "fe80::6e82:6aff:fe1e:cd8e", "--vrf", "mgmt"], obj=obj)
         assert result.exit_code == 0
 
         # run show and check
