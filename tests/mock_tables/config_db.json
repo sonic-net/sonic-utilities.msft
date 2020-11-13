@@ -988,21 +988,21 @@
         "nhopself": "0",
         "rrclient": "0"
     },
-    "BGP_NEIGHBOR|10.0.0.61": {
+    "BGP_INTERNAL_NEIGHBOR|10.0.0.61": {
         "asn": "64015",
         "holdtime": "10",
         "keepalive": "3",
         "local_addr": "10.0.0.60",
-        "name": "ARISTA15T0",
+        "name": "INT_NEIGH0",
         "nhopself": "0",
         "rrclient": "0"
     },
-    "BGP_NEIGHBOR|10.0.0.63": {
+    "BGP_INTERNAL_NEIGHBOR|10.0.0.63": {
         "asn": "64016",
         "holdtime": "10",
         "keepalive": "3",
         "local_addr": "10.0.0.62",
-        "name": "ARISTA16T0",
+        "name": "INT_NEIGH1",
         "nhopself": "0",
         "rrclient": "0"
     },
@@ -1204,21 +1204,21 @@
         "nhopself": "0",
         "rrclient": "0"
     },
-    "BGP_NEIGHBOR|fc00::76": {
+    "BGP_INTERNAL_NEIGHBOR|fc00::76": {
         "asn": "64014",
         "holdtime": "10",
         "keepalive": "3",
         "local_addr": "fc00::75",
-        "name": "ARISTA14T0",
+        "name": "INT_NEIGH0",
         "nhopself": "0",
         "rrclient": "0"
     },
-    "BGP_NEIGHBOR|fc00::a": {
+    "BGP_INTERNAL_NEIGHBOR|fc00::a": {
         "asn": "65200",
         "holdtime": "10",
         "keepalive": "3",
         "local_addr": "fc00::9",
-        "name": "ARISTA03T2",
+        "name": "INT_NEIGH1",
         "nhopself": "0",
         "rrclient": "0"
     },

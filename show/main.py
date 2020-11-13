@@ -774,13 +774,16 @@ def get_bgp_peer():
     """
     config_db = ConfigDBConnector()
     config_db.connect()
-    data = config_db.get_table('BGP_NEIGHBOR')
     bgp_peer = {}
+    bgp_neighbor_tables = ['BGP_NEIGHBOR', 'BGP_INTERNAL_NEIGHBOR']
 
-    for neighbor_ip in data.keys():
-        local_addr = data[neighbor_ip]['local_addr']
-        neighbor_name = data[neighbor_ip]['name']
-        bgp_peer.setdefault(local_addr, [neighbor_name, neighbor_ip])
+    for table in bgp_neighbor_tables:
+        data = config_db.get_table(table)
+        for neighbor_ip in data.keys():
+            local_addr = data[neighbor_ip]['local_addr']
+            neighbor_name = data[neighbor_ip]['name']
+            bgp_peer.setdefault(local_addr, [neighbor_name, neighbor_ip])
+
     return bgp_peer
 
 #

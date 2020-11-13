@@ -38,8 +38,8 @@ Neighbhor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down 
 10.0.0.55      4  64012          0          0         0      0       0  never      Active          ARISTA12T0
 10.0.0.57      4  64013          0          0         0      0       0  never      Active          ARISTA13T0
 10.0.0.59      4  64014          0          0         0      0       0  never      Active          ARISTA14T0
-10.0.0.61      4  64015          0          0         0      0       0  never      Active          ARISTA15T0
-10.0.0.63      4  64016          0          0         0      0       0  never      Active          ARISTA16T0
+10.0.0.61      4  64015          0          0         0      0       0  never      Active          INT_NEIGH0
+10.0.0.63      4  64016          0          0         0      0       0  never      Active          INT_NEIGH1
 
 Total number of neighbors 24
 """
@@ -78,8 +78,8 @@ fc00::56       4  64006          0          0         0      0       0  never   
 fc00::62       4  64009          0          0         0      0       0  never      Active          ARISTA09T0
 fc00::66       4  64010          0          0         0      0       0  never      Active          ARISTA10T0
 fc00::72       4  64013          0          0         0      0       0  never      Active          ARISTA13T0
-fc00::76       4  64014          0          0         0      0       0  never      Active          ARISTA14T0
-fc00::a        4  65200       6665       6671         0      0       0  2d09h38m   6402            ARISTA03T2
+fc00::76       4  64014          0          0         0      0       0  never      Active          INT_NEIGH0
+fc00::a        4  65200       6665       6671         0      0       0  2d09h38m   6402            INT_NEIGH1
 
 Total number of neighbors 24
 """
