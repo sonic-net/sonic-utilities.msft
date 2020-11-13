@@ -2889,7 +2889,7 @@ VLAN interface names take the form of `vlan<vlan_id>`. E.g., VLAN 100 will be na
 
   *Versions >= 201904*
   ```
-  admin@sonic:~$ sudo config interface ip add vlan100 10.11.12.13/24
+  admin@sonic:~$ sudo config interface ip add Vlan100 10.11.12.13/24
   ```
   *Versions <= 201811*
   ```
