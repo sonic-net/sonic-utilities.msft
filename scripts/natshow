@@ -331,7 +331,7 @@ class NatShow(object):
         totalEntries = int(self.static_nat_entries) + int(self.dynamic_nat_entries) + int(self.static_napt_entries) + int(self.dynamic_napt_entries)
         totalEntries += (int(self.static_twice_nat_entries) + int(self.dynamic_twice_nat_entries) + int(self.static_twice_napt_entries) + int(self.dynamic_twice_napt_entries))
 
-        print()
+        print("")
         print("Static NAT Entries         ..................... {}".format(self.static_nat_entries))
         print("Static NAPT Entries        ..................... {}".format(self.static_napt_entries))
         print("Dynamic NAT Entries        ..................... {}".format(self.dynamic_nat_entries))
@@ -343,7 +343,7 @@ class NatShow(object):
         print("Total SNAT/SNAPT Entries   ..................... {}".format(self.snat_entries))
         print("Total DNAT/DNAPT Entries   ..................... {}".format(self.dnat_entries))
         print("Total Entries              ..................... {}".format(totalEntries))
-        print()
+        print("")
 
     def display_translations(self):
         """
@@ -357,7 +357,7 @@ class NatShow(object):
             output.append([nat[0], nat[1], nat[2], nat[3], nat[4]])
 
         print(tabulate(output, HEADER))
-        print()
+        print("")
 
     def display_statistics(self):
         """
@@ -370,9 +370,9 @@ class NatShow(object):
         for nat in self.nat_statistics_list:
             output.append([nat[0], nat[1], nat[2], nat[3], nat[4]])
 
-        print()
+        print("")
         print(tabulate(output, HEADER))
-        print()
+        print("")
 
 def main():
     parser = argparse.ArgumentParser(description='Display the nat information',
