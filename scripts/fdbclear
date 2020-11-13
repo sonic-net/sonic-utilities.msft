@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
 """
     Script to clear MAC/FDB entries learnt in Hardware
 

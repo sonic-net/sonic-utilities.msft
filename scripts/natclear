@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
 """
     Script to clear nat dynamic entries from Hardware and also to clear the nat statistics
 

@@ -1,6 +1,3 @@
-#! /usr/bin/python -u
-# date: 07/12/17
-
 import click
 import subprocess
 

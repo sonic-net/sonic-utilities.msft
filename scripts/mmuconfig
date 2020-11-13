@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
 """
 mmuconfig is the utility to show and change mmu configuration
 

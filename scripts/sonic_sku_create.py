@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
 """
 usage: sonic_sku_create.py [-h] [-v] [-f FILE] [-m [MINIGRAPH_FILE]] [-b BASE]
                            [-r] [-k HWSKU]

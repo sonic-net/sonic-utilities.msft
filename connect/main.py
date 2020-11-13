@@ -1,5 +1,3 @@
-#! /usr/bin/python -u
-
 import click
 import os
 import pexpect

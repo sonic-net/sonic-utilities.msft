@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
 """
     Script to show Ipv4/Ipv6 neighbor entries
 

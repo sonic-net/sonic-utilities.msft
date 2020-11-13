@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
 '''
 Copyright 2019 Broadcom. The term "Broadcom" refers to Broadcom Inc.
 and/or its subsidiaries.

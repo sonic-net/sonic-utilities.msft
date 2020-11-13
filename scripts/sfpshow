@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
 """
     Script to show sfp eeprom and presence status.
     Not like sfputil this scripts get the sfp data from DB directly.

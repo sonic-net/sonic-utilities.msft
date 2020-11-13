@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
 """
 using aclshow to display SONiC switch acl rules and counters
 

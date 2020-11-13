@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
 """
 portconfig is the utility to show and change ECN configuration
 

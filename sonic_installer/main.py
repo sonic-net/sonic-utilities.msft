@@ -1,5 +1,3 @@
-#! /usr/bin/python -u
-
 try:
     import ConfigParser as configparser
 except ImportError:
