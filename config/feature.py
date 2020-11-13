@@ -1,4 +1,5 @@
 import click
+import sys
 
 from utilities_common.cli import AbbreviationGroup, pass_db
 
