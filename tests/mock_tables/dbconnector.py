@@ -1,6 +1,7 @@
 # MONKEY PATCH!!!
 import json
 import os
+import sys
 
 import mock
 import mockredis
@@ -9,6 +10,13 @@ import swsssdk
 from sonic_py_common import multi_asic
 from swsssdk import SonicDBConfig, SonicV2Connector
 from swsscommon import swsscommon
+
+
+if sys.version_info >= (3, 0):
+    long = int
+    xrange = range
+    basestring = str
+    from functools import reduce
 
 topo = None
 
@@ -46,6 +54,7 @@ def connect_SonicV2Connector(self, db_name, retry_on=True):
     self.dbintf.redis_kwargs['namespace'] = self.namespace
     # Mock DB filename for unit-test
     self.dbintf.redis_kwargs['db_name'] = db_name
+    self.dbintf.redis_kwargs['decode_responses'] = True
     _old_connect_SonicV2Connector(self, db_name, retry_on)
 
 def _subscribe_keyspace_notification(self, db_name, client):
@@ -86,6 +95,7 @@ class SwssSyncClient(mockredis.MockRedis):
         topo = kwargs.pop('topo')
         namespace = kwargs.pop('namespace')
         db_name = kwargs.pop('db_name')
+        self.decode_responses = kwargs.pop('decode_responses', False) == True
         fname = db_name.lower() + ".json"
         self.pubsub = MockPubSub()
 
@@ -111,6 +121,23 @@ class SwssSyncClient(mockredis.MockRedis):
                             self.hset(k, attr, value)
 
     # Patch mockredis/mockredis/client.py
+    # The offical implementation assume decode_responses=False
+    # Here we detect the option first and only encode when decode_responses=False
+    def _encode(self, value):
+        "Return a bytestring representation of the value. Taken from redis-py connection.py"
+        if isinstance(value, bytes):
+            return value
+        elif isinstance(value, (int, long)):
+            value = str(value).encode('utf-8')
+        elif isinstance(value, float):
+            value = repr(value).encode('utf-8')
+        elif not isinstance(value, basestring):
+            value = str(value).encode('utf-8')
+        elif not self.decode_responses:
+            value = value.encode('utf-8', 'strict')
+        return value
+
+    # Patch mockredis/mockredis/client.py
     # The official implementation will filter out keys with a slash '/'
     # ref: https://github.com/locationlabs/mockredis/blob/master/mockredis/client.py
     def keys(self, pattern='*'):
@@ -118,20 +145,12 @@ class SwssSyncClient(mockredis.MockRedis):
         import fnmatch
         import re
 
-        # making sure the pattern is unicode/str.
-        try:
-            pattern = pattern.decode('utf-8')
-            # This throws an AttributeError in python 3, or an
-            # UnicodeEncodeError in python 2
-        except (AttributeError, UnicodeEncodeError):
-            pass
-
         # Make regex out of glob styled pattern.
         regex = fnmatch.translate(pattern)
         regex = re.compile(regex)
 
         # Find every key that matches the pattern
-        return [key for key in self.redis.keys() if regex.match(key.decode('utf-8'))]
+        return [key for key in self.redis.keys() if regex.match(key)]
 
 
 swsssdk.interface.DBInterface._subscribe_keyspace_notification = _subscribe_keyspace_notification
