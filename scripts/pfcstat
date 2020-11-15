@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #####################################################################
 #
@@ -6,11 +6,11 @@
 #
 #####################################################################
 
-import sys
+import _pickle as pickle
 import argparse
-import cPickle as pickle
 import datetime
 import os.path
+import sys
 
 from collections import namedtuple, OrderedDict
 from copy import deepcopy
@@ -89,7 +89,7 @@ class Pfcstat(object):
                 bucket_dict = counter_bucket_rx_dict
             else:
                 bucket_dict = counter_bucket_tx_dict
-            for counter_name, pos in bucket_dict.iteritems():
+            for counter_name, pos in bucket_dict.items():
                 full_table_id = COUNTER_TABLE_PREFIX + table_id
                 counter_data =  self.db.get(
                     self.db.COUNTERS_DB, full_table_id, counter_name
@@ -137,7 +137,7 @@ class Pfcstat(object):
         """
         table = []
 
-        for key, data in cnstat_dict.iteritems():
+        for key, data in cnstat_dict.items():
             if key == 'time':
                 continue
             table.append((key,
@@ -157,7 +157,7 @@ class Pfcstat(object):
         """
         table = []
 
-        for key, cntr in cnstat_new_dict.iteritems():
+        for key, cntr in cnstat_new_dict.items():
             if key == 'time':
                 continue
             old_cntr = None
@@ -188,7 +188,6 @@ class Pfcstat(object):
 
 def main():
     parser  = argparse.ArgumentParser(description='Display the pfc counters',
-                                      version='1.0.0',
                                       formatter_class=argparse.RawTextHelpFormatter,
                                       epilog="""
 Examples:
@@ -211,6 +210,7 @@ Examples:
     parser.add_argument('-n', '--namespace', default=None,
         help='Display interfaces for specific namespace'
     )
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
 
     save_fresh_stats = args.clear
@@ -261,8 +261,8 @@ Examples:
 
     if save_fresh_stats:
         try:
-            pickle.dump(cnstat_dict_rx, open(cnstat_fqn_file_rx, 'w'))
-            pickle.dump(cnstat_dict_tx, open(cnstat_fqn_file_tx, 'w'))
+            pickle.dump(cnstat_dict_rx, open(cnstat_fqn_file_rx, 'wb'))
+            pickle.dump(cnstat_dict_tx, open(cnstat_fqn_file_tx, 'wb'))
         except IOError as e:
             print(e.errno, e)
             sys.exit(e.errno)
@@ -276,7 +276,7 @@ Examples:
     """
     if os.path.isfile(cnstat_fqn_file_rx):
         try:
-            cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_rx, 'r'))
+            cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_rx, 'rb'))
             print("Last cached time was " + str(cnstat_cached_dict.get('time')))
             pfcstat.cnstat_diff_print(cnstat_dict_rx, cnstat_cached_dict, True)
         except IOError as e:
@@ -291,7 +291,7 @@ Examples:
     """
     if os.path.isfile(cnstat_fqn_file_tx):
         try:
-            cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_tx, 'r'))
+            cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_tx, 'rb'))
             print("Last cached time was " + str(cnstat_cached_dict.get('time')))
             pfcstat.cnstat_diff_print(cnstat_dict_tx, cnstat_cached_dict, False)
         except IOError as e:

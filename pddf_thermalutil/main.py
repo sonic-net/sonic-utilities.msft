@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # main.py
 #
@@ -98,7 +98,7 @@ def numthermals():
 @click.option('-i', '--index', default=-1, type=int, help="the index of Temp Sensor")
 def gettemp(index):
     """Display Temperature values of thermal sensors"""
-    supported_thermal = range(1,  _wrapper_get_num_thermals()+ 1)
+    supported_thermal = list(range(1,  _wrapper_get_num_thermals()+ 1))
     thermal_ids = []
     if (index < 0):
         thermal_ids = supported_thermal
@@ -159,7 +159,7 @@ def debug():
 def dump_sysfs():
     """Dump all Temp Sensor related SysFS paths"""
     if platform_chassis is not None:
-        supported_thermal = range(1,  _wrapper_get_num_thermals()+ 1)
+        supported_thermal = list(range(1,  _wrapper_get_num_thermals()+ 1))
         for index in supported_thermal:
             status = platform_chassis.get_thermal(index-1).dump_sysfs()
     else:

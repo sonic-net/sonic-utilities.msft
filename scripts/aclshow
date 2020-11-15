@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 using aclshow to display SONiC switch acl rules and counters
@@ -16,8 +16,6 @@ optional arguments:
   -r RULES,  --rules RULES    action by specific rules list: Rule_1,Rule_2
   -t TABLES, --tables TABLES  action by specific tables list: Table_1,Table_2
 """
-
-from __future__ import print_function
 
 import argparse
 import json
@@ -94,7 +92,7 @@ class AclStat(object):
         """
 
         def lowercase_keys(dictionary):
-            return dict((k.lower(), v) for k,v in dictionary.iteritems()) if dictionary else None
+            return dict((k.lower(), v) for k, v in dictionary.items()) if dictionary else None
 
         def fetch_acl_tables():
             """
@@ -189,19 +187,19 @@ class AclStat(object):
         clear counters -- write current counters to file in /tmp
         """
         def remap_keys(dict):
-            return [{'key':k, 'value': v} for k, v in dict.iteritems()]
+            return [{'key': k, 'value': v} for k, v in dict.items()]
 
-        with open(COUNTER_POSITION, 'wb') as fp:
+        with open(COUNTER_POSITION, 'w') as fp:
             json.dump(remap_keys(self.acl_counters), fp)
 
 def main():
     parser = argparse.ArgumentParser(description='Display SONiC switch Acl Rules and Counters',
-                                     version='1.0.0',
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-a', '--all', action='store_true', help='Show all ACL counters')
     parser.add_argument('-c', '--clear', action='store_true', help='Clear ACL counters statistics')
     parser.add_argument('-r', '--rules', type=str, help='action by specific rules list: Rule1_Name,Rule2_Name', default=None)
     parser.add_argument('-t', '--tables', type=str, help='action by specific tables list: Table1_Name,Table2_Name', default=None)
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
     args = parser.parse_args()
 

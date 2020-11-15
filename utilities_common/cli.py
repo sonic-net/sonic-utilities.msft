@@ -1,3 +1,4 @@
+import configparser
 import os
 import re
 import subprocess
@@ -8,9 +9,8 @@ import json
 import netaddr
 
 from natsort import natsorted
-
-from utilities_common.db import Db
 from sonic_py_common import multi_asic
+from utilities_common.db import Db
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
@@ -54,10 +54,6 @@ class AbbreviationGroup(click.Group):
 
             ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
 
-try:
-    import ConfigParser as configparser
-except ImportError:
-    import configparser
 
 # This is from the aliases example:
 # https://github.com/pallets/click/blob/57c6f09611fc47ca80db0bd010f05998b3c0aa95/examples/aliases/aliases.py
@@ -134,7 +130,7 @@ class InterfaceAliasConverter(object):
             click.echo(message="Warning: failed to retrieve PORT table from ConfigDB!", err=True)
             self.port_dict = {}
 
-        for port_name in self.port_dict.keys():
+        for port_name in list(self.port_dict.keys()):
             try:
                 if self.alias_max_length < len(
                         self.port_dict[port_name]['alias']):
@@ -156,7 +152,7 @@ class InterfaceAliasConverter(object):
                 # interface_name holds the parent port name
                 interface_name = interface_name[:sub_intf_sep_idx]
 
-            for port_name in self.port_dict.keys():
+            for port_name in list(self.port_dict.keys()):
                 if interface_name == port_name:
                     return self.port_dict[port_name]['alias'] if sub_intf_sep_idx == -1 \
                             else self.port_dict[port_name]['alias'] + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
@@ -177,7 +173,7 @@ class InterfaceAliasConverter(object):
                 # interface_alias holds the parent port alias
                 interface_alias = interface_alias[:sub_intf_sep_idx]
 
-            for port_name in self.port_dict.keys():
+            for port_name in list(self.port_dict.keys()):
                 if interface_alias == self.port_dict[port_name]['alias']:
                     return port_name if sub_intf_sep_idx == -1 else port_name + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
@@ -216,7 +212,7 @@ def is_valid_port(config_db, port):
     """Check if port is in PORT table"""
 
     port_table = config_db.get_table('PORT')
-    if port in port_table.keys():
+    if port in port_table:
         return True
 
     return False
@@ -225,7 +221,7 @@ def is_valid_portchannel(config_db, port):
     """Check if port is in PORT_CHANNEL table"""
 
     pc_table = config_db.get_table('PORTCHANNEL')
-    if port in pc_table.keys():
+    if port in pc_table:
         return True
 
     return False
@@ -250,7 +246,7 @@ def is_port_vlan_member(config_db, port, vlan):
     """Check if port is a member of vlan"""
 
     vlan_ports_data = config_db.get_table('VLAN_MEMBER')
-    for key in vlan_ports_data.keys():
+    for key in list(vlan_ports_data.keys()):
         if key[0] == vlan and key[1] == port:
             return True
 
@@ -258,7 +254,7 @@ def is_port_vlan_member(config_db, port, vlan):
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
     """ Check if an interface  is in a vlan """
-    for _,intf in vlan_member_table.keys():
+    for _,intf in list(vlan_member_table.keys()):
         if intf == interface_name:
             return True
 
@@ -270,7 +266,7 @@ def is_valid_vlan_interface(config_db, interface):
 
 def interface_is_in_portchannel(portchannel_member_table, interface_name):
     """ Check if an interface is part of portchannel """
-    for _,intf in portchannel_member_table.keys():
+    for _,intf in list(portchannel_member_table.keys()):
         if intf == interface_name:
             return True
 
@@ -280,7 +276,7 @@ def is_port_router_interface(config_db, port):
     """Check if port is a router interface"""
 
     interface_table = config_db.get_table('INTERFACE')
-    for intf in interface_table.keys():
+    for intf in list(interface_table.keys()):
         if port == intf[0]:
             return True
 
@@ -290,7 +286,7 @@ def is_pc_router_interface(config_db, pc):
     """Check if portchannel is a router interface"""
 
     pc_interface_table = config_db.get_table('PORTCHANNEL_INTERFACE')
-    for intf in pc_interface_table.keys():
+    for intf in list(pc_interface_table.keys()):
         if pc == intf[0]:
             return True
 
@@ -337,7 +333,7 @@ def print_output_in_alias_mode(output, index):
     if word:
         interface_name = word[index]
         interface_name = interface_name.replace(':', '')
-    for port_name in natsorted(iface_alias_converter.port_dict.keys()):
+    for port_name in natsorted(list(iface_alias_converter.port_dict.keys())):
             if interface_name == port_name:
                 alias_name = iface_alias_converter.port_dict[port_name]['alias']
     if alias_name:
@@ -353,7 +349,7 @@ def run_command_in_alias_mode(command):
        in output with vendor-sepecific interface aliases.
     """
 
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    process = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
 
     while True:
         output = process.stdout.readline()
@@ -450,7 +446,7 @@ def run_command_in_alias_mode(command):
                 or a comma followed by whitespace
                 """
                 converted_output = raw_output
-                for port_name in iface_alias_converter.port_dict.keys():
+                for port_name in list(iface_alias_converter.port_dict.keys()):
                     converted_output = re.sub(r"(^|\s){}($|,{{0,1}}\s)".format(port_name),
                             r"\1{}\2".format(iface_alias_converter.name_to_alias(port_name)),
                             converted_output)
@@ -477,7 +473,7 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
         run_command_in_alias_mode(command)
         raise sys.exit(0)
 
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
 
     if return_cmd:
         output = proc.communicate()[0].decode("utf-8")

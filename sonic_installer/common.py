@@ -18,7 +18,7 @@ IMAGE_DIR_PREFIX = 'image-'
 def run_command(command):
     click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
 
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
     (out, _) = proc.communicate()
 
     click.echo(out)
@@ -30,7 +30,7 @@ def run_command(command):
 def run_command_or_raise(argv):
     click.echo(click.style("Command: ", fg='cyan') + click.style(' '.join(argv), fg='green'))
 
-    proc = subprocess.Popen(argv, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(argv, text=True, stdout=subprocess.PIPE)
     out, _ = proc.communicate()
 
     if proc.returncode != 0:

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # main.py
 #
@@ -185,7 +185,7 @@ def numpsus():
 @click.option('-i', '--index', default=-1, type=int, help="the index of PSU")
 def status(index):
     """Display PSU status"""
-    supported_psu = range(1, _wrapper_get_num_psus() + 1)
+    supported_psu = list(range(1, _wrapper_get_num_psus() + 1))
     psu_ids = []
     if (index < 0):
         psu_ids = supported_psu
@@ -218,7 +218,7 @@ def status(index):
 @click.option('-i', '--index', default=-1, type=int, help="the index of PSU")
 def mfrinfo(index):
     """Display PSU manufacturer info"""
-    supported_psu = range(1, _wrapper_get_num_psus() + 1)
+    supported_psu = list(range(1, _wrapper_get_num_psus() + 1))
     psu_ids = []
     if (index < 0):
         psu_ids = supported_psu
@@ -251,7 +251,7 @@ def mfrinfo(index):
 @click.option('-i', '--index', default=-1, type=int, help="the index of PSU")
 def seninfo(index):
     """Display PSU sensor info"""
-    supported_psu = range(1, _wrapper_get_num_psus() + 1)
+    supported_psu = list(range(1, _wrapper_get_num_psus() + 1))
     psu_ids = []
     if (index < 0):
         psu_ids = supported_psu

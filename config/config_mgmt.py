@@ -77,7 +77,7 @@ class ConfigMgmt():
 
         except Exception as e:
             self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
-            raise(Exception('ConfigMgmt Class creation failed'))
+            raise Exception('ConfigMgmt Class creation failed')
 
         return
 
@@ -168,7 +168,7 @@ class ConfigMgmt():
         self.configdbJsonIn = readJsonFile(source)
         #self.sysLog(msg=type(self.configdbJsonIn))
         if not self.configdbJsonIn:
-            raise(Exception("Can not load config from config DB json file"))
+            raise Exception("Can not load config from config DB json file")
         self.sysLog(msg='Reading Input {}'.format(self.configdbJsonIn))
 
         return
@@ -247,7 +247,7 @@ class ConfigMgmtDPB(ConfigMgmt):
 
         except Exception as e:
             self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
-            raise(Exception('ConfigMgmtDPB Class creation failed'))
+            raise Exception('ConfigMgmtDPB Class creation failed')
 
         return
 
@@ -331,8 +331,7 @@ class ConfigMgmtDPB(ConfigMgmt):
             if waitTime + 1 == timeout:
                 self.sysLog(syslog.LOG_CRIT, "!!!  Critical Failure, Ports \
                     are not Deleted from ASIC DB, Bail Out  !!!", doPrint=True)
-                raise(Exception("Ports are present in ASIC DB after {} secs".\
-                    format(timeout)))
+                raise Exception("Ports are present in ASIC DB after {} secs".format(timeout))
 
         except Exception as e:
             self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR, msg=str(e))
@@ -470,7 +469,7 @@ class ConfigMgmtDPB(ConfigMgmt):
             (configToLoad, ret) (tuple)[dict, bool]
         '''
         configToLoad = None
-        ports = portJson['PORT'].keys()
+        ports = list(portJson['PORT'].keys())
         try:
             self.sysLog(doPrint=True, msg='Start Port Addition')
             self.sysLog(msg="addPorts Args portjson: {} loadDefConfig: {}".\
@@ -546,7 +545,7 @@ class ConfigMgmtDPB(ConfigMgmt):
                     pass
                 return
 
-            for it in D1.keys():
+            for it in list(D1.keys()):
                 # D2 has the key
                 if D2.get(it):
                     _mergeItems(D1[it], D2[it])
@@ -578,7 +577,7 @@ class ConfigMgmtDPB(ConfigMgmt):
         '''
         found = False
         if isinstance(In, dict):
-            for key in In.keys():
+            for key in list(In.keys()):
                 for skey in skeys:
                     # pattern is very specific to current primary keys in
                     # config DB, may need to be updated later.

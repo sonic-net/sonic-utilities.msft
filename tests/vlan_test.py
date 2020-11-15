@@ -70,23 +70,23 @@ show_vlan_brief_with_portchannel_output="""\
 show_vlan_config_output="""\
 Name        VID  Member      Mode
 --------  -----  ----------  --------
-Vlan1000   1000  Ethernet8   untagged
-Vlan1000   1000  Ethernet16  untagged
-Vlan1000   1000  Ethernet12  untagged
 Vlan1000   1000  Ethernet4   untagged
-Vlan2000   2000  Ethernet28  untagged
+Vlan1000   1000  Ethernet8   untagged
+Vlan1000   1000  Ethernet12  untagged
+Vlan1000   1000  Ethernet16  untagged
 Vlan2000   2000  Ethernet24  untagged
+Vlan2000   2000  Ethernet28  untagged
 """
 
 show_vlan_config_in_alias_mode_output="""\
 Name        VID  Member    Mode
 --------  -----  --------  --------
-Vlan1000   1000  etp3      untagged
-Vlan1000   1000  etp5      untagged
-Vlan1000   1000  etp4      untagged
 Vlan1000   1000  etp2      untagged
-Vlan2000   2000  etp8      untagged
+Vlan1000   1000  etp3      untagged
+Vlan1000   1000  etp4      untagged
+Vlan1000   1000  etp5      untagged
 Vlan2000   2000  etp7      untagged
+Vlan2000   2000  etp8      untagged
 """
 
 config_vlan_add_dhcp_relay_output="""\

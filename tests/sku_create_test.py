@@ -12,7 +12,7 @@ scripts_path = os.path.join(modules_path, "scripts")
 input_path = os.path.join(modules_path, "tests/sku_create_input")
 output_dir_path = os.path.join(modules_path, "tests/sku_create_input/Mellanox-SN2700-D48C8_NEW")
 sku_def_file = os.path.join(input_path, "Mellanox-SN2700-D48C8.xml")
-sku_create_script = os.path.join(scripts_path, "sonic_sku_create.py")
+sku_create_script = "sonic_sku_create.py"
 output_file_path = os.path.join(modules_path, "tests/sku_create_input/Mellanox-SN2700-D48C8_NEW/port_config.ini")
 model_file_path = os.path.join(modules_path, "tests/sku_create_input/Mellanox-SN2700-D48C8/port_config.ini")
 
@@ -58,8 +58,8 @@ class TestSkuCreate(object):
         my_command = sku_create_script + " -f "  + sku_def_file  + " -d " + input_path
 
         #Test case execution without stdout
-        result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
-        print result
+        result = subprocess.check_output(my_command, stderr=subprocess.STDOUT, shell=True, text=True)
+        print(result)
 
         #Check if the Output file exists
         if (os.path.exists(output_file_path)):

@@ -32,7 +32,7 @@ class OnieInstallerBootloader(Bootloader): # pylint: disable=abstract-method
         """returns the version of the image"""
         p1 = subprocess.Popen(["cat", "-v", image_path], stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
         p2 = subprocess.Popen(["grep", "-m 1", "^image_version"], stdin=p1.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
-        p3 = subprocess.Popen(["sed", "-n", r"s/^image_version=\"\(.*\)\"$/\1/p"], stdin=p2.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+        p3 = subprocess.Popen(["sed", "-n", r"s/^image_version=\"\(.*\)\"$/\1/p"], stdin=p2.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe, text=True)
 
         stdout = p3.communicate()[0]
         p3.wait()

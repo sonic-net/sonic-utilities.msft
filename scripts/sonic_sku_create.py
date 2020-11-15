@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 usage: sonic_sku_create.py [-h] [-v] [-f FILE] [-m [MINIGRAPH_FILE]] [-b BASE]
@@ -22,8 +22,6 @@ optional arguments:
 
 """
 
-from __future__ import print_function
-
 import argparse
 import json
 import os
@@ -38,6 +36,7 @@ from collections import OrderedDict
 from tabulate import tabulate
 from lxml import etree as ET
 from lxml.etree import QName
+
 
 minigraph_ns = "Microsoft.Search.Autopilot.Evolution"
 minigraph_ns1 = "http://schemas.datacontract.org/2004/07/Microsoft.Search.Autopilot.Evolution"
@@ -255,7 +254,7 @@ class SkuCreate(object):
         f_out = open(new_file, 'w')
         header_str = "#name           lanes                alias       index     speed\n"
         f_out.write(header_str)
-        for key, value in data['PORT'].iteritems():
+        for key, value in data['PORT'].items():
             pattern = '^Ethernet([0-9]{1,})'
             m = re.match(pattern,key)
             if m is None:
@@ -508,7 +507,7 @@ class SkuCreate(object):
         # Analyze the front panl ports split  based on the interfaces alias names
         # fpp_split is a hash with key=front panel port and values is a list of lists ([alias],[index])
         alias_index = PORTCONFIG_HEADER.index('alias')
-        for idx,ifc in self.portconfig_dict.items():
+        for idx, ifc in self.portconfig_dict.items():
             pattern = '^etp([0-9]{1,})([a-d]?)'
             m = re.match(pattern,str(ifc[alias_index]))
             if int(m.group(1)) not in self.fpp_split :
@@ -518,13 +517,13 @@ class SkuCreate(object):
                 self.fpp_split[int(m.group(1))][1].append(idx)
                 if (self.verbose):
                     print("split_analyze -> ",m.group(1), " : ", self.fpp_split[int(m.group(1))])
-        self.num_of_fpp = len(self.fpp_split.keys())
+        self.num_of_fpp = len(list(self.fpp_split.keys()))
 
     def get_default_lanes(self):
         #Internal function to get lanes of the ports accroding to the base default SKU 
         try:
             with open(self.base_file_path,"r") as f:
-                line_header = f.next().split() # get the file header split into columns 
+                line_header = next(f).split() # get the file header split into columns
                 if line_header[0] == "#" : del line_header[0] # if hashtag is in a different column, remove it to align column header and data
                 alias_index = line_header.index('alias')
                 lanes_index = line_header.index('lanes')
@@ -606,7 +605,7 @@ class SkuCreate(object):
             exit(1)
         header = PORTCONFIG_HEADER # ["name", "lanes", "alias", "index"]
         port_config = []
-        for line in self.portconfig_dict.values():
+        for line in list(self.portconfig_dict.values()):
             port_config.append(line)
 
         port_config.sort(key=lambda x: (int(re.search(('\d+'),x[0]).group(0)))) # sort the list with interface name
@@ -617,7 +616,7 @@ class SkuCreate(object):
         #print a port_config.ini file based on the sku definition 
         header = PORTCONFIG_HEADER # ["name", "lanes", "alias", "index"]
         port_config = []
-        for line in self.portconfig_dict.values():
+        for line in list(self.portconfig_dict.values()):
             port_config.append(line)
 
         port_config.sort(key=lambda x: (int(re.search(('\d+'),x[0]).group(0)))) # sort the list with interface name
@@ -643,7 +642,7 @@ class SkuCreate(object):
             if not os.path.exists(self.new_sku_dir):
                 print("Trying to remove a SKU "+ self.new_sku_dir + " that doesn't exists, Ignoring -r command")
             while True:
-                answer = raw_input("You are about to permanently delete the SKU "+ self.new_sku_dir+" !! \nDo you want to continue (Yes/No)?") 
+                answer = input("You are about to permanently delete the SKU "+ self.new_sku_dir+" !! \nDo you want to continue (Yes/No)?") 
                 if (answer == "Yes" or answer == "No"):
                     break
                 else:
@@ -689,7 +688,6 @@ class SkuCreate(object):
 
 def main(argv):
     parser = argparse.ArgumentParser(description='Create a new SKU',
-                                                version='1.0.0',
                                                 formatter_class=argparse.RawTextHelpFormatter)
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-f', '--file', action='store', nargs=1, help='SKU definition from xml file. -f OR -m or -j must be provided when creating a new SKU', default=None)
@@ -702,6 +700,7 @@ def main(argv):
     parser.add_argument('-p', '--print', action='store_true', help='Print port_config.ini without creating a new SKU', default=False)
     parser.add_argument('--verbose', action='store_true', help='Verbose output', default=False)
     parser.add_argument('-d', '--default_sku_path', action='store',nargs=1, help='Specify Default SKU path', default=None)
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
 
     args = parser.parse_args()
 
@@ -716,7 +715,7 @@ def main(argv):
             sku.default_sku_path = args.default_sku_path[0]
         else:
             try:
-                sku.platform = subprocess.check_output("sonic-cfggen -H -v DEVICE_METADATA.localhost.platform",shell=True) #self.metadata['platform']
+                sku.platform = subprocess.check_output("sonic-cfggen -H -v DEVICE_METADATA.localhost.platform",shell=True, text=True) #self.metadata['platform']
                 sku.platform = sku.platform.rstrip()
             except KeyError:
                 print("Couldn't find platform info in CONFIG_DB DEVICE_METADATA", file=sys.stderr)

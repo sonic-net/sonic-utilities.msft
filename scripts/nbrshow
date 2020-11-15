@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
     Script to show Ipv4/Ipv6 neighbor entries
@@ -37,6 +37,7 @@ from swsssdk import port_util
 from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 
+
 """
    Base class for v4 and v6 neighbor.
 """
@@ -49,7 +50,7 @@ class NbrBase(object):
 
     def __init__(self, cmd):
         super(NbrBase, self).__init__()
-        self.db = SonicV2Connector(host="127.0.0.1", decode_responses=True)
+        self.db = SonicV2Connector(host="127.0.0.1")
         self.if_name_map, self.if_oid_map = port_util.get_interface_oid_map(self.db)
         self.if_br_oid_map = port_util.get_bridge_port_map(self.db)
         self.fetch_fdb_data()
@@ -130,7 +131,7 @@ class NbrBase(object):
             vlan = '-'
             if 'Vlan' in ent[2]:
                 vlanid = int(re.search(r'\d+', ent[2]).group())
-                mac = unicode(ent[1].upper())
+                mac = ent[1].upper()
                 fdb_ent = next((fdb for fdb in self.bridge_mac_list[:]
                                if fdb[0] == vlanid and fdb[1] == mac), None)
                 vlan = vlanid

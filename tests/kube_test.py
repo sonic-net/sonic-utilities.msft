@@ -34,8 +34,8 @@ class kube(object):
 
     def __check_res(self, result, info, op):
         print("Running test: {}".format(info))
-        print result.exit_code
-        print result.output
+        print(result.exit_code)
+        print(result.output)
         assert result.exit_code == 0
         assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == op
 

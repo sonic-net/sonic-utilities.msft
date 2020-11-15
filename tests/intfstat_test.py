@@ -10,7 +10,8 @@ scripts_path = os.path.join(modules_path, "scripts")
 sys.path.insert(0, test_path)
 sys.path.insert(0, modules_path)
 
-import mock_tables.dbconnector
+from .mock_tables import dbconnector
+
 import show.main as show
 import clear.main as clear
 

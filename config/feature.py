@@ -1,6 +1,6 @@
-import click
 import sys
 
+import click
 from utilities_common.cli import AbbreviationGroup, pass_db
 
 #
@@ -42,7 +42,7 @@ def feature_autorestart(db, name, autorestart):
         click.echo("Unable to retrieve feature table from Config DB.")
         sys.exit(1)
 
-    if not feature_table.has_key(name):
+    if name not in feature_table:
         click.echo("Unable to retrieve feature '{}'".format(name))
         sys.exit(1)
 

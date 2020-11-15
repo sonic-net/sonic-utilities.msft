@@ -1,13 +1,8 @@
-import click
+import configparser
 import os
 import subprocess
 
-try:
-    # noinspection PyPep8Naming
-    import ConfigParser as configparser
-except ImportError:
-    # noinspection PyUnresolvedReferences
-    import configparser
+import click
 
 
 # This is from the aliases example:
@@ -82,6 +77,7 @@ def get_routing_stack():
         proc = subprocess.Popen(command,
                                 stdout=subprocess.PIPE,
                                 shell=True,
+                                text=True,
                                 stderr=subprocess.STDOUT)
         stdout = proc.communicate()[0]
         proc.wait()
@@ -99,7 +95,7 @@ routing_stack = get_routing_stack()
 
 def run_command(command, pager=False, return_output=False):
     # Provide option for caller function to Process the output.
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
     if return_output:
         return proc.communicate()
     elif pager:

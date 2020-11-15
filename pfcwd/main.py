@@ -45,8 +45,8 @@ CONFIG_DESCRIPTION = [
     ('RESTORATION TIME', 'restoration_time', 'infinite')
 ]
 
-STATS_HEADER = ('QUEUE', 'STATUS',) + zip(*STATS_DESCRIPTION)[0]
-CONFIG_HEADER = ('PORT',) + zip(*CONFIG_DESCRIPTION)[0]
+STATS_HEADER = ('QUEUE', 'STATUS',) + list(zip(*STATS_DESCRIPTION))[0]
+CONFIG_HEADER = ('PORT',) + list(zip(*CONFIG_DESCRIPTION))[0]
 
 CONFIG_DB_PFC_WD_TABLE_NAME = 'PFC_WD'
 
@@ -59,7 +59,7 @@ def cli():
 
 def get_all_queues(db, namespace=None, display=constants.DISPLAY_ALL):
     queue_names = db.get_all(db.COUNTERS_DB, 'COUNTERS_QUEUE_NAME_MAP')
-    queues = queue_names.keys() if queue_names else {}
+    queues = list(queue_names.keys()) if queue_names else {}
     if display == constants.DISPLAY_ALL:
         return natsorted(queues)
     # filter the backend ports
@@ -77,7 +77,7 @@ def get_all_ports(db, namespace=None, display=constants.DISPLAY_ALL):
     for i in all_port_names:
         if i.startswith('Ethernet'):
             port_names[i] = all_port_names[i]
-    display_ports = port_names.keys()
+    display_ports = list(port_names.keys())
     if display == constants.DISPLAY_EXTERNAL:
         display_ports = get_external_ports(display_ports, namespace)
     return natsorted(display_ports)
@@ -86,14 +86,14 @@ def get_all_ports(db, namespace=None, display=constants.DISPLAY_ALL):
 def get_server_facing_ports(db):
     candidates = db.get_table('DEVICE_NEIGHBOR')
     server_facing_ports = []
-    for port in candidates.keys():
+    for port in list(candidates.keys()):
         neighbor = db.get_entry(
             'DEVICE_NEIGHBOR_METADATA', candidates[port]['name']
         )
         if neighbor and neighbor['type'].lower() == 'server':
             server_facing_ports.append(port)
     if not server_facing_ports:
-        server_facing_ports = [p[1] for p in db.get_table('VLAN_MEMBER').keys()]
+        server_facing_ports = [p[1] for p in list(db.get_table('VLAN_MEMBER').keys())]
     return server_facing_ports
 
 
@@ -350,13 +350,13 @@ class PfcwdCli(object):
 
         # Get active ports from Config DB
         active_ports = natsorted(
-            self.config_db.get_table('DEVICE_NEIGHBOR').keys()
+            list(self.config_db.get_table('DEVICE_NEIGHBOR').keys())
         )
 
         if not enable or enable.lower() != "enable":
             return
 
-        port_num = len(self.config_db.get_table('PORT').keys())
+        port_num = len(list(self.config_db.get_table('PORT').keys()))
 
         # Paramter values positively correlate to the number of ports.
         multiply = max(1, (port_num-1)/DEFAULT_PORT_NUM+1)

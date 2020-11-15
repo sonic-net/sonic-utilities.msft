@@ -1,13 +1,13 @@
 import json
 
 import click
-from natsort import natsorted
-from tabulate import tabulate
-
-from sonic_py_common import multi_asic
 import utilities_common.cli as clicommon
 import utilities_common.multi_asic as multi_asic_util
-import portchannel
+from natsort import natsorted
+from tabulate import tabulate
+from sonic_py_common import multi_asic
+
+from . import portchannel
 
 def try_convert_interfacename_from_alias(ctx, interfacename):
     """try to convert interface name from alias"""
@@ -48,8 +48,8 @@ def alias(interfacename, namespace, display):
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
         # If we're given an interface name, output name and alias for that interface only
-        if interfacename in port_dict.keys():
-            if port_dict[interfacename].has_key('alias'):
+        if interfacename in port_dict:
+            if 'alias' in port_dict[interfacename]:
                 body.append([interfacename, port_dict[interfacename]['alias']])
             else:
                 body.append([interfacename, interfacename])
@@ -57,7 +57,7 @@ def alias(interfacename, namespace, display):
             ctx.fail("Invalid interface name {}".format(interfacename))
     else:
         # Output name and alias for all interfaces
-        for port_name in natsorted(port_dict.keys()):
+        for port_name in natsorted(list(port_dict.keys())):
             if ((display == multi_asic_util.constants.DISPLAY_EXTERNAL) and
                 ('role' in port_dict[port_name]) and
                     (port_dict[port_name]['role'] is multi_asic.INTERNAL_PORT)):
@@ -153,7 +153,7 @@ def breakout(ctx):
             click.echo("Can not load port config from {} or {} file".format(PLATFORM_JSON, HWSKU_JSON))
             raise click.Abort()
 
-        for port_name in platform_dict.keys():
+        for port_name in list(platform_dict.keys()):
             cur_brkout_mode = cur_brkout_tbl[port_name]["brkout_mode"]
 
             # Update deafult breakout mode and current breakout mode to platform_dict
@@ -166,7 +166,7 @@ def breakout(ctx):
                 click.echo("Cannot find ports from {} file ".format(PLATFORM_JSON))
                 raise click.Abort()
 
-            child_ports = natsorted(child_port_dict.keys())
+            child_ports = natsorted(list(child_port_dict.keys()))
 
             children, speeds = [], []
             # Update portname and speed of child ports if present
@@ -180,7 +180,7 @@ def breakout(ctx):
             platform_dict[port_name]["child port speeds"] = ",".join(speeds)
 
         # Sorted keys by name in natural sort Order for human readability
-        parsed = OrderedDict((k, platform_dict[k]) for k in natsorted(platform_dict.keys()))
+        parsed = OrderedDict((k, platform_dict[k]) for k in natsorted(list(platform_dict.keys())))
         click.echo(json.dumps(parsed, indent=4))
 
 # 'breakout current-mode' subcommand ("show interfaces breakout current-mode")
@@ -208,7 +208,7 @@ def currrent_mode(ctx, interface):
         return
 
     # Show current Breakout Mode for all interfaces
-    for name in natsorted(cur_brkout_tbl.keys()):
+    for name in natsorted(list(cur_brkout_tbl.keys())):
         body.append([name, str(cur_brkout_tbl[name]['brkout_mode'])])
     click.echo(tabulate(body, header, tablefmt="grid"))
 
@@ -237,7 +237,7 @@ def expected(db, interfacename):
         click.echo("DEVICE_NEIGHBOR_METADATA information is not present.")
         return
 
-    for port in natsorted(neighbor_dict.keys()):
+    for port in natsorted(list(neighbor_dict.keys())):
         temp_port = port
         if clicommon.get_interface_naming_mode() == "alias":
             port = clicommon.InterfaceAliasConverter().name_to_alias(port)
@@ -258,7 +258,7 @@ def expected(db, interfacename):
             click.echo("No neighbor information available for interface {}".format(interfacename))
             return
     else:
-        for port in natsorted(neighbor_dict.keys()):
+        for port in natsorted(list(neighbor_dict.keys())):
             try:
                 device = neighbor_dict[port]['name']
                 body.append([port,

@@ -24,13 +24,12 @@ Currently, this list of dependencies is as follows:
 
 - libyang_1.0.73_amd64.deb
 - libyang-cpp_1.0.73_amd64.deb
-- python2-yang_1.0.73_amd64.deb
 - python3-yang_1.0.73_amd64.deb
-- redis_dump_load-1.1-py2-none-any.whl
-- swsssdk-2.0.1-py2-none-any.whl
-- sonic_py_common-1.0-py2-none-any.whl
-- sonic_config_engine-1.0-py2-none-any.whl
-- sonic_yang_mgmt-1.0-py2-none-any.whl
+- redis_dump_load-1.1-py3-none-any.whl
+- swsssdk-2.0.1-py3-none-any.whl
+- sonic_py_common-1.0-py3-none-any.whl
+- sonic_config_engine-1.0-py3-none-any.whl
+- sonic_yang_mgmt-1.0-py3-none-any.whl
 - sonic_yang_models-1.0-py3-none-any.whl
 
 
@@ -43,7 +42,7 @@ A convenient alternative is to let the SONiC build system configure a build envi
 
 2. Build the sonic-utilities Python wheel package inside the Buster slave container, and tell the build system to keep the container alive when finished
     ```
-    make NOJESSIE=1 NOSTRETCH=1 KEEP_SLAVE_ON=yes target/python-wheels/sonic_utilities-1.2-py2-none-any.whl
+    make NOJESSIE=1 NOSTRETCH=1 KEEP_SLAVE_ON=yes target/python-wheels/sonic_utilities-1.2-py3-none-any.whl
     ```
 
 3. When the build finishes, your prompt will change to indicate you are inside the slave container. Change into the `src/sonic-utilities/` directory
@@ -56,13 +55,13 @@ A convenient alternative is to let the SONiC build system configure a build envi
 #### To build
 
 ```
-python2 setup.py bdist_wheel
+python3 setup.py bdist_wheel
 ```
 
 #### To run unit tests
 
 ```
-python2 setup.py test
+python3 setup.py test
 ```
 
 

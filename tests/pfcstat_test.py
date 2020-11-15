@@ -7,7 +7,7 @@ from click.testing import CliRunner
 
 import show.main as show
 
-from utils import get_result_and_return_code
+from .utils import get_result_and_return_code
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)

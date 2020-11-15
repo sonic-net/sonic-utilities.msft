@@ -9,7 +9,7 @@ scripts_path = os.path.join(modules_path, "scripts")
 sys.path.insert(0, test_path)
 sys.path.insert(0, modules_path)
 
-import mock_tables.dbconnector # required by tests
+from .mock_tables import dbconnector
 
 import show.main as show
 
@@ -25,7 +25,7 @@ class TestGearbox(TestCase):
 
     def test_gearbox_phys_status_validation(self):
         result = self.runner.invoke(show.cli.commands["gearbox"].commands["phys"].commands["status"], [])
-        print >> sys.stderr, result.output
+        print(result.output, file=sys.stderr)
         expected_output = (
             "PHY Id     Name    Firmware\n"
             "--------  -------  ----------\n"
@@ -36,7 +36,7 @@ class TestGearbox(TestCase):
 
     def test_gearbox_interfaces_status_validation(self):
         result = self.runner.invoke(show.cli.commands["gearbox"].commands["interfaces"].commands["status"], [])
-        print >> sys.stderr, result.output
+        print(result.output, file=sys.stderr)
         expected_output = (
             "PHY Id    Interface        MAC Lanes    MAC Lane Speed        PHY Lanes    PHY Lane Speed    Line Lanes    Line Lane Speed    Oper    Admin\n"
             "--------  -----------  ---------------  ----------------  ---------------  ----------------  ------------  -----------------  ------  -------\n"

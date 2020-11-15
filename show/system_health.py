@@ -144,7 +144,7 @@ def detail():
         header = ['Name', 'Status', 'Type']
         table = []
         for category, elements in stat.items():
-            for element in sorted(elements.items(), key=lambda (x, y): y['status']):
+            for element in sorted(elements.items(), key=lambda x: x[1]['status']):
                 entry = []
                 entry.append(element[0])
                 entry.append(element[1]['status'])
@@ -203,7 +203,7 @@ def monitor_list():
         header = ['Name', 'Status', 'Type']
         table = []
         for category, elements in stat.items():
-            for element in sorted(elements.items(), key=lambda (x, y): y['status']):
+            for element in sorted(elements.items(), key=lambda x: x[1]['status']):
                 entry = []
                 entry.append(element[0])
                 entry.append(element[1]['status'])

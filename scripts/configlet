@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """ JSON based configlet update
 
 A tool to update CONFIG-DB with JSON diffs that can update/delete redis-DB.
@@ -75,10 +75,10 @@ A sample for update:
 
 """
 
-from __future__ import print_function
 import argparse
 import json
 import time
+
 from swsssdk import ConfigDBConnector
 
 test_only = False
@@ -141,21 +141,21 @@ def do_update(t, k, lst):
     if test_only == False:
         db_update(t, k, lst)
     else:
-        print ("TEST update")
-        print ("table: " + t)
-        print ("key: " + str(k))
-        print (lst)
-        print ("---------------------")
+        print("TEST update")
+        print("table: " + t)
+        print("key: " + str(k))
+        print(lst)
+        print("---------------------")
 
 def do_delete(t, k, lst):
     if test_only == False:
         db_delete(t, k, lst)
     else:
-        print ("TEST delete")
-        print ("table: " + t)
-        print ("key: " + str(k))
-        print (lst)
-        print ("---------------------")
+        print("TEST delete")
+        print("table: " + t)
+        print("key: " + str(k))
+        print(lst)
+        print("---------------------")
 
 
 def do_operate(op_upd, t, k, lst):
@@ -194,7 +194,7 @@ def main():
 
     do_act = test_only | parse_only | do_update | do_delete
     if not do_act:
-        print ("Expect an action update/delete or for debug parse/test\n")
+        print("Expect an action update/delete or for debug parse/test\n")
         parser.print_help()
         exit(-1)
 

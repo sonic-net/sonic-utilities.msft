@@ -1,8 +1,4 @@
-#!/usr/bin/env python -u
-# -*- coding: utf-8 -*-
-
 import click
-
 from swsssdk import ConfigDBConnector
 import utilities_common.cli as clicommon
 
@@ -193,8 +189,3 @@ def delete(address):
     config_db.connect()
     config_db.set_entry('TACPLUS_SERVER', address, None)
 tacacs.add_command(delete)
-
-
-if __name__ == "__main__":
-    aaa()
-

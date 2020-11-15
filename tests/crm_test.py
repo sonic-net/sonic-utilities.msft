@@ -444,10 +444,10 @@ ASIC1
 
 Table ID         Resource Name      Used Count    Available Count
 ---------------  ---------------  ------------  -----------------
-0x7000000000670  acl_entry                   0               1024
-0x7000000000670  acl_counter                 0               1280
 0x700000000063f  acl_entry                   0               2048
 0x700000000063f  acl_counter                 0               2048
+0x7000000000670  acl_entry                   0               1024
+0x7000000000670  acl_counter                 0               1280
 
 """
 
@@ -549,10 +549,10 @@ ASIC1
 
 Table ID         Resource Name      Used Count    Available Count
 ---------------  ---------------  ------------  -----------------
-0x7000000000670  acl_entry                   0               1024
-0x7000000000670  acl_counter                 0               1280
 0x700000000063f  acl_entry                   0               2048
 0x700000000063f  acl_counter                 0               2048
+0x7000000000670  acl_entry                   0               1024
+0x7000000000670  acl_counter                 0               1280
 
 """
 
@@ -1007,8 +1007,9 @@ class TestCrmMultiAsic(object):
         print("SETUP")
         os.environ["UTILITIES_UNIT_TESTING"] = "2"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
-        import mock_tables.mock_multi_asic
-        mock_tables.dbconnector.load_namespace_config()
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_multi_asic
+        dbconnector.load_namespace_config()
 
     def test_crm_show_summary(self):
         runner = CliRunner()
@@ -1296,4 +1297,4 @@ class TestCrmMultiAsic(object):
         print("TEARDOWN")
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
-        import mock_tables.mock_single_asic
+        from .mock_tables import mock_single_asic

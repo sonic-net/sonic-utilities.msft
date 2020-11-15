@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """ Script to list LLDP neighbors in a summary view instead of default detailed view
 
@@ -18,8 +18,6 @@
     -----------------------------------------------------
     Total entries displayed:  33
 """
-
-from __future__ import print_function
 
 import argparse
 import re
@@ -81,7 +79,7 @@ class Lldpshow(object):
             # and in table format we will get xml output
             lldp_cmd = 'sudo docker exec -i lldp{} lldpctl '.format(self.lldp_instance[lldp_instace_num]) + (
                 '-f xml' if not lldp_detail_info else lldp_interface_list)
-            p = subprocess.Popen(lldp_cmd, stdout=subprocess.PIPE, shell=True)
+            p = subprocess.Popen(lldp_cmd, stdout=subprocess.PIPE, shell=True, text=True)
             (output, err) = p.communicate()
             ## Wait for end of command. Get return returncode ##
             returncode = p.wait()
@@ -159,25 +157,24 @@ class Lldpshow(object):
             lldp_output = ''
             for lldp_detail_output in self.lldpraw:
                 lldp_output += lldp_detail_output
-            print (lldp_output)
+            print(lldp_output)
         elif self.lldpraw:
             lldpstatus = []
-            print ('Capability codes: (R) Router, (B) Bridge, (O) Other')
+            print('Capability codes: (R) Router, (B) Bridge, (O) Other')
             header = ['LocalPort', 'RemoteDevice', 'RemotePortID', 'Capability', 'RemotePortDescr']
             sortedsum = self.sort_sum(self.lldpsum)
             for key in sortedsum:
                 lldpstatus.append([key, self.lldpsum[key]['r_name'], self.lldpsum[key]['r_portid'],
                                    self.lldpsum[key]['capability'], self.lldpsum[key]['r_portname']])
-            print (tabulate(lldpstatus, header))
-            print ('-'.rjust(50, '-'))
-            print ('Total entries displayed: ', len(self.lldpsum))
+            print(tabulate(lldpstatus, header))
+            print('-'.rjust(50, '-'))
+            print('Total entries displayed: ', len(self.lldpsum))
         elif self.err is not None:
-            print ('Error:', self.err)
+            print('Error:', self.err)
 
 
 def main():
     parser = argparse.ArgumentParser(description='Display the LLDP neighbors',
-                                     version='1.0.0',
                                      formatter_class=argparse.RawTextHelpFormatter,
                                      epilog="""
                                       Examples:
@@ -189,6 +186,7 @@ def main():
 
     parser.add_argument('-d', '--detail', action='store_true', help='LLDP neighbors detail information', default=False)
     parser.add_argument('-p', '--port', type=str, help='LLDP neighbors detail information for given port', default=None)
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
 
     lldp_detail_info = args.detail

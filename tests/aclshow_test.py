@@ -1,18 +1,20 @@
 import sys
 import os
-from StringIO import StringIO
-import mock
+from imp import load_source
+from io import StringIO
+from unittest import mock
+
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
 sys.path.insert(0, modules_path)
 
-from imp import load_source
 load_source('aclshow', scripts_path+'/aclshow')
 from aclshow import *
 
-import mock_tables.dbconnector
+from .mock_tables import dbconnector
+
 
 # Expected output for aclshow
 default_output = ''+ \
@@ -145,7 +147,7 @@ class Aclshow():
         if exist in /tmp/.counters_acl.p (by default).
         """
         if os.path.isfile(COUNTER_POSITION):
-            with open(COUNTER_POSITION, 'wb') as fp:
+            with open(COUNTER_POSITION, 'w') as fp:
                 json.dump([], fp)
 
     def runTest(self):

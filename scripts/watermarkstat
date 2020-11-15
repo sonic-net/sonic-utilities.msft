@@ -1,12 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #####################################################################
 #
 # watermarkstat is a tool for displaying watermarks.
 #
 #####################################################################
-
-from __future__ import print_function
 
 import argparse
 import json
@@ -195,7 +193,7 @@ class Watermarkstat(object):
 
         self.header_list = ['Port']
         header_map = wm_type["obj_map"]
-        single_key = header_map.keys()[0]
+        single_key = list(header_map.keys())[0]
         header_len = len(header_map[single_key])
         min_idx = sys.maxsize
 
@@ -260,7 +258,6 @@ class Watermarkstat(object):
 def main():
 
     parser = argparse.ArgumentParser(description='Display the watermark counters',
-                                      version='1.0.0',
                                       formatter_class=argparse.RawTextHelpFormatter,
                                       epilog="""
 Examples:
@@ -280,6 +277,7 @@ Examples:
     parser.add_argument('-t', '--type', required=True, action='store',
                         choices=['pg_headroom', 'pg_shared', 'q_shared_uni', 'q_shared_multi', 'buffer_pool'],
                         help='The type of watermark')
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
     watermarkstat = Watermarkstat()
    

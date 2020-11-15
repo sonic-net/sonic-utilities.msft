@@ -21,12 +21,12 @@ class UbootBootloader(OnieInstallerBootloader):
 
     def get_installed_images(self):
         images = []
-        proc = subprocess.Popen("/usr/bin/fw_printenv -n sonic_version_1", shell=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen("/usr/bin/fw_printenv -n sonic_version_1", shell=True, text=True, stdout=subprocess.PIPE)
         (out, _) = proc.communicate()
         image = out.rstrip()
         if IMAGE_PREFIX in image:
             images.append(image)
-        proc = subprocess.Popen("/usr/bin/fw_printenv -n sonic_version_2", shell=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen("/usr/bin/fw_printenv -n sonic_version_2", shell=True, text=True, stdout=subprocess.PIPE)
         (out, _) = proc.communicate()
         image = out.rstrip()
         if IMAGE_PREFIX in image:
@@ -35,7 +35,7 @@ class UbootBootloader(OnieInstallerBootloader):
 
     def get_next_image(self):
         images = self.get_installed_images()
-        proc = subprocess.Popen("/usr/bin/fw_printenv -n boot_next", shell=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen("/usr/bin/fw_printenv -n boot_next", shell=True, text=True, stdout=subprocess.PIPE)
         (out, _) = proc.communicate()
         image = out.rstrip()
         if "sonic_image_2" in image:

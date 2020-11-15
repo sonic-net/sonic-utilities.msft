@@ -1,8 +1,8 @@
 import os
 import sys
 import textwrap
+from unittest import mock
 
-import mock
 from click.testing import CliRunner
 
 test_path = os.path.dirname(os.path.abspath(__file__))

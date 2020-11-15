@@ -1,14 +1,10 @@
-try:
-    import ConfigParser as configparser
-except ImportError:
-    import configparser
-
+import configparser
 import os
 import re
 import subprocess
 import sys
 import time
-import urllib
+from urllib.request import urlopen, urlretrieve
 
 import click
 from sonic_py_common import logger
@@ -117,7 +113,7 @@ def reporthook(count, block_size, total_size):
 def get_docker_tag_name(image):
     # Try to get tag name from label metadata
     cmd = "docker inspect --format '{{.ContainerConfig.Labels.Tag}}' " + image
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     (out, _) = proc.communicate()
     if proc.returncode != 0:
         return "unknown"
@@ -132,7 +128,7 @@ def get_docker_tag_name(image):
 def validate_url_or_abort(url):
     # Attempt to retrieve HTTP response code
     try:
-        urlfile = urllib.urlopen(url)
+        urlfile = urlopen(url)
         response_code = urlfile.getcode()
         urlfile.close()
     except IOError:
@@ -157,7 +153,7 @@ def abort_if_false(ctx, param, value):
 def get_container_image_name(container_name):
     # example image: docker-lldp-sv2:latest
     cmd = "docker inspect --format '{{.Config.Image}}' " + container_name
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     (out, _) = proc.communicate()
     if proc.returncode != 0:
         sys.exit(proc.returncode)
@@ -165,7 +161,7 @@ def get_container_image_name(container_name):
 
     # example image_name: docker-lldp-sv2
     cmd = "echo " + image_latest + " | cut -d ':' -f 1"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     image_name = proc.stdout.read().rstrip()
     return image_name
 
@@ -174,7 +170,7 @@ def get_container_image_id(image_tag):
     # TODO: extract commond docker info fetching functions
     # this is image_id for image with tag, like 'docker-teamd:latest'
     cmd = "docker images --format '{{.ID}}' " + image_tag
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     image_id = proc.stdout.read().rstrip()
     return image_id
 
@@ -182,7 +178,7 @@ def get_container_image_id(image_tag):
 def get_container_image_id_all(image_name):
     # All images id under the image name like 'docker-teamd'
     cmd = "docker images --format '{{.ID}}' " + image_name
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     image_id_all = proc.stdout.read()
     image_id_all = image_id_all.splitlines()
     image_id_all = set(image_id_all)
@@ -249,7 +245,7 @@ def update_sonic_environment(click, binary_image_version):
         ])
         os.mkdir(env_dir, 0o755)
         with open(env_file, "w+") as ef:
-            print >>ef, sonic_env
+            print(sonic_env, file=ef)
         os.chmod(env_file, 0o644)
     except SonicRuntimeException as ex:
         click.secho("Warning: SONiC environment variables are not supported for this image: {0}".format(str(ex)),
@@ -289,7 +285,7 @@ def install(url, force, skip_migration=False):
         click.echo('Downloading image...')
         validate_url_or_abort(url)
         try:
-            urllib.urlretrieve(url, bootloader.DEFAULT_IMAGE_PATH, reporthook)
+            urlretrieve(url, bootloader.DEFAULT_IMAGE_PATH, reporthook)
             click.echo('')
         except Exception as e:
             click.echo("Download error", e)
@@ -481,7 +477,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
         click.echo('Downloading image...')
         validate_url_or_abort(url)
         try:
-            urllib.urlretrieve(url, DEFAULT_IMAGE_PATH, reporthook)
+            urlretrieve(url, DEFAULT_IMAGE_PATH, reporthook)
         except Exception as e:
             click.echo("Download error", e)
             raise click.Abort()
@@ -525,7 +521,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
 
             cmd = "docker exec -i swss orchagent_restart_check -w 2000 -r 5 " + skipPendingTaskCheck
 
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
             (out, err) = proc.communicate()
             if proc.returncode != 0:
                 if not skip_check:

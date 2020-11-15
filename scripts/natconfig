@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
     Script to show nat configuration 
@@ -44,6 +44,7 @@ import sys
 from tabulate import tabulate
 from swsssdk import ConfigDBConnector
 
+
 class NatConfig(object):
 
     def __init__(self):
@@ -70,7 +71,7 @@ class NatConfig(object):
             nat_type = "dnat"
             twice_nat_id = "---"
 
-            if isinstance(key, unicode) is True:
+            if isinstance(key, str) is True:
                 global_ip = key
             else:
                 continue
@@ -145,7 +146,7 @@ class NatConfig(object):
         for key,values in nat_pool_dict.items():
             global_port = "---"
 
-            if isinstance(key, unicode) is True:
+            if isinstance(key, str) is True:
                 pool_name = key
             else:
                 continue
@@ -176,7 +177,7 @@ class NatConfig(object):
             nat_type = "snat"
             twice_nat_id = "---"
 
-            if isinstance(key, unicode) is True:
+            if isinstance(key, str) is True:
                 binding_name = key
             else:
                 continue
@@ -214,7 +215,7 @@ class NatConfig(object):
             for key,values in interface_zone_dict.items():
                 zone = "0"
 
-                if isinstance(key, unicode) is False:
+                if isinstance(key, str) is False:
                     continue
 
                 if "nat_zone" in values:

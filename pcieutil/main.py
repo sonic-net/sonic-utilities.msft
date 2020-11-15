@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # main.py
 #
@@ -31,7 +31,7 @@ def print_result(name, result):
     string = "PCI Device:  {} ".format(name)
     length = 105-len(string)
     sys.stdout.write(string)
-    for i in xrange(int(length)):
+    for i in range(int(length)):
         sys.stdout.write("-")
     click.echo(' [%s]' % result)
 

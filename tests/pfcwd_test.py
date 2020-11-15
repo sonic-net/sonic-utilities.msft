@@ -5,7 +5,7 @@ import sys
 from click.testing import CliRunner
 from utilities_common.db import Db
 
-from pfcwd_input.pfcwd_test_vectors import (
+from .pfcwd_input.pfcwd_test_vectors import (
     testData, show_pfcwd_stats_all, show_pfc_config_all,
     show_pfcwd_stats_with_queues, show_pfcwd_config_with_ports
 )

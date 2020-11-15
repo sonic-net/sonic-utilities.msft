@@ -24,15 +24,15 @@ import utilities_common.cli as clicommon
 from .utils import log
 
 
-import aaa
-import console
-import feature
-import kube
-import mlnx
-import nat
-import vlan
-from config_mgmt import ConfigMgmtDPB
-import chassis_modules
+from . import aaa
+from . import chassis_modules
+from . import console
+from . import feature
+from . import kube
+from . import mlnx
+from . import nat
+from . import vlan
+from .config_mgmt import ConfigMgmtDPB
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
@@ -85,7 +85,7 @@ def _get_breakout_options(ctx, args, incomplete):
     else:
         breakout_file_input = readJsonFile(breakout_cfg_file)
         if interface_name in breakout_file_input[INTF_KEY]:
-            breakout_mode_list = [v["breakout_modes"] for i ,v in breakout_file_input[INTF_KEY].items() if i == interface_name][0]
+            breakout_mode_list = [v["breakout_modes"] for i, v in breakout_file_input[INTF_KEY].items() if i == interface_name][0]
             breakout_mode_options = []
             for i in breakout_mode_list.split(','):
                     breakout_mode_options.append(i)
@@ -94,7 +94,7 @@ def _get_breakout_options(ctx, args, incomplete):
 
 def shutdown_interfaces(ctx, del_intf_dict):
     """ shut down all the interfaces before deletion """
-    for intf in del_intf_dict.keys():
+    for intf in list(del_intf_dict.keys()):
         config_db = ctx.obj['config_db']
         if clicommon.get_interface_naming_mode() == "alias":
             interface_name = interface_alias_to_name(config_db, intf)
@@ -111,7 +111,7 @@ def shutdown_interfaces(ctx, del_intf_dict):
             click.echo("port_dict is None!")
             return False
 
-        if intf in port_dict.keys():
+        if intf in port_dict:
             config_db.mod_entry("PORT", intf, {"admin_status": "down"})
         else:
             click.secho("[ERROR] Could not get the correct interface name, exiting", fg='red')
@@ -141,7 +141,7 @@ def _validate_interface_mode(ctx, breakout_cfg_file, interface_name, target_brko
         return False
 
     # Check whether the  user-selected interface is part of  'port' table in config db.
-    if interface_name not in port_dict.keys():
+    if interface_name not in port_dict:
         click.secho("[ERROR] {} is not in port_dict".format(interface_name))
         return False
     click.echo("\nRunning Breakout Mode : {} \nTarget Breakout Mode : {}".format(cur_brkout_mode, target_brkout_mode))
@@ -258,7 +258,7 @@ def _get_device_type():
     """
 
     command = "{} -m -v DEVICE_METADATA.localhost.type".format(SONIC_CFGGEN_PATH)
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
     device_type, err = proc.communicate()
     if err:
         click.echo("Could not get the device type from minigraph, setting device type to Unknown")
@@ -295,7 +295,7 @@ def interface_alias_to_name(config_db, interface_alias):
         if not port_dict:
             click.echo("port_dict is None!")
             raise click.Abort()
-        for port_name in port_dict.keys():
+        for port_name in list(port_dict.keys()):
             if interface_alias == port_dict[port_name]['alias']:
                 return port_name if sub_intf_sep_idx == -1 else port_name + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
@@ -326,15 +326,15 @@ def interface_name_is_valid(config_db, interface_name):
         if not port_dict:
             click.echo("port_dict is None!")
             raise click.Abort()
-        for port_name in port_dict.keys():
+        for port_name in list(port_dict.keys()):
             if interface_name == port_name:
                 return True
         if port_channel_dict:
-            for port_channel_name in port_channel_dict.keys():
+            for port_channel_name in list(port_channel_dict.keys()):
                 if interface_name == port_channel_name:
                     return True
         if sub_port_intf_dict:
-            for sub_port_intf_name in sub_port_intf_dict.keys():
+            for sub_port_intf_name in list(sub_port_intf_dict.keys()):
                 if interface_name == sub_port_intf_name:
                     return True
     return False
@@ -357,7 +357,7 @@ def interface_name_to_alias(config_db, interface_name):
         if not port_dict:
             click.echo("port_dict is None!")
             raise click.Abort()
-        for port_name in port_dict.keys():
+        for port_name in list(port_dict.keys()):
             if interface_name == port_name:
                 return port_dict[port_name]['alias']
 
@@ -410,7 +410,7 @@ def get_port_namespace(port):
         if clicommon.get_interface_naming_mode() == "alias":
             port_dict = config_db.get_table(table_name)
             if port_dict:
-                for port_name in port_dict.keys():
+                for port_name in list(port_dict.keys()):
                     if port == port_dict[port_name]['alias']:
                         return namespace
         else:
@@ -427,8 +427,8 @@ def del_interface_bind_to_vrf(config_db, vrf_name):
     for table_name in tables:
         interface_dict = config_db.get_table(table_name)
         if interface_dict:
-            for interface_name in interface_dict.keys():
-                if interface_dict[interface_name].has_key('vrf_name') and vrf_name == interface_dict[interface_name]['vrf_name']:
+            for interface_name in list(interface_dict.keys()):
+                if 'vrf_name' in interface_dict[interface_name] and vrf_name == interface_dict[interface_name]['vrf_name']:
                     interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
                     for interface_del in interface_dependent:
                         config_db.set_entry(table_name, interface_del, None)
@@ -459,7 +459,7 @@ def set_interface_naming_mode(mode):
         click.echo("port_dict is None!")
         raise click.Abort()
 
-    for port_name in port_dict.keys():
+    for port_name in list(port_dict.keys()):
         try:
             if port_dict[port_name]['alias']:
                 pass
@@ -502,7 +502,7 @@ def _get_all_neighbor_ipaddresses(config_db):
     """
     addrs = []
     bgp_sessions = config_db.get_table('BGP_NEIGHBOR')
-    for addr, session in bgp_sessions.iteritems():
+    for addr, session in bgp_sessions.items():
         addrs.append(addr)
     return addrs
 
@@ -512,8 +512,8 @@ def _get_neighbor_ipaddress_list_by_hostname(config_db, hostname):
     """
     addrs = []
     bgp_sessions = config_db.get_table('BGP_NEIGHBOR')
-    for addr, session in bgp_sessions.iteritems():
-        if session.has_key('name') and session['name'] == hostname:
+    for addr, session in bgp_sessions.items():
+        if 'name' in session and session['name'] == hostname:
             addrs.append(addr)
     return addrs
 
@@ -639,7 +639,7 @@ def _get_disabled_services_list(config_db):
 
     feature_table = config_db.get_table('FEATURE')
     if feature_table is not None:
-        for feature_name in feature_table.keys():
+        for feature_name in list(feature_table.keys()):
             if not feature_name:
                 log.log_warning("Feature is None")
                 continue
@@ -750,8 +750,8 @@ def _restart_services(config_db):
 
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
-    """ Check if an interface  is in a vlan """
-    for _,intf in vlan_member_table.keys():
+    """ Check if an interface is in a vlan """
+    for _, intf in list(vlan_member_table.keys()):
         if intf == interface_name:
             return True
 
@@ -759,7 +759,7 @@ def interface_is_in_vlan(vlan_member_table, interface_name):
 
 def interface_is_in_portchannel(portchannel_member_table, interface_name):
     """ Check if an interface is part of portchannel """
-    for _,intf in portchannel_member_table.keys():
+    for _, intf in list(portchannel_member_table.keys()):
         if intf == interface_name:
             return True
 
@@ -767,7 +767,7 @@ def interface_is_in_portchannel(portchannel_member_table, interface_name):
 
 def interface_has_mirror_config(mirror_table, interface_name):
     """ Check if port is already configured with mirror config """
-    for _,v in mirror_table.items():
+    for _, v in mirror_table.items():
         if 'src_port' in v and v['src_port'] == interface_name:
             return True
         if 'dst_port' in v and v['dst_port'] == interface_name:
@@ -874,12 +874,12 @@ def config(ctx):
 # Add groups from other modules
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
+config.add_command(chassis_modules.chassis_modules)
 config.add_command(console.console)
 config.add_command(feature.feature)
 config.add_command(kube.kubernetes)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
-config.add_command(chassis_modules.chassis_modules)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -1029,7 +1029,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
 
     if load_sysinfo:
         command = "{} -j {} -v DEVICE_METADATA.localhost.hwsku".format(SONIC_CFGGEN_PATH, filename)
-        proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
         cfg_hwsku, err = proc.communicate()
         if err:
             click.echo("Could not get the HWSKU from config file, exiting")
@@ -1128,8 +1128,8 @@ def load_mgmt_config(filename):
     config_data = parse_device_desc_xml(filename)
     hostname = config_data['DEVICE_METADATA']['localhost']['hostname']
     _change_hostname(hostname)
-    mgmt_conf = netaddr.IPNetwork(config_data['MGMT_INTERFACE'].keys()[0][1])
-    gw_addr = config_data['MGMT_INTERFACE'].values()[0]['gwaddr']
+    mgmt_conf = netaddr.IPNetwork(list(config_data['MGMT_INTERFACE'].keys())[0][1])
+    gw_addr = list(config_data['MGMT_INTERFACE'].values())[0]['gwaddr']
     command = "ifconfig eth0 {} netmask {}".format(str(mgmt_conf.ip), str(mgmt_conf.netmask))
     clicommon.run_command(command, display_cmd=True)
     command = "ip route add default via {} dev eth0 table default".format(gw_addr)
@@ -1719,7 +1719,7 @@ def warm_restart_enable(ctx, module):
 @click.pass_context
 def warm_restart_neighsyncd_timer(ctx, seconds):
     db = ctx.obj['db']
-    if seconds not in range(1,9999):
+    if seconds not in range(1, 9999):
         ctx.fail("neighsyncd warm restart timer must be in range 1-9999")
     db.mod_entry('WARM_RESTART', 'swss', {'neighsyncd_timer': seconds})
 
@@ -1728,7 +1728,7 @@ def warm_restart_neighsyncd_timer(ctx, seconds):
 @click.pass_context
 def warm_restart_bgp_timer(ctx, seconds):
     db = ctx.obj['db']
-    if seconds not in range(1,3600):
+    if seconds not in range(1, 3600):
         ctx.fail("bgp warm restart timer must be in range 1-3600")
     db.mod_entry('WARM_RESTART', 'bgp', {'bgp_timer': seconds})
 
@@ -1737,7 +1737,7 @@ def warm_restart_bgp_timer(ctx, seconds):
 @click.pass_context
 def warm_restart_teamsyncd_timer(ctx, seconds):
     db = ctx.obj['db']
-    if seconds not in range(1,3600):
+    if seconds not in range(1, 3600):
         ctx.fail("teamsyncd warm restart timer must be in range 1-3600")
     db.mod_entry('WARM_RESTART', 'teamd', {'teamsyncd_timer': seconds})
 
@@ -1772,7 +1772,7 @@ def vrf_add_management_vrf(config_db):
     if entry and entry['mgmtVrfEnabled'] == 'true' :
         click.echo("ManagementVRF is already Enabled.")
         return None
-    config_db.mod_entry('MGMT_VRF_CONFIG',"vrf_global",{"mgmtVrfEnabled": "true"})
+    config_db.mod_entry('MGMT_VRF_CONFIG', "vrf_global", {"mgmtVrfEnabled": "true"})
     mvrf_restart_services()
 
 def vrf_delete_management_vrf(config_db):
@@ -1782,7 +1782,7 @@ def vrf_delete_management_vrf(config_db):
     if not entry or entry['mgmtVrfEnabled'] == 'false' :
         click.echo("ManagementVRF is already Disabled.")
         return None
-    config_db.mod_entry('MGMT_VRF_CONFIG',"vrf_global",{"mgmtVrfEnabled": "false"})
+    config_db.mod_entry('MGMT_VRF_CONFIG', "vrf_global", {"mgmtVrfEnabled": "false"})
     mvrf_restart_services()
 
 @config.group(cls=clicommon.AbbreviationGroup)
@@ -1856,11 +1856,11 @@ def modify_snmptrap_server(ctx, ver, serverip, port, vrf, comm):
     config_db = ctx.obj['db']
     if ver == "1":
         #By default, v1TrapDest value in snmp.yml is "NotConfigured". Modify it.
-        config_db.mod_entry('SNMP_TRAP_CONFIG',"v1TrapDest",{"DestIp": serverip, "DestPort": port, "vrf": vrf, "Community": comm})
+        config_db.mod_entry('SNMP_TRAP_CONFIG', "v1TrapDest", {"DestIp": serverip, "DestPort": port, "vrf": vrf, "Community": comm})
     elif ver == "2":
-        config_db.mod_entry('SNMP_TRAP_CONFIG',"v2TrapDest",{"DestIp": serverip, "DestPort": port, "vrf": vrf, "Community": comm})
+        config_db.mod_entry('SNMP_TRAP_CONFIG', "v2TrapDest", {"DestIp": serverip, "DestPort": port, "vrf": vrf, "Community": comm})
     else:
-        config_db.mod_entry('SNMP_TRAP_CONFIG',"v3TrapDest",{"DestIp": serverip, "DestPort": port, "vrf": vrf, "Community": comm})
+        config_db.mod_entry('SNMP_TRAP_CONFIG', "v3TrapDest", {"DestIp": serverip, "DestPort": port, "vrf": vrf, "Community": comm})
 
     cmd="systemctl restart snmp"
     os.system (cmd)
@@ -1873,11 +1873,11 @@ def delete_snmptrap_server(ctx, ver):
 
     config_db = ctx.obj['db']
     if ver == "1":
-        config_db.mod_entry('SNMP_TRAP_CONFIG',"v1TrapDest",None)
+        config_db.mod_entry('SNMP_TRAP_CONFIG', "v1TrapDest", None)
     elif ver == "2":
-        config_db.mod_entry('SNMP_TRAP_CONFIG',"v2TrapDest",None)
+        config_db.mod_entry('SNMP_TRAP_CONFIG', "v2TrapDest", None)
     else:
-        config_db.mod_entry('SNMP_TRAP_CONFIG',"v3TrapDest",None)
+        config_db.mod_entry('SNMP_TRAP_CONFIG', "v3TrapDest", None)
     cmd="systemctl restart snmp"
     os.system (cmd)
 
@@ -2124,17 +2124,17 @@ def startup(ctx, interface_name):
 
     log.log_info("'interface startup {}' executing...".format(interface_name))
     port_dict = config_db.get_table('PORT')
-    for port_name in port_dict.keys():
+    for port_name in list(port_dict.keys()):
         if port_name in intf_fs:
             config_db.mod_entry("PORT", port_name, {"admin_status": "up"})
 
     portchannel_list = config_db.get_table("PORTCHANNEL")
-    for po_name in portchannel_list.keys():
+    for po_name in list(portchannel_list.keys()):
         if po_name in intf_fs:
             config_db.mod_entry("PORTCHANNEL", po_name, {"admin_status": "up"})
 
     subport_list = config_db.get_table("VLAN_SUB_INTERFACE")
-    for sp_name in subport_list.keys():
+    for sp_name in list(subport_list.keys()):
         if sp_name in intf_fs:
             config_db.mod_entry("VLAN_SUB_INTERFACE", sp_name, {"admin_status": "up"})
 
@@ -2164,17 +2164,17 @@ def shutdown(ctx, interface_name):
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
     port_dict = config_db.get_table('PORT')
-    for port_name in port_dict.keys():
+    for port_name in list(port_dict.keys()):
         if port_name in intf_fs:
             config_db.mod_entry("PORT", port_name, {"admin_status": "down"})
 
     portchannel_list = config_db.get_table("PORTCHANNEL")
-    for po_name in portchannel_list.keys():
+    for po_name in list(portchannel_list.keys()):
         if po_name in intf_fs:
             config_db.mod_entry("PORTCHANNEL", po_name, {"admin_status": "down"})
 
     subport_list = config_db.get_table("VLAN_SUB_INTERFACE")
-    for sp_name in subport_list.keys():
+    for sp_name in list(subport_list.keys()):
         if sp_name in intf_fs:
             config_db.mod_entry("VLAN_SUB_INTERFACE", sp_name, {"admin_status": "down"})
 
@@ -2272,20 +2272,21 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
                       remains unchanged to limit the traffic impact """
 
     click.secho("\nAfter running Logic to limit the impact", fg="cyan", underline=True)
-    matched_item = [intf for intf, speed in del_intf_dict.items() if intf in add_intf_dict.keys() and speed == add_intf_dict[intf]]
+    matched_items = [intf for intf in del_intf_dict if intf in add_intf_dict and del_intf_dict[intf] == add_intf_dict[intf]]
 
     # Remove the interface which remains unchanged from both del_intf_dict and add_intf_dict
-    map(del_intf_dict.pop, matched_item)
-    map(add_intf_dict.pop, matched_item)
+    for item in matched_items:
+        del_intf_dict.pop(item)
+        add_intf_dict.pop(item)
 
     click.secho("\nFinal list of ports to be deleted : \n {} \nFinal list of ports to be added :  \n {}".format(json.dumps(del_intf_dict, indent=4), json.dumps(add_intf_dict, indent=4), fg='green', blink=True))
-    if len(add_intf_dict.keys()) == 0:
-        click.secho("[ERROR] add_intf_dict is None! No interfaces are there to be added", fg='red')
+    if not add_intf_dict:
+        click.secho("[ERROR] add_intf_dict is None or empty! No interfaces are there to be added", fg='red')
         raise click.Abort()
 
     port_dict = {}
     for intf in add_intf_dict:
-        if intf in add_ports.keys():
+        if intf in add_ports:
             port_dict[intf] = add_ports[intf]
 
     # writing JSON object
@@ -2298,7 +2299,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         cm = load_ConfigMgmt(verbose)
 
         """ Delete all ports if forced else print dependencies using ConfigMgmt API """
-        final_delPorts = [intf for intf in del_intf_dict.keys()]
+        final_delPorts = [intf for intf in list(del_intf_dict.keys())]
         """ Warn user if tables without yang models exist and have final_delPorts """
         breakout_warnUser_extraTables(cm, final_delPorts, confirm=True)
 
@@ -2306,24 +2307,21 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         portJson = dict(); portJson['PORT'] = port_dict
 
         # breakout_Ports will abort operation on failure, So no need to check return
-        breakout_Ports(cm, delPorts=final_delPorts, portJson=portJson, force=force_remove_dependencies, \
-            loadDefConfig=load_predefined_config, verbose=verbose)
+        breakout_Ports(cm, delPorts=final_delPorts, portJson=portJson, force=force_remove_dependencies, 
+                       loadDefConfig=load_predefined_config, verbose=verbose)
 
         # Set Current Breakout mode in config DB
         brkout_cfg_keys = config_db.get_keys('BREAKOUT_CFG')
         if interface_name.decode("utf-8") not in  brkout_cfg_keys:
-            click.secho("[ERROR] {} is not present in 'BREAKOUT_CFG' Table!".\
-                format(interface_name), fg='red')
+            click.secho("[ERROR] {} is not present in 'BREAKOUT_CFG' Table!".format(interface_name), fg='red')
             raise click.Abort()
-        config_db.set_entry("BREAKOUT_CFG", interface_name,\
-            {'brkout_mode': target_brkout_mode})
-        click.secho("Breakout process got successfully completed.".\
-            format(interface_name),  fg="cyan", underline=True)
+        config_db.set_entry("BREAKOUT_CFG", interface_name, {'brkout_mode': target_brkout_mode})
+        click.secho("Breakout process got successfully completed."
+                    .format(interface_name), fg="cyan", underline=True)
         click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
 
     except Exception as e:
-        click.secho("Failed to break out Port. Error: {}".format(str(e)), \
-            fg='magenta')
+        click.secho("Failed to break out Port. Error: {}".format(str(e)), fg='magenta')
         sys.exit(0)
 
 def _get_all_mgmtinterface_keys():
@@ -2331,7 +2329,7 @@ def _get_all_mgmtinterface_keys():
     """
     config_db = ConfigDBConnector()
     config_db.connect()
-    return config_db.get_table('MGMT_INTERFACE').keys()
+    return list(config_db.get_table('MGMT_INTERFACE').keys())
 
 def mgmt_ip_restart_services():
     """Restart the required services when mgmt inteface IP address is changed"""
@@ -2431,7 +2429,7 @@ def add(ctx, interface_name, ip_addr, gw):
             ctx.fail("'interface_name' is None!")
 
     try:
-        net = ipaddress.ip_network(unicode(ip_addr), strict=False)
+        net = ipaddress.ip_network(ip_addr, strict=False)
         if '/' not in ip_addr:
             ip_addr = str(net)
 
@@ -2492,7 +2490,7 @@ def remove(ctx, interface_name, ip_addr):
             ctx.fail("'interface_name' is None!")
 
     try:
-        net = ipaddress.ip_network(unicode(ip_addr), strict=False)
+        net = ipaddress.ip_network(ip_addr, strict=False)
         if '/' not in ip_addr:
             ip_addr = str(net)
 
@@ -2708,7 +2706,7 @@ def route(ctx):
     """route-related configuration tasks"""
     pass
 
-@route.command('add',context_settings={"ignore_unknown_options":True})
+@route.command('add', context_settings={"ignore_unknown_options":True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
 @click.pass_context
 def add_route(ctx, command_str):
@@ -2719,7 +2717,7 @@ def add_route(ctx, command_str):
         ctx.fail("argument is incomplete, prefix not found!")
     if "nexthop" not in command_str:
         ctx.fail("argument is incomplete, nexthop not found!")
-    for i in range(0,len(command_str)):
+    for i in range(0, len(command_str)):
         if "nexthop" == command_str[i]:
             prefix_str = command_str[:i]
             nexthop_str = command_str[i:]
@@ -2760,7 +2758,7 @@ def add_route(ctx, command_str):
     cmd += '"'
     clicommon.run_command(cmd)
 
-@route.command('del',context_settings={"ignore_unknown_options":True})
+@route.command('del', context_settings={"ignore_unknown_options":True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
 @click.pass_context
 def del_route(ctx, command_str):
@@ -2771,7 +2769,7 @@ def del_route(ctx, command_str):
         ctx.fail("argument is incomplete, prefix not found!")
     if "nexthop" not in command_str:
         ctx.fail("argument is incomplete, nexthop not found!")
-    for i in range(0,len(command_str)):
+    for i in range(0, len(command_str)):
         if "nexthop" == command_str[i]:
             prefix_str = command_str[:i]
             nexthop_str = command_str[i:]
@@ -3226,7 +3224,7 @@ def add_loopback(ctx, loopback_name):
         ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}' "
                 .format(loopback_name, CFG_LOOPBACK_PREFIX, CFG_LOOPBACK_NO))
 
-    lo_intfs = [k for k,v in config_db.get_table('LOOPBACK_INTERFACE').iteritems() if type(k) != tuple]
+    lo_intfs = [k for k, v in config_db.get_table('LOOPBACK_INTERFACE').items() if type(k) != tuple]
     if loopback_name in lo_intfs:
         ctx.fail("{} already exists".format(loopback_name))
 
@@ -3242,7 +3240,7 @@ def del_loopback(ctx, loopback_name):
                 .format(loopback_name, CFG_LOOPBACK_PREFIX, CFG_LOOPBACK_NO))
 
     lo_config_db = config_db.get_table('LOOPBACK_INTERFACE')
-    lo_intfs = [k for k,v in lo_config_db.iteritems() if type(k) != tuple]
+    lo_intfs = [k for k, v in lo_config_db.items() if type(k) != tuple]
     if loopback_name not in lo_intfs:
         ctx.fail("{} does not exists".format(loopback_name))
 
@@ -3420,7 +3418,7 @@ def enable(ctx):
     config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
 
     try:
-        proc = subprocess.Popen("systemctl is-active sflow", shell=True, stdout=subprocess.PIPE)
+        proc = subprocess.Popen("systemctl is-active sflow", shell=True, text=True, stdout=subprocess.PIPE)
         (out, err) = proc.communicate()
     except SystemExit as e:
         ctx.fail("Unable to check sflow status {}".format(e))
@@ -3495,7 +3493,7 @@ def enable(ctx, ifname):
 
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
-    if intf_dict and ifname in intf_dict.keys():
+    if intf_dict and ifname in intf_dict:
         intf_dict[ifname]['admin_state'] = 'up'
         config_db.mod_entry('SFLOW_SESSION', ifname, intf_dict[ifname])
     else:
@@ -3515,7 +3513,7 @@ def disable(ctx, ifname):
 
     intf_dict = config_db.get_table('SFLOW_SESSION')
 
-    if intf_dict and ifname in intf_dict.keys():
+    if intf_dict and ifname in intf_dict:
         intf_dict[ifname]['admin_state'] = 'down'
         config_db.mod_entry('SFLOW_SESSION', ifname, intf_dict[ifname])
     else:
@@ -3540,7 +3538,7 @@ def sample_rate(ctx, ifname, rate):
 
     sess_dict = config_db.get_table('SFLOW_SESSION')
 
-    if sess_dict and ifname in sess_dict.keys():
+    if sess_dict and ifname in sess_dict:
         sess_dict[ifname]['sample_rate'] = rate
         config_db.mod_entry('SFLOW_SESSION', ifname, sess_dict[ifname])
     else:
@@ -3596,7 +3594,7 @@ def add(ctx, name, ipaddr, port, vrf):
     config_db = ctx.obj['db']
     collector_tbl = config_db.get_table('SFLOW_COLLECTOR')
 
-    if (collector_tbl and name not in collector_tbl.keys() and len(collector_tbl) == 2):
+    if (collector_tbl and name not in collector_tbl and len(collector_tbl) == 2):
         click.echo("Only 2 collectors can be configured, please delete one")
         return
 
@@ -3616,7 +3614,7 @@ def del_collector(ctx, name):
     config_db = ctx.obj['db']
     collector_tbl = config_db.get_table('SFLOW_COLLECTOR')
 
-    if name not in collector_tbl.keys():
+    if name not in collector_tbl:
         click.echo("Collector: {} not configured".format(name))
         return
 
@@ -3649,7 +3647,7 @@ def add(ctx, ifname):
     if not sflow_tbl:
         sflow_tbl = {'global': {'admin_state': 'down'}}
 
-    if 'agent_id' in sflow_tbl['global'].keys():
+    if 'agent_id' in sflow_tbl['global']:
         click.echo("Agent already configured. Please delete it first.")
         return
 
@@ -3669,7 +3667,7 @@ def delete(ctx):
     if not sflow_tbl:
         sflow_tbl = {'global': {'admin_state': 'down'}}
 
-    if 'agent_id' not in sflow_tbl['global'].keys():
+    if 'agent_id' not in sflow_tbl['global']:
         click.echo("sFlow agent not configured.")
         return
 

@@ -3,7 +3,8 @@ import os
 
 import click
 from click.testing import CliRunner
-import mock_tables.dbconnector
+
+from .mock_tables import dbconnector
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -149,20 +150,20 @@ sonic           OK        System
 buffermgrd      OK        Process
 portmgrd        OK        Process
 staticd         OK        Process
-vlanmgrd        OK        Process
+bgpd            OK        Process
 lldp_syncd      OK        Process
 bgpcfgd         OK        Process
 snmp_subagent   OK        Process
 root-overlay    OK        Filesystem
 fpmsyncd        OK        Process
-bgpd            OK        Process
+vlanmgrd        OK        Process
 nbrmgrd         OK        Process
-fan12           OK        Fan
+PSU 2           OK        PSU
 psu_1_fan_1     OK        Fan
 psu_2_fan_1     OK        Fan
 fan11           OK        Fan
 fan10           OK        Fan
-PSU 2           OK        PSU
+fan12           OK        Fan
 ASIC            OK        ASIC
 fan1            OK        Fan
 PSU 1           OK        PSU
@@ -218,21 +219,21 @@ sonic           OK        System
 buffermgrd      OK        Process
 portmgrd        OK        Process
 staticd         OK        Process
-vlanmgrd        OK        Process
+bgpd            OK        Process
 lldp_syncd      OK        Process
 bgpcfgd         OK        Process
 snmp_subagent   OK        Process
 root-overlay    OK        Filesystem
 fpmsyncd        OK        Process
-bgpd            OK        Process
+vlanmgrd        OK        Process
 nbrmgrd         OK        Process
 PSU 2           Not OK    PSU
 PSU 1           Not OK    PSU
-fan12           OK        Fan
 psu_1_fan_1     OK        Fan
 psu_2_fan_1     OK        Fan
 fan11           OK        Fan
 fan10           OK        Fan
+fan12           OK        Fan
 ASIC            OK        ASIC
 fan1            OK        Fan
 fan3            OK        Fan
@@ -288,20 +289,20 @@ sonic           OK        System
 buffermgrd      OK        Process
 portmgrd        OK        Process
 staticd         OK        Process
-vlanmgrd        OK        Process
+bgpd            OK        Process
 lldp_syncd      OK        Process
 bgpcfgd         OK        Process
 snmp_subagent   OK        Process
 root-overlay    OK        Filesystem
 fpmsyncd        OK        Process
-bgpd            OK        Process
+vlanmgrd        OK        Process
 nbrmgrd         OK        Process
-fan12           OK        Fan
+PSU 2           OK        PSU
 psu_1_fan_1     OK        Fan
 psu_2_fan_1     OK        Fan
 fan11           OK        Fan
 fan10           OK        Fan
-PSU 2           OK        PSU
+fan12           OK        Fan
 ASIC            OK        ASIC
 fan1            OK        Fan
 PSU 1           OK        PSU

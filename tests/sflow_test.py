@@ -1,7 +1,7 @@
 import os
 import sys
 import pytest
-import mock
+from unittest import mock
 
 from click.testing import CliRunner
 from utilities_common.db import Db

@@ -6,7 +6,7 @@ import shutil
 import subprocess
 
 from collections import defaultdict
-from filter_fdb_input.test_vectors import filterFdbEntriesTestVector
+from .filter_fdb_input.test_vectors import filterFdbEntriesTestVector
 from fdbutil.filter_fdb_entries import main as filterFdbMain
 
 class TestFilterFdbEntries(object):
@@ -92,6 +92,7 @@ class TestFilterFdbEntries(object):
         process = subprocess.Popen(
             cmds,
             shell=False,
+            text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )

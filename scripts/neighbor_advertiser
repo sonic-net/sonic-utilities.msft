@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 ########################################
 #
@@ -102,7 +102,7 @@ def is_dip_in_device_vlan(ferret_dip):
 
     ferret_dip = IPAddress(ferret_dip)
 
-    for vlan_interface in vlan_interface_query.iterkeys():
+    for vlan_interface in vlan_interface_query.keys():
         if not is_ip_prefix_in_key(vlan_interface):
             log.log_info('{} does not have a subnet, skipping...'.format(vlan_interface))
             continue

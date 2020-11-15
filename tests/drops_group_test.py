@@ -13,7 +13,8 @@ sys.path.insert(0, modules_path)
 import show.main as show
 import clear.main as clear
 
-expected_counter_capabilities = """Counter Type           Total
+expected_counter_capabilities = """\
+Counter Type           Total
 -------------------  -------
 PORT_INGRESS_DROPS         4
 SWITCH_EGRESS_DROPS        2
@@ -28,7 +29,8 @@ SWITCH_EGRESS_DROPS
 	L3_ANY
 """
 
-expected_counter_configuration = """Counter            Alias              Group         Type                 Reasons    Description
+expected_counter_configuration = """\
+Counter            Alias              Group         Type                 Reasons    Description
 -----------------  -----------------  ------------  -------------------  ---------  --------------------------------------------------
 DEBUG_0            DEBUG_0            N/A           PORT_INGRESS_DROPS   None       N/A
 DEBUG_1            SWITCH_DROPS       PACKET_DROPS  SWITCH_EGRESS_DROPS  None       Outgoing packet drops, tracked at the switch level
@@ -36,16 +38,18 @@ DEBUG_2            DEBUG_2            N/A           PORT_INGRESS_DROPS   None
 lowercase_counter  lowercase_counter  N/A           SWITCH_EGRESS_DROPS  None       N/A
 """
 
-expected_counter_configuration_with_group = """Counter    Alias         Group         Type                 Reasons    Description
+expected_counter_configuration_with_group = """\
+Counter    Alias         Group         Type                 Reasons    Description
 ---------  ------------  ------------  -------------------  ---------  --------------------------------------------------
 DEBUG_1    SWITCH_DROPS  PACKET_DROPS  SWITCH_EGRESS_DROPS  None       Outgoing packet drops, tracked at the switch level
 """
 
-expected_counts = """    IFACE    STATE    RX_ERR    RX_DROPS    TX_ERR    TX_DROPS    DEBUG_2    DEBUG_0
+expected_counts = """\
+    IFACE    STATE    RX_ERR    RX_DROPS    TX_ERR    TX_DROPS    DEBUG_0    DEBUG_2
 ---------  -------  --------  ----------  --------  ----------  ---------  ---------
-Ethernet0        D        10         100         0           0         20         80
-Ethernet4      N/A         0        1000         0           0        100        800
-Ethernet8      N/A       100          10         0           0          0         10
+Ethernet0        D        10         100         0           0         80         20
+Ethernet4      N/A         0        1000         0           0        800        100
+Ethernet8      N/A       100          10         0           0         10          0
 
           DEVICE    SWITCH_DROPS    lowercase_counter
 ----------------  --------------  -------------------
@@ -58,15 +62,17 @@ expected_counts_with_group = """
 sonic_drops_test            1000
 """
 
-expected_counts_with_type = """    IFACE    STATE    RX_ERR    RX_DROPS    DEBUG_2    DEBUG_0
+expected_counts_with_type = """\
+    IFACE    STATE    RX_ERR    RX_DROPS    DEBUG_0    DEBUG_2
 ---------  -------  --------  ----------  ---------  ---------
-Ethernet0        D        10         100         20         80
-Ethernet4      N/A         0        1000        100        800
-Ethernet8      N/A       100          10          0         10
+Ethernet0        D        10         100         80         20
+Ethernet4      N/A         0        1000        800        100
+Ethernet8      N/A       100          10         10          0
 
 """
 
-expected_counts_with_clear = """    IFACE    STATE    RX_ERR    RX_DROPS    TX_ERR    TX_DROPS    DEBUG_2    DEBUG_0
+expected_counts_with_clear = """\
+    IFACE    STATE    RX_ERR    RX_DROPS    TX_ERR    TX_DROPS    DEBUG_0    DEBUG_2
 ---------  -------  --------  ----------  --------  ----------  ---------  ---------
 Ethernet0        D         0           0         0           0          0          0
 Ethernet4      N/A         0           0         0           0          0          0

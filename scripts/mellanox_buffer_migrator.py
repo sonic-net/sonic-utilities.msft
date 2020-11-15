@@ -255,7 +255,7 @@ class MellanoxBufferMigrator():
 
         # Get current buffer pool configuration, only migrate configuration which
         # with default values, if it's not default, leave it as is.
-        name_list_of_pools_in_db = buffer_pool_conf_in_db.keys()
+        name_list_of_pools_in_db = list(buffer_pool_conf_in_db.keys())
 
         # Buffer pool numbers is different with default, don't need migrate
         if len(name_list_of_pools_in_db) != len(old_default_buffer_pools):
@@ -304,7 +304,7 @@ class MellanoxBufferMigrator():
         This is to migrate BUFFER_PROFILE configuration
         """
         device_data = self.configDB.get_table('DEVICE_METADATA')
-        if 'localhost' in device_data.keys():
+        if 'localhost' in device_data:
             platform = device_data['localhost']['platform']
         else:
             log.log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
@@ -333,8 +333,8 @@ class MellanoxBufferMigrator():
             new_lossless_profiles = self.mlnx_default_buffer_parameters(new_version, "spc1_headroom")
 
         if default_lossless_profiles and new_lossless_profiles:
-            for name, profile in buffer_profile_conf.iteritems():
-                if name in default_lossless_profiles.keys():
+            for name, profile in buffer_profile_conf.items():
+                if name in default_lossless_profiles:
                     default_profile = default_lossless_profiles.get(name)
                     new_profile = new_lossless_profiles.get(name)
                     if not default_profile or not new_profile:
@@ -353,14 +353,14 @@ class MellanoxBufferMigrator():
             log.log_notice("No buffer profile in {}, don't need to migrate non-lossless profiles".format(new_version))
             return True
 
-        for name, profile in buffer_profile_old_configure.iteritems():
-            if name in buffer_profile_conf.keys() and profile == buffer_profile_conf[name]:
+        for name, profile in buffer_profile_old_configure.items():
+            if name in buffer_profile_conf and profile == buffer_profile_conf[name]:
                 continue
             # return if any default profile isn't in cofiguration
             log.log_notice("Default profile {} isn't in database or doesn't match default value".format(name))
             return True
 
-        for name, profile in buffer_profile_new_configure.iteritems():
+        for name, profile in buffer_profile_new_configure.items():
             log.log_info("Successfully migrate profile {}".format(name))
             self.configDB.set_entry('BUFFER_PROFILE', name, profile)
 

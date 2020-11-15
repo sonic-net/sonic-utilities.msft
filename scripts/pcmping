@@ -1,18 +1,20 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
     Portchannel member ping: get portchannel member packet loss state.
 """
 
-from scapy.all import *
 import argparse
+import ipaddress
 import random
-import socket
 import select
-import time
-import ipaddr as ipaddress
+import socket
 import sys
+import time
+
 import swsssdk
+from scapy.all import *
+
 
 RCV_SIZE = 20480
 RCV_TIMEOUT = 10000
@@ -50,13 +52,13 @@ def find_probe_packet(interface, dst_out, dst_in, sockets, exp_socket, max_iter)
     for x in range(0, max_iter):
         print("---------- Attempting to create probe packet that goes through %s, iteration: %d ---------" % (interface, x))
         ip_src = socket.inet_ntoa(struct.pack('>I', random.randint(1, 0xffffffff)))
-        ip_src =ipaddress.IPv4Address(unicode(ip_src,'utf-8'))
-        while ip_src == ipaddress.IPv4Address(unicode(dst_in,'utf-8')) or \
+        ip_src = ipaddress.IPv4Address(ip_src)
+        while ip_src == ipaddress.IPv4Address(dst_in) or \
               ip_src.is_multicast or ip_src.is_private or ip_src.is_reserved:
             ip_src = socket.inet_ntoa(struct.pack('>I', random.randint(1, 0xffffffff)))
-            ip_src = ipaddress.IPv4Address(unicode(ip_src,'utf-8'))
+            ip_src = ipaddress.IPv4Address(ip_src)
         inner_pkt = IP(src=ip_src, dst=dst_in, tos=tos, ttl=64, id=1, ihl=None,proto=4)/ICMP()
-        inner_pkt = inner_pkt/("".join([chr(x%256) for x in xrange(PROBE_PACKET_LEN - len(inner_pkt))]))
+        inner_pkt = inner_pkt/("".join([chr(x%256) for x in range(PROBE_PACKET_LEN - len(inner_pkt))]))
         pkt = IP(src=src_out, dst=dst_out, tos=tos)/inner_pkt
         exp_pkt = inner_pkt
         exp_pkt['IP'].ttl = 63
@@ -80,7 +82,7 @@ def get_portchannel(interface):
     configdb = swsssdk.ConfigDBConnector()
     configdb.connect()
     portchannels = configdb.get_table("PORTCHANNEL")
-    for key, value in portchannels.iteritems():
+    for key, value in portchannels.items():
         if interface in value['members']:
             return key, value
     sys.stderr.write("Interface %s is not a portchannel member. Please Check!\n" % interface)
@@ -104,7 +106,7 @@ def get_portchannel_ipv4(portchannel_name):
             continue
         pc, ip = key
         ip = ip.split("/")[0]
-        if pc == portchannel_name and ipaddress.IPAddress(ip).version == 4:
+        if pc == portchannel_name and ipaddress.ip_address(ip).version == 4:
             return ip
     sys.stderr.write("Portchannel %s doesn't have IPV4 address. Please Check!\n" % portchannel)
     sys.exit(1)
@@ -131,7 +133,6 @@ def print_statistics(interface, total_count, recv_count):
 
 def main():
     parser = argparse.ArgumentParser(description='Check portchannel member link state',
-                                      version='1.0.0',
                                       formatter_class=argparse.RawTextHelpFormatter,
                                       epilog=""" 
     Example:
@@ -145,6 +146,7 @@ def main():
     parser.add_argument('-ip','--decapip', type=str, required=True, help='Neighbor decap ip (usually same as neighbor loopback ip)') 
     parser.add_argument('-c', '--count', type=int, help='Number of decap packets to be sent.', default=0)
     parser.add_argument('-t', '--trial', type=int, help='Maximum attempt times to create probe packet.\nPlease increase the value as the number of portchannel members increases', default=20)
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
     
     interface = args.interface

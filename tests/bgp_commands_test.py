@@ -96,7 +96,7 @@ class TestBgpCommands(object):
     @classmethod
     def setup_class(cls):
         print("SETUP")
-        import mock_tables.dbconnector
+        from .mock_tables import dbconnector
 
     @pytest.mark.parametrize('setup_single_bgp_instance',
                              ['v4'], indirect=['setup_single_bgp_instance'])

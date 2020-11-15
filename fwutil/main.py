@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # main.py
 #
@@ -9,9 +9,9 @@ try:
     import os
     import click
 
-    from lib import PlatformDataProvider, ComponentStatusProvider, ComponentUpdateProvider
-    from lib import URL, SquashFs
-    from log import LogHelper
+    from .lib import PlatformDataProvider, ComponentStatusProvider, ComponentUpdateProvider
+    from .lib import URL, SquashFs
+    from .log import LogHelper
 except ImportError as e:
     raise ImportError("Required module not found: {}".format(str(e)))
 

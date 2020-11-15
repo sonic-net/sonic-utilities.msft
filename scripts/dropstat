@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #####################################################################
 #
@@ -11,16 +11,16 @@
 # - Refactor calls to COUNTERS_DB to reduce redundancy
 # - Cache DB queries to reduce # of expensive queries
 
+import _pickle as pickle
 import argparse
-import swsssdk
 import os
-import sys
-import cPickle as pickle
 import socket
+import sys
 
-from tabulate import tabulate
+import swsssdk
 from collections import OrderedDict
 from natsort import natsorted
+from tabulate import tabulate
 
 # mock the redis for unit test purposes #
 try:
@@ -112,9 +112,9 @@ class DropStat(object):
 
         try:
             pickle.dump(self.get_counts_table(self.gather_counters(std_port_rx_counters + std_port_tx_counters, DEBUG_COUNTER_PORT_STAT_MAP), COUNTERS_PORT_NAME_MAP),
-                        open(self.port_drop_stats_file, 'w+'))
+                        open(self.port_drop_stats_file, 'wb+'))
             pickle.dump(self.get_counts(self.gather_counters([], DEBUG_COUNTER_SWITCH_STAT_MAP), self.get_switch_id()),
-                        open(self.switch_drop_stats_file, 'w+'))
+                        open(self.switch_drop_stats_file, 'wb+'))
         except IOError as e:
             print(e)
             sys.exit(e.errno)
@@ -129,7 +129,7 @@ class DropStat(object):
 
         # Grab the latest clear checkpoint, if it exists
         if os.path.isfile(self.port_drop_stats_file):
-            port_drop_ckpt = pickle.load(open(self.port_drop_stats_file, 'r'))
+            port_drop_ckpt = pickle.load(open(self.port_drop_stats_file, 'rb'))
 
         counters = self.gather_counters(std_port_rx_counters + std_port_tx_counters, DEBUG_COUNTER_PORT_STAT_MAP, group, counter_type)
         headers = std_port_description_header + self.gather_headers(counters, DEBUG_COUNTER_PORT_STAT_MAP)
@@ -138,7 +138,7 @@ class DropStat(object):
             return
 
         table = []
-        for key, value in self.get_counts_table(counters, COUNTERS_PORT_NAME_MAP).iteritems():
+        for key, value in self.get_counts_table(counters, COUNTERS_PORT_NAME_MAP).items():
             row = [key, self.get_port_state(key)]
             for counter in counters:
                 row.append(value.get(counter, 0) - port_drop_ckpt.get(key, {}).get(counter, 0))
@@ -156,7 +156,7 @@ class DropStat(object):
 
         # Grab the latest clear checkpoint, if it exists
         if os.path.isfile(self.switch_drop_stats_file):
-            switch_drop_ckpt = pickle.load(open(self.switch_drop_stats_file, 'r'))
+            switch_drop_ckpt = pickle.load(open(self.switch_drop_stats_file, 'rb'))
 
         counters = self.gather_counters([], DEBUG_COUNTER_SWITCH_STAT_MAP, group, counter_type)
         headers = std_switch_description_header + self.gather_headers(counters, DEBUG_COUNTER_SWITCH_STAT_MAP)
@@ -198,7 +198,7 @@ class DropStat(object):
         counter_names = self.get_reverse_stat_lookup(object_stat_map)
 
         for counter in counters:
-            if counter in std_port_headers_map.iterkeys():
+            if counter in std_port_headers_map:
                 headers.append(std_port_headers_map[counter])
             else:
                 headers.append(self.get_alias(counter_names[counter]))
@@ -270,7 +270,7 @@ class DropStat(object):
         if not self.reverse_stat_lookup.get(object_stat_map, None):
             stats_map = self.get_stat_lookup(object_stat_map)
             if stats_map:
-                self.reverse_stat_lookup[object_stat_map] = {v: k for k, v in stats_map.iteritems()}
+                self.reverse_stat_lookup[object_stat_map] = {v: k for k, v in stats_map.items()}
             else:
                 self.reverse_stat_lookup[object_stat_map] = None
 
@@ -288,7 +288,7 @@ class DropStat(object):
         if not counters:
             return configured_counters
 
-        return [ctr for ctr in counters.itervalues()]
+        return list(counters.values())
 
     def get_counter_name(self, object_stat_map, counter_stat):
         """
@@ -382,12 +382,14 @@ class DropStat(object):
 
 def main():
     parser = argparse.ArgumentParser(description='Display drop counters',
-                                     version='1.0.0',
                                      formatter_class=argparse.RawTextHelpFormatter,
                                      epilog="""
 Examples:
   dropstat
 """)
+
+    # Version
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
 
     # Actions
     parser.add_argument('-c', '--command', type=str, help='Desired action to perform')

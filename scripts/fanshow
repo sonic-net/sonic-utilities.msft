@@ -1,9 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
     Script to show fan status.
 """
-from __future__ import print_function
 
 import os
 import sys

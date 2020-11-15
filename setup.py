@@ -146,7 +146,7 @@ setup(
         'ipaddress==1.0.23',
         'jsondiff==1.2.0',
         'm2crypto==0.31.0',
-        'natsort==6.2.1',  # 6.2.1 is the last version which supports Python 2
+        'natsort==6.2.1',  # 6.2.1 is the last version which supports Python 2. Can update once we no longer support Python 2
         'netaddr==0.8.0',
         'netifaces==0.10.7',
         'pexpect==4.8.0',
@@ -155,7 +155,6 @@ setup(
         'swsssdk>=2.0.1',
         'tabulate==0.8.2',
         'xmltodict==0.12.0',
-        'zipp==1.2.0'  # Need to pin this down for Python 2, for Python 3 we should be able to remove altogether
     ],
     setup_requires= [
         'pytest-runner',
@@ -163,7 +162,6 @@ setup(
     ],
     tests_require = [
         'pytest',
-        'mock>=2.0.0',
         'mockredispy>=2.9.3',
         'sonic-config-engine'
     ],
@@ -176,7 +174,7 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
         'Operating System :: POSIX :: Linux',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.7',
         'Topic :: Utilities',
     ],
     keywords='sonic SONiC utilities command line cli CLI',

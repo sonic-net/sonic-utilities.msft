@@ -33,7 +33,7 @@ class GrubBootloader(OnieInstallerBootloader):
 
     def get_next_image(self):
         images = self.get_installed_images()
-        grubenv = subprocess.check_output(["/usr/bin/grub-editenv", HOST_PATH + "/grub/grubenv", "list"])
+        grubenv = subprocess.check_output(["/usr/bin/grub-editenv", HOST_PATH + "/grub/grubenv", "list"], text=True)
         m = re.search(r"next_entry=(\d+)", grubenv)
         if m:
             next_image_index = int(m.group(1))

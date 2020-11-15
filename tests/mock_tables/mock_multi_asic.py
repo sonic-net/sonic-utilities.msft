@@ -1,5 +1,6 @@
 # MONKEY PATCH!!!
-import mock
+from unittest import mock
+
 from sonic_py_common import multi_asic
 
 def mock_get_num_asics():

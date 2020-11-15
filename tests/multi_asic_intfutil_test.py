@@ -3,7 +3,7 @@ import subprocess
 
 from click.testing import CliRunner
 
-from utils import get_result_and_return_code
+from .utils import get_result_and_return_code
 
 root_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(root_path)

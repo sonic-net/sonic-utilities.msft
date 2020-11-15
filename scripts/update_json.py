@@ -8,7 +8,7 @@ TMP_SUFFIX = ".tmp"
 BAK_SUFFIX = ".bak"
 
 def dict_update(dst, patch):
-    for k in patch.keys():
+    for k in list(patch.keys()):
         if type(patch[k]) == dict:
             dst[k] = dict_update(dst[k], patch[k])
         else:

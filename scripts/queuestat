@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #####################################################################
 #
@@ -6,8 +6,8 @@
 #
 #####################################################################
 
+import _pickle as pickle
 import argparse
-import cPickle as pickle
 import datetime
 import os.path
 import swsssdk
@@ -118,7 +118,7 @@ class Queuestat(object):
             fields[0] = get_queue_index(table_id)
             fields[1] = get_queue_type(table_id)
 
-            for counter_name, pos in counter_bucket_dict.iteritems():
+            for counter_name, pos in counter_bucket_dict.items():
                 full_table_id = COUNTER_TABLE_PREFIX + table_id
                 counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name)
                 if counter_data is None:
@@ -143,7 +143,7 @@ class Queuestat(object):
         """
         table = []
 
-        for key, data in cnstat_dict.iteritems():
+        for key, data in cnstat_dict.items():
             if key == 'time':
                 continue
             table.append((port, data.queuetype + str(data.queueindex),
@@ -159,7 +159,7 @@ class Queuestat(object):
         """
         table = []
 
-        for key, cntr in cnstat_new_dict.iteritems():
+        for key, cntr in cnstat_new_dict.items():
             if key == 'time':
                 continue
             old_cntr = None
@@ -188,7 +188,7 @@ class Queuestat(object):
             cnstat_fqn_file_name = cnstat_fqn_file + port
             if os.path.isfile(cnstat_fqn_file_name):
                 try:
-                    cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_name, 'r'))
+                    cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_name, 'rb'))
                     print(port + " Last cached time was " + str(cnstat_cached_dict.get('time')))
                     self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict)
                 except IOError as e:
@@ -206,7 +206,7 @@ class Queuestat(object):
         cnstat_fqn_file_name = cnstat_fqn_file + port
         if os.path.isfile(cnstat_fqn_file_name):
             try:
-                cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_name, 'r'))
+                cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_name, 'rb'))
                 print("Last cached time was " + str(cnstat_cached_dict.get('time')))
                 self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict)
             except IOError as e:
@@ -226,7 +226,7 @@ class Queuestat(object):
         for port in natsorted(self.counter_port_name_map):
             cnstat_dict = self.get_cnstat(self.port_queues_map[port])
             try:
-                pickle.dump(cnstat_dict, open(cnstat_fqn_file + port, 'w'))
+                pickle.dump(cnstat_dict, open(cnstat_fqn_file + port, 'wb'))
             except IOError as e:
                 print(e.errno, e)
                 sys.exit(e.errno)
@@ -238,7 +238,6 @@ def main():
     global cnstat_fqn_file
 
     parser  = argparse.ArgumentParser(description='Display the queue state and counters',
-                                      version='1.0.0',
                                       formatter_class=argparse.RawTextHelpFormatter,
                                       epilog="""
 Examples:
@@ -251,6 +250,7 @@ Examples:
     parser.add_argument('-p', '--port', type=str, help='Show the queue conters for just one port', default=None)
     parser.add_argument('-c', '--clear', action='store_true', help='Clear previous stats and save new ones')
     parser.add_argument('-d', '--delete', action='store_true', help='Delete saved stats')
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
 
     save_fresh_stats = args.clear

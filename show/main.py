@@ -5,26 +5,25 @@ import subprocess
 import sys
 
 import click
-from natsort import natsorted
 import netifaces
-from pkg_resources import parse_version
-
-import feature
-import interfaces
-import kube
-import mlnx
 import utilities_common.cli as clicommon
-import vlan
-import system_health
-import fgnhg
-import chassis_modules
-
+import utilities_common.multi_asic as multi_asic_util
+from natsort import natsorted
+from pkg_resources import parse_version
 from sonic_py_common import device_info, multi_asic
 from swsssdk import ConfigDBConnector
 from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 from utilities_common.db import Db
-import utilities_common.multi_asic as multi_asic_util
+
+from . import chassis_modules
+from . import feature
+from . import fgnhg
+from . import interfaces
+from . import kube
+from . import mlnx
+from . import vlan
+from . import system_health
 
 
 # Global Variables
@@ -44,6 +43,7 @@ def get_routing_stack():
         proc = subprocess.Popen(command,
                                 stdout=subprocess.PIPE,
                                 shell=True,
+                                text=True,
                                 stderr=subprocess.STDOUT)
         stdout = proc.communicate()[0]
         proc.wait()
@@ -78,7 +78,7 @@ def run_command(command, display_cmd=False, return_cmd=False):
         clicommon.run_command_in_alias_mode(command)
         raise sys.exit(0)
 
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
 
     while True:
         if return_cmd:
@@ -126,13 +126,13 @@ def cli(ctx):
 
 
 # Add groups from other modules
+cli.add_command(chassis_modules.chassis_modules)
 cli.add_command(feature.feature)
+cli.add_command(fgnhg.fgnhg)
 cli.add_command(interfaces.interfaces)
 cli.add_command(kube.kubernetes)
 cli.add_command(vlan.vlan)
 cli.add_command(system_health.system_health)
-cli.add_command(fgnhg.fgnhg)
-cli.add_command(chassis_modules.chassis_modules)
 
 #
 # 'vrf' command ("show vrf")
@@ -146,8 +146,8 @@ def get_interface_bind_to_vrf(config_db, vrf_name):
     for table_name in tables:
         interface_dict = config_db.get_table(table_name)
         if interface_dict:
-            for interface in interface_dict.keys():
-                if interface_dict[interface].has_key('vrf_name') and vrf_name == interface_dict[interface]['vrf_name']:
+            for interface in list(interface_dict.keys()):
+                if 'vrf_name' in interface_dict[interface] and vrf_name == interface_dict[interface]['vrf_name']:
                     data.append(interface)
     return data
 
@@ -163,8 +163,8 @@ def vrf(vrf_name):
     if vrf_dict:
         vrfs = []
         if vrf_name is None:
-            vrfs = vrf_dict.keys()
-        elif vrf_name in vrf_dict.keys():
+            vrfs = list(vrf_dict.keys())
+        elif vrf_name in vrf_dict:
             vrfs = [vrf_name]
         for vrf in vrfs:
             intfs = get_interface_bind_to_vrf(config_db, vrf)
@@ -226,7 +226,7 @@ def is_mgmt_vrf_enabled(ctx):
     if ctx.invoked_subcommand is None:
         cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
 
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         try :
             mvrf_dict = json.loads(p.stdout.read())
         except ValueError:
@@ -287,7 +287,7 @@ def address ():
 
     # Fetching data from config_db for MGMT_INTERFACE
     mgmt_ip_data = config_db.get_table('MGMT_INTERFACE')
-    for key in natsorted(mgmt_ip_data.keys()):
+    for key in natsorted(list(mgmt_ip_data.keys())):
         click.echo("Management IP address = {0}".format(key[1]))
         click.echo("Management Network Default Gateway = {0}".format(mgmt_ip_data[key]['gwaddr']))
 
@@ -305,7 +305,7 @@ def snmpagentaddress (ctx):
 
     header = ['ListenIP', 'ListenPort', 'ListenVrf']
     body = []
-    for agent in agenttable.keys():
+    for agent in list(agenttable.keys()):
         body.append([agent[0], agent[1], agent[2]])
     click.echo(tabulate(body, header))
 
@@ -323,7 +323,7 @@ def snmptrap (ctx):
 
     header = ['Version', 'TrapReceiverIP', 'Port', 'VRF', 'Community']
     body = []
-    for row in traptable.keys():
+    for row in list(traptable.keys()):
         if row == "v1TrapDest":
             ver=1
         elif row == "v2TrapDest":
@@ -777,7 +777,7 @@ def get_bgp_peer():
 
     for table in bgp_neighbor_tables:
         data = config_db.get_table(table)
-        for neighbor_ip in data.keys():
+        for neighbor_ip in list(data.keys()):
             local_addr = data[neighbor_ip]['local_addr']
             neighbor_name = data[neighbor_ip]['name']
             bgp_peer.setdefault(local_addr, [neighbor_name, neighbor_ip])
@@ -1142,9 +1142,9 @@ def version(verbose):
     version_info = device_info.get_sonic_version_info()
     hw_info_dict = get_hw_info_dict()
     serial_number_cmd = "sudo decode-syseeprom -s"
-    serial_number = subprocess.Popen(serial_number_cmd, shell=True, stdout=subprocess.PIPE)
+    serial_number = subprocess.Popen(serial_number_cmd, shell=True, text=True, stdout=subprocess.PIPE)
     sys_uptime_cmd = "uptime"
-    sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, stdout=subprocess.PIPE)
+    sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
     click.echo("Distribution: Debian {}".format(version_info['debian_version']))
     click.echo("Kernel: {}".format(version_info['kernel_version']))
@@ -1158,7 +1158,7 @@ def version(verbose):
     click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    p = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE)
     click.echo(p.stdout.read())
 
 #
@@ -1329,7 +1329,7 @@ def ntp(verbose):
             ntp_server = line.split(" ")[1]
             ntp_servers.append(ntp_server)
     ntp_dict['NTP Servers'] = ntp_servers
-    print(tabulate(ntp_dict, headers=ntp_dict.keys(), tablefmt="simple", stralign='left', missingval=""))
+    print(tabulate(ntp_dict, headers=list(ntp_dict.keys()), tablefmt="simple", stralign='left', missingval=""))
 
 
 # 'syslog' subcommand ("show runningconfiguration syslog")
@@ -1347,7 +1347,7 @@ def syslog(verbose):
             server = line[0][5:]
             syslog_servers.append(server)
     syslog_dict['Syslog Servers'] = syslog_servers
-    print(tabulate(syslog_dict, headers=syslog_dict.keys(), tablefmt="simple", stralign='left', missingval=""))
+    print(tabulate(syslog_dict, headers=list(syslog_dict.keys()), tablefmt="simple", stralign='left', missingval=""))
 
 
 #
@@ -1366,7 +1366,7 @@ def startupconfiguration():
 def bgp(verbose):
     """Show BGP startup configuration"""
     cmd = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     result = proc.stdout.read().rstrip()
     click.echo("Routing-Stack is: {}".format(result))
     if result == "quagga":
@@ -1513,14 +1513,14 @@ def log(record, lines):
 def services():
     """Show all daemon services"""
     cmd = "sudo docker ps --format '{{.Names}}'"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     while True:
         line = proc.stdout.readline()
         if line != '':
                 print(line.rstrip()+'\t'+"docker")
                 print("---------------------------")
                 cmd = "sudo docker exec {} ps aux | sed '$d'".format(line.rstrip())
-                proc1 = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+                proc1 = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
                 print(proc1.stdout.read())
         else:
                 break
@@ -1648,7 +1648,7 @@ def show_sflow_interface(config_db):
     click.echo("\nsFlow interface configurations")
     header = ['Interface', 'Admin State', 'Sampling Rate']
     body = []
-    for pname in natsorted(port_tbl.keys()):
+    for pname in natsorted(list(port_tbl.keys())):
         intf_key = 'SFLOW_SESSION_TABLE:' + pname
         sess_info = sess_db.get_all(sess_db.APPL_DB, intf_key)
         if sess_info is None:
@@ -1671,13 +1671,13 @@ def show_sflow_global(config_db):
 
 
     click.echo("  sFlow Polling Interval:".ljust(30), nl=False)
-    if (sflow_info and 'polling_interval' in sflow_info['global'].keys()):
+    if (sflow_info and 'polling_interval' in sflow_info['global']):
         click.echo("{}".format(sflow_info['global']['polling_interval']))
     else:
         click.echo("default")
 
     click.echo("  sFlow AgentID:".ljust(30), nl=False)
-    if (sflow_info and 'agent_id' in sflow_info['global'].keys()):
+    if (sflow_info and 'agent_id' in sflow_info['global']):
         click.echo("{}".format(sflow_info['global']['agent_id']))
     else:
         click.echo("default")
@@ -1793,7 +1793,7 @@ def counts(group, counter_type, verbose):
 def ecn():
     """Show ECN configuration"""
     cmd = "ecnconfig -l"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     click.echo(proc.stdout.read())
 
 
@@ -1804,7 +1804,7 @@ def ecn():
 def boot():
     """Show boot configuration"""
     cmd = "sudo sonic-installer list"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     click.echo(proc.stdout.read())
 
 
@@ -1814,7 +1814,7 @@ def boot():
 def mmu():
     """Show mmu configuration"""
     cmd = "mmuconfig -l"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     click.echo(proc.stdout.read())
 
 
@@ -1834,7 +1834,7 @@ def reboot_cause():
         click.echo("Unable to determine cause of previous reboot\n")
     else:
         cmd = "cat {}".format(PREVIOUS_REBOOT_CAUSE_FILE)
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
         click.echo(proc.stdout.read())
 
 
@@ -1908,7 +1908,7 @@ def config(redis_unix_socket_path):
     config_db.connect(wait_for_init=False)
     data = config_db.get_table('WARM_RESTART')
     # Python dictionary keys() Method
-    keys = data.keys()
+    keys = list(data.keys())
 
     state_db = SonicV2Connector(host='127.0.0.1')
     state_db.connect(state_db.STATE_DB, False)   # Make one attempt only
@@ -2173,7 +2173,7 @@ def brief():
 
     # Fetching data from config_db for VNET
     vnet_data = config_db.get_table('VNET')
-    vnet_keys = natsorted(vnet_data.keys())
+    vnet_keys = natsorted(list(vnet_data.keys()))
 
     def tablelize(vnet_keys, vnet_data):
         table = []
@@ -2198,7 +2198,7 @@ def alias(vnet_alias):
 
     # Fetching data from config_db for VNET
     vnet_data = config_db.get_table('VNET')
-    vnet_keys = natsorted(vnet_data.keys())
+    vnet_keys = natsorted(list(vnet_data.keys()))
 
     def tablelize(vnet_keys, vnet_data, vnet_alias):
         table = []
@@ -2433,7 +2433,7 @@ def tunnel():
 
     # Fetching data from config_db for VXLAN TUNNEL
     vxlan_data = config_db.get_table('VXLAN_TUNNEL')
-    vxlan_keys = natsorted(vxlan_data.keys())
+    vxlan_keys = natsorted(list(vxlan_data.keys()))
 
     table = []
     for k in vxlan_keys:

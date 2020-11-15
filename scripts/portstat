@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #####################################################################
 #
@@ -6,8 +6,8 @@
 #
 #####################################################################
 
+import _pickle as pickle
 import argparse
-import cPickle as pickle
 import datetime
 import os.path
 import sys
@@ -111,7 +111,7 @@ class Portstat(object):
                 Get the counters from specific table.
             """
             fields = ["0","0","0","0","0","0","0","0","0","0"]
-            for counter_name, pos in counter_bucket_dict.iteritems():
+            for counter_name, pos in counter_bucket_dict.items():
                 full_table_id = COUNTER_TABLE_PREFIX + table_id
                 counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name)
                 if counter_data is None:
@@ -177,7 +177,7 @@ class Portstat(object):
         table = []
         header = None
 
-        for key, data in cnstat_dict.iteritems():
+        for key, data in cnstat_dict.items():
             if key == 'time':
                 continue
             if intf_list and key not in intf_list:
@@ -221,7 +221,7 @@ class Portstat(object):
         table = []
         header = None
 
-        for key, cntr in cnstat_new_dict.iteritems():
+        for key, cntr in cnstat_new_dict.items():
             if key == 'time':
                 time_gap = cnstat_new_dict.get('time') - cnstat_old_dict.get('time')
                 time_gap = time_gap.total_seconds()
@@ -326,7 +326,6 @@ class Portstat(object):
 
 def main():
     parser  = argparse.ArgumentParser(description='Display the ports state and counters',
-                                      version='1.0.0',
                                       formatter_class=argparse.RawTextHelpFormatter,
                                       epilog="""
 Port state: (U)-Up (D)-Down (X)-Disabled
@@ -354,7 +353,8 @@ Examples:
     parser.add_argument('-p', '--period', type=int, help='Display stats over a specified period (in seconds).', default=0)
     parser.add_argument('-i', '--interface', type=str, help='Display stats for interface lists.', default=None)
     parser.add_argument('-s','--show',   default=constants.DISPLAY_EXTERNAL, help='Display all interfaces or only external interfaces')
-    parser.add_argument('-n','--namespace',   default=None, help='Display interfaces for specific namespace')
+    parser.add_argument('-n','--namespace', default=None, help='Display interfaces for specific namespace')
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
 
     save_fresh_stats = args.clear
@@ -430,7 +430,7 @@ Examples:
 
     if save_fresh_stats:
         try:
-            pickle.dump(cnstat_dict, open(cnstat_fqn_file, 'w'))
+            pickle.dump(cnstat_dict, open(cnstat_fqn_file, 'wb'))
         except IOError as e:
             sys.exit(e.errno)
         else:
@@ -441,7 +441,7 @@ Examples:
         cnstat_cached_dict = OrderedDict()
         if os.path.isfile(cnstat_fqn_file):
             try:
-                cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'r'))
+                cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'rb'))
                 print("Last cached time was " + str(cnstat_cached_dict.get('time')))
                 portstat.cnstat_diff_print(cnstat_dict, cnstat_cached_dict, intf_list, use_json, print_all, errors_only, rates_only)
             except IOError as e:
@@ -455,7 +455,7 @@ Examples:
     else:
         #wait for the specified time and then gather the new stats and output the difference.
         time.sleep(wait_time_in_seconds)
-        print "The rates are calculated within %s seconds period" % wait_time_in_seconds
+        print("The rates are calculated within %s seconds period" % wait_time_in_seconds)
         cnstat_new_dict = portstat.get_cnstat_dict()
         portstat.cnstat_diff_print(cnstat_new_dict, cnstat_dict, intf_list, use_json, print_all, errors_only, rates_only)
 

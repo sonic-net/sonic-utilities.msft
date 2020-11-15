@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import argparse
 import os
 import re
 import sys
-import types
 
 from natsort import natsorted
 from tabulate import tabulate
@@ -51,7 +50,7 @@ SUB_PORT = "subport"
 def get_frontpanel_port_list(config_db):
     ports_dict = config_db.get_table('PORT')
     front_panel_ports_list = []
-    for port in ports_dict.iterkeys():
+    for port in ports_dict.keys():
         front_panel_ports_list.append(port)
     return front_panel_ports_list
 
@@ -60,7 +59,7 @@ def get_sub_port_intf_list(config_db):
     sub_intf_dict = config_db.get_table('VLAN_SUB_INTERFACE')
     sub_intf_list = []
     for sub_intf in sub_intf_dict.keys():
-        if isinstance(sub_intf, basestring):
+        if isinstance(sub_intf, str):
             sub_intf_list.append(sub_intf)
     return sub_intf_list
 
@@ -155,7 +154,7 @@ def merge_dicts(x,y):
     # then we need to put back any missing x[key] values
     for key in xkeys:
         # if this key is a dictionary, recurse
-        if type(x[key]) is types.DictType and y.has_key(key):
+        if isinstance(x[key], dict) and key in y:
             merged[key] = merge(x[key],y[key])
     return merged
 
@@ -242,7 +241,7 @@ def po_speed_dict(po_int_dict, appl_db):
     """
     if po_int_dict:
         po_list = []
-        for key, value in po_int_dict.iteritems():
+        for key, value in po_int_dict.items():
             agg_speed_list =  []
             po_list.append(key)
             if len(value) == 1:
@@ -354,10 +353,10 @@ class IntfStatus(object):
     def display_intf_status(self):
         self.get_intf_status()
         sorted_table = natsorted(self.table)
-        print tabulate(sorted_table,
+        print(tabulate(sorted_table,
                        header_stat if not self.sub_intf_only else header_stat_sub_intf,
                        tablefmt="simple",
-                       stralign='right')
+                       stralign='right'))
 
     def generate_intf_status(self):
         """
@@ -393,7 +392,7 @@ class IntfStatus(object):
                                 state_db_port_optics_get(self.db, key, PORT_OPTICS_TYPE),
                                 appl_db_port_status_get(self.db, key, PORT_PFC_ASYM_STATUS)))
 
-            for po, value in self.portchannel_speed_dict.iteritems():
+            for po, value in self.portchannel_speed_dict.items():
                 if po:
                     if self.multi_asic.skip_display(constants.PORT_CHANNEL_OBJ, po):
                         continue
@@ -467,7 +466,7 @@ class IntfDescription(object):
 
         # Sorting and tabulating the result table.
         sorted_table = natsorted(self.table)
-        print tabulate(sorted_table, header_desc, tablefmt="simple", stralign='right')
+        print(tabulate(sorted_table, header_desc, tablefmt="simple", stralign='right'))
 
     def generate_intf_description(self):
         """

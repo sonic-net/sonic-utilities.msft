@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # main.py
 #
@@ -149,7 +149,7 @@ def numfans():
 @click.option('-i', '--index', default=-1, type=int, help="the index of FAN")
 def status(index):
     """Display FAN status"""
-    supported_fan = range(1, _wrapper_get_num_fans()+1)
+    supported_fan = list(range(1, _wrapper_get_num_fans()+1))
     fan_ids = []
     if (index < 0):
         fan_ids = supported_fan
@@ -182,7 +182,7 @@ def status(index):
 @click.option('-i', '--index', default=-1, type=int, help="the index of FAN")
 def direction(index):
     """Display FAN airflow direction"""
-    supported_fan = range(1, _wrapper_get_num_fans() + 1)
+    supported_fan = list(range(1, _wrapper_get_num_fans() + 1))
     fan_ids = []
     if (index < 0):
         fan_ids = supported_fan
@@ -209,7 +209,7 @@ def direction(index):
 @click.option('-i', '--index', default=-1, type=int, help="the index of FAN")
 def getspeed(index):
     """Display FAN speed in RPM"""
-    supported_fan = range(1, _wrapper_get_num_fans() + 1)
+    supported_fan = list(range(1, _wrapper_get_num_fans() + 1))
     fan_ids = []
     if (index < 0):
         fan_ids = supported_fan

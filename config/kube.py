@@ -2,18 +2,17 @@ import fcntl
 import os
 import shutil
 import tempfile
+from urllib.parse import urlparse
 
 import click
 import netaddr
 import requests
 import urllib3
+import utilities_common.cli as clicommon
 import yaml
-from urlparse import urlparse
-
 from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector
 from utilities_common.db import Db
-import utilities_common.cli as clicommon
 
 from .utils import log
 

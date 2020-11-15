@@ -31,26 +31,25 @@ def brief(db, verbose):
     vlan_proxy_arp_dict = {}
 
     # Parsing DHCP Helpers info
-    for key in natsorted(vlan_dhcp_helper_data.keys()):
+    for key in natsorted(list(vlan_dhcp_helper_data.keys())):
         try:
             if vlan_dhcp_helper_data[key]['dhcp_servers']:
-                vlan_dhcp_helper_dict[str(key.strip('Vlan'))] = vlan_dhcp_helper_data[key]['dhcp_servers']
+                vlan_dhcp_helper_dict[key.strip('Vlan')] = vlan_dhcp_helper_data[key]['dhcp_servers']
         except KeyError:
-            vlan_dhcp_helper_dict[str(key.strip('Vlan'))] = " "
+            vlan_dhcp_helper_dict[key.strip('Vlan')] = " "
 
     # Parsing VLAN Gateway info
-    for key in natsorted(vlan_ip_data.keys()):
-
+    for key in list(vlan_ip_data.keys()):
         if clicommon.is_ip_prefix_in_key(key):
-            interface_key = str(key[0].strip("Vlan"))
-            interface_value = str(key[1])
+            interface_key = key[0].strip("Vlan")
+            interface_value = key[1]
 
             if interface_key in vlan_ip_dict:
                 vlan_ip_dict[interface_key].append(interface_value)
             else:
                 vlan_ip_dict[interface_key] = [interface_value]
         else:
-            interface_key = str(key.strip("Vlan"))
+            interface_key = key.strip("Vlan")
             if 'proxy_arp' in vlan_ip_data[key]:
                 proxy_arp_status = vlan_ip_data[key]['proxy_arp'] 
             else:
@@ -63,9 +62,9 @@ def brief(db, verbose):
     iface_alias_converter = clicommon.InterfaceAliasConverter(db)
 
     # Parsing VLAN Ports info
-    for key in natsorted(vlan_ports_data.keys()):
-        ports_key = str(key[0].strip("Vlan"))
-        ports_value = str(key[1])
+    for key in natsorted(list(vlan_ports_data.keys())):
+        ports_key = key[0].strip("Vlan")
+        ports_value = key[1]
         ports_tagging = vlan_ports_data[key]['tagging_mode']
         if ports_key in vlan_ports_dict:
             if clicommon.get_interface_naming_mode() == "alias":
@@ -83,7 +82,7 @@ def brief(db, verbose):
     # Printing the following dictionaries in tablular forms:
     # vlan_dhcp_helper_dict={}, vlan_ip_dict = {}, vlan_ports_dict = {}
     # vlan_tagging_dict = {}
-    for key in natsorted(vlan_dhcp_helper_dict.keys()):
+    for key in natsorted(list(vlan_dhcp_helper_dict.keys())):
         if key not in vlan_ip_dict:
             ip_address = ""
         else:
@@ -108,7 +107,7 @@ def brief(db, verbose):
 @clicommon.pass_db
 def config(db):
     data = db.cfgdb.get_table('VLAN')
-    keys = data.keys()
+    keys = list(data.keys())
     member_data = db.cfgdb.get_table('VLAN_MEMBER')
 
     def tablelize(keys, data):
@@ -120,7 +119,7 @@ def config(db):
                 if vlan == k:
                     members.add(interface_name)
 
-            for m in members:
+            for m in natsorted(list(members)):
                 r = []
                 r.append(k)
                 r.append(data[k]['vlanid'])

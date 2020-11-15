@@ -15,7 +15,7 @@ from utilities_common import constants
 def is_ipv4_address(ip_address):
     """
     Checks if given ip is ipv4
-    :param ip_address: unicode ipv4
+    :param ip_address: str ipv4
     :return: bool
     """
     try:
@@ -28,7 +28,7 @@ def is_ipv4_address(ip_address):
 def is_ipv6_address(ip_address):
     """
     Checks if given ip is ipv6
-    :param ip_address: unicode ipv6
+    :param ip_address: str ipv6
     :return: bool
     """
     try:
@@ -48,12 +48,12 @@ def get_dynamic_neighbor_subnet(db):
     v6_subnet = {}
     neighbor_data = db.get_table('BGP_PEER_RANGE')
     try:
-        for entry in neighbor_data.keys():
+        for entry in list(neighbor_data.keys()):
             new_key = neighbor_data[entry]['ip_range'][0]
             new_value = neighbor_data[entry]['name']
-            if is_ipv4_address(unicode(neighbor_data[entry]['src_address'])):
+            if is_ipv4_address(neighbor_data[entry]['src_address']):
                 v4_subnet[new_key] = new_value
-            elif is_ipv6_address(unicode(neighbor_data[entry]['src_address'])):
+            elif is_ipv6_address(neighbor_data[entry]['src_address']):
                 v6_subnet[new_key] = new_value
         dynamic_neighbor[constants.IPV4] = v4_subnet
         dynamic_neighbor[constants.IPV6] = v6_subnet
@@ -81,24 +81,20 @@ def get_bgp_neighbors_dict(namespace=multi_asic.DEFAULT_NAMESPACE):
 def get_bgp_neighbor_ip_to_name(ip, static_neighbors, dynamic_neighbors):
     """
     return neighbor name for the ip provided
-    :param ip: ip address unicode
+    :param ip: ip address str
     :param static_neighbors: statically defined bgp neighbors dict
     :param dynamic_neighbors: subnet of dynamically defined neighbors dict
     :return: name of neighbor
     """
-    if ip in static_neighbors.keys():
+    if ip in static_neighbors:
         return static_neighbors[ip]
-    elif is_ipv4_address(unicode(ip)):
-        for subnet in dynamic_neighbors[constants.IPV4].keys():
-            if ipaddress.IPv4Address(
-                    unicode(ip)) in ipaddress.IPv4Network(
-                    unicode(subnet)):
+    elif is_ipv4_address(ip):
+        for subnet in list(dynamic_neighbors[constants.IPV4].keys()):
+            if ipaddress.IPv4Address(ip) in ipaddress.IPv4Network(subnet):
                 return dynamic_neighbors[constants.IPV4][subnet]
-    elif is_ipv6_address(unicode(ip)):
-        for subnet in dynamic_neighbors[constants.IPV6].keys():
-            if ipaddress.IPv6Address(
-                    unicode(ip)) in ipaddress.IPv6Network(
-                    unicode(subnet)):
+    elif is_ipv6_address(ip):
+        for subnet in list(dynamic_neighbors[constants.IPV6].keys()):
+            if ipaddress.IPv6Address(ip) in ipaddress.IPv6Network(subnet):
                 return dynamic_neighbors[constants.IPV6][subnet]
     else:
         return "NotAvailable"
@@ -144,9 +140,9 @@ def get_neighbor_dict_from_table(db, table_name):
     neighbor_dict = {}
     neighbor_data = db.get_table(table_name)
     try:
-        for entry in neighbor_data.keys():
+        for entry in list(neighbor_data.keys()):
             neighbor_dict[entry] = neighbor_data[entry].get(
-                'name') if 'name' in neighbor_data[entry].keys() else 'NotAvailable'
+                'name') if 'name' in neighbor_data[entry] else 'NotAvailable'
         return neighbor_dict
     except Exception:
         return neighbor_dict
@@ -214,7 +210,7 @@ def display_bgp_summary(bgp_summary, af):
         click.echo("\nIP{} Unicast Summary:".format(af))
         # display the bgp instance information
         for router_info in bgp_summary['router_info']:
-            for k in router_info.keys():
+            for k in list(router_info.keys()):
                 v = router_info[k]
                 instance = "{}: ".format(k) if k is not "" else ""
                 click.echo(
@@ -273,7 +269,7 @@ def process_bgp_summary_json(bgp_summary, cmd_output, device):
             {device.current_namespace: router_info})
 
         # store all the peers in the list
-        for peer_ip, value in cmd_output['peers'].iteritems():
+        for peer_ip, value in cmd_output['peers'].items():
             peers = []
             # if display option is 'frontend', internal bgp neighbors will not
             # be displayed

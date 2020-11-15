@@ -1,15 +1,14 @@
+import json
 import os
 import sys
-import json
+from unittest import mock
 
-
-import mock
 import pytest
-
-import mock_tables.dbconnector
-
 from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector
+
+from .mock_tables import dbconnector
+
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -72,9 +71,9 @@ def setup_single_broacom_asic():
 
 @pytest.fixture
 def setup_t1_topo():
-    mock_tables.dbconnector.topo = "t1"
+    dbconnector.topo = "t1"
     yield
-    mock_tables.dbconnector.topo = None
+    dbconnector.topo = None
 
 @pytest.fixture
 def setup_single_bgp_instance(request):

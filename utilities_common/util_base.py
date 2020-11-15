@@ -1,5 +1,3 @@
-#!/usr/bin/env python2
-
 try:
     import imp
     import os
@@ -51,4 +49,3 @@ class UtilHelper(object):
             return True
         else:
             return False
-

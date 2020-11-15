@@ -118,7 +118,7 @@ class AbootBootloader(Bootloader):
 
     def get_binary_image_version(self, image_path):
         try:
-            version = subprocess.check_output(['/usr/bin/unzip', '-qop', image_path, '.imagehash'])
+            version = subprocess.check_output(['/usr/bin/unzip', '-qop', image_path, '.imagehash'], text=True)
         except subprocess.CalledProcessError:
             return None
         return IMAGE_PREFIX + version.strip()

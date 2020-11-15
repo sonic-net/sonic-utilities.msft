@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # main.py
 #
@@ -12,7 +12,7 @@ try:
     import utilities_common.cli as clicommon
 
     from tabulate import tabulate
-    from lib import *
+    from .lib import *
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 

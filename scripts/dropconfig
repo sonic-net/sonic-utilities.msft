@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #####################################################################
 #
@@ -91,14 +91,14 @@ class DropConfig(object):
             return
 
         table = []
-        for counter, capabilities in device_caps.iteritems():
+        for counter, capabilities in device_caps.items():
             table.append((counter, capabilities.get('count', 'N/A')))
         print(tabulate(table,
                        drop_counter_capability_header,
                        tablefmt='simple',
                        stralign='left'))
 
-        for counter, capabilities in device_caps.iteritems():
+        for counter, capabilities in device_caps.items():
             supported_reasons = deserialize_reason_list(capabilities.get('reasons', ''))
             if supported_reasons and int(capabilities.get('count', 0)) > 0:
                 print('\n{}'.format(counter))
@@ -252,7 +252,7 @@ class DropConfig(object):
 
         config_table = self.config_db.get_table(DEBUG_COUNTER_CONFIG_TABLE)
         config = []
-        for counter_name, counter_attributes in sorted(config_table.iteritems()):
+        for counter_name, counter_attributes in sorted(config_table.items()):
             if group and counter_attributes.get('group', '') != group:
                 continue
 
@@ -328,12 +328,14 @@ def deserialize_reason_list(list_str):
 
 def main():
     parser = argparse.ArgumentParser(description='Manage drop counters',
-                                     version='1.0.0',
                                      formatter_class=argparse.RawTextHelpFormatter,
                                      epilog="""
 Examples:
   dropconfig
 """)
+
+    # Version
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
 
     # Actions
     parser.add_argument('-c', '--command', type=str, help='Desired action to perform')
