@@ -150,6 +150,7 @@ setup(
         'netaddr==0.8.0',
         'netifaces==0.10.7',
         'pexpect==4.8.0',
+        'requests==2.25.0',
         'sonic-py-common',
         'sonic-yang-mgmt',
         'swsssdk>=2.0.1',
