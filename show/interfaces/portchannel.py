@@ -1,7 +1,3 @@
-
-import os
-import sys
-
 import click
 import utilities_common.cli as clicommon
 from natsort import natsorted

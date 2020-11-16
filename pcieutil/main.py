@@ -11,7 +11,6 @@ try:
 
     import click
     from sonic_py_common import device_info, logger
-    from tabulate import tabulate
 except ImportError as e:
     raise ImportError("%s - required module not found" % str(e))
 

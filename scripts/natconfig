@@ -287,15 +287,15 @@ class NatConfig(object):
            else:
                print("Admin Mode     : disabled")
            if 'nat_timeout' in global_data:
-               print("Global Timeout : {}".format(global_data['nat_timeout'], "secs"))
+               print("Global Timeout : {} secs".format(global_data['nat_timeout']))
            else:
                print("Global Timeout : 600 secs")
            if 'nat_tcp_timeout' in global_data:
-               print("TCP Timeout    : {}".format(global_data['nat_tcp_timeout'], "secs"))
+               print("TCP Timeout    : {} secs".format(global_data['nat_tcp_timeout']))
            else:
                print("TCP Timeout    : 86400 secs")
            if 'nat_udp_timeout' in global_data:
-               print("UDP Timeout    : {}".format(global_data['nat_udp_timeout'], "secs"))
+               print("UDP Timeout    : {} secs".format(global_data['nat_udp_timeout']))
            else:
                print("UDP Timeout    : 300 secs")
            print("")
