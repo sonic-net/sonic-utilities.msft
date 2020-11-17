@@ -153,7 +153,7 @@ def breakout(ctx):
             click.echo("Can not load port config from {} or {} file".format(PLATFORM_JSON, HWSKU_JSON))
             raise click.Abort()
 
-        for port_name in list(platform_dict.keys()):
+        for port_name in platform_dict:
             cur_brkout_mode = cur_brkout_tbl[port_name]["brkout_mode"]
 
             # Update deafult breakout mode and current breakout mode to platform_dict

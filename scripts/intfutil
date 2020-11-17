@@ -50,7 +50,7 @@ SUB_PORT = "subport"
 def get_frontpanel_port_list(config_db):
     ports_dict = config_db.get_table('PORT')
     front_panel_ports_list = []
-    for port in ports_dict.keys():
+    for port in ports_dict:
         front_panel_ports_list.append(port)
     return front_panel_ports_list
 
@@ -58,7 +58,7 @@ def get_frontpanel_port_list(config_db):
 def get_sub_port_intf_list(config_db):
     sub_intf_dict = config_db.get_table('VLAN_SUB_INTERFACE')
     sub_intf_list = []
-    for sub_intf in sub_intf_dict.keys():
+    for sub_intf in sub_intf_dict:
         if isinstance(sub_intf, str):
             sub_intf_list.append(sub_intf)
     return sub_intf_list

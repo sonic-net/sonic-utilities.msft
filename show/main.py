@@ -146,7 +146,7 @@ def get_interface_bind_to_vrf(config_db, vrf_name):
     for table_name in tables:
         interface_dict = config_db.get_table(table_name)
         if interface_dict:
-            for interface in list(interface_dict.keys()):
+            for interface in interface_dict:
                 if 'vrf_name' in interface_dict[interface] and vrf_name == interface_dict[interface]['vrf_name']:
                     data.append(interface)
     return data
@@ -305,7 +305,7 @@ def snmpagentaddress (ctx):
 
     header = ['ListenIP', 'ListenPort', 'ListenVrf']
     body = []
-    for agent in list(agenttable.keys()):
+    for agent in agenttable:
         body.append([agent[0], agent[1], agent[2]])
     click.echo(tabulate(body, header))
 
@@ -323,7 +323,7 @@ def snmptrap (ctx):
 
     header = ['Version', 'TrapReceiverIP', 'Port', 'VRF', 'Community']
     body = []
-    for row in list(traptable.keys()):
+    for row in traptable:
         if row == "v1TrapDest":
             ver=1
         elif row == "v2TrapDest":
@@ -777,7 +777,7 @@ def get_bgp_peer():
 
     for table in bgp_neighbor_tables:
         data = config_db.get_table(table)
-        for neighbor_ip in list(data.keys()):
+        for neighbor_ip in data:
             local_addr = data[neighbor_ip]['local_addr']
             neighbor_name = data[neighbor_ip]['name']
             bgp_peer.setdefault(local_addr, [neighbor_name, neighbor_ip])
@@ -1684,7 +1684,7 @@ def show_sflow_global(config_db):
 
     sflow_info = config_db.get_table('SFLOW_COLLECTOR')
     click.echo("\n  {} Collectors configured:".format(len(sflow_info)))
-    for collector_name in sorted(sflow_info.keys()):
+    for collector_name in sorted(list(sflow_info.keys())):
         vrf_name = (sflow_info[collector_name]['collector_vrf']
                     if 'collector_vrf' in sflow_info[collector_name] else 'default')
         click.echo("    Name: {}".format(collector_name).ljust(30) +

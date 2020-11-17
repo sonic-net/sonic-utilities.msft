@@ -47,7 +47,7 @@ def get_dynamic_neighbor_subnet(db):
     v6_subnet = {}
     neighbor_data = db.get_table('BGP_PEER_RANGE')
     try:
-        for entry in list(neighbor_data.keys()):
+        for entry in neighbor_data:
             new_key = neighbor_data[entry]['ip_range'][0]
             new_value = neighbor_data[entry]['name']
             if is_ipv4_address(neighbor_data[entry]['src_address']):
@@ -88,11 +88,11 @@ def get_bgp_neighbor_ip_to_name(ip, static_neighbors, dynamic_neighbors):
     if ip in static_neighbors:
         return static_neighbors[ip]
     elif is_ipv4_address(ip):
-        for subnet in list(dynamic_neighbors[constants.IPV4].keys()):
+        for subnet in dynamic_neighbors[constants.IPV4]:
             if ipaddress.IPv4Address(ip) in ipaddress.IPv4Network(subnet):
                 return dynamic_neighbors[constants.IPV4][subnet]
     elif is_ipv6_address(ip):
-        for subnet in list(dynamic_neighbors[constants.IPV6].keys()):
+        for subnet in dynamic_neighbors[constants.IPV6]:
             if ipaddress.IPv6Address(ip) in ipaddress.IPv6Network(subnet):
                 return dynamic_neighbors[constants.IPV6][subnet]
     else:
@@ -139,7 +139,7 @@ def get_neighbor_dict_from_table(db, table_name):
     neighbor_dict = {}
     neighbor_data = db.get_table(table_name)
     try:
-        for entry in list(neighbor_data.keys()):
+        for entry in neighbor_data:
             neighbor_dict[entry] = neighbor_data[entry].get(
                 'name') if 'name' in neighbor_data[entry] else 'NotAvailable'
         return neighbor_dict
@@ -209,7 +209,7 @@ def display_bgp_summary(bgp_summary, af):
         click.echo("\nIP{} Unicast Summary:".format(af))
         # display the bgp instance information
         for router_info in bgp_summary['router_info']:
-            for k in list(router_info.keys()):
+            for k in router_info:
                 v = router_info[k]
                 instance = "{}: ".format(k) if k is not "" else ""
                 click.echo(

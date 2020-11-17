@@ -101,7 +101,7 @@ def db_update(t, k, lst):
     tuple_k = db.deserialize_key(k[0])
     if tuple_k in ct_keys:
         data = db.get_entry(t, k)
-        for i in lst.keys():
+        for i in lst:
             if not data.has_key(i) or data[i] != lst[i]:
                 to_upd = True
                 break
@@ -115,7 +115,7 @@ def db_delete_fields(t, k, lst):
     init()
     to_set = False
     data = db.get_entry(t, k)
-    for i in lst.keys():
+    for i in lst:
         if data.has_key(i):
             data.pop(i)
             to_set = True
@@ -172,7 +172,7 @@ def do_operate(op_upd, t, k, lst):
 
 
 def process_entry(op_upd, data):
-    for t in data.keys():
+    for t in data:
         do_operate(op_upd, t, (), data[t])
 
 def main():

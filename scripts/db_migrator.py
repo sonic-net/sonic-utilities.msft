@@ -63,7 +63,7 @@ class DBMigrator():
         Migrate all data entries from table PFC_WD_TABLE to PFC_WD
         '''
         data = self.configDB.get_table('PFC_WD_TABLE')
-        for key in list(data.keys()):
+        for key in data:
             self.configDB.set_entry('PFC_WD', key, data[key])
         self.configDB.delete_table('PFC_WD_TABLE')
 
@@ -91,14 +91,14 @@ class DBMigrator():
                     }
         for table in if_tables:
             data = self.configDB.get_table(table)
-            for key in list(data.keys()):
+            for key in data:
                 if not self.is_ip_prefix_in_key(key):
                     if_db.append(key)
                     continue
 
         for table in if_tables:
             data = self.configDB.get_table(table)
-            for key in list(data.keys()):
+            for key in data:
                 if not self.is_ip_prefix_in_key(key) or key[0] in if_db:
                     continue
                 log.log_info('Migrating interface table for ' + key[0])

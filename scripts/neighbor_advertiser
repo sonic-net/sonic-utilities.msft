@@ -102,7 +102,7 @@ def is_dip_in_device_vlan(ferret_dip):
 
     ferret_dip = IPAddress(ferret_dip)
 
-    for vlan_interface in vlan_interface_query.keys():
+    for vlan_interface in vlan_interface_query:
         if not is_ip_prefix_in_key(vlan_interface):
             log.log_info('{} does not have a subnet, skipping...'.format(vlan_interface))
             continue
@@ -153,7 +153,7 @@ def get_loopback_addr(ip_ver):
     loopback_intfs = config_db.get_table('LOOPBACK_INTERFACE')
     loopback_addr = ''
 
-    for intf in loopback_intfs.keys():
+    for intf in loopback_intfs:
         if not is_ip_prefix_in_key(intf):
              continue
         if 'Loopback0' in intf:
@@ -170,7 +170,7 @@ def get_vlan_interfaces():
     vlan_info = config_db.get_table('VLAN')
     vlan_interfaces = []
 
-    for vlan_name in vlan_info.keys():
+    for vlan_name in vlan_info:
         vlan_interfaces.append(vlan_name)
 
     return vlan_interfaces
@@ -180,7 +180,7 @@ def get_vlan_interface_members(vlan_intf_name):
     vlan_info = config_db.get_table('VLAN_MEMBER')
     vlan_interface_members = []
 
-    for vlan_member in vlan_info.keys():
+    for vlan_member in vlan_info:
         if vlan_member[0] == vlan_intf_name:
             vlan_interface_members.append(vlan_member[1])
 
@@ -211,7 +211,7 @@ def get_vlan_addr_prefix(vlan_intf_name, ip_ver):
     vlan_addr = []
     vlan_prefix = []
 
-    for intf in vlan_intfs.keys():
+    for intf in vlan_intfs:
         if not is_ip_prefix_in_key(intf):
              continue
         if vlan_intf_name in intf:

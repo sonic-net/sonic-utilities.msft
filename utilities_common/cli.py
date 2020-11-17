@@ -130,7 +130,7 @@ class InterfaceAliasConverter(object):
             click.echo(message="Warning: failed to retrieve PORT table from ConfigDB!", err=True)
             self.port_dict = {}
 
-        for port_name in list(self.port_dict.keys()):
+        for port_name in self.port_dict:
             try:
                 if self.alias_max_length < len(
                         self.port_dict[port_name]['alias']):
@@ -152,7 +152,7 @@ class InterfaceAliasConverter(object):
                 # interface_name holds the parent port name
                 interface_name = interface_name[:sub_intf_sep_idx]
 
-            for port_name in list(self.port_dict.keys()):
+            for port_name in self.port_dict:
                 if interface_name == port_name:
                     return self.port_dict[port_name]['alias'] if sub_intf_sep_idx == -1 \
                             else self.port_dict[port_name]['alias'] + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
@@ -173,7 +173,7 @@ class InterfaceAliasConverter(object):
                 # interface_alias holds the parent port alias
                 interface_alias = interface_alias[:sub_intf_sep_idx]
 
-            for port_name in list(self.port_dict.keys()):
+            for port_name in self.port_dict:
                 if interface_alias == self.port_dict[port_name]['alias']:
                     return port_name if sub_intf_sep_idx == -1 else port_name + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
@@ -246,7 +246,7 @@ def is_port_vlan_member(config_db, port, vlan):
     """Check if port is a member of vlan"""
 
     vlan_ports_data = config_db.get_table('VLAN_MEMBER')
-    for key in list(vlan_ports_data.keys()):
+    for key in vlan_ports_data:
         if key[0] == vlan and key[1] == port:
             return True
 
@@ -254,7 +254,7 @@ def is_port_vlan_member(config_db, port, vlan):
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
     """ Check if an interface  is in a vlan """
-    for _,intf in list(vlan_member_table.keys()):
+    for _,intf in vlan_member_table:
         if intf == interface_name:
             return True
 
@@ -266,7 +266,7 @@ def is_valid_vlan_interface(config_db, interface):
 
 def interface_is_in_portchannel(portchannel_member_table, interface_name):
     """ Check if an interface is part of portchannel """
-    for _,intf in list(portchannel_member_table.keys()):
+    for _,intf in portchannel_member_table:
         if intf == interface_name:
             return True
 
@@ -276,7 +276,7 @@ def is_port_router_interface(config_db, port):
     """Check if port is a router interface"""
 
     interface_table = config_db.get_table('INTERFACE')
-    for intf in list(interface_table.keys()):
+    for intf in interface_table:
         if port == intf[0]:
             return True
 
@@ -286,7 +286,7 @@ def is_pc_router_interface(config_db, pc):
     """Check if portchannel is a router interface"""
 
     pc_interface_table = config_db.get_table('PORTCHANNEL_INTERFACE')
-    for intf in list(pc_interface_table.keys()):
+    for intf in pc_interface_table:
         if pc == intf[0]:
             return True
 
@@ -446,7 +446,7 @@ def run_command_in_alias_mode(command):
                 or a comma followed by whitespace
                 """
                 converted_output = raw_output
-                for port_name in list(iface_alias_converter.port_dict.keys()):
+                for port_name in iface_alias_converter.port_dict:
                     converted_output = re.sub(r"(^|\s){}($|,{{0,1}}\s)".format(port_name),
                             r"\1{}\2".format(iface_alias_converter.name_to_alias(port_name)),
                             converted_output)

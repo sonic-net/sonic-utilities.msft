@@ -545,7 +545,7 @@ class ConfigMgmtDPB(ConfigMgmt):
                     pass
                 return
 
-            for it in list(D1.keys()):
+            for it in D1:
                 # D2 has the key
                 if D2.get(it):
                     _mergeItems(D1[it], D2[it])
@@ -577,7 +577,7 @@ class ConfigMgmtDPB(ConfigMgmt):
         '''
         found = False
         if isinstance(In, dict):
-            for key in list(In.keys()):
+            for key in In:
                 for skey in skeys:
                     # pattern is very specific to current primary keys in
                     # config DB, may need to be updated later.

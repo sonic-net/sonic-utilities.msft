@@ -41,7 +41,7 @@ def active_hops(nhg):
     if nhg is None:
         for nhg_prefix in table_keys:
             t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
-            vals = sorted(set([val for val in list(t_dict.values())]))
+            vals = sorted(set([val for val in t_dict.values()]))
             for nh_ip in vals:
                 if nhg_prefix in output_dict:
                     output_dict[nhg_prefix].append(nh_ip.split("@")[0])
@@ -69,7 +69,7 @@ def active_hops(nhg):
                     nhg_prefix = "FG_ROUTE_TABLE|" + nhg_prefix
                     t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
 
-                vals = sorted(set([val for val in list(t_dict.values())]))
+                vals = sorted(set([val for val in t_dict.values()]))
 
                 for nh_ip in vals:
                     if nhg_prefix in output_dict:
@@ -113,7 +113,7 @@ def hash_view(nhg):
         for nhg_prefix in table_keys:
             bank_dict = {}
             t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
-            vals = sorted(set([val for val in list(t_dict.values())]))
+            vals = sorted(set([val for val in t_dict.values()]))
 
             for nh_ip in vals:
                 bank_ids = sorted([int(k) for k, v in t_dict.items() if v == nh_ip])
@@ -150,7 +150,7 @@ def hash_view(nhg):
                     nhg_prefix = "FG_ROUTE_TABLE|" + nhg_prefix
                     t_dict = state_db.get_all(state_db.STATE_DB, nhg_prefix)
 
-                vals = sorted(set([val for val in list(t_dict.values())]))
+                vals = sorted(set([val for val in t_dict.values()]))
 
                 for nh_ip in vals:
                     bank_ids = sorted([int(k) for k, v in t_dict.items() if v == nh_ip])

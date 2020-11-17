@@ -101,7 +101,7 @@ def get_portchannel_ipv4(portchannel_name):
     configdb.connect()
     config = configdb.get_config()
     portchannel_interfaces = config["PORTCHANNEL_INTERFACE"]
-    for key in portchannel_interfaces.keys():
+    for key in portchannel_interfaces:
         if not is_ip_prefix_in_key(key):
             continue
         pc, ip = key

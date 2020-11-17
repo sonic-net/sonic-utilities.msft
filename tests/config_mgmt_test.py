@@ -45,13 +45,13 @@ class TestConfigMgmt(TestCase):
             ["Ethernet8","Ethernet9"])
         assert "VLAN" not in out
         assert "INTERFACE" not in out
-        for k in list(out['ACL_TABLE'].keys()):
+        for k in out['ACL_TABLE']:
             # only ports must be chosen
             len(out['ACL_TABLE'][k]) == 1
         out = cmdpb.configWithKeys(portBreakOutConfigDbJson, \
             ["Ethernet10","Ethernet11"])
         assert "INTERFACE" in out
-        for k in list(out['ACL_TABLE'].keys()):
+        for k in out['ACL_TABLE']:
             # only ports must be chosen
             len(out['ACL_TABLE'][k]) == 1
         return

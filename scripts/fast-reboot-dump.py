@@ -239,7 +239,7 @@ def send_garp_nd(neighbor_entries, map_mac_ip_per_vlan):
             send_ndp(sockets[src_if], src_mac_addrs[src_if], src_ip_addrs[vlan_name], dst_mac, dst_ip)
 
     # close the raw sockets
-    for s in list(sockets.values()):
+    for s in sockets.values():
         s.close()
 
     return

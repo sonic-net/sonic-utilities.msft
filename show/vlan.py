@@ -39,7 +39,7 @@ def brief(db, verbose):
             vlan_dhcp_helper_dict[key.strip('Vlan')] = " "
 
     # Parsing VLAN Gateway info
-    for key in list(vlan_ip_data.keys()):
+    for key in vlan_ip_data:
         if clicommon.is_ip_prefix_in_key(key):
             interface_key = key[0].strip("Vlan")
             interface_value = key[1]

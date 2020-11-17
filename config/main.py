@@ -94,7 +94,7 @@ def _get_breakout_options(ctx, args, incomplete):
 
 def shutdown_interfaces(ctx, del_intf_dict):
     """ shut down all the interfaces before deletion """
-    for intf in list(del_intf_dict.keys()):
+    for intf in del_intf_dict:
         config_db = ctx.obj['config_db']
         if clicommon.get_interface_naming_mode() == "alias":
             interface_name = interface_alias_to_name(config_db, intf)
@@ -295,7 +295,7 @@ def interface_alias_to_name(config_db, interface_alias):
         if not port_dict:
             click.echo("port_dict is None!")
             raise click.Abort()
-        for port_name in list(port_dict.keys()):
+        for port_name in port_dict:
             if interface_alias == port_dict[port_name]['alias']:
                 return port_name if sub_intf_sep_idx == -1 else port_name + VLAN_SUB_INTERFACE_SEPARATOR + vlan_id
 
@@ -326,15 +326,15 @@ def interface_name_is_valid(config_db, interface_name):
         if not port_dict:
             click.echo("port_dict is None!")
             raise click.Abort()
-        for port_name in list(port_dict.keys()):
+        for port_name in port_dict:
             if interface_name == port_name:
                 return True
         if port_channel_dict:
-            for port_channel_name in list(port_channel_dict.keys()):
+            for port_channel_name in port_channel_dict:
                 if interface_name == port_channel_name:
                     return True
         if sub_port_intf_dict:
-            for sub_port_intf_name in list(sub_port_intf_dict.keys()):
+            for sub_port_intf_name in sub_port_intf_dict:
                 if interface_name == sub_port_intf_name:
                     return True
     return False
@@ -357,7 +357,7 @@ def interface_name_to_alias(config_db, interface_name):
         if not port_dict:
             click.echo("port_dict is None!")
             raise click.Abort()
-        for port_name in list(port_dict.keys()):
+        for port_name in port_dict:
             if interface_name == port_name:
                 return port_dict[port_name]['alias']
 
@@ -410,7 +410,7 @@ def get_port_namespace(port):
         if clicommon.get_interface_naming_mode() == "alias":
             port_dict = config_db.get_table(table_name)
             if port_dict:
-                for port_name in list(port_dict.keys()):
+                for port_name in port_dict:
                     if port == port_dict[port_name]['alias']:
                         return namespace
         else:
@@ -427,7 +427,7 @@ def del_interface_bind_to_vrf(config_db, vrf_name):
     for table_name in tables:
         interface_dict = config_db.get_table(table_name)
         if interface_dict:
-            for interface_name in list(interface_dict.keys()):
+            for interface_name in interface_dict:
                 if 'vrf_name' in interface_dict[interface_name] and vrf_name == interface_dict[interface_name]['vrf_name']:
                     interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
                     for interface_del in interface_dependent:
@@ -459,7 +459,7 @@ def set_interface_naming_mode(mode):
         click.echo("port_dict is None!")
         raise click.Abort()
 
-    for port_name in list(port_dict.keys()):
+    for port_name in port_dict:
         try:
             if port_dict[port_name]['alias']:
                 pass
@@ -639,7 +639,7 @@ def _get_disabled_services_list(config_db):
 
     feature_table = config_db.get_table('FEATURE')
     if feature_table is not None:
-        for feature_name in list(feature_table.keys()):
+        for feature_name in feature_table:
             if not feature_name:
                 log.log_warning("Feature is None")
                 continue
@@ -751,7 +751,7 @@ def _restart_services(config_db):
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
     """ Check if an interface is in a vlan """
-    for _, intf in list(vlan_member_table.keys()):
+    for _, intf in vlan_member_table:
         if intf == interface_name:
             return True
 
@@ -759,7 +759,7 @@ def interface_is_in_vlan(vlan_member_table, interface_name):
 
 def interface_is_in_portchannel(portchannel_member_table, interface_name):
     """ Check if an interface is part of portchannel """
-    for _, intf in list(portchannel_member_table.keys()):
+    for _, intf in portchannel_member_table:
         if intf == interface_name:
             return True
 
@@ -2124,17 +2124,17 @@ def startup(ctx, interface_name):
 
     log.log_info("'interface startup {}' executing...".format(interface_name))
     port_dict = config_db.get_table('PORT')
-    for port_name in list(port_dict.keys()):
+    for port_name in port_dict:
         if port_name in intf_fs:
             config_db.mod_entry("PORT", port_name, {"admin_status": "up"})
 
     portchannel_list = config_db.get_table("PORTCHANNEL")
-    for po_name in list(portchannel_list.keys()):
+    for po_name in portchannel_list:
         if po_name in intf_fs:
             config_db.mod_entry("PORTCHANNEL", po_name, {"admin_status": "up"})
 
     subport_list = config_db.get_table("VLAN_SUB_INTERFACE")
-    for sp_name in list(subport_list.keys()):
+    for sp_name in subport_list:
         if sp_name in intf_fs:
             config_db.mod_entry("VLAN_SUB_INTERFACE", sp_name, {"admin_status": "up"})
 
@@ -2164,17 +2164,17 @@ def shutdown(ctx, interface_name):
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
     port_dict = config_db.get_table('PORT')
-    for port_name in list(port_dict.keys()):
+    for port_name in port_dict:
         if port_name in intf_fs:
             config_db.mod_entry("PORT", port_name, {"admin_status": "down"})
 
     portchannel_list = config_db.get_table("PORTCHANNEL")
-    for po_name in list(portchannel_list.keys()):
+    for po_name in portchannel_list:
         if po_name in intf_fs:
             config_db.mod_entry("PORTCHANNEL", po_name, {"admin_status": "down"})
 
     subport_list = config_db.get_table("VLAN_SUB_INTERFACE")
-    for sp_name in list(subport_list.keys()):
+    for sp_name in subport_list:
         if sp_name in intf_fs:
             config_db.mod_entry("VLAN_SUB_INTERFACE", sp_name, {"admin_status": "down"})
 
@@ -2299,7 +2299,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         cm = load_ConfigMgmt(verbose)
 
         """ Delete all ports if forced else print dependencies using ConfigMgmt API """
-        final_delPorts = [intf for intf in list(del_intf_dict.keys())]
+        final_delPorts = [intf for intf in del_intf_dict]
         """ Warn user if tables without yang models exist and have final_delPorts """
         breakout_warnUser_extraTables(cm, final_delPorts, confirm=True)
 

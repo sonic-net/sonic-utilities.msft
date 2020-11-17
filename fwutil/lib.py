@@ -518,7 +518,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
                 )
             )
 
-        for key in list(pdp_map.keys()):
+        for key in pdp_map:
             diff_keys = self.__diff_keys(list(pdp_map[key].keys()), list(pcp_map[key].keys()))
 
             if diff_keys:

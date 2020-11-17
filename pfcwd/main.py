@@ -86,14 +86,14 @@ def get_all_ports(db, namespace=None, display=constants.DISPLAY_ALL):
 def get_server_facing_ports(db):
     candidates = db.get_table('DEVICE_NEIGHBOR')
     server_facing_ports = []
-    for port in list(candidates.keys()):
+    for port in candidates:
         neighbor = db.get_entry(
             'DEVICE_NEIGHBOR_METADATA', candidates[port]['name']
         )
         if neighbor and neighbor['type'].lower() == 'server':
             server_facing_ports.append(port)
     if not server_facing_ports:
-        server_facing_ports = [p[1] for p in list(db.get_table('VLAN_MEMBER').keys())]
+        server_facing_ports = [p[1] for p in db.get_table('VLAN_MEMBER')]
     return server_facing_ports
 
 

@@ -605,7 +605,7 @@ class SkuCreate(object):
             exit(1)
         header = PORTCONFIG_HEADER # ["name", "lanes", "alias", "index"]
         port_config = []
-        for line in list(self.portconfig_dict.values()):
+        for line in self.portconfig_dict.values():
             port_config.append(line)
 
         port_config.sort(key=lambda x: (int(re.search(('\d+'),x[0]).group(0)))) # sort the list with interface name
@@ -616,7 +616,7 @@ class SkuCreate(object):
         #print a port_config.ini file based on the sku definition 
         header = PORTCONFIG_HEADER # ["name", "lanes", "alias", "index"]
         port_config = []
-        for line in list(self.portconfig_dict.values()):
+        for line in self.portconfig_dict.values():
             port_config.append(line)
 
         port_config.sort(key=lambda x: (int(re.search(('\d+'),x[0]).group(0)))) # sort the list with interface name

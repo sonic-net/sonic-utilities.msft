@@ -107,7 +107,7 @@ def isOverlappingWithAnyDynamicEntry(ipAddress):
     if not nat_pool_dict:
         return False
 
-    for values in list(nat_pool_dict.values()):
+    for values in nat_pool_dict.values():
         global_ip = values["nat_ip"]
         ipAddr = global_ip.split('-')
         if (len(ipAddr) == 1):
@@ -604,7 +604,7 @@ def remove_static_all(ctx):
     for table_name in tables:
         table_dict = config_db.get_table(table_name)
         if table_dict:
-            for table_key_name in list(table_dict.keys()):
+            for table_key_name in table_dict:
                 config_db.set_entry(table_name, table_key_name, None)
 
 #
@@ -828,7 +828,7 @@ def remove_pools(ctx):
     binding_dict = config_db.get_table(binding_table_name)
     pool_dict = config_db.get_table(pool_table_name)
     if pool_dict:
-        for pool_key_name in list(pool_dict.keys()):
+        for pool_key_name in pool_dict:
             entryFound = False
             for binding_name, binding_values in binding_dict.items():
                 if binding_values['nat_pool'] == pool_key_name:
@@ -880,7 +880,7 @@ def remove_bindings(ctx):
     binding_table_name = 'NAT_BINDINGS'
     binding_dict = config_db.get_table(binding_table_name)
     if binding_dict:
-        for binding_key_name in list(binding_dict.keys()):
+        for binding_key_name in binding_dict:
             config_db.set_entry(binding_table_name, binding_key_name, None)
 
 #
@@ -961,7 +961,7 @@ def remove_interfaces(ctx):
     for table_name in tables:
         table_dict = config_db.get_table(table_name)
         if table_dict:
-            for table_key_name in list(table_dict.keys()):
+            for table_key_name in table_dict:
                 if isinstance(table_key_name, str) is False:
                     continue
 
