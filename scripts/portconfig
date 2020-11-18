@@ -42,13 +42,13 @@ class portconfig(object):
 
         # check whether table for this port exists
         port_tables = self.db.get_table(PORT_TABLE_NAME)
-        if not port_tables.has_key(port):
+        if port not in port_tables:
             raise Exception("Invalid port specified")
 
     def list_params(self, port):
         # chack whether table for this port exists
         port_tables = self.db.get_table(PORT_TABLE_NAME)
-        if port_tables.has_key(port):
+        if port in port_tables:
             print(port_tables[port])
 
     def set_speed(self, port, speed):
