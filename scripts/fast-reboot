@@ -128,7 +128,7 @@ function clear_warm_boot()
 
 function init_warm_reboot_states()
 {
-    # If the current running instanace was booted up with warm reboot. Then
+    # If the current running instance was booted up with warm reboot. Then
     # the current DB contents will likely mark warm reboot is done.
     # Clear these states so that the next boot up image won't get confused.
     if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
@@ -472,8 +472,8 @@ setup_control_plane_assistant
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
     # Freeze orchagent for warm restart
     # Ask orchagent_restart_check to try freeze 5 times with interval of 2 seconds,
-    # it is possible that the orchagent is in transient state and no opportunity to be freezed
-    # Note: assume that 2*5 seconds is enough for orchagent to process the request and respone freeze or not
+    # it is possible that the orchagent is in transient state and no opportunity to freeze
+    # Note: assume that 2*5 seconds is enough for orchagent to process the request and response to freeze or not
     debug "Pausing orchagent ..."
     docker exec -i swss /usr/bin/orchagent_restart_check -w 2000 -r 5 > /dev/null || RESTARTCHECK_RC=$?
     if [[ RESTARTCHECK_RC -ne 0 ]]; then
@@ -486,12 +486,12 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
     fi
 fi
 
-# We are fully committed to reboot from this point on becasue critical
+# We are fully committed to reboot from this point on because critical
 # service will go down and we cannot recover from it.
 set +e
 
 if [ -x ${LOG_SSD_HEALTH} ]; then
-    debug "Collecting logs to check ssd health before fast-reboot..."
+    debug "Collecting logs to check ssd health before ${REBOOT_TYPE}..."
     ${LOG_SSD_HEALTH}
 fi
 
@@ -503,7 +503,7 @@ docker kill nat > /dev/null || true
 systemctl stop nat
 debug "Stopped nat ..."
 
-# Kill radv before stopping BGP service to prevent annoucing our departure.
+# Kill radv before stopping BGP service to prevent announcing our departure.
 debug "Stopping radv service..."
 systemctl stop radv
 debug "Stopped radv service..."
@@ -660,7 +660,7 @@ if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN} ]; then
     ${DEVPATH}/${PLATFORM}/${PLATFORM_PLUGIN}
 fi
 
-# Reboot: explicity call Linux native reboot under sbin
+# Reboot: explicitly call Linux native reboot under sbin
 debug "Rebooting with ${REBOOT_METHOD} to ${NEXT_SONIC_IMAGE} ..."
 exec ${REBOOT_METHOD}
 
