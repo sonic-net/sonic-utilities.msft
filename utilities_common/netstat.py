@@ -27,10 +27,10 @@ def ns_brate(newstr, oldstr, delta):
         return STATUS_NA
     else:
         rate = int(ns_diff(newstr, oldstr).replace(',',''))/delta
-        if rate > 1024*1024*10:
-            rate = "{:.2f}".format(rate/1024/1024)+' MB'
-        elif rate > 1024*10:
-            rate = "{:.2f}".format(rate/1024)+' KB'
+        if rate > 1000*1000*10:
+            rate = "{:.2f}".format(rate/1000/1000)+' MB'
+        elif rate > 1000*10:
+            rate = "{:.2f}".format(rate/1000)+' KB'
         else:
             rate = "{:.2f}".format(rate)+' B'
         return rate+'/s'
@@ -53,7 +53,7 @@ def ns_util(newstr, oldstr, delta, port_rate=PORT_RATE):
         return STATUS_NA
     else:
         rate = int(ns_diff(newstr, oldstr).replace(',',''))/delta
-        util = rate/(port_rate*1024*1024*1024/8.0)*100
+        util = rate/(port_rate*1000*1000*1000/8.0)*100
         return "{:.2f}%".format(util)
 
 def table_as_json(table, header):
