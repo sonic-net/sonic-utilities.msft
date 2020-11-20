@@ -362,6 +362,25 @@ function unload_kernel()
     fi
 }
 
+function save_counters_folder() {
+    debug "Saving counters folder before warmboot..."
+
+    counters_folder="/host/counters"
+    if [[ ! -d $counters_folder ]]; then
+        mkdir $counters_folder
+    fi
+    if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+        modules=("portstat-0" "dropstat" "pfcstat-0" "queuestat-0" "intfstat-0")
+        for module in ${modules[@]}
+        do
+            statfile="/tmp/$module"
+            if [[ -d $statfile ]]; then
+                cp -rf $statfile $counters_folder
+            fi
+        done
+    fi
+}
+
 # main starts here
 parseOptions $@
 
@@ -400,6 +419,8 @@ case "$REBOOT_TYPE" in
         exit "${EXIT_NOT_SUPPORTED}"
         ;;
 esac
+
+save_counters_folder
 
 unload_kernel
 
