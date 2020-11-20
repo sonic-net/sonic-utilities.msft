@@ -125,8 +125,7 @@ class NatShow(object):
         if not nat_str:
             return
 
-        for s in nat_str:
-            nat_entry = s.decode()
+        for nat_entry in nat_str:
             nat = json.loads(nat_entry .split(":", 2)[-1])
             if not nat:
                 continue

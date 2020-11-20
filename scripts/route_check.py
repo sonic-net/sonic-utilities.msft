@@ -67,12 +67,12 @@ def add_prefix_ifnot(ip):
 
 
 def is_local(ip):
-    t = ipaddress.ip_address(ip.split("/")[0].decode('utf-8'))
+    t = ipaddress.ip_address(ip.split("/")[0])
     return t.is_link_local
 
 
 def is_default_route(ip):
-    t = ipaddress.ip_address(ip.split("/")[0].decode('utf-8'))
+    t = ipaddress.ip_address(ip.split("/")[0])
     return t.is_unspecified and ip.split("/")[1] == "0"
 
 

@@ -476,7 +476,7 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
     proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
 
     if return_cmd:
-        output = proc.communicate()[0].decode("utf-8")
+        output = proc.communicate()[0]
         return output
 
     if not interactive_mode:
