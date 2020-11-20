@@ -826,11 +826,7 @@ class AclLoader(object):
 
             raw_data.append([priority, rule_data])
 
-        def cmp_rules(a, b):
-            return cmp(a[0], b[0])
-
-        raw_data.sort(cmp_rules)
-        raw_data.reverse()
+        raw_data.sort(key=lambda x: x[0], reverse=True)
 
         data = []
         for _, d in raw_data:
