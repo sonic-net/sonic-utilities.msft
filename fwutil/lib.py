@@ -417,24 +417,6 @@ class PlatformComponentsParser(object):
             self.__module_component_map[key] = OrderedDict()
             self.__parse_component_section(key, value[self.COMPONENT_KEY], True)
 
-    # TODO: This function should not be necessary once we no longer support Python 2
-    def __deunicodify_hook(self, pairs):
-        new_pairs = [ ]
-
-        for key, value in pairs:
-            try:
-                key = key.encode(self.UTF8_ENCODING)
-            except Exception:
-                pass
-
-            try:
-                value = value.encode(self.UTF8_ENCODING)
-            except Exception:
-                pass
-
-            new_pairs.append((key, value))
-
-        return OrderedDict(new_pairs)
 
     def get_chassis_component_map(self):
         return self.__chassis_component_map
@@ -451,7 +433,7 @@ class PlatformComponentsParser(object):
             platform_components_path = self.__get_platform_components_path(root_path)
 
         with open(platform_components_path) as platform_components:
-            data = json.load(platform_components, object_pairs_hook=self.__deunicodify_hook)
+            data = json.load(platform_components)
 
             if not self.__is_dict(data):
                 self.__parser_platform_fail("dictionary is expected: key=root")

@@ -6,11 +6,11 @@
 #
 try:
     import glob
-    import imp
     import optparse
     import os
     import sys
     import warnings
+    from importlib.machinery import SourceFileLoader
 
     from sonic_py_common import device_info
 except ImportError as e:
@@ -39,7 +39,7 @@ def main():
     # load the target class file and instantiate the object
     #
     try:
-        m = imp.load_source('eeprom','/'.join([platform_path, 'plugins', 'eeprom.py']))
+        m = SourceFileLoader('eeprom','/'.join([platform_path, 'plugins', 'eeprom.py'])).load_module()
     except IOError:
         raise IOError("cannot load module: " + '/'.join([platform_path, 'plugins', 'eeprom.py']))
 

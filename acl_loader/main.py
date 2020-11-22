@@ -429,14 +429,14 @@ class AclLoader(object):
                 rule_props["IP_PROTOCOL"] = rule.ip.config.protocol
 
         if rule.ip.config.source_ip_address:
-            source_ip_address = rule.ip.config.source_ip_address.encode("ascii")
+            source_ip_address = rule.ip.config.source_ip_address
             if ipaddress.ip_network(source_ip_address).version == 4:
                 rule_props["SRC_IP"] = source_ip_address
             else:
                 rule_props["SRC_IPV6"] = source_ip_address
 
         if rule.ip.config.destination_ip_address:
-            destination_ip_address = rule.ip.config.destination_ip_address.encode("ascii")
+            destination_ip_address = rule.ip.config.destination_ip_address
             if ipaddress.ip_network(destination_ip_address).version == 4:
                 rule_props["DST_IP"] = destination_ip_address
             else:
@@ -550,7 +550,7 @@ class AclLoader(object):
         :return:
         """
         for acl_set_name in self.yang_acl.acl.acl_sets.acl_set:
-            table_name = acl_set_name.replace(" ", "_").replace("-", "_").upper().encode('ascii')
+            table_name = acl_set_name.replace(" ", "_").replace("-", "_").upper()
             acl_set = self.yang_acl.acl.acl_sets.acl_set[acl_set_name]
 
             if not self.is_table_valid(table_name):
