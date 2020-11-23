@@ -2291,7 +2291,7 @@ def neighbors():
     appl_db.connect(appl_db.APPL_DB)
 
     # Fetching data from appl_db for neighbors
-    nbrs = appl_db.keys(appl_db.APPL_DB, "NEIGH_TABLE*")
+    nbrs = appl_db.keys(appl_db.APPL_DB, "NEIGH_TABLE:*")
     nbrs_data = {}
     for nbr in nbrs if nbrs else []:
         tbl, intf, ip = nbr.split(":", 2)
@@ -2331,7 +2331,7 @@ def all():
     header = ['vnet name', 'prefix', 'nexthop', 'interface']
 
     # Fetching data from appl_db for VNET ROUTES
-    vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TABLE*")
+    vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TABLE:*")
     vnet_rt_keys = natsorted(vnet_rt_keys) if vnet_rt_keys else []
 
     table = []
@@ -2350,7 +2350,7 @@ def all():
     header = ['vnet name', 'prefix', 'endpoint', 'mac address', 'vni']
 
     # Fetching data from appl_db for VNET TUNNEL ROUTES
-    vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TUNNEL_TABLE*")
+    vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TUNNEL_TABLE:*")
     vnet_rt_keys = natsorted(vnet_rt_keys) if vnet_rt_keys else []
 
     table = []
@@ -2374,7 +2374,7 @@ def tunnel():
     header = ['vnet name', 'prefix', 'endpoint', 'mac address', 'vni']
 
     # Fetching data from appl_db for VNET TUNNEL ROUTES
-    vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TUNNEL_TABLE*")
+    vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TUNNEL_TABLE:*")
     vnet_rt_keys = natsorted(vnet_rt_keys) if vnet_rt_keys else []
 
     table = []
