@@ -10,6 +10,10 @@
         {
             "namespace" : "asic1",
             "include" : "./asic1/database_config.json"
+        },
+        {
+            "namespace" : "asic2",
+            "include" : "./asic2/database_config.json"
         }
     ],
     "VERSION" : "1.0"

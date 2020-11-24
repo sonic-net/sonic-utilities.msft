@@ -16,6 +16,7 @@ from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 from utilities_common.db import Db
 
+from . import bgp_common 
 from . import chassis_modules
 from . import feature
 from . import fgnhg
@@ -790,17 +791,13 @@ def get_bgp_peer():
 
 @ip.command()
 @click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
+@click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
+@click.option('--namespace', '-n', 'namespace', default=None, type=str, show_default=False, help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def route(args, verbose):
+def route(args, namespace, display, verbose):
     """Show IP (IPv4) routing table"""
-    cmd = 'sudo vtysh -c "show ip route'
-
-    for arg in args:
-        cmd += " " + str(arg)
-
-    cmd += '"'
-
-    run_command(cmd, display_cmd=verbose)
+    # Call common handler to handle the show ip route cmd
+    bgp_common.show_routes(args, namespace, display, verbose, "ip")
 
 #
 # 'prefix-list' subcommand ("show ip prefix-list")
@@ -913,17 +910,13 @@ def interfaces():
 
 @ipv6.command()
 @click.argument('args', metavar='[IPADDRESS] [vrf <vrf_name>] [...]', nargs=-1, required=False)
+@click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
+@click.option('--namespace', '-n', 'namespace', default=None, type=str, show_default=False, help='Namespace name or all')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def route(args, verbose):
+def route(args, namespace, display, verbose):
     """Show IPv6 routing table"""
-    cmd = 'sudo vtysh -c "show ipv6 route'
-
-    for arg in args:
-        cmd += " " + str(arg)
-
-    cmd += '"'
-
-    run_command(cmd, display_cmd=verbose)
+    # Call common handler to handle the show ipv6 route cmd
+    bgp_common.show_routes(args, namespace, display, verbose, "ipv6")
 
 
 # 'protocol' command
