@@ -116,20 +116,14 @@ class SwssSyncClient(mockredis.MockRedis):
 
     # Patch mockredis/mockredis/client.py
     # The offical implementation assume decode_responses=False
-    # Here we detect the option first and only encode when decode_responses=False
+    # Here we detect the option and decode after doing encode
     def _encode(self, value):
         "Return a bytestring representation of the value. Taken from redis-py connection.py"
-        if isinstance(value, bytes):
-            return value
-        elif isinstance(value, int):
-            value = str(value).encode('utf-8')
-        elif isinstance(value, float):
-            value = repr(value).encode('utf-8')
-        elif not isinstance(value, str):
-            value = str(value).encode('utf-8')
-        elif not self.decode_responses:
-            value = value.encode('utf-8', 'strict')
-        return value
+
+        value = super(SwssSyncClient, self)._encode(value)
+
+        if self.decode_responses:
+           return value.decode('utf-8')
 
     # Patch mockredis/mockredis/client.py
     # The official implementation will filter out keys with a slash '/'
