@@ -20,11 +20,15 @@ def feature():
 @pass_db
 def feature_state(db, name, state):
     """Enable/disable a feature"""
-    state_data = db.cfgdb.get_entry('FEATURE', name)
+    entry_data = db.cfgdb.get_entry('FEATURE', name)
 
-    if not state_data:
+    if not entry_data:
         click.echo("Feature '{}' doesn't exist".format(name))
         sys.exit(1)
+
+    if entry_data['state'] == "always_enabled":
+        click.echo("Feature '{}' state is always enabled and can not be modified".format(name))
+        return
 
     db.cfgdb.mod_entry('FEATURE', name, {'state': state})
 
@@ -37,13 +41,14 @@ def feature_state(db, name, state):
 @pass_db
 def feature_autorestart(db, name, autorestart):
     """Enable/disable autorestart of a feature"""
-    feature_table = db.cfgdb.get_table('FEATURE')
-    if not feature_table:
-        click.echo("Unable to retrieve feature table from Config DB.")
+    entry_data = db.cfgdb.get_entry('FEATURE', name)
+
+    if not entry_data:
+        click.echo("Feature '{}' doesn't exist".format(name))
         sys.exit(1)
 
-    if name not in feature_table:
-        click.echo("Unable to retrieve feature '{}'".format(name))
-        sys.exit(1)
+    if entry_data['auto_restart'] == "always_enabled":
+        click.echo("Feature '{}' auto-restart is always enabled and can not be modified".format(name))
+        return
 
     db.cfgdb.mod_entry('FEATURE', name, {'auto_restart': autorestart})

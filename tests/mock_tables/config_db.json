@@ -573,8 +573,8 @@
         "high_mem_alert": "disabled"
     },
     "FEATURE|database": {
-        "state": "enabled",
-        "auto_restart": "disabled",
+        "state": "always_enabled",
+        "auto_restart": "always_enabled",
         "high_mem_alert": "disabled"
     },
     "FEATURE|dhcp_relay": {
