@@ -1,6 +1,7 @@
 import configparser
 import os
 import subprocess
+import sys
 
 import click
 
@@ -93,11 +94,12 @@ def get_routing_stack():
 routing_stack = get_routing_stack()
 
 
-def run_command(command, pager=False, return_output=False):
+def run_command(command, pager=False, return_output=False, return_exitstatus=False):
     # Provide option for caller function to Process the output.
     proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
     if return_output:
-        return proc.communicate()
+        output = proc.communicate()
+        return output if not return_exitstatus else output + (proc.returncode,)
     elif pager:
         #click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
         click.echo_via_pager(proc.stdout.read())
@@ -367,7 +369,9 @@ def clear_vlan_fdb(vlanid):
 def line(target, devicename):
     """Clear preexisting connection to line"""
     cmd = "consutil clear {}".format("--devicename " if devicename else "") + str(target)
-    run_command(cmd)
+    (output, _, exitstatus) = run_command(cmd, return_output=True, return_exitstatus=True)
+    click.echo(output)
+    sys.exit(exitstatus)
 
 #
 # 'nat' group ("clear nat ...")

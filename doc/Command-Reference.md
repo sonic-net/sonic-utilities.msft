@@ -2052,6 +2052,24 @@ Optionally, you can connect with a remote device name by specifying the `-d` or 
   Press ^A ^X to disconnect
   ```
 
+**connect device**
+
+This command allows user to connect to a remote device via console line with an interactive cli.
+
+- Usage:
+  ```
+  connect device <devicename>
+  ```
+
+The command is same with `connect line --devicename <devicename>`
+
+- Example:
+  ```
+  admin@sonic:~$ connect line 1
+  Successful connection to line 1
+  Press ^A ^X to disconnect
+  ```
+
 ### Console clear commands
 
 **sonic-clear line**
