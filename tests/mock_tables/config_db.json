@@ -1304,5 +1304,33 @@
     },
     "CHASSIS_MODULE|LINE-CARD1": {
         "admin_status": "down"
+    },
+    "MUX_CABLE|Ethernet32": {
+        "state": "auto",
+	"server_ipv4": "10.1.1.1",
+	"server_ipv6": "fc00::75"
+    },
+    "MUX_CABLE|Ethernet0": {
+        "state": "active",
+	"server_ipv4": "10.2.1.1",
+	"server_ipv6": "e800::46"
+    },
+    "MUX_CABLE|Ethernet4": {
+        "state": "auto",
+	"server_ipv4": "10.3.1.1",
+	"server_ipv6": "e801::46"
+    },
+    "MUX_CABLE|Ethernet8": {
+        "state": "active",
+	"server_ipv4": "10.4.1.1",
+	"server_ipv6": "e802::46"
+    },
+    "MUX_CABLE|Ethernet12": {
+        "state": "active",
+	"server_ipv4": "10.4.1.1",
+	"server_ipv6": "e802::46"
+    },
+    "PEER_SWITCH|sonic-switch" : {
+      "address_ipv4": "10.2.2.2"
     }
 }

@@ -300,5 +300,20 @@
         "desc": "fabric-card",
         "oper_status": "Offline",
         "slot": "18"
+    },
+    "MUX_CABLE_TABLE|Ethernet32": {
+        "state": "active"
+    },
+    "MUX_CABLE_TABLE|Ethernet0": {
+        "state": "active"
+    },
+    "MUX_CABLE_TABLE|Ethernet4": {
+        "state": "standby"
+    },
+    "MUX_CABLE_TABLE|Ethernet8": {
+        "state": "standby"
+    },
+    "MUX_CABLE_TABLE|Ethernet12": {
+        "state": "unknown"
     }
 }

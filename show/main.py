@@ -23,6 +23,7 @@ from . import fgnhg
 from . import interfaces
 from . import kube
 from . import mlnx
+from . import muxcable
 from . import vlan
 from . import system_health
 
@@ -132,6 +133,7 @@ cli.add_command(feature.feature)
 cli.add_command(fgnhg.fgnhg)
 cli.add_command(interfaces.interfaces)
 cli.add_command(kube.kubernetes)
+cli.add_command(muxcable.muxcable)
 cli.add_command(vlan.vlan)
 cli.add_command(system_health.system_health)
 

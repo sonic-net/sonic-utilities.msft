@@ -149,5 +149,18 @@
         "acl_entry_high_threshold": "85",
         "fdb_entry_low_threshold": "70",
         "ipv6_nexthop_high_threshold": "85"
+    },
+    "MUX_CABLE|Ethernet32": {
+        "state": "auto",
+	"server_ipv4": "10.1.1.1",
+	"server_ipv6": "fc00::75"
+    },
+    "MUX_CABLE|Ethernet0": {
+        "state": "auto",
+	"server_ipv4": "10.2.1.1",
+	"server_ipv6": "e800::46"
+    },
+    "PEER_SWITCH|sonic" : {
+      "address_ipv4": "10.2.2.2"
     }
 }

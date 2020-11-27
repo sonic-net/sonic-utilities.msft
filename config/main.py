@@ -30,6 +30,7 @@ from . import console
 from . import feature
 from . import kube
 from . import mlnx
+from . import muxcable
 from . import nat
 from . import vlan
 from .config_mgmt import ConfigMgmtDPB
@@ -878,6 +879,7 @@ config.add_command(chassis_modules.chassis_modules)
 config.add_command(console.console)
 config.add_command(feature.feature)
 config.add_command(kube.kubernetes)
+config.add_command(muxcable.muxcable)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
 

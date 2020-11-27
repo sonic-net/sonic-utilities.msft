@@ -81,6 +81,9 @@
 * [Mirroring](#mirroring)
   * [Mirroring Show commands](#mirroring-show-commands)
   * [Mirroring Config commands](#mirroring-config-commands)
+* [Muxcable](#muxcable)
+  * [Muxcable Show commands](#muxcable-show-commands)
+  * [Muxcable Config commands](#muxcable-config-commands)
 * [NAT](#nat)
   * [NAT Show commands](#nat-show-commands)
   * [NAT Config commands](#nat-config-commands)
@@ -343,6 +346,7 @@ This command displays the full list of show commands available in the software; 
     mac                   Show MAC (FDB) entries
     mirror_session        Show existing everflow sessions
     mmu                   Show mmu configuration
+    muxcable              Show muxcable information
     nat                   Show details of the nat
     ndp                   Show IPv6 Neighbour table
     ntp                   Show NTP information
@@ -4150,6 +4154,199 @@ This command deletes the SNMP Trap server IP address to which SNMP agent is expe
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#management-vrf)
+
+## Muxcable
+
+### Muxcable Show commands
+
+**show muxcable status**
+
+This command displays all the status of either all the ports which are connected to muxcable or any individual port selected by the user. The resultant table or json output will show the current status of muxcable on the port (auto/active) and also the health of the muxcable.
+
+- Usage:
+  ```
+  show muxcable status [OPTIONS] [PORT]
+  ```
+
+While displaying the muxcable status, users can configure the following fields  
+
+- PORT     optional - Port name should be a valid port  
+- --json   optional - -- option to display the result in json format. By default output will be in tabular format.  
+
+With no optional argument, all the ports muxcable status will be displayed in tabular form, or user can pass --json option to display in json format  
+
+- Example:
+    ```
+      admin@sonic:~$ show muxcable status  
+      PORT        STATUS    HEALTH  
+      ----------  --------  --------  
+      Ethernet32  active    HEALTHY  
+      Ethernet0   auto      HEALTHY  
+    ```  
+    ```
+      admin@sonic:~$ show muxcable status --json  
+    ```
+    ```json
+           {  
+               "MUX_CABLE": {  
+                     "Ethernet32": {  
+                         "STATUS": "active",  
+                         "HEALTH": "HEALTHY"  
+                    },  
+                    "Ethernet0": {  
+                          "STATUS": "auto",  
+                          "HEALTH": "HEALTHY"  
+                     }   
+                }  
+           }  
+
+    ```  
+    ```
+      admin@sonic:~$ show muxcable status Ethernet0  
+      PORT       STATUS    HEALTH  
+      ---------  --------  --------  
+      Ethernet0  auto      HEALTHY  
+    ```  
+    ```
+      admin@sonic:~$ show muxcable status Ethernet0 --json  
+    ```
+    ```json
+           {  
+                "MUX_CABLE": {  
+                    "Ethernet0": {  
+                         "STATUS": "auto",  
+                         "HEALTH": "HEALTHY"  
+                     }  
+                }  
+          }  
+    ```
+
+**show muxcable config**
+
+This command displays all the configurations of either all the ports which are connected to muxcable or any individual port selected by the user. The resultant table or json output will show the current configurations of muxcable on the port(active/standby) and also the ipv4 and ipv6 address of the port as well as peer TOR ip address with the hostname.
+
+- Usage:
+  ```
+  show muxcable config [OPTIONS] [PORT]
+  ```
+
+With no optional argument, all the ports muxcable configuration will be displayed in tabular form  
+While displaying the muxcable configuration, users can configure the following fields 
+ 
+- PORT   optional - Port name should be a valid port
+- --json optional -  option to display the result in json format. By default output will be in tabular format.
+
+- Example:
+    ```
+        admin@sonic:~$ show muxcable config
+        SWITCH_NAME    PEER_TOR
+        -------------  ----------
+        sonic          10.1.1.1
+        port       state    ipv4      ipv6
+        ---------  -------  --------  --------
+        Ethernet0  active  10.1.1.1  fc00::75
+    ```
+    ```
+        admin@sonic:~$ show muxcable config --json
+    ```
+    ```json
+	{
+            "MUX_CABLE": {
+                "PEER_TOR": "10.1.1.1",
+                "PORTS": {
+                    "Ethernet0": {
+                        "STATE": "active",
+                        "SERVER": {
+                            "IPv4": "10.1.1.1",
+                            "IPv6": "fc00::75"
+                         }
+                     }
+                 }
+             }
+        }
+    ```
+    ```
+        admin@sonic:~$ show muxcable config Ethernet0
+        SWITCH_NAME    PEER_TOR
+        -------------  ----------
+        sonic          10.1.1.1
+        port       state    ipv4      ipv6
+        ---------  -------  --------  --------
+        Ethernet0  active  10.1.1.1  fc00::75
+    ```
+    ```
+        admin@sonic:~$ show muxcable config Ethernet0 --json
+    ```
+    ```json
+           {
+              "MUX_CABLE": {
+                  "PORTS": {
+                       "Ethernet0": {
+                           "STATE": "active",
+                           "SERVER": {
+                                "IPv4": "10.1.1.1",
+                                "IPv6": "fc00::75"
+                            }
+                        }
+                    }
+               }
+          }
+    ```
+
+
+### Muxcable Config commands
+
+
+**config muxcable mode**
+
+This command is used for setting the configuration of a muxcable Port/all ports to be active or auto. The user has to enter a port number or else all to make the muxcable config operation on all the ports. Depending on the status of the muxcable port state the resultant output could be OK or INPROGRESS . OK would imply no change on the state, INPROGRESS would mean the toggle is happening in the background.
+
+- Usage:
+  ```
+  config muxcable mode [OPTIONS] <operation_status> <port_name>
+  ```
+
+While configuring the muxcable, users needs to configure the following fields for the operation  
+
+- <auto/active> operation_state, permitted operation to be configured which can only be auto or active  
+- PORT   optional - Port name should be a valid port
+-  --json optional -  option to display the result in json format. By default output will be in tabular format.
+  
+
+- Example:
+    ```
+        admin@sonic:~$ sudo config muxcable  mode active Ethernet0  
+        port       state  
+        ---------  -------  
+        Ethernet0  OK
+    ```
+    ```
+        admin@sonic:~$ sudo config muxcable  mode --json active Ethernet0
+    ```
+    ```json
+           {  
+               "Ethernet0": "OK"  
+           }
+    ```    
+  
+    ```
+        admin@sonic:~$ sudo config muxcable  mode active all  
+        port        state  
+        ----------  ----------  
+        Ethernet0   OK  
+        Ethernet32  INPROGRESS    
+    ```
+    ```
+        admin@sonic:~$ sudo config muxcable  mode active all --json  
+    ```
+    ```json
+           {  
+                "Ethernet32": "INPROGRESS",  
+                "Ethernet0": "OK"
+           }
+    ```    
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#muxcable)
 
 ## Mirroring
 
