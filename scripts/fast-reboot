@@ -542,17 +542,7 @@ docker kill lldp &> /dev/null || debug "Docker lldp is not running ($?) ..."
 systemctl stop lldp
 
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
-    # Kill teamd processes inside of teamd container with SIGUSR2 to allow them to send last LACP frames
-    # We call `docker kill teamd` to ensure the container stops as quickly as possible,
-    # then immediately call `systemctl stop teamd` to prevent the service from
-    # restarting the container automatically.
-    # Note: teamd must be killed before syncd, because it will send the last packet through CPU port
     debug "Stopping teamd ..."
-    docker exec -i teamd pkill -USR2 teamd || [ $? == 1 ]
-    while docker exec -i teamd pgrep teamd > /dev/null; do
-      sleep 0.05
-    done
-    docker kill teamd &> /dev/null || debug "Docker teamd is not running ($?) ..."
     systemctl stop teamd
     debug "Stopped teamd ..."
 fi
@@ -561,8 +551,8 @@ debug "Stopping swss service ..."
 systemctl stop swss
 debug "Stopped swss service ..."
 
-# Pre-shutdown syncd
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+    # Pre-shutdown syncd
     initialize_pre_shutdown
 
     BEFORE_PRE_SHUTDOWN=true
@@ -589,15 +579,10 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
     # TODO: backup_database preserves FDB_TABLE
     # need to cleanup as well for fastfast boot case
     backup_database
-fi
 
-# Stop teamd gracefully
-if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+    # Stop teamd gracefully
     debug "Stopping teamd ..."
-    # Send USR1 signal to all teamd instances to stop them
-    # It will prepare teamd for warm-reboot
-    # Note: We must send USR1 signal before syncd, because it will send the last packet through CPU port
-    docker exec -i teamd pkill -USR1 teamd > /dev/null || [ $? == 1 ]
+    systemctl stop teamd
     debug "Stopped  teamd ..."
 fi
 
