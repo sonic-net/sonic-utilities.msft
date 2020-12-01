@@ -24,6 +24,7 @@ from . import interfaces
 from . import kube
 from . import mlnx
 from . import muxcable
+from . import reboot_cause
 from . import vlan
 from . import system_health
 
@@ -134,6 +135,7 @@ cli.add_command(fgnhg.fgnhg)
 cli.add_command(interfaces.interfaces)
 cli.add_command(kube.kubernetes)
 cli.add_command(muxcable.muxcable)
+cli.add_command(reboot_cause.reboot_cause)
 cli.add_command(vlan.vlan)
 cli.add_command(system_health.system_health)
 
@@ -1811,27 +1813,6 @@ def mmu():
     cmd = "mmuconfig -l"
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
     click.echo(proc.stdout.read())
-
-
-#
-# 'reboot-cause' command ("show reboot-cause")
-#
-@cli.command('reboot-cause')
-def reboot_cause():
-    """Show cause of most recent reboot"""
-    PREVIOUS_REBOOT_CAUSE_FILE = "/host/reboot-cause/previous-reboot-cause.txt"
-
-    # At boot time, PREVIOUS_REBOOT_CAUSE_FILE is generated based on
-    # the contents of the 'reboot cause' file as it was left when the device
-    # went down for reboot. This file should always be created at boot,
-    # but check first just in case it's not present.
-    if not os.path.isfile(PREVIOUS_REBOOT_CAUSE_FILE):
-        click.echo("Unable to determine cause of previous reboot\n")
-    else:
-        cmd = "cat {}".format(PREVIOUS_REBOOT_CAUSE_FILE)
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-        click.echo(proc.stdout.read())
-
 
 #
 # 'line' command ("show line")

@@ -552,6 +552,26 @@ This command displays the cause of the previous reboot
   User issued reboot command [User: admin, Time: Mon Mar 25 01:02:03 UTC 2019]
   ```
 
+**show reboot-cause history**
+
+This command displays the history of the previous reboots up to 10 entry
+
+- Usage:
+  ```
+  show reboot-cause history
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show reboot-cause history
+  Name                 Cause        Time                          User    Comment
+  -------------------  -----------  ----------------------------  ------  ---------
+  2020_10_09_02_33_06  reboot       Fri Oct  9 02:29:44 UTC 2020  admin
+  2020_10_09_01_56_59  reboot       Fri Oct  9 01:53:49 UTC 2020  admin
+  2020_10_09_02_00_53  fast-reboot  Fri Oct  9 01:58:04 UTC 2020  admin
+  2020_10_09_04_53_58  warm-reboot  Fri Oct  9 04:51:47 UTC 2020  admin
+  ```
+
 **show uptime**
 
 This command displays the current system uptime

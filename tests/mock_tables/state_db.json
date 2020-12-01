@@ -273,6 +273,18 @@
 	"30" : "200.200.200.5@Vlan1000",
 	"31" : "200.200.200.5@Vlan1000"	
     },
+    "REBOOT_CAUSE|2020_10_09_04_53_58": {
+        "cause": "warm-reboot",
+        "time": "Fri Oct  9 04:51:47 UTC 2020",
+        "user": "admin",
+        "comment": "N/A"
+    },
+    "REBOOT_CAUSE|2020_10_09_02_33_06": {
+        "cause": "reboot",
+        "time": "Fri Oct  9 02:29:44 UTC 2020",
+        "user": "admin",
+        "comment": "N/A"
+    },
     "CHASSIS_TABLE|CHASSIS 1": {
         "module_num": "5"
     },
