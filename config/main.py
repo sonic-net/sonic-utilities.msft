@@ -3188,7 +3188,6 @@ def naming_mode_alias():
     """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
     set_interface_naming_mode('alias')
 
-@config.group()
 def is_loopback_name_valid(loopback_name):
     """Loopback name validation
     """
