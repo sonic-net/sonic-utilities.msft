@@ -16,17 +16,28 @@ from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 from utilities_common.db import Db
 
+from . import acl
 from . import bgp_common 
 from . import chassis_modules
+from . import dropcounters
 from . import feature
 from . import fgnhg
+from . import gearbox
 from . import interfaces
+from . import kdump
 from . import kube
 from . import mlnx
 from . import muxcable
+from . import nat
+from . import platform
+from . import processes
 from . import reboot_cause
+from . import sflow
 from . import vlan
+from . import vnet
+from . import vxlan
 from . import system_health
+from . import warm_restart
 
 
 # Global Variables
@@ -129,15 +140,33 @@ def cli(ctx):
 
 
 # Add groups from other modules
+cli.add_command(acl.acl)
 cli.add_command(chassis_modules.chassis_modules)
+cli.add_command(dropcounters.dropcounters)
 cli.add_command(feature.feature)
 cli.add_command(fgnhg.fgnhg)
 cli.add_command(interfaces.interfaces)
+cli.add_command(kdump.kdump)
 cli.add_command(kube.kubernetes)
 cli.add_command(muxcable.muxcable)
+cli.add_command(nat.nat)
+cli.add_command(platform.platform)
+cli.add_command(processes.processes)
 cli.add_command(reboot_cause.reboot_cause)
+cli.add_command(sflow.sflow)
 cli.add_command(vlan.vlan)
+cli.add_command(vnet.vnet)
+cli.add_command(vxlan.vxlan)
 cli.add_command(system_health.system_health)
+cli.add_command(warm_restart.warm_restart)
+
+# Add greabox commands only if GEARBOX is configured
+# TODO: Find a cleaner way to do this
+app_db = SonicV2Connector(host='127.0.0.1')
+app_db.connect(app_db.APPL_DB)
+if app_db.keys(app_db.APPL_DB, '_GEARBOX_TABLE:phy:*'):
+    cli.add_command(gearbox.gearbox)
+
 
 #
 # 'vrf' command ("show vrf")
@@ -979,125 +1008,6 @@ def table(verbose):
     cmd = "sudo lldpshow"
     run_command(cmd, display_cmd=verbose)
 
-#
-# 'platform' group ("show platform ...")
-#
-
-def get_hw_info_dict():
-    """
-    This function is used to get the HW info helper function
-    """
-    hw_info_dict = {}
-
-    version_info = device_info.get_sonic_version_info()
-
-    hw_info_dict['platform'] = device_info.get_platform()
-    hw_info_dict['hwsku'] = device_info.get_hwsku()
-    hw_info_dict['asic_type'] = version_info['asic_type']
-    hw_info_dict['asic_count'] = multi_asic.get_num_asics()
-
-    return hw_info_dict
-
-@cli.group(cls=clicommon.AliasedGroup)
-def platform():
-    """Show platform-specific hardware info"""
-    pass
-
-version_info = device_info.get_sonic_version_info()
-if (version_info and version_info.get('asic_type') == 'mellanox'):
-    platform.add_command(mlnx.mlnx)
-
-# 'summary' subcommand ("show platform summary")
-@platform.command()
-@click.option('--json', is_flag=True, help="JSON output")
-def summary(json):
-    """Show hardware platform information"""
-
-    hw_info_dict = get_hw_info_dict()
-    if json:
-        click.echo(clicommon.json_dump(hw_info_dict))
-    else:
-        click.echo("Platform: {}".format(hw_info_dict['platform']))
-        click.echo("HwSKU: {}".format(hw_info_dict['hwsku']))
-        click.echo("ASIC: {}".format(hw_info_dict['asic_type']))
-        click.echo("ASIC Count: {}".format(hw_info_dict['asic_count']))
-
-# 'syseeprom' subcommand ("show platform syseeprom")
-@platform.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def syseeprom(verbose):
-    """Show system EEPROM information"""
-    cmd = "sudo decode-syseeprom -d"
-    run_command(cmd, display_cmd=verbose)
-
-# 'psustatus' subcommand ("show platform psustatus")
-@platform.command()
-@click.option('-i', '--index', default=-1, type=int, help="the index of PSU")
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def psustatus(index, verbose):
-    """Show PSU status information"""
-    cmd = "psushow -s"
-
-    if index >= 0:
-        cmd += " -i {}".format(index)
-
-    run_command(cmd, display_cmd=verbose)
-
-# 'ssdhealth' subcommand ("show platform ssdhealth [--verbose/--vendor]")
-@platform.command()
-@click.argument('device', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-@click.option('--vendor', is_flag=True, help="Enable vendor specific output")
-def ssdhealth(device, verbose, vendor):
-    """Show SSD Health information"""
-    if not device:
-        device = os.popen("lsblk -o NAME,TYPE -p | grep disk").readline().strip().split()[0]
-    cmd = "ssdutil -d " + device
-    options = " -v" if verbose else ""
-    options += " -e" if vendor else ""
-    run_command(cmd + options, display_cmd=verbose)
-
-@platform.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-@click.option('-c', '--check', is_flag=True, help="Check the platfome pcie device")
-def pcieinfo(check, verbose):
-    """Show Device PCIe Info"""
-    cmd = "pcieutil pcie_show"
-    if check:
-        cmd = "pcieutil pcie_check"
-    run_command(cmd, display_cmd=verbose)
-
-# 'fan' subcommand ("show platform fan")
-@platform.command()
-def fan():
-    """Show fan status information"""
-    cmd = 'fanshow'
-    run_command(cmd)
-
-# 'temperature' subcommand ("show platform temperature")
-@platform.command()
-def temperature():
-    """Show device temperature information"""
-    cmd = 'tempershow'
-    run_command(cmd)
-
-# 'firmware' subcommand ("show platform firmware")
-@platform.command(
-    context_settings=dict(
-        ignore_unknown_options=True,
-        allow_extra_args=True
-    ),
-    add_help_option=False
-)
-@click.argument('args', nargs=-1, type=click.UNPROCESSED)
-def firmware(args):
-    """Show firmware information"""
-    cmd = "fwutil show {}".format(" ".join(args))
-
-    try:
-        subprocess.check_call(cmd, shell=True)
-    except subprocess.CalledProcessError as e:
-        sys.exit(e.returncode)
 
 #
 # 'logging' command ("show logging")
@@ -1137,20 +1047,28 @@ def logging(process, lines, follow, verbose):
 def version(verbose):
     """Show version information"""
     version_info = device_info.get_sonic_version_info()
-    hw_info_dict = get_hw_info_dict()
+
+    platform = device_info.get_platform()
+    hwsku = device_info.get_hwsku()
+    asic_type = version_info['asic_type']
+    asic_count = multi_asic.get_num_asics()
+
     serial_number_cmd = "sudo decode-syseeprom -s"
     serial_number = subprocess.Popen(serial_number_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+
     sys_uptime_cmd = "uptime"
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
     click.echo("Distribution: Debian {}".format(version_info['debian_version']))
     click.echo("Kernel: {}".format(version_info['kernel_version']))
     click.echo("Build commit: {}".format(version_info['commit_id']))
     click.echo("Build date: {}".format(version_info['build_date']))
     click.echo("Built by: {}".format(version_info['built_by']))
-    click.echo("\nPlatform: {}".format(hw_info_dict['platform']))
-    click.echo("HwSKU: {}".format(hw_info_dict['hwsku']))
-    click.echo("ASIC: {}".format(hw_info_dict['asic_type']))
+    click.echo("\nPlatform: {}".format(platform))
+    click.echo("HwSKU: {}".format(hwsku))
+    click.echo("ASIC: {}".format(asic_type))
+    click.echo("ASIC Count: {}".format(asic_count))
     click.echo("Serial Number: {}".format(serial_number.stdout.read().strip()))
     click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
     click.echo("\nDocker images:")
@@ -1169,42 +1087,6 @@ def environment(verbose):
     cmd = "sudo sensors"
     run_command(cmd, display_cmd=verbose)
 
-
-#
-# 'processes' group ("show processes ...")
-#
-
-@cli.group(cls=clicommon.AliasedGroup)
-def processes():
-    """Display process information"""
-    pass
-
-@processes.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def summary(verbose):
-    """Show processes info"""
-    # Run top batch mode to prevent unexpected newline after each newline
-    cmd = "ps -eo pid,ppid,cmd,%mem,%cpu "
-    run_command(cmd, display_cmd=verbose)
-
-
-# 'cpu' subcommand ("show processes cpu")
-@processes.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def cpu(verbose):
-    """Show processes CPU info"""
-    # Run top in batch mode to prevent unexpected newline after each newline
-    cmd = "top -bn 1 -o %CPU"
-    run_command(cmd, display_cmd=verbose)
-
-# 'memory' subcommand
-@processes.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def memory(verbose):
-    """Show processes memory info"""
-    # Run top batch mode to prevent unexpected newline after each newline
-    cmd = "top -bn 1 -o %MEM"
-    run_command(cmd, display_cmd=verbose)
 
 #
 # 'users' command ("show users")
@@ -1425,86 +1307,6 @@ def system_memory(verbose):
     cmd = "free -m"
     run_command(cmd, display_cmd=verbose)
 
-#
-# 'kdump command ("show kdump ...")
-#
-@cli.group(cls=clicommon.AliasedGroup)
-def kdump():
-    """Show kdump configuration, status and information """
-    pass
-
-@kdump.command('enabled')
-def enabled():
-    """Show if kdump is enabled or disabled"""
-    kdump_is_enabled = False
-    config_db = ConfigDBConnector()
-    if config_db is not None:
-        config_db.connect()
-        table_data = config_db.get_table('KDUMP')
-        if table_data is not None:
-            config_data = table_data.get('config')
-            if config_data is not None:
-                if config_data.get('enabled').lower() == 'true':
-                    kdump_is_enabled = True
-    if kdump_is_enabled:
-        click.echo("kdump is enabled")
-    else:
-        click.echo("kdump is disabled")
-
-@kdump.command('status')
-def status():
-    """Show kdump status"""
-    run_command("sonic-kdump-config --status")
-    run_command("sonic-kdump-config --memory")
-    run_command("sonic-kdump-config --num_dumps")
-    run_command("sonic-kdump-config --files")
-
-@kdump.command('memory')
-def memory():
-    """Show kdump memory information"""
-    kdump_memory = "0M-2G:256M,2G-4G:320M,4G-8G:384M,8G-:448M"
-    config_db = ConfigDBConnector()
-    if config_db is not None:
-        config_db.connect()
-        table_data = config_db.get_table('KDUMP')
-        if table_data is not None:
-            config_data = table_data.get('config')
-            if config_data is not None:
-                kdump_memory_from_db = config_data.get('memory')
-                if kdump_memory_from_db is not None:
-                    kdump_memory = kdump_memory_from_db
-    click.echo("Memory Reserved: %s" % kdump_memory)
-
-@kdump.command('num_dumps')
-def num_dumps():
-    """Show kdump max number of dump files"""
-    kdump_num_dumps = "3"
-    config_db = ConfigDBConnector()
-    if config_db is not None:
-        config_db.connect()
-        table_data = config_db.get_table('KDUMP')
-        if table_data is not None:
-            config_data = table_data.get('config')
-            if config_data is not None:
-                kdump_num_dumps_from_db = config_data.get('num_dumps')
-                if kdump_num_dumps_from_db is not None:
-                    kdump_num_dumps = kdump_num_dumps_from_db
-    click.echo("Maximum number of Kernel Core files Stored: %s" % kdump_num_dumps)
-
-@kdump.command('files')
-def files():
-    """Show kdump kernel core dump files"""
-    run_command("sonic-kdump-config --files")
-
-@kdump.command()
-@click.argument('record', required=True)
-@click.argument('lines', metavar='<lines>', required=False)
-def log(record, lines):
-    """Show kdump kernel core dump file kernel log"""
-    if lines is None:
-        run_command("sonic-kdump-config --file %s" % record)
-    else:
-        run_command("sonic-kdump-config --file %s --lines %s" % (record, lines))
 
 @cli.command('services')
 def services():
@@ -1607,183 +1409,6 @@ def policer(policer_name, verbose):
 
 
 #
-# 'sflow command ("show sflow ...")
-#
-@cli.group(invoke_without_command=True)
-@clicommon.pass_db
-@click.pass_context
-def sflow(ctx, db):
-    """Show sFlow related information"""
-    if ctx.invoked_subcommand is None:
-        show_sflow_global(db.cfgdb)
-
-#
-# 'sflow command ("show sflow interface ...")
-#
-@sflow.command('interface')
-@clicommon.pass_db
-def sflow_interface(db):
-    """Show sFlow interface information"""
-    show_sflow_interface(db.cfgdb)
-
-def sflow_appDB_connect():
-    db = SonicV2Connector(host='127.0.0.1')
-    db.connect(db.APPL_DB, False)
-    return db
-
-def show_sflow_interface(config_db):
-    sess_db = sflow_appDB_connect()
-    if not sess_db:
-        click.echo("sflow AppDB error")
-        return
-
-    port_tbl = config_db.get_table('PORT')
-    if not port_tbl:
-        click.echo("No ports configured")
-        return
-
-    click.echo("\nsFlow interface configurations")
-    header = ['Interface', 'Admin State', 'Sampling Rate']
-    body = []
-    for pname in natsorted(list(port_tbl.keys())):
-        intf_key = 'SFLOW_SESSION_TABLE:' + pname
-        sess_info = sess_db.get_all(sess_db.APPL_DB, intf_key)
-        if sess_info is None:
-            continue
-        body_info = [pname]
-        body_info.append(sess_info['admin_state'])
-        body_info.append(sess_info['sample_rate'])
-        body.append(body_info)
-    click.echo(tabulate(body, header, tablefmt='grid'))
-
-def show_sflow_global(config_db):
-
-    sflow_info = config_db.get_table('SFLOW')
-    global_admin_state = 'down'
-    if sflow_info:
-        global_admin_state = sflow_info['global']['admin_state']
-
-    click.echo("\nsFlow Global Information:")
-    click.echo("  sFlow Admin State:".ljust(30) + "{}".format(global_admin_state))
-
-
-    click.echo("  sFlow Polling Interval:".ljust(30), nl=False)
-    if (sflow_info and 'polling_interval' in sflow_info['global']):
-        click.echo("{}".format(sflow_info['global']['polling_interval']))
-    else:
-        click.echo("default")
-
-    click.echo("  sFlow AgentID:".ljust(30), nl=False)
-    if (sflow_info and 'agent_id' in sflow_info['global']):
-        click.echo("{}".format(sflow_info['global']['agent_id']))
-    else:
-        click.echo("default")
-
-    sflow_info = config_db.get_table('SFLOW_COLLECTOR')
-    click.echo("\n  {} Collectors configured:".format(len(sflow_info)))
-    for collector_name in sorted(list(sflow_info.keys())):
-        vrf_name = (sflow_info[collector_name]['collector_vrf']
-                    if 'collector_vrf' in sflow_info[collector_name] else 'default')
-        click.echo("    Name: {}".format(collector_name).ljust(30) +
-                   "IP addr: {} ".format(sflow_info[collector_name]['collector_ip']).ljust(25) +
-                   "UDP port: {}".format(sflow_info[collector_name]['collector_port']).ljust(17) +
-                   "VRF: {}".format(vrf_name))
-
-
-#
-# 'acl' group ###
-#
-
-@cli.group(cls=clicommon.AliasedGroup)
-def acl():
-    """Show ACL related information"""
-    pass
-
-
-# 'rule' subcommand  ("show acl rule")
-@acl.command()
-@click.argument('table_name', required=False)
-@click.argument('rule_id', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def rule(table_name, rule_id, verbose):
-    """Show existing ACL rules"""
-    cmd = "acl-loader show rule"
-
-    if table_name is not None:
-        cmd += " {}".format(table_name)
-
-    if rule_id is not None:
-        cmd += " {}".format(rule_id)
-
-    run_command(cmd, display_cmd=verbose)
-
-
-# 'table' subcommand  ("show acl table")
-@acl.command()
-@click.argument('table_name', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def table(table_name, verbose):
-    """Show existing ACL tables"""
-    cmd = "acl-loader show table"
-
-    if table_name is not None:
-        cmd += " {}".format(table_name)
-
-    run_command(cmd, display_cmd=verbose)
-
-
-#
-# 'dropcounters' group ###
-#
-
-@cli.group(cls=clicommon.AliasedGroup)
-def dropcounters():
-    """Show drop counter related information"""
-    pass
-
-
-# 'configuration' subcommand ("show dropcounters configuration")
-@dropcounters.command()
-@click.option('-g', '--group', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def configuration(group, verbose):
-    """Show current drop counter configuration"""
-    cmd = "dropconfig -c show_config"
-
-    if group:
-        cmd += " -g '{}'".format(group)
-
-    run_command(cmd, display_cmd=verbose)
-
-
-# 'capabilities' subcommand ("show dropcounters capabilities")
-@dropcounters.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def capabilities(verbose):
-    """Show device drop counter capabilities"""
-    cmd = "dropconfig -c show_capabilities"
-
-    run_command(cmd, display_cmd=verbose)
-
-
-# 'counts' subcommand ("show dropcounters counts")
-@dropcounters.command()
-@click.option('-g', '--group', required=False)
-@click.option('-t', '--counter_type', required=False)
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def counts(group, counter_type, verbose):
-    """Show drop counts"""
-    cmd = "dropstat -c show"
-
-    if group:
-        cmd += " -g '{}'".format(group)
-
-    if counter_type:
-        cmd += " -t '{}'".format(counter_type)
-
-    run_command(cmd, display_cmd=verbose)
-
-#
 # 'ecn' command ("show ecn")
 #
 @cli.command('ecn')
@@ -1827,271 +1452,6 @@ def line(brief, verbose):
     return
 
 
-@cli.group(name='warm_restart', cls=clicommon.AliasedGroup)
-def warm_restart():
-    """Show warm restart configuration and state"""
-    pass
-
-@warm_restart.command()
-@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
-def state(redis_unix_socket_path):
-    """Show warm restart state"""
-    kwargs = {}
-    if redis_unix_socket_path:
-        kwargs['unix_socket_path'] = redis_unix_socket_path
-
-    db = SonicV2Connector(host='127.0.0.1')
-    db.connect(db.STATE_DB, False)   # Make one attempt only
-
-    TABLE_NAME_SEPARATOR = '|'
-    prefix = 'WARM_RESTART_TABLE' + TABLE_NAME_SEPARATOR
-    _hash = '{}{}'.format(prefix, '*')
-    table_keys = db.keys(db.STATE_DB, _hash)
-
-    def remove_prefix(text, prefix):
-        if text.startswith(prefix):
-            return text[len(prefix):]
-        return text
-
-    table = []
-    for tk in table_keys:
-        entry = db.get_all(db.STATE_DB, tk)
-        r = []
-        r.append(remove_prefix(tk, prefix))
-        if 'restore_count' not in entry:
-            r.append("")
-        else:
-            r.append(entry['restore_count'])
-
-        if 'state' not in entry:
-            r.append("")
-        else:
-            r.append(entry['state'])
-
-        table.append(r)
-
-    header = ['name', 'restore_count', 'state']
-    click.echo(tabulate(table, header))
-
-@warm_restart.command()
-@click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
-def config(redis_unix_socket_path):
-    """Show warm restart config"""
-    kwargs = {}
-    if redis_unix_socket_path:
-        kwargs['unix_socket_path'] = redis_unix_socket_path
-    config_db = ConfigDBConnector(**kwargs)
-    config_db.connect(wait_for_init=False)
-    data = config_db.get_table('WARM_RESTART')
-    # Python dictionary keys() Method
-    keys = list(data.keys())
-
-    state_db = SonicV2Connector(host='127.0.0.1')
-    state_db.connect(state_db.STATE_DB, False)   # Make one attempt only
-    TABLE_NAME_SEPARATOR = '|'
-    prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR
-    _hash = '{}{}'.format(prefix, '*')
-    # DBInterface keys() method
-    enable_table_keys = state_db.keys(state_db.STATE_DB, _hash)
-
-    def tablelize(keys, data, enable_table_keys, prefix):
-        table = []
-
-        if enable_table_keys is not None:
-            for k in enable_table_keys:
-                k = k.replace(prefix, "")
-                if k not in keys:
-                    keys.append(k)
-
-        for k in keys:
-            r = []
-            r.append(k)
-
-            enable_k = prefix + k
-            if enable_table_keys is None or enable_k not in enable_table_keys:
-                r.append("false")
-            else:
-                r.append(state_db.get(state_db.STATE_DB, enable_k, "enable"))
-
-            if k not in data:
-                r.append("NULL")
-                r.append("NULL")
-                r.append("NULL")
-            elif 'neighsyncd_timer' in  data[k]:
-                r.append("neighsyncd_timer")
-                r.append(data[k]['neighsyncd_timer'])
-                r.append("NULL")
-            elif 'bgp_timer' in data[k] or 'bgp_eoiu' in data[k]:
-                if 'bgp_timer' in data[k]:
-                    r.append("bgp_timer")
-                    r.append(data[k]['bgp_timer'])
-                else:
-                    r.append("NULL")
-                    r.append("NULL")
-                if 'bgp_eoiu' in data[k]:
-                    r.append(data[k]['bgp_eoiu'])
-                else:
-                    r.append("NULL")
-            elif 'teamsyncd_timer' in data[k]:
-                r.append("teamsyncd_timer")
-                r.append(data[k]['teamsyncd_timer'])
-                r.append("NULL")
-            else:
-                r.append("NULL")
-                r.append("NULL")
-                r.append("NULL")
-
-            table.append(r)
-
-        return table
-
-    header = ['name', 'enable', 'timer_name', 'timer_duration', 'eoiu_enable']
-    click.echo(tabulate(tablelize(keys, data, enable_table_keys, prefix), header))
-    state_db.close(state_db.STATE_DB)
-
-#
-# 'nat' group ("show nat ...")
-#
-
-@cli.group(cls=clicommon.AliasedGroup)
-def nat():
-    """Show details of the nat """
-    pass
-
-# 'statistics' subcommand ("show nat statistics")
-@nat.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def statistics(verbose):
-    """ Show NAT statistics """
-
-    cmd = "sudo natshow -s"
-    run_command(cmd, display_cmd=verbose)
-
-# 'translations' subcommand ("show nat translations")
-@nat.group(invoke_without_command=True)
-@click.pass_context
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def translations(ctx, verbose):
-    """ Show NAT translations """
-
-    if ctx.invoked_subcommand is None:
-        cmd = "sudo natshow -t"
-        run_command(cmd, display_cmd=verbose)
-
-# 'count' subcommand ("show nat translations count")
-@translations.command()
-def count():
-    """ Show NAT translations count """
-
-    cmd = "sudo natshow -c"
-    run_command(cmd)
-
-# 'config' subcommand ("show nat config")
-@nat.group(invoke_without_command=True)
-@click.pass_context
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def config(ctx, verbose):
-    """Show NAT config related information"""
-    if ctx.invoked_subcommand is None:
-        click.echo("\nGlobal Values")
-        cmd = "sudo natconfig -g"
-        run_command(cmd, display_cmd=verbose)
-        click.echo("Static Entries")
-        cmd = "sudo natconfig -s"
-        run_command(cmd, display_cmd=verbose)
-        click.echo("Pool Entries")
-        cmd = "sudo natconfig -p"
-        run_command(cmd, display_cmd=verbose)
-        click.echo("NAT Bindings")
-        cmd = "sudo natconfig -b"
-        run_command(cmd, display_cmd=verbose)
-        click.echo("NAT Zones")
-        cmd = "sudo natconfig -z"
-        run_command(cmd, display_cmd=verbose)
-
-# 'static' subcommand  ("show nat config static")
-@config.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def static(verbose):
-    """Show static NAT configuration"""
-
-    cmd = "sudo natconfig -s"
-    run_command(cmd, display_cmd=verbose)
-
-# 'pool' subcommand  ("show nat config pool")
-@config.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def pool(verbose):
-    """Show NAT Pool configuration"""
-
-    cmd = "sudo natconfig -p"
-    run_command(cmd, display_cmd=verbose)
-
-# Define GEARBOX commands only if GEARBOX is configured
-app_db = SonicV2Connector(host='127.0.0.1')
-app_db.connect(app_db.APPL_DB)
-if app_db.keys(app_db.APPL_DB, '_GEARBOX_TABLE:phy:*'):
-
-    @cli.group(cls=clicommon.AliasedGroup)
-    def gearbox():
-        """Show gearbox info"""
-        pass
-
-    # 'phys' subcommand ("show gearbox phys")
-    @gearbox.group(cls=clicommon.AliasedGroup)
-    def phys():
-        """Show external PHY information"""
-        pass
-
-    # 'status' subcommand ("show gearbox phys status")
-    @phys.command()
-    @click.pass_context
-    def status(ctx):
-        """Show gearbox phys status"""
-        run_command("gearboxutil phys status")
-        return
-
-    # 'interfaces' subcommand ("show gearbox interfaces")
-    @gearbox.group(cls=clicommon.AliasedGroup)
-    def interfaces():
-        """Show gearbox interfaces information"""
-        pass
-
-    # 'status' subcommand ("show gearbox interfaces status")
-    @interfaces.command()
-    @click.pass_context
-    def status(ctx):
-        """Show gearbox interfaces status"""
-        run_command("gearboxutil interfaces status")
-        return
-
-# 'bindings' subcommand  ("show nat config bindings")
-@config.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def bindings(verbose):
-    """Show NAT binding configuration"""
-
-    cmd = "sudo natconfig -b"
-    run_command(cmd, display_cmd=verbose)
-
-# 'globalvalues' subcommand  ("show nat config globalvalues")
-@config.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def globalvalues(verbose):
-    """Show NAT Global configuration"""
-
-    cmd = "sudo natconfig -g"
-    run_command(cmd, display_cmd=verbose)
-
-# 'zones' subcommand  ("show nat config zones")
-@config.command()
-@click.option('--verbose', is_flag=True, help="Enable verbose output")
-def zones(verbose):
-    """Show NAT Zone configuration"""
-
-    cmd = "sudo natconfig -z"
-    run_command(cmd, display_cmd=verbose)
-
 #
 # 'ztp status' command ("show ztp status")
 #
@@ -2108,324 +1468,6 @@ def ztp(status, verbose):
        cmd = cmd + " --verbose"
     run_command(cmd, display_cmd=verbose)
 
-#
-# 'vnet' command ("show vnet")
-#
-@cli.group(cls=clicommon.AliasedGroup)
-def vnet():
-    """Show vnet related information"""
-    pass
-
-@vnet.command()
-@click.argument('vnet_name', required=True)
-def name(vnet_name):
-    """Show vnet name <vnet name> information"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    header = ['vnet name', 'vxlan tunnel', 'vni', 'peer list']
-
-    # Fetching data from config_db for VNET
-    vnet_data = config_db.get_entry('VNET', vnet_name)
-
-    def tablelize(vnet_key, vnet_data):
-        table = []
-        if vnet_data:
-            r = []
-            r.append(vnet_key)
-            r.append(vnet_data.get('vxlan_tunnel'))
-            r.append(vnet_data.get('vni'))
-            r.append(vnet_data.get('peer_list'))
-            table.append(r)
-        return table
-
-    click.echo(tabulate(tablelize(vnet_name, vnet_data), header))
-
-@vnet.command()
-def brief():
-    """Show vnet brief information"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    header = ['vnet name', 'vxlan tunnel', 'vni', 'peer list']
-
-    # Fetching data from config_db for VNET
-    vnet_data = config_db.get_table('VNET')
-    vnet_keys = natsorted(list(vnet_data.keys()))
-
-    def tablelize(vnet_keys, vnet_data):
-        table = []
-        for k in vnet_keys:
-            r = []
-            r.append(k)
-            r.append(vnet_data[k].get('vxlan_tunnel'))
-            r.append(vnet_data[k].get('vni'))
-            r.append(vnet_data[k].get('peer_list'))
-            table.append(r)
-        return table
-
-    click.echo(tabulate(tablelize(vnet_keys, vnet_data), header))
-
-@vnet.command()
-@click.argument('vnet_alias', required=False)
-def alias(vnet_alias):
-    """Show vnet alias to name information"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    header = ['Alias', 'Name']
-
-    # Fetching data from config_db for VNET
-    vnet_data = config_db.get_table('VNET')
-    vnet_keys = natsorted(list(vnet_data.keys()))
-
-    def tablelize(vnet_keys, vnet_data, vnet_alias):
-        table = []
-        for k in vnet_keys:
-            r = []
-            if vnet_alias is not None:
-                if vnet_data[k].get('guid') == vnet_alias:
-                    r.append(vnet_data[k].get('guid'))
-                    r.append(k)
-                    table.append(r)
-                    return table
-                else:
-                    continue
-
-            r.append(vnet_data[k].get('guid'))
-            r.append(k)
-            table.append(r)
-        return table
-
-    click.echo(tabulate(tablelize(vnet_keys, vnet_data, vnet_alias), header))
-
-@vnet.command()
-def interfaces():
-    """Show vnet interfaces information"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
-    header = ['vnet name', 'interfaces']
-
-    # Fetching data from config_db for interfaces
-    intfs_data = config_db.get_table("INTERFACE")
-    vlan_intfs_data = config_db.get_table("VLAN_INTERFACE")
-
-    vnet_intfs = {}
-    for k, v in intfs_data.items():
-        if 'vnet_name' in v:
-            vnet_name = v['vnet_name']
-            if vnet_name in vnet_intfs:
-                vnet_intfs[vnet_name].append(k)
-            else:
-                vnet_intfs[vnet_name] = [k]
-
-    for k, v in vlan_intfs_data.items():
-        if 'vnet_name' in v:
-            vnet_name = v['vnet_name']
-            if vnet_name in vnet_intfs:
-                vnet_intfs[vnet_name].append(k)
-            else:
-                vnet_intfs[vnet_name] = [k]
-
-    table = []
-    for k, v in vnet_intfs.items():
-        r = []
-        r.append(k)
-        r.append(",".join(natsorted(v)))
-        table.append(r)
-
-    click.echo(tabulate(table, header))
-
-@vnet.command()
-def neighbors():
-    """Show vnet neighbors information"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-
-    header = ['<vnet_name>', 'neighbor', 'mac_address', 'interfaces']
-
-    # Fetching data from config_db for interfaces
-    intfs_data = config_db.get_table("INTERFACE")
-    vlan_intfs_data = config_db.get_table("VLAN_INTERFACE")
-
-    vnet_intfs = {}
-    for k, v in intfs_data.items():
-        if 'vnet_name' in v:
-            vnet_name = v['vnet_name']
-            if vnet_name in vnet_intfs:
-                vnet_intfs[vnet_name].append(k)
-            else:
-                vnet_intfs[vnet_name] = [k]
-
-    for k, v in vlan_intfs_data.items():
-        if 'vnet_name' in v:
-            vnet_name = v['vnet_name']
-            if vnet_name in vnet_intfs:
-                vnet_intfs[vnet_name].append(k)
-            else:
-                vnet_intfs[vnet_name] = [k]
-
-    appl_db = SonicV2Connector()
-    appl_db.connect(appl_db.APPL_DB)
-
-    # Fetching data from appl_db for neighbors
-    nbrs = appl_db.keys(appl_db.APPL_DB, "NEIGH_TABLE:*")
-    nbrs_data = {}
-    for nbr in nbrs if nbrs else []:
-        tbl, intf, ip = nbr.split(":", 2)
-        mac = appl_db.get(appl_db.APPL_DB, nbr, 'neigh')
-        if intf in nbrs_data:
-            nbrs_data[intf].append((ip, mac))
-        else:
-            nbrs_data[intf] = [(ip, mac)]
-
-    table = []
-    for k, v in vnet_intfs.items():
-        v = natsorted(v)
-        header[0] = k
-        table = []
-        for intf in v:
-            if intf in nbrs_data:
-                for ip, mac in nbrs_data[intf]:
-                    r = ["", ip, mac, intf]
-                    table.append(r)
-        click.echo(tabulate(table, header))
-        click.echo()
-
-    if not bool(vnet_intfs):
-        click.echo(tabulate(table, header))
-
-@vnet.group()
-def routes():
-    """Show vnet routes related information"""
-    pass
-
-@routes.command()
-def all():
-    """Show all vnet routes"""
-    appl_db = SonicV2Connector()
-    appl_db.connect(appl_db.APPL_DB)
-
-    header = ['vnet name', 'prefix', 'nexthop', 'interface']
-
-    # Fetching data from appl_db for VNET ROUTES
-    vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TABLE:*")
-    vnet_rt_keys = natsorted(vnet_rt_keys) if vnet_rt_keys else []
-
-    table = []
-    for k in vnet_rt_keys:
-        r = []
-        r.extend(k.split(":", 2)[1:])
-        val = appl_db.get_all(appl_db.APPL_DB, k)
-        r.append(val.get('nexthop'))
-        r.append(val.get('ifname'))
-        table.append(r)
-
-    click.echo(tabulate(table, header))
-
-    click.echo()
-
-    header = ['vnet name', 'prefix', 'endpoint', 'mac address', 'vni']
-
-    # Fetching data from appl_db for VNET TUNNEL ROUTES
-    vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TUNNEL_TABLE:*")
-    vnet_rt_keys = natsorted(vnet_rt_keys) if vnet_rt_keys else []
-
-    table = []
-    for k in vnet_rt_keys:
-        r = []
-        r.extend(k.split(":", 2)[1:])
-        val = appl_db.get_all(appl_db.APPL_DB, k)
-        r.append(val.get('endpoint'))
-        r.append(val.get('mac_address'))
-        r.append(val.get('vni'))
-        table.append(r)
-
-    click.echo(tabulate(table, header))
-
-@routes.command()
-def tunnel():
-    """Show vnet tunnel routes"""
-    appl_db = SonicV2Connector()
-    appl_db.connect(appl_db.APPL_DB)
-
-    header = ['vnet name', 'prefix', 'endpoint', 'mac address', 'vni']
-
-    # Fetching data from appl_db for VNET TUNNEL ROUTES
-    vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TUNNEL_TABLE:*")
-    vnet_rt_keys = natsorted(vnet_rt_keys) if vnet_rt_keys else []
-
-    table = []
-    for k in vnet_rt_keys:
-        r = []
-        r.extend(k.split(":", 2)[1:])
-        val = appl_db.get_all(appl_db.APPL_DB, k)
-        r.append(val.get('endpoint'))
-        r.append(val.get('mac_address'))
-        r.append(val.get('vni'))
-        table.append(r)
-
-    click.echo(tabulate(table, header))
-
-#
-# 'vxlan' command ("show vxlan")
-#
-@cli.group(cls=clicommon.AliasedGroup)
-def vxlan():
-    """Show vxlan related information"""
-    pass
-
-@vxlan.command()
-@click.argument('vxlan_name', required=True)
-def name(vxlan_name):
-    """Show vxlan name <vxlan_name> information"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    header = ['vxlan tunnel name', 'source ip', 'destination ip', 'tunnel map name', 'tunnel map mapping(vni -> vlan)']
-
-    # Fetching data from config_db for VXLAN TUNNEL
-    vxlan_data = config_db.get_entry('VXLAN_TUNNEL', vxlan_name)
-
-    table = []
-    if vxlan_data:
-        r = []
-        r.append(vxlan_name)
-        r.append(vxlan_data.get('src_ip'))
-        r.append(vxlan_data.get('dst_ip'))
-        vxlan_map_keys = config_db.keys(config_db.CONFIG_DB,
-                        'VXLAN_TUNNEL_MAP{}{}{}*'.format(config_db.KEY_SEPARATOR, vxlan_name, config_db.KEY_SEPARATOR))
-        if vxlan_map_keys:
-            vxlan_map_mapping = config_db.get_all(config_db.CONFIG_DB, vxlan_map_keys[0])
-            r.append(vxlan_map_keys[0].split(config_db.KEY_SEPARATOR, 2)[2])
-            r.append("{} -> {}".format(vxlan_map_mapping.get('vni'), vxlan_map_mapping.get('vlan')))
-        table.append(r)
-
-    click.echo(tabulate(table, header))
-
-@vxlan.command()
-def tunnel():
-    """Show vxlan tunnel information"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    header = ['vxlan tunnel name', 'source ip', 'destination ip', 'tunnel map name', 'tunnel map mapping(vni -> vlan)']
-
-    # Fetching data from config_db for VXLAN TUNNEL
-    vxlan_data = config_db.get_table('VXLAN_TUNNEL')
-    vxlan_keys = natsorted(list(vxlan_data.keys()))
-
-    table = []
-    for k in vxlan_keys:
-        r = []
-        r.append(k)
-        r.append(vxlan_data[k].get('src_ip'))
-        r.append(vxlan_data[k].get('dst_ip'))
-        vxlan_map_keys = config_db.keys(config_db.CONFIG_DB,
-                        'VXLAN_TUNNEL_MAP{}{}{}*'.format(config_db.KEY_SEPARATOR,k, config_db.KEY_SEPARATOR))
-        if vxlan_map_keys:
-            vxlan_map_mapping = config_db.get_all(config_db.CONFIG_DB, vxlan_map_keys[0])
-            r.append(vxlan_map_keys[0].split(config_db.KEY_SEPARATOR, 2)[2])
-            r.append("{} -> {}".format(vxlan_map_mapping.get('vni'), vxlan_map_mapping.get('vlan')))
-        table.append(r)
-
-    click.echo(tabulate(table, header))
 
 if __name__ == '__main__':
     cli()

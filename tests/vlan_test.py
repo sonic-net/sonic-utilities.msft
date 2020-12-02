@@ -1,5 +1,6 @@
 import os
 import traceback
+from unittest import mock
 
 from click.testing import CliRunner
 
@@ -477,12 +478,14 @@ class TestVlan(object):
         db = Db()
 
         # add new relay dest
-        result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["add"],
-                ["1000", "192.0.0.100"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == config_vlan_add_dhcp_relay_output
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock()) as mock_run_command:
+            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["add"],
+                    ["1000", "192.0.0.100"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            assert result.output == config_vlan_add_dhcp_relay_output
+            assert mock_run_command.call_count == 1
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
@@ -490,12 +493,14 @@ class TestVlan(object):
         assert result.output == show_vlan_brief_output_with_new_dhcp_relay_address
 
         # del relay dest
-        result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["del"],
-                ["1000", "192.0.0.100"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
-        assert result.output == config_vlan_del_dhcp_relay_output
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock()) as mock_run_command:
+            result = runner.invoke(config.config.commands["vlan"].commands["dhcp_relay"].commands["del"],
+                    ["1000", "192.0.0.100"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            assert result.output == config_vlan_del_dhcp_relay_output
+            assert mock_run_command.call_count == 1
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)

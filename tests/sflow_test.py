@@ -12,8 +12,7 @@ import config.main as config
 config.asic_type = mock.MagicMock(return_value = "broadcom")
 
 # Expected output for 'show sflow'
-show_sflow_output = ''+ \
-"""
+show_sflow_output = """
 sFlow Global Information:
   sFlow Admin State:          up
   sFlow Polling Interval:     0
@@ -25,8 +24,7 @@ sFlow Global Information:
 """
 
 # Expected output for 'show sflow interface'
-show_sflow_intf_output = ''+ \
-"""
+show_sflow_intf_output = """
 sFlow interface configurations
 +-------------+---------------+-----------------+
 | Interface   | Admin State   |   Sampling Rate |
@@ -56,8 +54,7 @@ class TestShowSflow(object):
 
     def test_show_sflow_intf(self):
         runner = CliRunner()
-        result = runner.invoke(show.cli.commands["sflow"].commands["interface"], \
-            [], obj=Db())
+        result = runner.invoke(show.cli.commands["sflow"].commands["interface"], [], obj=Db())
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert result.output == show_sflow_intf_output
@@ -69,15 +66,14 @@ class TestShowSflow(object):
         obj = {'db':db.cfgdb}
 
         #disable
-        result = runner.invoke(config.config.commands["sflow"].\
-            commands["disable"], [], obj=obj)
+        result = runner.invoke(config.config.commands["sflow"].commands["disable"], [], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
 
         # change the output
         global show_sflow_output
-        show_sflow_output_local = show_sflow_output.replace(\
-            'Admin State:          up', \
+        show_sflow_output_local = show_sflow_output.replace(
+            'Admin State:          up',
             'Admin State:          down')
 
         # run show and check
@@ -86,11 +82,12 @@ class TestShowSflow(object):
         assert result.exit_code == 0
         assert result.output == show_sflow_output_local
 
-        #enable
-        result = runner.invoke(config.config.commands["sflow"].\
-            commands["enable"], [], obj=obj)
-        print(result.exit_code, result.output)
-        assert result.exit_code == 0
+        # enable
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock()) as mock_run_command:
+            result = runner.invoke(config.config.commands["sflow"].commands["enable"], [], obj=obj)
+            print(result.exit_code, result.output)
+            assert result.exit_code == 0
+            assert mock_run_command.call_count == 2
 
         # run show and check
         result = runner.invoke(show.cli.commands["sflow"], [], obj=db)
@@ -109,16 +106,16 @@ class TestShowSflow(object):
         config.netifaces.interfaces = mock.MagicMock(return_value = "Ethernet0")
 
         # set agent-id
-        result = runner.invoke(config.config.commands["sflow"].\
+        result = runner.invoke(config.config.commands["sflow"].
             commands["agent-id"].commands["add"], ["Ethernet0"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
 
         # change the output
         global show_sflow_output
-        show_sflow_output_local = \
-            show_sflow_output.replace('sFlow AgentID:              default',
-                                      'sFlow AgentID:              Ethernet0')
+        show_sflow_output_local = show_sflow_output.replace(
+                'sFlow AgentID:              default',
+                'sFlow AgentID:              Ethernet0')
 
         # run show and check
         result = runner.invoke(show.cli.commands["sflow"], [], obj=db)
@@ -127,7 +124,7 @@ class TestShowSflow(object):
         assert result.output == show_sflow_output_local
 
         #del agent id
-        result = runner.invoke(config.config.commands["sflow"].\
+        result = runner.invoke(config.config.commands["sflow"].
             commands["agent-id"].commands["del"], [], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
@@ -146,17 +143,17 @@ class TestShowSflow(object):
         obj = {'db':db.cfgdb}
 
         # del a collector
-        result = runner.invoke(config.config.commands["sflow"].\
+        result = runner.invoke(config.config.commands["sflow"].
             commands["collector"].commands["del"], ["prod"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
 
         # change the output
         global show_sflow_output
-        show_sflow_output_local = show_sflow_output.replace(\
+        show_sflow_output_local = show_sflow_output.replace(
     "2 Collectors configured:\n\
     Name: prod                IP addr: fe80::6e82:6aff:fe1e:cd8e UDP port: 6343   VRF: mgmt\n\
-    Name: ser5                IP addr: 172.21.35.15    UDP port: 6343   VRF: default", \
+    Name: ser5                IP addr: 172.21.35.15    UDP port: 6343   VRF: default",
     "1 Collectors configured:\n\
     Name: ser5                IP addr: 172.21.35.15    UDP port: 6343   VRF: default")
 
@@ -167,8 +164,8 @@ class TestShowSflow(object):
         assert result.output == show_sflow_output_local
 
         # add collector
-        result = runner.invoke(config.config.commands["sflow"].\
-            commands["collector"].commands["add"], \
+        result = runner.invoke(config.config.commands["sflow"].
+            commands["collector"].commands["add"],
             ["prod", "fe80::6e82:6aff:fe1e:cd8e", "--vrf", "mgmt"], obj=obj)
         assert result.exit_code == 0
 
@@ -186,15 +183,15 @@ class TestShowSflow(object):
         obj = {'db':db.cfgdb}
 
         # set to 20
-        result = runner.invoke(config.config.commands["sflow"].\
+        result = runner.invoke(config.config.commands["sflow"].
             commands["polling-interval"], ["20"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
 
         # change the expected output
         global show_sflow_output
-        show_sflow_output_local = show_sflow_output.replace(\
-            'sFlow Polling Interval:     0', \
+        show_sflow_output_local = show_sflow_output.replace(
+            'sFlow Polling Interval:     0',
             'sFlow Polling Interval:     20')
 
         # run show and check
@@ -204,7 +201,7 @@ class TestShowSflow(object):
         assert result.output == show_sflow_output_local
 
         #reset to 0, no need to verify this one
-        result = runner.invoke(config.config.commands["sflow"].\
+        result = runner.invoke(config.config.commands["sflow"].
             commands["polling-interval"], ["0"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
@@ -220,7 +217,7 @@ class TestShowSflow(object):
         config.interface_name_is_valid = mock.MagicMock(return_value = True)
 
         # intf enable
-        result = runner.invoke(config.config.commands["sflow"].\
+        result = runner.invoke(config.config.commands["sflow"].
             commands["interface"].commands["enable"], ["Ethernet1"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
@@ -231,7 +228,7 @@ class TestShowSflow(object):
         assert sflowSession["Ethernet1"]["admin_state"] == "up"
 
         # intf disable
-        result = runner.invoke(config.config.commands["sflow"].\
+        result = runner.invoke(config.config.commands["sflow"].
             commands["interface"].commands["disable"], ["Ethernet1"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
@@ -251,8 +248,8 @@ class TestShowSflow(object):
         config.interface_name_is_valid = mock.MagicMock(return_value = True)
 
         # set sample-rate to 2500
-        result = runner.invoke(config.config.commands["sflow"].\
-            commands["interface"].commands["sample-rate"], \
+        result = runner.invoke(config.config.commands["sflow"].
+            commands["interface"].commands["sample-rate"],
             ["Ethernet2", "2500"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0

@@ -31,12 +31,13 @@ class TestPsu(object):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["platform"].commands["psustatus"], ["--verbose"])
         print(result.output)
-        assert result.output.split('\n')[0] == "Command: psushow -s"
+        assert result.output.split('\n')[0] == "Running command: psushow -s"
 
     def test_single_psu(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["platform"].commands["psustatus"], ["--index=1"])
-        expected = """PSU    Status    LED
+        expected = """\
+PSU    Status    LED
 -----  --------  -----
 PSU 1  OK        green
 """
