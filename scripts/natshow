@@ -139,30 +139,30 @@ class NatShow(object):
             nat_type = nat['nat_type']
 
             if nat_type == "SAI_NAT_TYPE_DESTINATION_NAT":
-                translated_dst_ip = ent[b"SAI_NAT_ENTRY_ATTR_DST_IP"]
+                translated_dst_ip = ent["SAI_NAT_ENTRY_ATTR_DST_IP"]
                 if "SAI_NAT_ENTRY_ATTR_L4_DST_PORT" in ent:
-                    translated_dst_port = ent[b"SAI_NAT_ENTRY_ATTR_L4_DST_PORT"]
+                    translated_dst_port = ent["SAI_NAT_ENTRY_ATTR_L4_DST_PORT"]
                     translated_dst = translated_dst_ip + ":" + translated_dst_port
                 else:
                     translated_dst = translated_dst_ip
             elif nat_type == "SAI_NAT_TYPE_SOURCE_NAT":
-                translated_src_ip = ent[b"SAI_NAT_ENTRY_ATTR_SRC_IP"]
+                translated_src_ip = ent["SAI_NAT_ENTRY_ATTR_SRC_IP"]
                 if "SAI_NAT_ENTRY_ATTR_L4_SRC_PORT" in ent:
-                    translated_src_port = ent[b"SAI_NAT_ENTRY_ATTR_L4_SRC_PORT"]
+                    translated_src_port = ent["SAI_NAT_ENTRY_ATTR_L4_SRC_PORT"]
                     translated_src = translated_src_ip + ":" + translated_src_port
                 else:
                     translated_src = translated_src_ip
             elif nat_type == "SAI_NAT_TYPE_DOUBLE_NAT":
-                translated_dst_ip = ent[b"SAI_NAT_ENTRY_ATTR_DST_IP"]
+                translated_dst_ip = ent["SAI_NAT_ENTRY_ATTR_DST_IP"]
                 if "SAI_NAT_ENTRY_ATTR_L4_DST_PORT" in ent:
-                    translated_dst_port = ent[b"SAI_NAT_ENTRY_ATTR_L4_DST_PORT"]
+                    translated_dst_port = ent["SAI_NAT_ENTRY_ATTR_L4_DST_PORT"]
                     translated_dst = translated_dst_ip + ":" + translated_dst_port
                 else:
                     translated_dst = translated_dst_ip
 
-                translated_src_ip = ent[b"SAI_NAT_ENTRY_ATTR_SRC_IP"]
+                translated_src_ip = ent["SAI_NAT_ENTRY_ATTR_SRC_IP"]
                 if "SAI_NAT_ENTRY_ATTR_L4_SRC_PORT" in ent:
-                    translated_src_port = ent[b"SAI_NAT_ENTRY_ATTR_L4_SRC_PORT"]
+                    translated_src_port = ent["SAI_NAT_ENTRY_ATTR_L4_SRC_PORT"]
                     translated_src = translated_src_ip + ":" + translated_src_port
                 else:
                     translated_src = translated_src_ip

@@ -72,8 +72,8 @@ class FdbShow(object):
                 continue
 
             ent = self.db.get_all('ASIC_DB', s, blocking=True)
-            br_port_id = ent[b"SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
-            ent_type = ent[b"SAI_FDB_ENTRY_ATTR_TYPE"]
+            br_port_id = ent["SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
+            ent_type = ent["SAI_FDB_ENTRY_ATTR_TYPE"]
             fdb_type = ['Dynamic','Static'][ent_type == "SAI_FDB_ENTRY_TYPE_STATIC"]
             if br_port_id not in self.if_br_oid_map:
                 continue
