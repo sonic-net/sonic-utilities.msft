@@ -198,7 +198,7 @@ class EcnQ(object):
             port_table = self.config_db.get_table(DEVICE_NEIGHBOR_TABLE_NAME)
             self.ports_key = port_table.keys()
 
-            self.ports_key.sort(key = lambda k: int(k[8:]))
+            self.ports_key = sorted(self.ports_key, key = lambda k: int(k[8:]))
 
     def set(self, enable):
         if os.geteuid() != 0:
