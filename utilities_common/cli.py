@@ -6,7 +6,6 @@ import sys
 
 import click
 import json
-import netaddr
 
 from natsort import natsorted
 from sonic_py_common import multi_asic
@@ -191,6 +190,7 @@ def get_interface_naming_mode():
 
 def is_ipaddress(val):
     """ Validate if an entry is a valid IP """
+    import netaddr
     if not val:
         return False
     try:
