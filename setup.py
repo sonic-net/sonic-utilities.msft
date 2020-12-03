@@ -110,7 +110,8 @@ setup(
         'scripts/warm-reboot',
         'scripts/watermarkstat',
         'scripts/watermarkcfg',
-        'scripts/sonic-kdump-config'
+        'scripts/sonic-kdump-config',
+        'scripts/centralize_database'
     ],
     entry_points={
         'console_scripts': [
