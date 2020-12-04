@@ -1,19 +1,28 @@
 #!/bin/bash
+DEVPATH="/usr/share/sonic/device"
+PLAT_REBOOT="platform_reboot"
+REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
+REBOOT_TIME=$(date)
 
 # Reboot immediately if we run the kdump capture kernel
 VMCORE_FILE=/proc/vmcore
 if [ -e $VMCORE_FILE -a -s $VMCORE_FILE ]; then
-   echo "We have a /proc/vmcore, then we just kdump'ed"
-   /sbin/reboot
+        echo "We have a /proc/vmcore, then we just kdump'ed"
+        echo "User issued 'kdump' command [User: kdump, Time: ${REBOOT_TIME}]" > ${REBOOT_CAUSE_FILE}
+        sync
+        PLATFORM=$(grep -oP 'platform=\K\S+' /proc/cmdline)
+        if [ ! -z "${PLATFORM}" -a -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
+            exec ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT}
+        fi
+        # If no platform-specific reboot tool, just run /sbin/reboot
+        /sbin/reboot
+        echo 1 > /proc/sys/kernel/sysrq
+        echo b > /proc/sysrq-trigger
 fi
 
 REBOOT_USER=$(logname)
-REBOOT_TIME=$(date)
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 ASIC_TYPE=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
-DEVPATH="/usr/share/sonic/device"
-PLAT_REBOOT="platform_reboot"
-REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
 VERBOSE=no
 EXIT_NEXT_IMAGE_NOT_EXISTS=4
 EXIT_SONIC_INSTALLER_VERIFY_REBOOT=21

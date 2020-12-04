@@ -22,11 +22,13 @@ import argparse
 import shlex
 import os
 import subprocess
+import json
 from swsssdk import ConfigDBConnector
 
 aboot_cfg_template ="/host/image-%s/kernel-cmdline"
 grub_cfg = "/host/grub/grub.cfg"
 kdump_cfg = "/etc/default/kdump-tools"
+kdump_mem_file = "/sys/kernel/kexec_crash_size"
 machine_cfg = "/host/machine.conf"
 
 ## Same as print(), but output to stderr instead of stdout
@@ -80,6 +82,14 @@ def get_current_image():
     print_err("Unable to locate current SONiC image")
     sys.exit(1)
 
+## Read allocated memory size
+def get_crash_kernel_size():
+    try:
+        with open(kdump_mem_file, 'r') as fp:
+            return fp.read().rstrip('\n')
+    except Exception as e:
+        return "0"
+
 ## Search which SONiC image is the Next image
 def get_next_image():
     (rc, img, err_str) = run_command("sonic-installer list | grep 'Next: ' | cut -d '-' -f 3-", use_shell=True);
@@ -129,7 +139,7 @@ def search_for_crash_kernel(where):
 
 ## Search for "crashkernel=X" in /proc/cmdline
 #
-#  @return Return the X from "crashkernel=X" in /proc/cmdline 
+#  @return Return the X from "crashkernel=X" in /proc/cmdline
 #          None in case "crashkernel=" is not found
 def search_for_crash_kernel_in_cmdline():
     try:
@@ -139,13 +149,88 @@ def search_for_crash_kernel_in_cmdline():
         sys.exit(1)
     return search_for_crash_kernel(cmdline[0])
 
+def cmd_dump_db():
+    print("Read Kdump configuration from db:")
+    config_db = ConfigDBConnector(use_unix_socket_path=True)
+    if config_db is not None:
+        config_db.connect()
+        table_data = config_db.get_table('KDUMP')
+        if table_data is not None:
+            config_data = table_data.get('config')
+            if config_data is not None:
+                print(config_data)
+            else:
+                print("empty")
+
+def cmd_dump_config_json():
+    kdump_enabled = get_kdump_administrative_mode()
+    kdump_memory = get_kdump_memory()
+    kdump_num_dumps = get_kdump_num_dumps()
+    data = { "enable" : kdump_enabled, \
+             "memory" : kdump_memory, \
+             "max-dumps" : int(kdump_num_dumps) }
+    print(json.dumps(data, indent=4))
+
+def cmd_dump_kdump_records_json():
+    data = dict()
+    log_files = dict()
+    (rc_logs, crash_log_filenames, err_str) = run_command("find /var/crash/ -name 'dmesg.*'", use_shell=False);
+    if rc_logs == 0:
+        crash_log_filenames.sort(reverse=True)
+        for f in crash_log_filenames:
+            log_files[f[11:23]] = f
+
+    core_files = dict()
+    (rc_cores, crash_vmcore_filenames, err_str) = run_command("find /var/crash/ -name 'kdump.*'", use_shell=False);
+    if rc_cores == 0:
+        crash_vmcore_filenames.sort(reverse=True)
+        for f in crash_vmcore_filenames:
+            core_files[f[11:23]] = f
+
+    kdump_records = dict()
+    for k in sorted(log_files.keys(), reverse=True):
+        try:
+            f = open(log_files[k], "r")
+            log_content = f.read()
+            f.close()
+        except Exception as e:
+            log_content = ""
+        log_lines = log_content.split("\n")[-100:]
+        kdump_records[k] = { "id" : k, \
+                             "vmcore-diagnostic-message" : "\n".join(log_lines), \
+                             "vmcore-diagnostic-message-file" : log_files[k], \
+                             "vmcore" : "Kernel vmcore not found" }
+
+    for k in sorted(core_files.keys(), reverse=True):
+        if kdump_records.get(k):
+            kdump_records[k]["vmcore"] = core_files[k]
+        else:
+             kdump_records[k] = { "id" : k, \
+                                  "vmcore-dmesg-file" : "Kernel crash log not found", \
+                                  "vmcore-dmesg" : "", \
+                                  "vmcore" : core_files[k] }
+    data["kdump-record"] = kdump_records
+    print(json.dumps(data, indent=4))
+
+def cmd_dump_status_json():
+    kdump_enabled = get_kdump_administrative_mode()
+    kdump_oper_state = get_kdump_oper_mode(kdump_enabled)
+    kdump_memory = get_kdump_memory()
+    kdump_num_dumps = get_kdump_num_dumps()
+    data = { "enable" : kdump_enabled, \
+             "current-state" : kdump_oper_state, \
+             "memory" : kdump_memory, \
+             "allocated-memory" : get_crash_kernel_size(), \
+             "max-dumps" : int(kdump_num_dumps) }
+    print(json.dumps(data, indent=4))
+
 ## Query current configuration to check if kdump is enabled or disabled
 #
 #  @return True if kdump is enable, False if kdump is not enabled
 #          We read the running configuration to check if kdump is enabled or not
 def get_kdump_administrative_mode():
     kdump_is_enabled = False
-    config_db = ConfigDBConnector()
+    config_db = ConfigDBConnector(use_unix_socket_path=True)
     if config_db is not None:
         config_db.connect()
         table_data = config_db.get_table('KDUMP')
@@ -160,37 +245,53 @@ def get_kdump_administrative_mode():
     else:
         return False
 
+def get_kdump_oper_mode(kdump_enabled):
+    (rc, lines, err_str) = run_command("/usr/sbin/kdump-config status", use_shell=False);
+    if len(lines) >= 1 and ": ready to kdump" in lines[0]:
+        use_kdump_in_cfg = read_use_kdump()
+        if use_kdump_in_cfg:
+            return('Ready')
+        else:
+            return('Not Ready')
+    elif not kdump_enabled:
+        return('Disabled')
+    else:
+        return('Ready after Reboot')
+
 ## Query current configuration for kdump memory
 #
 #  @return The current memory string used for kdump (read from running configuration)
 def get_kdump_memory():
-    (rc, lines, err_str) = run_command("show kdump memory", use_shell=False)
-    try:
-        if rc == 0 and len(lines) == 1:
-            p = lines[0].find(': ')
-            if p != -1:
-                #print('XXX')
-                #print(lines[0][p+2:])
-                #print('XXX')
-                return lines[0][p+2:]
-    except Exception:
-        pass
-    return "0M-2G:256M,2G-4G:320M,4G-8G:384M,8G-:448M"
+    memory = "0M-2G:256M,2G-4G:320M,4G-8G:384M,8G-:448M"
+    config_db = ConfigDBConnector(use_unix_socket_path=True)
+    if config_db is not None:
+        config_db.connect()
+        table_data = config_db.get_table('KDUMP')
+        if table_data is not None:
+            config_data = table_data.get('config')
+            if config_data is not None:
+                mem = config_data.get('memory')
+                if mem:
+                    memory = mem
+    return memory
 
 ## Query current configuration for kdump num_dumps
 #
 #  @return The maximum number of kernel dump files stored locally
 #          (read from running configuration)
 def get_kdump_num_dumps():
-    (rc, lines, err_str) = run_command("show kdump num_dumps", use_shell=False)
-    try:
-        if rc == 0 and len(lines) == 1:
-            p = lines[0].find(': ')
-            if p != -1:
-                return int(lines[0][p+2:])
-    except Exception:
-        pass
-    return 3
+    num_dumps = 3
+    config_db = ConfigDBConnector(use_unix_socket_path=True)
+    if config_db is not None:
+        config_db.connect()
+        table_data = config_db.get_table('KDUMP')
+        if table_data is not None:
+            config_data = table_data.get('config')
+            if config_data is not None:
+                num = config_data.get('num_dumps')
+                if num:
+                    num_dumps = num
+    return num_dumps
 
 ## Read current value for USE_KDUMP in kdump config file
 #
@@ -214,6 +315,11 @@ def write_use_kdump(use_kdump):
     (rc, lines, err_str) = run_command("/bin/sed -i -e 's/USE_KDUMP=.*/USE_KDUMP=%s/' %s" % (use_kdump, kdump_cfg), use_shell=False);
     if rc == 0 and type(lines) == list and len(lines) == 0:
         use_kdump_in_cfg = read_use_kdump()
+        if use_kdump == 0:
+            (rc, lines, err_str) = run_command("/usr/sbin/kdump-config unload", use_shell=False)
+            if rc != 0:
+                print_err("Error Unable to unload the Kdump kernel '%s'", err_str)
+                sys.exit(1)
         if use_kdump_in_cfg != use_kdump:
             print_err("Unable to write USE_KDUMP into %s" % kdump_cfg)
             sys.exit(1)
@@ -249,6 +355,39 @@ def write_num_dumps(num_dumps):
     else:
         print_err("Error while writing KDUMP_NUM_DUMPS into %s" % kdump_cfg)
         sys.exit(1)
+
+## Save kdump configuration into the startup configuration
+# @kdump_enabled Administrative mode (False/True)
+# @memory        Amount of memory allocated for the capture kernel
+# @num_dumps     Max number of core files saved locally
+def save_config(kdump_enabled, memory, num_dumps):
+
+    configdb_fname = '/etc/sonic/config_db.json'
+
+    # Read current configuration
+    if not os.path.exists(configdb_fname):
+        print_err("Startup configuration not found, Kdump configuration is not saved")
+        return
+    else:
+        try:
+            with open(configdb_fname) as json_file:
+                data = json.load(json_file)
+        except Exception as e:
+            print_err("Error [%s] while reading startup configuration" % e)
+            return
+
+    # Rewrite configuration
+    try:
+        kdump_data = {'config': {'enabled': '', 'num_dumps': '', 'memory': ''}}
+        (kdump_data['config'])['enabled']   = str(kdump_enabled).lower()
+        (kdump_data['config'])['num_dumps'] = str(num_dumps)
+        (kdump_data['config'])['memory']    = memory
+        data['KDUMP'] = kdump_data
+        with open(configdb_fname, 'w') as fp:
+            json.dump(data, fp, indent=4, sort_keys=False)
+        print("Kdump configuration has been updated in the startup configuration")
+    except Exception as e:
+        print_err("Error [%s] while saving Kdump configuration to startup configuration" % e)
 
 ## Enable kdump
 #
@@ -293,10 +432,41 @@ def kdump_enable(verbose, kdump_enabled, memory, num_dumps, image, cmdline_file)
 
     if changed:
         rewrite_cfg(lines, cmdline_file)
+        save_config(kdump_enabled, memory, num_dumps)
+    else:
+        save_config(kdump_enabled, memory, num_dumps)
 
     write_use_kdump(1)
+    if crash_kernel_in_cmdline is not None:
+        (rc, lines, err_str) = run_command("/usr/sbin/kdump-config load", use_shell=False)
+        if rc != 0:
+            print_err("Error Unable to unload Kdump the kernel '%s'", err_str)
+            sys.exit(1)
 
     return changed
+
+## Read kdump configuration saved in the startup configuration file
+#
+#  @param    config_param If True, the function will display a few additional information
+#  @return   Value of the configuration parameter saved in the startup configuration file
+#  @return   None if the startup configuration file does not exist or the kdump
+#                      configuration parameter is not present in the file.
+def get_kdump_config_json(config_param):
+    configdb_fname = '/etc/sonic/config_db.json'
+
+    # Read the startup configuration file
+    if not os.path.exists(configdb_fname):
+        return None
+    else:
+        try:
+            with open(configdb_fname) as json_file:
+                data = json.load(json_file)
+            if data.get("KDUMP") is not None and \
+               data.get("KDUMP").get("config") is not None:
+                return data.get("KDUMP").get("config").get(config_param)
+        except Exception as e:
+            print_err("Error [%s] while reading startup configuration" % e)
+            return None
 
 ## Command: Enable kdump
 #
@@ -353,6 +523,30 @@ def kdump_disable(verbose, kdump_enabled, memory, num_dumps, image, cmdline_file
     if changed:
         rewrite_cfg(lines, cmdline_file)
 
+    if not os.path.exists('/etc/sonic/config_db.json'):
+        print_err("Startup configuration not found, Kdump configuration is not saved")
+        return False
+
+    current_img = get_current_image();
+    if verbose:
+        print("Current image=[%s]\n" % current_img)
+    lines = [line.rstrip('\n') for line in open(grub_cfg)]
+    current_img_index = locate_image(lines, "loop=image-"+current_img)
+
+    changed = False
+    curr_crash_kernel_mem = search_for_crash_kernel(lines[current_img_index])
+    if curr_crash_kernel_mem is None:
+        print("Kdump is already disabled")
+    else:
+        lines[current_img_index] = lines[current_img_index].replace("crashkernel="+curr_crash_kernel_mem, "")
+        changed = True
+        if verbose:
+            print("Removed [%s] in grub.cfg" % ("crashkernel="+curr_crash_kernel_mem))
+
+    if changed:
+        rewrite_grub_cfg(lines, grub_cfg)
+        save_config(kdump_enabled, memory, num_dumps)
+
     return changed
 
 ## Command: Disable kdump
@@ -379,7 +573,7 @@ def cmd_kdump_disable(verbose, image=get_current_image()):
 ## Command: Set / Get memory
 #
 #  @param verbose If True, the function will display a few additional information
-#  @param memory  If not None, new value to set. 
+#  @param memory  If not None, new value to set.
 #                 If None, display current value read from running configuration
 def cmd_kdump_memory(verbose, memory):
     if memory is None:
@@ -389,14 +583,19 @@ def cmd_kdump_memory(verbose, memory):
         use_kdump_in_cfg = read_use_kdump()
         if use_kdump_in_cfg:
             crash_kernel_in_cmdline = search_for_crash_kernel_in_cmdline()
-            if memory != crash_kernel_in_cmdline:
-                cmd_kdump_enable(verbose, False)
-                print("kdump updated memory will be only operational after the system reboots")
+            memory_in_db = get_kdump_memory()
+            memory_in_json = get_kdump_config_json("memory")
+            if memory != crash_kernel_in_cmdline or memory != memory_in_db or memory != memory_in_json:
+                cmd_kdump_enable(verbose)
+                print("Kdump updated memory will be only operational after the system reboots")
+        else:
+            num_dumps = get_kdump_num_dumps()
+            save_config(False, memory, num_dumps)
 
 ## Command: Set / Get num_dumps
 #
 #  @param verbose If True, the function will display a few additional information
-#  @param memory  If not None, new value to set. 
+#  @param memory  If not None, new value to set.
 #                 If None, display current value read from running configuration
 def cmd_kdump_num_dumps(verbose, num_dumps):
     if num_dumps is None:
@@ -404,6 +603,9 @@ def cmd_kdump_num_dumps(verbose, num_dumps):
         print('\n'.join(lines))
     else:
         write_num_dumps(num_dumps)
+        kdump_enabled = get_kdump_administrative_mode()
+        kdump_memory = get_kdump_memory()
+        save_config(kdump_enabled, kdump_memory, num_dumps)
 
 ## Command: Display kdump status
 def cmd_kdump_status():
@@ -459,7 +661,7 @@ def cmd_kdump_file(num_lines, filename):
     fname = None
     nb_dumps = get_nb_dumps_in_var_crash()
     if nb_dumps ==  0:
-        print("There is no kernel core file stored")
+        print("Kernel crash log not found")
     else:
         (rc, lines, err_str) = run_command("find /var/crash/ -name 'dmesg.*'", use_shell=False);
         if rc == 0 and nb_dumps == len(lines):
@@ -471,7 +673,7 @@ def cmd_kdump_file(num_lines, filename):
                     else:
                         print("Invalid record number - Should be between 1 and %d" % nb_dumps)
                     sys.exit(1)
-                fname = lines[num-1]
+                fname = sorted(lines, reverse=True)[num-1]
             else:
                 lines.sort(reverse=True)
                 for x in lines:
@@ -496,6 +698,10 @@ def main():
     parser = argparse.ArgumentParser(description="kdump configuration and status tool",
                                      formatter_class=argparse.RawTextHelpFormatter)
 
+    # Dump kdump db configuration
+    parser.add_argument('--dump-db', action='store_true',
+        help='Dump kdump db configuration')
+
     # Enable kdump on Current image
     parser.add_argument('--enable', action='store_true',
         help='Enable kdump (Current image)')
@@ -511,6 +717,19 @@ def main():
     # kdump status on Current Image
     parser.add_argument('--status', action='store_true',
         help='Show kdump status')
+
+    # kdump status on Current Image
+    parser.add_argument('--status-json', action='store_true',
+        help='Show kdump status in json format')
+
+    # kdump status on Current Image
+    parser.add_argument('--kdump-records-json', action='store_true',
+        help='Show kdump records in json format')
+
+    # kdump config on Current Image
+    # kdump config on Current Image
+    parser.add_argument('--config-json', action='store_true',
+        help='Show kdump config in json format')
 
     # Maximum number of kernel core dumps
     parser.add_argument('--num_dumps', nargs='?', type=int, action='store', default=False,
@@ -563,6 +782,14 @@ def main():
             cmd_kdump_files()
         elif options.file:
             cmd_kdump_file(options.lines, options.file[0])
+        elif options.dump_db:
+            cmd_dump_db()
+        elif options.status_json:
+            cmd_dump_status_json()
+        elif options.config_json:
+            cmd_dump_config_json()
+        elif options.kdump_records_json:
+            cmd_dump_kdump_records_json()
         else:
             parser.print_help()
             sys.exit(1)

@@ -28,6 +28,7 @@ from . import aaa
 from . import chassis_modules
 from . import console
 from . import feature
+from . import kdump
 from . import kube
 from . import mlnx
 from . import muxcable
@@ -878,6 +879,7 @@ config.add_command(aaa.tacacs)
 config.add_command(chassis_modules.chassis_modules)
 config.add_command(console.console)
 config.add_command(feature.feature)
+config.add_command(kdump.kdump)
 config.add_command(kube.kubernetes)
 config.add_command(muxcable.muxcable)
 config.add_command(nat.nat)
@@ -1900,50 +1902,6 @@ def bgp():
 def shutdown():
     """Shut down BGP session(s)"""
     pass
-
-@config.group(cls=clicommon.AbbreviationGroup)
-def kdump():
-    """ Configure kdump """
-    if os.geteuid() != 0:
-        exit("Root privileges are required for this operation")
-
-@kdump.command()
-def disable():
-    """Disable kdump operation"""
-    config_db = ConfigDBConnector()
-    if config_db is not None:
-        config_db.connect()
-        config_db.mod_entry("KDUMP", "config", {"enabled": "false"})
-        clicommon.run_command("sonic-kdump-config --disable")
-
-@kdump.command()
-def enable():
-    """Enable kdump operation"""
-    config_db = ConfigDBConnector()
-    if config_db is not None:
-        config_db.connect()
-        config_db.mod_entry("KDUMP", "config", {"enabled": "true"})
-        clicommon.run_command("sonic-kdump-config --enable")
-
-@kdump.command()
-@click.argument('kdump_memory', metavar='<kdump_memory>', required=True)
-def memory(kdump_memory):
-    """Set memory allocated for kdump capture kernel"""
-    config_db = ConfigDBConnector()
-    if config_db is not None:
-        config_db.connect()
-        config_db.mod_entry("KDUMP", "config", {"memory": kdump_memory})
-        clicommon.run_command("sonic-kdump-config --memory %s" % kdump_memory)
-
-@kdump.command('num-dumps')
-@click.argument('kdump_num_dumps', metavar='<kdump_num_dumps>', required=True, type=int)
-def num_dumps(kdump_num_dumps):
-    """Set max number of dump files for kdump"""
-    config_db = ConfigDBConnector()
-    if config_db is not None:
-        config_db.connect()
-        config_db.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
-        clicommon.run_command("sonic-kdump-config --num_dumps %d" % kdump_num_dumps)
 
 # 'all' subcommand
 @shutdown.command()
