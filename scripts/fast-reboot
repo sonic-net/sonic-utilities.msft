@@ -9,6 +9,7 @@ REBOOT_SCRIPT_NAME=$(basename $0)
 REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
 VERBOSE=no
 FORCE=no
+IGNORE_ASIC=no
 STRICT=no
 REBOOT_METHOD="/sbin/kexec -e"
 ASSISTANT_IP_LIST=""
@@ -55,6 +56,7 @@ function showHelpAndExit()
     echo "    -h,-? : get this help"
     echo "    -v    : turn on verbose"
     echo "    -f    : force execution"
+    echo "    -i    : ignore MD5-checksum-verification of ASIC configuration files"
     echo "    -r    : reboot with /sbin/reboot"
     echo "    -k    : reboot with /sbin/kexec -e [default]"
     echo "    -x    : execute script with -x flag"
@@ -67,7 +69,7 @@ function showHelpAndExit()
 
 function parseOptions()
 {
-    while getopts "vfh?rkxc:s" opt; do
+    while getopts "vfih?rkxc:s" opt; do
         case ${opt} in
             h|\? )
                 showHelpAndExit
@@ -77,6 +79,9 @@ function parseOptions()
                 ;;
             f )
                 FORCE=yes
+                ;;
+            i )
+                IGNORE_ASIC=yes
                 ;;
             r )
                 REBOOT_METHOD="/sbin/reboot"
@@ -335,7 +340,7 @@ function reboot_pre_check()
         ${ASIC_CONFIG_CHECK_SCRIPT} || ASIC_CONFIG_CHECK_EXIT_CODE=$?
 
         if [[ "${ASIC_CONFIG_CHECK_EXIT_CODE}" != "${ASIC_CONFIG_CHECK_SUCCESS}" ]]; then
-            if [[ x"${FORCE}" == x"yes" ]]; then
+            if [[ x"${IGNORE_ASIC}" == x"yes" ]]; then
                 debug "Ignoring ASIC config checksum failure..."
             else
                 error "ASIC config may have changed: errno=${ASIC_CONFIG_CHECK_EXIT_CODE}"
