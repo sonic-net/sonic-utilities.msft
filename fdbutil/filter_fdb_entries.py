@@ -63,7 +63,7 @@ def get_arp_entries_map(arp_filename, config_db_filename):
         for key, config in arp.items():
             if "NEIGH_TABLE" not in key:
                 continue
-            table, vlan, ip = tuple(key.split(':'))
+            table, vlan, ip = tuple(key.split(':', 2)) # split with max of 2 is used here because IPv6 addresses contain ':' causing a creation of a non tuple object 
             if "NEIGH_TABLE" in table and vlan in vlan_cidr \
                 and ip_address(ip) in ip_network(vlan_cidr[vlan][ip_interface(ip).version]) \
                 and "neigh" in config:
