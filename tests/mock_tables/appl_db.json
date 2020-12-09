@@ -15,6 +15,15 @@
         "admin_state": "up",
         "sample_rate": "5000"
     },
+    "SFLOW_SESSION_TABLE:Ethernet8": {
+        "BAD": "BAD"
+    },
+    "SFLOW_SESSION_TABLE:Ethernet12": {
+        "sample_rate": "5000"
+    },
+    "SFLOW_SESSION_TABLE:Ethernet16": {
+        "admin_state": "up"
+    },
     "PORT_TABLE:Ethernet0": {
         "index": "0",
         "lanes": "0",

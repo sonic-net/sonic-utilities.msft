@@ -261,6 +261,35 @@ class TestShowSflow(object):
 
         return
 
+    def test_config_disable_all_intf(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'db':db.cfgdb}
+
+        # disable all interfaces
+        result = runner.invoke(config.config.commands["sflow"].
+            commands["interface"].commands["disable"], ["all"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+
+        # verify in configDb
+        sflowSession = db.cfgdb.get_table('SFLOW_SESSION')
+        assert sflowSession["all"]["admin_state"] == "down"
+
+    def test_config_enable_all_intf(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'db':db.cfgdb}
+        # enable all interfaces
+        result = runner.invoke(config.config.commands["sflow"].commands["interface"].
+                               commands["enable"], ["all"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+        
+        # verify in configDb
+        sflowSession = db.cfgdb.get_table('SFLOW_SESSION')
+        assert sflowSession["all"]["admin_state"] == "up"
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")

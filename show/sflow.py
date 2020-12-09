@@ -50,11 +50,12 @@ def show_sflow_interface(config_db):
     for pname in natsorted(list(port_tbl.keys())):
         intf_key = 'SFLOW_SESSION_TABLE:' + pname
         sess_info = sess_db.get_all(sess_db.APPL_DB, intf_key)
-        if sess_info is None:
+        if (sess_info is None or sess_info.get('admin_state') is None or
+            sess_info.get('sample_rate') is None):
             continue
         body_info = [pname]
-        body_info.append(sess_info['admin_state'])
-        body_info.append(sess_info['sample_rate'])
+        body_info.append(sess_info.get('admin_state'))
+        body_info.append(sess_info.get('sample_rate'))
         body.append(body_info)
     click.echo(tabulate(body, header, tablefmt='grid'))
 
