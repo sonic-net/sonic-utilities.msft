@@ -36,6 +36,9 @@ class TestWatermarkstat(object):
     def test_show_buffer_pool_wm(self):
         self.executor(testData['show_buffer_pool_wm'])
 
+    def test_show_headroom_pool_wm(self):
+        self.executor(testData['show_hdrm_pool_wm'])
+
     def test_show_pg_shared_peristent_wm(self):
         self.executor(testData['show_pg_pwm_shared'])
 
@@ -50,6 +53,9 @@ class TestWatermarkstat(object):
 
     def test_show_buffer_pool_persistent_wm(self):
         self.executor(testData['show_buffer_pool_pwm'])
+
+    def test_show_headroom_pool_persistent_wm(self):
+        self.executor(testData['show_hdrm_pool_pwm'])
 
     def executor(self, testcase):
         runner = CliRunner()

@@ -277,6 +277,30 @@ def clear_pwm_q_multi():
     command = 'watermarkstat -c -p -t q_shared_multi'
     run_command(command)
 
+
+@cli.group(name='headroom-pool')
+def headroom_pool():
+    """Clear headroom pool WM"""
+    pass
+
+@headroom_pool.command('watermark')
+def watermark():
+    """Clear headroom pool user WM. One does not simply clear WM, root is required"""
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+
+    command = 'watermarkstat -c -t headroom_pool'
+    run_command(command)
+
+@headroom_pool.command('persistent-watermark')
+def persistent_watermark():
+    """Clear headroom pool persistent WM. One does not simply clear WM, root is required"""
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+
+    command = 'watermarkstat -c -p -t headroom_pool'
+    run_command(command)
+
 #
 # 'arp' command ####
 #

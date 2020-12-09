@@ -635,6 +635,27 @@ def pwm_buffer_pool():
 
 
 #
+# 'headroom-pool' group ("show headroom-pool ...")
+#
+
+@cli.group(name='headroom-pool', cls=clicommon.AliasedGroup)
+def headroom_pool():
+    """Show details of headroom pool"""
+
+@headroom_pool.command('watermark')
+def wm_headroom_pool():
+    """Show user WM for headroom pool"""
+    command = 'watermarkstat -t headroom_pool'
+    run_command(command)
+
+@headroom_pool.command('persistent-watermark')
+def pwm_headroom_pool():
+    """Show persistent WM for headroom pool"""
+    command = 'watermarkstat -p -t headroom_pool'
+    run_command(command)
+
+
+#
 # 'mac' command ("show mac ...")
 #
 

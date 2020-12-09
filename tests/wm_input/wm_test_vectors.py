@@ -79,6 +79,20 @@ Shared pool maximum occupancy:
 ingress_lossless_pool     4000
 """
 
+show_hdrm_pool_wm_output="""\
+Headroom pool maximum occupancy:
+                 Pool    Bytes
+---------------------  -------
+ingress_lossless_pool   432640
+"""
+
+show_hdrm_pool_persistent_wm_output="""\
+Headroom pool maximum occupancy:
+                 Pool    Bytes
+---------------------  -------
+ingress_lossless_pool   863616
+"""
+
 testData = {
              'show_pg_wm_shared' :  [ {'cmd' : ['priority-group', 'watermark', 'shared'],
                                        'rc_output': show_pg_wm_shared_output
@@ -119,5 +133,13 @@ testData = {
              'show_buffer_pool_pwm' :  [ {'cmd' : ['buffer_pool', 'persistent-watermark'],
                                           'rc_output': show_buffer_pool_persistent_wm_output
                                          }
-                                       ]
+                                       ],
+             'show_hdrm_pool_wm' :  [ {'cmd' : ['headroom-pool', 'watermark'],
+                                       'rc_output': show_hdrm_pool_wm_output
+                                      }
+                                    ],
+             'show_hdrm_pool_pwm' :  [ {'cmd' : ['headroom-pool', 'persistent-watermark'],
+                                        'rc_output': show_hdrm_pool_persistent_wm_output
+                                       }
+                                     ]
            }
