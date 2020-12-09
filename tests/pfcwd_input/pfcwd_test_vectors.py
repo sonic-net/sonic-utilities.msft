@@ -7,6 +7,47 @@ Ethernet4      drop               600                 600
 Ethernet8      drop               600                 600
 """
 
+pfcwd_show_start_config_output_pass = """\
+Changed polling interval to 600ms
+     PORT    ACTION    DETECTION TIME    RESTORATION TIME
+---------  --------  ----------------  ------------------
+Ethernet0   forward               102                 101
+Ethernet4      drop               600                 600
+Ethernet8      drop               600                 600
+"""
+
+pfcwd_show_start_action_forward_output = """\
+Changed polling interval to 600ms
+     PORT    ACTION    DETECTION TIME    RESTORATION TIME
+---------  --------  ----------------  ------------------
+Ethernet0   forward               302                 301
+Ethernet4   forward               302                 301
+Ethernet8   forward               302                 301
+"""
+
+pfcwd_show_start_action_alert_output = """\
+Changed polling interval to 600ms
+     PORT    ACTION    DETECTION TIME    RESTORATION TIME
+---------  --------  ----------------  ------------------
+Ethernet0     alert               502                 501
+Ethernet4     alert               502                 501
+Ethernet8     alert               502                 501
+"""
+
+pfcwd_show_start_action_drop_output = """\
+Changed polling interval to 600ms
+     PORT    ACTION    DETECTION TIME    RESTORATION TIME
+---------  --------  ----------------  ------------------
+Ethernet0      drop               602                 601
+Ethernet4      drop               602                 601
+Ethernet8      drop               602                 601
+"""
+
+pfcwd_show_start_config_output_fail = """\
+Failed to run command, invalid options:
+Ethernet1000
+"""
+
 pfcwd_show_config_single_port_output="""\
 Changed polling interval to 600ms
      PORT    ACTION    DETECTION TIME    RESTORATION TIME
@@ -220,6 +261,71 @@ BIG_RED_SWITCH status is enable on asic1
   Ethernet-BP4      drop               200                 200
 Ethernet-BP256      drop               200                 200
 Ethernet-BP260      drop               200                 200
+"""
+
+show_pfc_config_start_pass = """\
+Changed polling interval to 199ms on asic0
+BIG_RED_SWITCH status is enable on asic0
+Changed polling interval to 199ms on asic1
+BIG_RED_SWITCH status is enable on asic1
+          PORT    ACTION    DETECTION TIME    RESTORATION TIME
+--------------  --------  ----------------  ------------------
+     Ethernet0   forward               102                 101
+     Ethernet4      drop               200                 200
+  Ethernet-BP0      drop               200                 200
+  Ethernet-BP4   forward               102                 101
+Ethernet-BP256      drop               200                 200
+Ethernet-BP260      drop               200                 200
+"""
+
+show_pfc_config_start_action_drop_masic = """\
+Changed polling interval to 199ms on asic0
+BIG_RED_SWITCH status is enable on asic0
+Changed polling interval to 199ms on asic1
+BIG_RED_SWITCH status is enable on asic1
+          PORT    ACTION    DETECTION TIME    RESTORATION TIME
+--------------  --------  ----------------  ------------------
+     Ethernet0      drop               302                 301
+     Ethernet4      drop               302                 301
+  Ethernet-BP0      drop               302                 301
+  Ethernet-BP4      drop               302                 301
+Ethernet-BP256      drop               302                 301
+Ethernet-BP260      drop               302                 301
+"""
+
+show_pfc_config_start_action_alert_masic = """\
+Changed polling interval to 199ms on asic0
+BIG_RED_SWITCH status is enable on asic0
+Changed polling interval to 199ms on asic1
+BIG_RED_SWITCH status is enable on asic1
+          PORT    ACTION    DETECTION TIME    RESTORATION TIME
+--------------  --------  ----------------  ------------------
+     Ethernet0     alert               402                 401
+     Ethernet4     alert               402                 401
+  Ethernet-BP0     alert               402                 401
+  Ethernet-BP4     alert               402                 401
+Ethernet-BP256     alert               402                 401
+Ethernet-BP260     alert               402                 401
+"""
+
+show_pfc_config_start_action_forward_masic = """\
+Changed polling interval to 199ms on asic0
+BIG_RED_SWITCH status is enable on asic0
+Changed polling interval to 199ms on asic1
+BIG_RED_SWITCH status is enable on asic1
+          PORT    ACTION    DETECTION TIME    RESTORATION TIME
+--------------  --------  ----------------  ------------------
+     Ethernet0   forward               702                 701
+     Ethernet4   forward               702                 701
+  Ethernet-BP0   forward               702                 701
+  Ethernet-BP4   forward               702                 701
+Ethernet-BP256   forward               702                 701
+Ethernet-BP260   forward               702                 701
+"""
+
+show_pfc_config_start_fail = """\
+Failed to run command, invalid options:
+Ethernet-500
 """
 
 show_pfcwd_stats_with_queues = """\
