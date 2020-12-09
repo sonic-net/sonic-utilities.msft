@@ -20,6 +20,24 @@ class TestConfigConsoleCommands(object):
     def setup_class(cls):
         print("SETUP")
     
+    def test_enable_console_switch(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["console"].commands["enable"])
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+
+    def test_disable_console_switch(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["console"].commands["disable"])
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+
     def test_console_add_exists(self):
         runner = CliRunner()
         db = Db()
@@ -464,6 +482,48 @@ class TestConsutilLib(object):
         SysInfoProvider.DEVICE_PREFIX == "/dev/ttyUSB"
         proc = SysInfoProvider.get_active_console_process_info("2")
         assert proc is None
+
+class TestConsutil(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+
+    @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
+    @mock.patch('consutil.main.show', mock.MagicMock(return_value=None))
+    def test_consutil_feature_disabled_null_config(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(consutil.consutil, ['show'], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 1
+        assert result.output == "Console switch feature is disabled\n"
+
+    @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
+    @mock.patch('consutil.main.show', mock.MagicMock(return_value=None))
+    def test_consutil_feature_disabled_config(self):
+        runner = CliRunner()
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_SWITCH", "console_mgmt", { "enabled" : "no" })
+
+        result = runner.invoke(consutil.consutil, ['show'], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 1
+        assert result.output == "Console switch feature is disabled\n"
+
+    @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
+    @mock.patch('consutil.main.show', mock.MagicMock(return_value=None))
+    def test_consutil_feature_enabled(self):
+        runner = CliRunner()
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_SWITCH", "console_mgmt", { "enabled" : "yes" })
+
+        result = runner.invoke(consutil.consutil, ['show'], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
 
 class TestConsutilShow(object):
     @classmethod

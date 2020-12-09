@@ -10,6 +10,38 @@ def console():
     pass
 
 #
+# 'console enable' group ('config console enable')
+#
+@console.command('enable')
+@clicommon.pass_db
+def enable_console_switch(db):
+    """Enable console switch"""
+    config_db = db.cfgdb
+
+    table = "CONSOLE_SWITCH"
+    dataKey1 = 'console_mgmt'
+    dataKey2 = 'enabled'
+
+    data = { dataKey2 : "yes" }
+    config_db.mod_entry(table, dataKey1, data)
+
+#
+# 'console disable' group ('config console disable')
+#
+@console.command('disable')
+@clicommon.pass_db
+def disable_console_switch(db):
+    """Disable console switch"""
+    config_db = db.cfgdb
+
+    table = "CONSOLE_SWITCH"
+    dataKey1 = 'console_mgmt'
+    dataKey2 = 'enabled'
+
+    data = { dataKey2 : "no" }
+    config_db.mod_entry(table, dataKey1, data)
+
+#
 # 'console add' group ('config console add ...')
 #
 @console.command('add')

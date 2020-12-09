@@ -22,6 +22,8 @@ ERR_CFG = 4
 ERR_BUSY = 5
 
 CONSOLE_PORT_TABLE = "CONSOLE_PORT"
+CONSOLE_SWITCH_TABLE = "CONSOLE_SWITCH"
+
 LINE_KEY = "LINE"
 CUR_STATE_KEY = "CUR_STATE"
 
@@ -29,6 +31,8 @@ CUR_STATE_KEY = "CUR_STATE"
 BAUD_KEY = "baud_rate"
 DEVICE_KEY = "remote_device"
 FLOW_KEY = "flow_control"
+FEATURE_KEY = "console_mgmt"
+FEATURE_ENABLED_KEY = "enabled"
 
 # STATE_DB Keys
 STATE_KEY = "state"
