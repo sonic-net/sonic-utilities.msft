@@ -539,7 +539,7 @@ class AclLoader(object):
         rule_props["PRIORITY"] = str(self.min_priority)
         rule_props["PACKET_ACTION"] = "DROP"
         if 'v6' in table_name.lower():
-            rule_props["ETHER_TYPE"] = str(self.ethertype_map["ETHERTYPE_IPV6"])
+            rule_props["IP_TYPE"] = "IPV6ANY"  # ETHERTYPE is not supported for DATAACLV6
         else:
             rule_props["ETHER_TYPE"] = str(self.ethertype_map["ETHERTYPE_IPV4"])
         return rule_data
