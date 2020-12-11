@@ -330,6 +330,7 @@ def show_routes(args, namespace, display, verbose, ipver):
     device = multi_asic_util.MultiAsic(display, namespace)
     arg_strg = ""
     found_json = 0
+    found_tables = 0
     ns_l = []
     print_ns_str = False
     filter_by_ip = False
@@ -356,14 +357,22 @@ def show_routes(args, namespace, display, verbose, ipver):
         arg_strg += str(arg) + " "
         if str(arg) == "json":
             found_json = 1
+        elif str(arg) == "tables":
+            found_tables = 1
         else:
             try:
                 filter_by_ip = ipaddress.ip_network(arg)
             except ValueError:
                 # Not ip address just ignore it
                 pass
-    if not found_json:
-        arg_strg += "json"
+    # Due to options such as "summary" and "tables" are not yet supported in multi-asic platform
+    # we will let FRR handle all the processing instead of handling it here for non multi-asic platform
+    if multi_asic.is_multi_asic():
+        if found_tables:
+            print("% Unknown command: show {} route {}".format(ipver, arg_strg))
+            return
+        if not found_json:
+            arg_strg += "json"
     combined_route = {}
     for ns in ns_l:
         # Need to add "ns" to form bgpX so it is sent to the correct bgpX docker to handle the request
@@ -373,6 +382,8 @@ def show_routes(args, namespace, display, verbose, ipver):
             output = bgp_util.run_bgp_command(cmd, ns)
         else:
             output = bgp_util.run_bgp_command(cmd)
+            print("{}".format(output))
+            return
 
         # in case no output or something went wrong with user specified cmd argument(s) error it out
         # error from FRR always start with character "%"
@@ -393,6 +404,9 @@ def show_routes(args, namespace, display, verbose, ipver):
             process_route_info(route_info, device, filter_back_end, print_ns_str, asic_cnt, ns, combined_route, back_end_intf_set)
         else:
             combined_route = route_info
+
+    if not combined_route:
+        return
 
     if not found_json:
         #print out the header if this is not a json request

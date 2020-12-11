@@ -8,7 +8,7 @@ from sonic_py_common import device_info
 from swsssdk import ConfigDBConnector
 
 from .mock_tables import dbconnector
-
+from . import show_ip_route_common
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -85,21 +85,6 @@ def setup_single_bgp_instance(request):
     elif request.param == 'v6':
         bgp_mocked_json = os.path.join(
             test_path, 'mock_tables', 'ipv6_bgp_summary.json')
-    elif request.param == 'ip_route':
-        bgp_mocked_json = os.path.join(
-            test_path, 'mock_tables', 'ip_route.json')
-    elif request.param == 'ip_specific_route':
-        bgp_mocked_json = os.path.join(
-            test_path, 'mock_tables', 'ip_specific_route.json')
-    elif request.param == 'ip_special_route':
-        bgp_mocked_json = os.path.join(
-            test_path, 'mock_tables', 'ip_special_route.json')
-    elif request.param == 'ipv6_route':
-        bgp_mocked_json = os.path.join(
-            test_path, 'mock_tables', 'ipv6_route.json')
-    elif request.param == 'ipv6_specific_route':
-        bgp_mocked_json = os.path.join(
-            test_path, 'mock_tables', 'ipv6_specific_route.json')
     else:
         bgp_mocked_json = os.path.join(
             test_path, 'mock_tables', 'dummy.json')
@@ -111,12 +96,28 @@ def setup_single_bgp_instance(request):
             return mock_frr_data
         return ""
 
-    def mock_run_bgp_ipv6_err_command(vtysh_cmd, bgp_namespace):
-        return "% Unknown command: show ipv6 route garbage"
+    def mock_run_show_ip_route_commands(request):
+        if request.param == 'ipv6_route_err':
+            return show_ip_route_common.show_ipv6_route_err_expected_output
+        elif request.param == 'ip_route':
+            return show_ip_route_common.show_ip_route_expected_output
+        elif request.param == 'ip_specific_route':
+            return show_ip_route_common.show_specific_ip_route_expected_output 
+        elif request.param == 'ip_special_route':
+            return show_ip_route_common.show_special_ip_route_expected_output
+        elif request.param == 'ipv6_route':
+            return show_ip_route_common.show_ipv6_route_expected_output
+        elif request.param == 'ipv6_specific_route':
+            return show_ip_route_common.show_ipv6_route_single_json_expected_output
+        else:
+            return ""
 
-    if request.param == 'ipv6_route_err':
+
+    if any ([request.param == 'ipv6_route_err', request.param == 'ip_route',\
+             request.param == 'ip_specific_route', request.param == 'ip_special_route',\
+             request.param == 'ipv6_route', request.param == 'ipv6_specific_route']):
         bgp_util.run_bgp_command = mock.MagicMock(
-            return_value=mock_run_bgp_ipv6_err_command("", ""))
+            return_value=mock_run_show_ip_route_commands(request))
     else:
         bgp_util.run_bgp_command = mock.MagicMock(
             return_value=mock_run_bgp_command("", ""))
@@ -134,6 +135,12 @@ def setup_multi_asic_bgp_instance(request):
         m_asic_json_file = 'ipv6_specific_route.json'
     elif request.param == 'ipv6_route':
         m_asic_json_file = 'ipv6_route.json'
+    elif request.param == 'ip_special_route':
+        m_asic_json_file = 'ip_special_route.json'
+    elif request.param == 'ip_empty_route':
+        m_asic_json_file = 'ip_empty_route.json'
+    elif request.param == 'ip_specific_route_on_1_asic':
+        m_asic_json_file = 'ip_special_route_asic0_only.json'
     else:
         bgp_mocked_json = os.path.join(
             test_path, 'mock_tables', 'dummy.json')
