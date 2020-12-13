@@ -100,9 +100,9 @@ def ssdhealth(device, verbose, vendor):
 @click.option('-c', '--check', is_flag=True, help="Check the platfome pcie device")
 def pcieinfo(check, verbose):
     """Show Device PCIe Info"""
-    cmd = "sudo pcieutil pcie-show"
+    cmd = "sudo pcieutil show"
     if check:
-        cmd = "sudo pcieutil pcie-check"
+        cmd = "sudo pcieutil check"
     clicommon.run_command(cmd, display_cmd=verbose)
 
 
