@@ -42,8 +42,17 @@ except KeyError:
 
 PORT_RATE = 40
 
+"""
+The order and count of statistics mentioned below needs to be in sync with the values in portstat script
+So, any fields added/deleted in here should be reflected in portstat script also
+"""
 NStats = namedtuple("NStats", "rx_ok, rx_err, rx_drop, rx_ovr, tx_ok,\
-                    tx_err, tx_drop, tx_ovr, rx_byt, tx_byt")
+                    tx_err, tx_drop, tx_ovr, rx_byt, tx_byt,\
+                    rx_64, rx_65_127, rx_128_255, rx_256_511, rx_512_1023, rx_1024_1518, rx_1519_2047, rx_2048_4095, rx_4096_9216, rx_9217_16383,\
+                    rx_uca, rx_mca, rx_bca, rx_all,\
+                    tx_64, tx_65_127, tx_128_255, tx_256_511, tx_512_1023, tx_1024_1518, tx_1519_2047, tx_2048_4095, tx_4096_9216, tx_9217_16383,\
+                    tx_uca, tx_mca, tx_bca, tx_all,\
+                    rx_jbr, rx_frag, rx_usize, rx_ovrrun")
 header_all = ['IFACE', 'STATE', 'RX_OK', 'RX_BPS', 'RX_PPS', 'RX_UTIL', 'RX_ERR', 'RX_DRP', 'RX_OVR',
           'TX_OK', 'TX_BPS', 'Tx_PPS', 'TX_UTIL', 'TX_ERR', 'TX_DRP', 'TX_OVR']
 header_std = ['IFACE', 'STATE', 'RX_OK', 'RX_BPS', 'RX_UTIL', 'RX_ERR', 'RX_DRP', 'RX_OVR',
@@ -51,19 +60,54 @@ header_std = ['IFACE', 'STATE', 'RX_OK', 'RX_BPS', 'RX_UTIL', 'RX_ERR', 'RX_DRP'
 header_errors_only = ['IFACE', 'STATE', 'RX_ERR', 'RX_DRP', 'RX_OVR', 'TX_ERR', 'TX_DRP', 'TX_OVR']
 header_rates_only = ['IFACE', 'STATE', 'RX_OK', 'RX_BPS', 'RX_PPS', 'RX_UTIL', 'TX_OK', 'TX_BPS', 'TX_PPS', 'TX_UTIL']
 
+"""
+The order and count of statistics mentioned below needs to be in sync with the values in portstat script
+So, any fields added/deleted in here should be reflected in portstat script also
+"""
+BUCKET_NUM = 42
 counter_bucket_dict = {
-    'SAI_PORT_STAT_IF_IN_UCAST_PKTS': 0,
-    'SAI_PORT_STAT_IF_IN_NON_UCAST_PKTS': 0,
-    'SAI_PORT_STAT_IF_IN_ERRORS': 1,
-    'SAI_PORT_STAT_IF_IN_DISCARDS': 2,
-    'SAI_PORT_STAT_ETHER_RX_OVERSIZE_PKTS': 3,
-    'SAI_PORT_STAT_IF_OUT_UCAST_PKTS': 4,
-    'SAI_PORT_STAT_IF_OUT_NON_UCAST_PKTS': 4,
-    'SAI_PORT_STAT_IF_OUT_ERRORS': 5,
-    'SAI_PORT_STAT_IF_OUT_DISCARDS': 6,
-    'SAI_PORT_STAT_ETHER_TX_OVERSIZE_PKTS': 7,
-    'SAI_PORT_STAT_IF_IN_OCTETS': 8,
-    'SAI_PORT_STAT_IF_OUT_OCTETS': 9
+        0:['SAI_PORT_STAT_IF_IN_UCAST_PKTS', 'SAI_PORT_STAT_IF_IN_NON_UCAST_PKTS'],
+        1:['SAI_PORT_STAT_IF_IN_ERRORS'],
+        2:['SAI_PORT_STAT_IF_IN_DISCARDS'],
+        3:['SAI_PORT_STAT_ETHER_RX_OVERSIZE_PKTS'],
+        4:['SAI_PORT_STAT_IF_OUT_UCAST_PKTS', 'SAI_PORT_STAT_IF_OUT_NON_UCAST_PKTS'],
+        5:['SAI_PORT_STAT_IF_OUT_ERRORS'],
+        6:['SAI_PORT_STAT_IF_OUT_DISCARDS'],
+        7:['SAI_PORT_STAT_ETHER_TX_OVERSIZE_PKTS'],
+        8:['SAI_PORT_STAT_IF_IN_OCTETS'],
+        9:['SAI_PORT_STAT_IF_OUT_OCTETS'],
+        10:['SAI_PORT_STAT_ETHER_IN_PKTS_64_OCTETS'],
+        11:['SAI_PORT_STAT_ETHER_IN_PKTS_65_TO_127_OCTETS'],
+        12:['SAI_PORT_STAT_ETHER_IN_PKTS_128_TO_255_OCTETS'],
+        13:['SAI_PORT_STAT_ETHER_IN_PKTS_256_TO_511_OCTETS'],
+        14:['SAI_PORT_STAT_ETHER_IN_PKTS_512_TO_1023_OCTETS'],
+        15:['SAI_PORT_STAT_ETHER_IN_PKTS_1024_TO_1518_OCTETS'],
+        16:['SAI_PORT_STAT_ETHER_IN_PKTS_1519_TO_2047_OCTETS'],
+        17:['SAI_PORT_STAT_ETHER_IN_PKTS_2048_TO_4095_OCTETS'],
+        18:['SAI_PORT_STAT_ETHER_IN_PKTS_4096_TO_9216_OCTETS'],
+        19:['SAI_PORT_STAT_ETHER_IN_PKTS_9217_TO_16383_OCTETS'],
+        20:['SAI_PORT_STAT_IF_IN_UCAST_PKTS'],
+        21:['SAI_PORT_STAT_IF_IN_MULTICAST_PKTS'],
+        22:['SAI_PORT_STAT_IF_IN_BROADCAST_PKTS'],
+        23:['SAI_PORT_STAT_IF_IN_UCAST_PKTS', 'SAI_PORT_STAT_IF_IN_MULTICAST_PKTS', 'SAI_PORT_STAT_IF_IN_BROADCAST_PKTS'],
+        24:['SAI_PORT_STAT_ETHER_OUT_PKTS_64_OCTETS'],
+        25:['SAI_PORT_STAT_ETHER_OUT_PKTS_65_TO_127_OCTETS'],
+        26:['SAI_PORT_STAT_ETHER_OUT_PKTS_128_TO_255_OCTETS'],
+        27:['SAI_PORT_STAT_ETHER_OUT_PKTS_256_TO_511_OCTETS'],
+        28:['SAI_PORT_STAT_ETHER_OUT_PKTS_512_TO_1023_OCTETS'],
+        29:['SAI_PORT_STAT_ETHER_OUT_PKTS_1024_TO_1518_OCTETS'],
+        30:['SAI_PORT_STAT_ETHER_OUT_PKTS_1519_TO_2047_OCTETS'],
+        31:['SAI_PORT_STAT_ETHER_OUT_PKTS_2048_TO_4095_OCTETS'],
+        32:['SAI_PORT_STAT_ETHER_OUT_PKTS_4096_TO_9216_OCTETS'],
+        33:['SAI_PORT_STAT_ETHER_OUT_PKTS_9217_TO_16383_OCTETS'],
+        34:['SAI_PORT_STAT_IF_OUT_UCAST_PKTS'],
+        35:['SAI_PORT_STAT_IF_OUT_MULTICAST_PKTS'],
+        36:['SAI_PORT_STAT_IF_OUT_BROADCAST_PKTS'],
+        37:['SAI_PORT_STAT_IF_OUT_UCAST_PKTS', 'SAI_PORT_STAT_IF_OUT_MULTICAST_PKTS', 'SAI_PORT_STAT_IF_OUT_BROADCAST_PKTS'],
+        38:['SAI_PORT_STAT_ETHER_STATS_JABBERS'],
+        39:['SAI_PORT_STAT_ETHER_STATS_FRAGMENTS'],
+        40:['SAI_PORT_STAT_ETHER_STATS_UNDERSIZE_PKTS'],
+        41:['SAI_PORT_STAT_IP_IN_RECEIVES']
 }
 
 STATUS_NA = 'N/A'
@@ -110,14 +154,17 @@ class Portstat(object):
             """
                 Get the counters from specific table.
             """
-            fields = ["0","0","0","0","0","0","0","0","0","0"]
-            for counter_name, pos in counter_bucket_dict.items():
-                full_table_id = COUNTER_TABLE_PREFIX + table_id
-                counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name)
-                if counter_data is None:
-                    fields[pos] = STATUS_NA
-                elif fields[pos] != STATUS_NA:
-                    fields[pos] = str(int(fields[pos]) + int(counter_data))
+            fields = ["0"]*BUCKET_NUM
+
+            for pos, cntr_list in counter_bucket_dict.items():
+                for counter_name in cntr_list:
+                    full_table_id = COUNTER_TABLE_PREFIX + table_id
+                    counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name)
+                    if counter_data is None:
+                        fields[pos] = STATUS_NA
+                    elif fields[pos] != STATUS_NA:
+                        fields[pos] = str(int(fields[pos]) + int(counter_data))
+
             cntr = NStats._make(fields)
             return cntr
 
@@ -170,10 +217,15 @@ class Portstat(object):
         return STATUS_NA
 
 
-    def cnstat_print(self, cnstat_dict, intf_list, use_json, print_all, errors_only, rates_only):
+    def cnstat_print(self, cnstat_dict, intf_list, use_json, print_all, errors_only, rates_only, detail=False):
         """
             Print the cnstat.
         """
+
+        if intf_list and detail:
+            self.cnstat_intf_diff_print(cnstat_dict, {}, intf_list)
+            return None
+
         table = []
         header = None
 
@@ -212,11 +264,76 @@ class Portstat(object):
         else:
             print(tabulate(table, header, tablefmt='simple', stralign='right'))
 
-    
-    def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, intf_list, use_json, print_all, errors_only, rates_only):
+
+    def cnstat_intf_diff_print(self, cnstat_new_dict, cnstat_old_dict, intf_list):
+        """
+            Print the difference between two cnstat results for interface.
+        """
+
+        for key, cntr in cnstat_new_dict.items():
+            if key == 'time':
+                continue
+
+            if key in cnstat_old_dict:
+                old_cntr = cnstat_old_dict.get(key)
+            else:
+                old_cntr = NStats._make([0] * BUCKET_NUM)
+
+            if intf_list and key not in intf_list:
+                continue
+
+            print("Packets Received 64 Octets..................... {}".format(ns_diff(cntr.rx_64, old_cntr.rx_64)))
+            print("Packets Received 65-127 Octets................. {}".format(ns_diff(cntr.rx_65_127, old_cntr.rx_65_127)))
+            print("Packets Received 128-255 Octets................ {}".format(ns_diff(cntr.rx_128_255, old_cntr.rx_128_255)))
+            print("Packets Received 256-511 Octets................ {}".format(ns_diff(cntr.rx_256_511, old_cntr.rx_256_511)))
+            print("Packets Received 512-1023 Octets............... {}".format(ns_diff(cntr.rx_512_1023, old_cntr.rx_512_1023)))
+            print("Packets Received 1024-1518 Octets.............. {}".format(ns_diff(cntr.rx_1024_1518, old_cntr.rx_1024_1518)))
+            print("Packets Received 1519-2047 Octets.............. {}".format(ns_diff(cntr.rx_1519_2047, old_cntr.rx_1519_2047)))
+            print("Packets Received 2048-4095 Octets.............. {}".format(ns_diff(cntr.rx_2048_4095, old_cntr.rx_2048_4095)))
+            print("Packets Received 4096-9216 Octets.............. {}".format(ns_diff(cntr.rx_4096_9216, old_cntr.rx_4096_9216)))
+            print("Packets Received 9217-16383 Octets............. {}".format(ns_diff(cntr.rx_9217_16383, old_cntr.rx_9217_16383)))
+
+            print("")
+            print("Total Packets Received Without Errors.......... {}".format(ns_diff(cntr.rx_all, old_cntr.rx_all)))
+            print("Unicast Packets Received....................... {}".format(ns_diff(cntr.rx_uca, old_cntr.rx_uca)))
+            print("Multicast Packets Received..................... {}".format(ns_diff(cntr.rx_mca, old_cntr.rx_mca)))
+            print("Broadcast Packets Received..................... {}".format(ns_diff(cntr.rx_bca, old_cntr.rx_bca)))
+
+            print("")
+            print("Jabbers Received............................... {}".format(ns_diff(cntr.rx_jbr, old_cntr.rx_jbr)))
+            print("Fragments Received............................. {}".format(ns_diff(cntr.rx_frag, old_cntr.rx_frag)))
+            print("Undersize Received............................. {}".format(ns_diff(cntr.rx_usize, old_cntr.rx_usize)))
+            print("Overruns Received.............................. {}".format(ns_diff(cntr.rx_ovrrun, old_cntr.rx_ovrrun)))
+
+            print("")
+            print("Packets Transmitted 64 Octets.................. {}".format(ns_diff(cntr.tx_64, old_cntr.tx_64)))
+            print("Packets Transmitted 65-127 Octets.............. {}".format(ns_diff(cntr.tx_65_127, old_cntr.tx_65_127)))
+            print("Packets Transmitted 128-255 Octets............. {}".format(ns_diff(cntr.tx_128_255, old_cntr.tx_128_255)))
+            print("Packets Transmitted 256-511 Octets............. {}".format(ns_diff(cntr.tx_256_511, old_cntr.tx_256_511)))
+            print("Packets Transmitted 512-1023 Octets............ {}".format(ns_diff(cntr.tx_512_1023, old_cntr.tx_512_1023)))
+            print("Packets Transmitted 1024-1518 Octets........... {}".format(ns_diff(cntr.tx_1024_1518, old_cntr.tx_1024_1518)))
+            print("Packets Transmitted 1519-2047 Octets........... {}".format(ns_diff(cntr.tx_1519_2047, old_cntr.tx_1519_2047)))
+            print("Packets Transmitted 2048-4095 Octets........... {}".format(ns_diff(cntr.tx_2048_4095, old_cntr.tx_2048_4095)))
+            print("Packets Transmitted 4096-9216 Octets........... {}".format(ns_diff(cntr.tx_4096_9216, old_cntr.tx_4096_9216)))
+            print("Packets Transmitted 9217-16383 Octets.......... {}".format(ns_diff(cntr.tx_9217_16383, old_cntr.tx_9217_16383)))
+
+            print("")
+            print("Total Packets Transmitted Successfully......... {}".format(ns_diff(cntr.tx_all, old_cntr.tx_all)))
+            print("Unicast Packets Transmitted.................... {}".format(ns_diff(cntr.tx_uca, old_cntr.tx_uca)))
+            print("Multicast Packets Transmitted.................. {}".format(ns_diff(cntr.tx_mca, old_cntr.tx_mca)))
+            print("Broadcast Packets Transmitted.................. {}".format(ns_diff(cntr.tx_bca, old_cntr.tx_bca)))
+
+            print("Time Since Counters Last Cleared............... " + str(cnstat_old_dict.get('time')))
+
+ 
+    def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, intf_list, use_json, print_all, errors_only, rates_only, detail=False):
         """
             Print the difference between two cnstat results.
         """
+
+        if intf_list and detail:
+            self.cnstat_intf_diff_print(cnstat_new_dict, cnstat_old_dict, intf_list)
+            return None
 
         table = []
         header = None
@@ -339,6 +456,7 @@ Examples:
   portstat -R
   portstat -a
   portstat -p 20
+  portstat -l -i Ethernet4,Ethernet8,Ethernet12-20,PortChannel100-102
 """)
 
     parser.add_argument('-a', '--all', action='store_true', help='Display all the stats counters')
@@ -355,6 +473,7 @@ Examples:
     parser.add_argument('-s','--show',   default=constants.DISPLAY_EXTERNAL, help='Display all interfaces or only external interfaces')
     parser.add_argument('-n','--namespace', default=None, help='Display interfaces for specific namespace')
     parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
+    parser.add_argument('-l', '--detail', action='store_true', help='Display detailed statistics.')
     args = parser.parse_args()
 
     save_fresh_stats = args.clear
@@ -371,6 +490,7 @@ Examples:
     intf_fs = args.interface
     namespace = args.namespace
     display_option = args.show
+    detail = args.detail
 
     if tag_name is not None:
         cnstat_file = uid + "-" + tag_name
@@ -442,8 +562,9 @@ Examples:
         if os.path.isfile(cnstat_fqn_file):
             try:
                 cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'rb'))
-                print("Last cached time was " + str(cnstat_cached_dict.get('time')))
-                portstat.cnstat_diff_print(cnstat_dict, cnstat_cached_dict, intf_list, use_json, print_all, errors_only, rates_only)
+                if not detail:
+                    print("Last cached time was " + str(cnstat_cached_dict.get('time')))
+                portstat.cnstat_diff_print(cnstat_dict, cnstat_cached_dict, intf_list, use_json, print_all, errors_only, rates_only, detail)
             except IOError as e:
                 print(e.errno, e)
         else:
@@ -451,13 +572,13 @@ Examples:
                 print("\nFile '%s' does not exist" % cnstat_fqn_file)
                 print("Did you run 'portstat -c -t %s' to record the counters via tag %s?\n" % (tag_name, tag_name))
             else:
-                portstat.cnstat_print(cnstat_dict, intf_list, use_json, print_all, errors_only, rates_only)
+                portstat.cnstat_print(cnstat_dict, intf_list, use_json, print_all, errors_only, rates_only, detail)
     else:
         #wait for the specified time and then gather the new stats and output the difference.
         time.sleep(wait_time_in_seconds)
         print("The rates are calculated within %s seconds period" % wait_time_in_seconds)
         cnstat_new_dict = portstat.get_cnstat_dict()
-        portstat.cnstat_diff_print(cnstat_new_dict, cnstat_dict, intf_list, use_json, print_all, errors_only, rates_only)
+        portstat.cnstat_diff_print(cnstat_new_dict, cnstat_dict, intf_list, use_json, print_all, errors_only, rates_only, detail)
 
 if __name__ == "__main__":
     main()

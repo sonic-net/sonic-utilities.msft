@@ -426,3 +426,18 @@ def rif(interface, period, verbose):
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
+# 'counters' subcommand ("show interfaces counters detailed")
+@counters.command()
+@click.argument('interface', metavar='<interface_name>', required=True, type=str)
+@click.option('-p', '--period', help="Display statistics over a specified period (in seconds)")
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def detailed(interface, period, verbose):
+    """Show interface counters detailed"""
+
+    cmd = "portstat -l"
+    if period is not None:
+        cmd += " -p {}".format(period)
+    if interface is not None:
+        cmd += " -i {}".format(interface)
+
+    clicommon.run_command(cmd, display_cmd=verbose)
