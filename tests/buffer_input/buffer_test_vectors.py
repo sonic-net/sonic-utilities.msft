@@ -1,0 +1,108 @@
+show_buffer_configuration="""\
+Pool: egress_lossless_pool
+----  --------
+mode  dynamic
+size  13945824
+type  egress
+----  --------
+
+Pool: egress_lossy_pool
+----  -------
+mode  dynamic
+type  egress
+----  -------
+
+Pool: ingress_lossless_pool
+----  -------
+mode  dynamic
+type  ingress
+----  -------
+
+Pool: ingress_lossy_pool
+----  -------
+mode  dynamic
+type  ingress
+----  -------
+
+Profile: ingress_lossy_profile
+----------  --------------------------------
+dynamic_th  3
+pool        [BUFFER_POOL|ingress_lossy_pool]
+size        0
+----------  --------------------------------
+
+Profile: headroom_profile
+----------  -----------------------------------
+dynamic_th  0
+pool        [BUFFER_POOL|ingress_lossless_pool]
+xon         18432
+xoff        32768
+size        51200
+----------  -----------------------------------
+
+Profile: alpha_profile
+-------------  -----------------------------------
+dynamic_th     0
+pool           [BUFFER_POOL|ingress_lossless_pool]
+headroom_type  dynamic
+-------------  -----------------------------------
+
+"""
+
+show_buffer_information_output="""\
+Pool: egress_lossless_pool
+----  --------
+mode  dynamic
+size  13945824
+type  egress
+----  --------
+
+Pool: egress_lossy_pool
+----  -------
+mode  dynamic
+size  4580864
+type  egress
+----  -------
+
+Pool: ingress_lossless_pool
+----  -------
+mode  dynamic
+size  4580864
+type  ingress
+----  -------
+
+Pool: ingress_lossy_pool
+----  -------
+mode  dynamic
+size  4580864
+type  ingress
+----  -------
+
+Profile: ingress_lossy_profile
+----------  --------------------------------------
+dynamic_th  3
+pool        [BUFFER_POOL_TABLE|ingress_lossy_pool]
+size        0
+----------  --------------------------------------
+
+Profile: headroom_profile
+----------  -----------------------------------------
+dynamic_th  0
+pool        [BUFFER_POOL_TABLE|ingress_lossless_pool]
+xon         18432
+xoff        32768
+size        51200
+----------  -----------------------------------------
+
+"""
+
+testData = {
+             'show_buffer_configuration' :  [ {'cmd' : ['buffer', 'configuration'],
+                                       'rc_output': show_buffer_configuration
+                                      }
+                                    ],
+             'show_buffer_information' :  [ {'cmd' : ['buffer', 'information'],
+                                       'rc_output': show_buffer_information_output
+                                      }
+                                    ]
+           }

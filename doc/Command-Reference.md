@@ -42,6 +42,9 @@
   * [Drop Counter show commands](#drop-counters-show-commands)
   * [Drop Counter config commands](#drop-counters-config-commands)
   * [Drop Counter clear commands](#drop-counters-clear-commands)
+* [Dynamic Buffer Management](#dynamic-buffer-management)
+  * [Configuration commands](#configuration-commands)
+  * [Show commands](#show-commands)
 * [ECN](#ecn)
   * [ECN show commands](#ecn-show-commands)
   * [ECN config commands](#ecn-config-commands)
@@ -2163,7 +2166,7 @@ This command is used to delete a configured DHCP Relay Destination IP address fr
 Go Back To [Beginning of the document](#) or [Beginning of this section](#dhcp-relay)
 
 
-# Drop Counters
+## Drop Counters
 
 This section explains all the Configurable Drop Counters show commands and configuration options that are supported in SONiC.
 
@@ -2345,8 +2348,310 @@ This comnmand is used to clear drop counters. This is done on a per-user basis.
   Cleared drop counters
   ```
 
-Go Back To [Beginning of the document](#) or [Beginning of this section](#drop-counters)
+Go Back To [Beginning of the document](#) or [Beginning of this section](##drop-counters)
 
+## Dynamic Buffer Management
+
+This section explains all the show and configuration commands regarding the dynamic buffer management.
+
+Dynamic buffer management is responsible for calculating buffer size according to the ports' configured speed and administrative state. In order to enable dynamic buffer management feature, the ports' speed must be configured. For this please refer [Interface naming mode config commands](#interface-naming-mode-config-commands)
+
+### Configuration commands
+
+**configure a lossless buffer profile**
+
+This command is used to configure a lossless buffer profile.
+
+- Usage:
+
+  ```
+  config buffer_profile add <profile_name> -xon <xon_threshold> -xoff <xoff_threshold> [-size <size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
+  config buffer_profile set <profile_name> -xon <xon_threshold> -xoff <xoff_threshold> [-size <size>] [-dynamic_th <dynamic_th_value>] [-pool <ingress_lossless_pool_name>]
+  config buffer_profile remove <profile_name>
+  ```
+
+  All the parameters are devided to two groups, one for headroom and one for dynamic_th. For any command at lease one group of parameters should be provided.
+  For headroom parameters:
+
+  - At lease one of `xoff` and `size` should be provided and the other will be optional and conducted via the formula `xon + xoff = size`.
+  All other parameters are optional.
+  - `xon` is madantory.
+  - `xon` + `xoff` <= `size`; For Mellanox platform xon + xoff == size
+
+  If only headroom parameters are provided, the `dynamic_th` will be taken from `CONFIG_DB.DEFAULT_LOSSLESS_BUFFER_PARAMETER.default_dynamic_th`.
+
+  If only dynamic_th parameter is provided, the `headroom_type` will be set as `dynamic` and `xon`, `xoff` and `size` won't be set. This is only used for non default dynamic_th. In this case, the profile won't be deployed to ASIC directly. It can be configured to a lossless PG and then a dynamic profile will be generated based on the port's speed, cable length, and MTU and deployed to the ASIC.
+
+  The subcommand `add` is designed for adding a new buffer profile to the system.
+
+  The subcommand `set` is designed for modifying an existing buffer profile in the system.
+  For a profile with dynamically calculated headroom information, only `dynamic_th` can be modified. 
+
+  The subcommand `remove` is designed for removing an existing buffer profile from the system. When removing a profile, it shouldn't be referenced by any entry in `CONFIG_DB.BUFFER_PG`.
+
+- Example:
+
+  ```
+  admin@sonic:~$ sudo config buffer_profile add profile1 -xon 18432 -xoff 18432
+  admin@sonic:~$ sudo config buffer_profile remove profile1
+  ```
+
+**config interface cable_length**
+
+This command is used to configure the length of the cable connected to a port. The cable_length is in unit of meters and must be suffixed with "m".
+
+- Usage:
+
+  ```
+  config interface cable_length <interface_name> <cable_length>
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ sudo config interface cable_length Ethernet0 40m
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#dynamic-buffer-management)
+
+**config interface buffer priority-group lossless**
+
+This command is used to configure the priority groups on which lossless traffic runs.
+
+- Usage:
+
+  ```
+  config interface buffer priority-group lossless add <interface_name> <pg_map> [profile]
+  config interface buffer priority-group lossless set <interface_name> <pg_map> [profile]
+  config interface buffer priority-group lossless remove <interface_name> [<pg_map>]
+  ```
+
+  The <pg_map> can be in one of the following two forms:
+
+  - For a range of priorities, the lower bound and upper bound connected by a dash, like `3-4`
+  - For a single priority, the number, like `6`
+
+  The `pg-map` represents the map of priorities for lossless traffic. It should be a string and in form of a bit map like `3-4`. The `-` connects the lower bound and upper bound of a range of priorities.
+
+  The subcommand `add` is designed for adding a new lossless PG on top of current PGs. The new PG range must be disjoint with all existing PGs.
+
+  For example, currently the PG range 3-4 exist on port Ethernet4, to add PG range 4-5 will fail because it isn't disjoint with 3-4. To add PG range 5-6 will succeed. After that both range 3-4 and 5-6 will work as lossless PG.
+
+  The `override-profile` parameter is optional. When provided, it represents the predefined buffer profile for headroom override.
+
+  The subcommand `set` is designed for modifying an existing PG from dynamic calculation to headroom override or vice versa. The `pg-map` must be an existing PG.
+
+  The subcommand `remove` is designed for removing an existing PG. The option `pg-map` must be an existing PG. All lossless PGs will be removed in case no `pg-map` provided.
+
+- Example:
+
+  To configure lossless_pg on a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer priority-group lossless add Ethernet0 3-4
+  ```
+
+  To change the profile used for lossless_pg on a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer priority-group lossless set Ethernet0 3-4 new-profile
+  ```
+
+  To remove one lossless priority from a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer priority-group lossless remove Ethernet0 6
+  ```
+
+  To remove all lossless priorities from a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer priority-group lossless remove Ethernet0
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#dynamic-buffer-management)
+
+### Show commands
+
+**show buffer information**
+
+This command is used to display the status of buffer pools and profiles currently deployed to the ASIC.
+
+- Usage:
+
+  ```
+  show buffer information
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show buffer information
+  Pool: ingress_lossless_pool
+  ----  --------
+  type  ingress
+  mode  dynamic
+  size  17170432
+  ----  --------
+
+  Pool: egress_lossless_pool
+  ----  --------
+  type  egress
+  mode  dynamic
+  size  34340822
+  ----  --------
+
+  Pool: ingress_lossy_pool
+  ----  --------
+  type  ingress
+  mode  dynamic
+  size  17170432
+  ----  --------
+
+  Pool: egress_lossy_pool
+  ----  --------
+  type  egress
+  mode  dynamic
+  size  17170432
+  ----  --------
+
+  Profile: pg_lossless_100000_5m_profile
+  ----------  -----------------------------------
+  xon         18432
+  dynamic_th  0
+  xoff        18432
+  pool        [BUFFER_POOL:ingress_lossless_pool]
+  size        36864
+  ----------  -----------------------------------
+
+  Profile: q_lossy_profile
+  ----------  -------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:egress_lossy_pool]
+  size        0
+  ----------  -------------------------------
+
+  Profile: egress_lossy_profile
+  ----------  -------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:egress_lossy_pool]
+  size        4096
+  ----------  -------------------------------
+
+  Profile: egress_lossless_profile
+  ----------  ----------------------------------
+  dynamic_th  7
+  pool        [BUFFER_POOL:egress_lossless_pool]
+  size        0
+  ----------  ----------------------------------
+
+  Profile: ingress_lossless_profile
+  ----------  -----------------------------------
+  dynamic_th  0
+  pool        [BUFFER_POOL:ingress_lossless_pool]
+  size        0
+  ----------  -----------------------------------
+
+  Profile: pg_lossless_100000_79m_profile
+  ----------  -----------------------------------
+  xon         18432
+  dynamic_th  0
+  xoff        60416
+  pool        [BUFFER_POOL:ingress_lossless_pool]
+  size        78848
+  ----------  -----------------------------------
+
+  Profile: pg_lossless_100000_40m_profile
+  ----------  -----------------------------------
+  xon         18432
+  dynamic_th  0
+  xoff        38912
+  pool        [BUFFER_POOL:ingress_lossless_pool]
+  size        57344
+  ----------  -----------------------------------
+
+  Profile: ingress_lossy_profile
+  ----------  --------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:ingress_lossy_pool]
+  size        0
+  ----------  --------------------------------
+  ```
+
+**show buffer configuration**
+
+This command is used to display the status of buffer pools and profiles currently configured.
+
+- Usage:
+
+  ```
+  show buffer configuration
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show buffer configuration
+  Pool: ingress_lossless_pool
+  ----  --------
+  type  ingress
+  mode  dynamic
+  ----  --------
+
+  Pool: egress_lossless_pool
+  ----  --------
+  type  egress
+  mode  dynamic
+  size  34340822
+  ----  --------
+
+  Pool: ingress_lossy_pool
+  ----  --------
+  type  ingress
+  mode  dynamic
+  ----  --------
+
+  Pool: egress_lossy_pool
+  ----  --------
+  type  egress
+  mode  dynamic
+  ----  --------
+
+  Profile: q_lossy_profile
+  ----------  -------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:egress_lossy_pool]
+  size        0
+  ----------  -------------------------------
+
+  Profile: egress_lossy_profile
+  ----------  -------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:egress_lossy_pool]
+  size        4096
+  ----------  -------------------------------
+
+  Profile: egress_lossless_profile
+  ----------  ----------------------------------
+  dynamic_th  7
+  pool        [BUFFER_POOL:egress_lossless_pool]
+  size        0
+  ----------  ----------------------------------
+
+  Profile: ingress_lossless_profile
+  ----------  -----------------------------------
+  dynamic_th  0
+  pool        [BUFFER_POOL:ingress_lossless_pool]
+  size        0
+  ----------  -----------------------------------
+
+  Profile: ingress_lossy_profile
+  ----------  --------------------------------
+  dynamic_th  3
+  pool        [BUFFER_POOL:ingress_lossy_pool]
+  size        0
+  ----------  --------------------------------
+  ```
 
 ## ECN
 
@@ -3259,6 +3564,29 @@ kindly use, double tab i.e. <tab><tab> to see the available breakout option cust
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
+**config interface cable_length (Versions >= 202006)**
+
+This command is used to configure the length of the cable connected to a port. The cable_length is in unit of meters and must be suffixed with "m".
+
+For details please refer [dynamic buffer management](#dynamic-buffer-management)
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
+
+**config interface lossless_pg (Versions >= 202006)**
+
+This command is used to configure the priority groups on which lossless traffic runs.
+
+For details please refer [dynamic buffer management](#dynamic-buffer-management)
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
+
+**config interface headroom_override (Versions >= 202006)**
+
+This command is used to configure a static buffer profile on a port's lossless priorities. There shouldn't be any `lossless_pg` configured on the port when configuring `headroom_override`. The port's headroom won't be updated after `headroom_override` has been configured on the port.
+
+For details please refer [dynamic buffer management](#dynamic-buffer-management)
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
 ## Interface Naming Mode
 

@@ -8,6 +8,10 @@ log = logger.Logger(SYSLOG_IDENTIFIER)
 class MellanoxBufferMigrator():
     def __init__(self, configDB):
         self.configDB = configDB
+        self.pending_update_items = list()
+        self.default_speed_list = ['1000', '10000', '25000', '40000', '50000', '100000', '200000', '400000']
+        self.default_cable_len_list = ['5m', '40m', '300m']
+        self.is_buffer_config_default = True
 
     mellanox_default_parameter = {
         "version_1_0_2": {
@@ -138,7 +142,7 @@ class MellanoxBufferMigrator():
         },
         "version_1_0_4": {
             # version 1.0.4 is introduced for updating the buffer settings
-            "pool_configuration_list": ["spc1_t0_pool", "spc1_t1_pool", "spc2_t0_pool", "spc2_t1_pool", "spc2_3800_t0_pool", "spc2_3800_t1_pool"],
+            "pool_configuration_list": ["spc1_t0_pool", "spc1_t1_pool", "spc2_t0_pool", "spc2_t1_pool", "spc2_3800_t0_pool", "spc2_3800_t1_pool", "spc3_t0_pool", "spc3_t1_pool"],
 
             # Buffer pool info for normal mode
             "buffer_pool_list" : ['ingress_lossless_pool', 'ingress_lossy_pool', 'egress_lossless_pool', 'egress_lossy_pool'],
@@ -168,6 +172,16 @@ class MellanoxBufferMigrator():
                                   "ingress_lossy_pool": { "size": "12457984", "type": "ingress", "mode": "dynamic" },
                                   "egress_lossless_pool": { "size": "34287552", "type": "egress", "mode": "dynamic" },
                                   "egress_lossy_pool": {"size": "12457984", "type": "egress", "mode": "dynamic" } },
+
+            # SPC3 is used only when migrating from 1.0.4 to newer version
+            "spc3_t0_pool": {"ingress_lossless_pool": { "size": "26451968", "type": "ingress", "mode": "dynamic" },
+                             "ingress_lossy_pool": { "size": "26451968", "type": "ingress", "mode": "dynamic" },
+                             "egress_lossless_pool": { "size": "60817392", "type": "egress", "mode": "dynamic" },
+                             "egress_lossy_pool": {"size": "26451968", "type": "egress", "mode": "dynamic" } },
+            "spc3_t1_pool": {"ingress_lossless_pool": { "size": "20627456", "type": "ingress", "mode": "dynamic" },
+                             "ingress_lossy_pool": { "size": "20627456", "type": "ingress", "mode": "dynamic" },
+                             "egress_lossless_pool": { "size": "60817392", "type": "egress", "mode": "dynamic" },
+                             "egress_lossy_pool": {"size": "20627456", "type": "egress", "mode": "dynamic" } },
 
             # Lossless headroom info
             "spc1_headroom": {"pg_lossless_10000_5m_profile": {"size": "49152", "xon":"19456"},
@@ -218,6 +232,27 @@ class MellanoxBufferMigrator():
                                    "pg_lossless_40000_300m_profile": {"size": "95232", "xon":"19456"},
                                    "pg_lossless_50000_300m_profile": {"size": "106496", "xon":"19456"},
                                    "pg_lossless_100000_300m_profile": {"size": "159744", "xon":"19456"}},
+            "spc3_headroom": {"pg_lossless_10000_5m_profile": {"size": "52224", "xon":"19456"},
+                              "pg_lossless_25000_5m_profile": {"size": "52224", "xon":"19456"},
+                              "pg_lossless_40000_5m_profile": {"size": "53248", "xon":"19456"},
+                              "pg_lossless_50000_5m_profile": {"size": "53248", "xon":"19456"},
+                              "pg_lossless_100000_5m_profile": {"size": "53248", "xon":"19456"},
+                              "pg_lossless_200000_5m_profile": {"size": "55296", "xon":"19456"},
+                              "pg_lossless_400000_5m_profile": {"size": "86016", "xon":"37888"},
+                              "pg_lossless_10000_40m_profile": {"size": "53248", "xon":"19456"},
+                              "pg_lossless_25000_40m_profile": {"size": "55296", "xon":"19456"},
+                              "pg_lossless_40000_40m_profile": {"size": "57344", "xon":"19456"},
+                              "pg_lossless_50000_40m_profile": {"size": "58368", "xon":"19456"},
+                              "pg_lossless_100000_40m_profile": {"size": "63488", "xon":"19456"},
+                              "pg_lossless_200000_40m_profile": {"size": "74752", "xon":"19456"},
+                              "pg_lossless_400000_40m_profile": {"size": "124928", "xon":"37888"},
+                              "pg_lossless_10000_300m_profile": {"size": "60416", "xon":"19456"},
+                              "pg_lossless_25000_300m_profile": {"size": "73728", "xon":"19456"},
+                              "pg_lossless_40000_300m_profile": {"size": "86016", "xon":"19456"},
+                              "pg_lossless_50000_300m_profile": {"size": "95232", "xon":"19456"},
+                              "pg_lossless_100000_300m_profile": {"size": "137216", "xon":"19456"},
+                              "pg_lossless_200000_300m_profile": {"size": "223232", "xon":"19456"},
+                              "pg_lossless_400000_300m_profile": {"size": "420864", "xon":"37888"}},
 
             # Buffer profile info
             "buffer_profiles": {"ingress_lossless_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|ingress_lossless_pool]", "size": "0"},
@@ -225,7 +260,37 @@ class MellanoxBufferMigrator():
                                 "egress_lossless_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|egress_lossless_pool]", "size": "0"},
                                 "egress_lossy_profile": {"dynamic_th": "7", "pool": "[BUFFER_POOL|egress_lossy_pool]", "size": "9216"},
                                 "q_lossy_profile": {"dynamic_th": "3", "pool": "[BUFFER_POOL|egress_lossy_pool]", "size": "0"}}
-        }
+        },
+        "version_2_0_0": {
+            # version 2.0.0 is introduced for dynamic buffer calculation
+            #
+            "pool_configuration_list": ["spc1_pool", "spc2_pool", "spc3_pool"],
+            "pool_mapped_from_old_version": {
+                "spc1_t0_pool": "spc1_pool",
+                "spc1_t1_pool": "spc1_pool",
+                "spc2_t0_pool": "spc2_pool",
+                "spc2_t1_pool": "spc2_pool",
+                "spc2_3800_t0_pool": "spc2_pool",
+                "spc2_3800_t1_pool": "spc2_pool",
+                "spc3_t0_pool": "spc3_pool",
+                "spc3_t1_pool": "spc3_pool"
+                },
+
+            # Buffer pool info for normal mode
+            "buffer_pool_list" : ['ingress_lossless_pool', 'ingress_lossy_pool', 'egress_lossless_pool', 'egress_lossy_pool'],
+            "spc1_pool": {"ingress_lossless_pool": { "type": "ingress", "mode": "dynamic" },
+                             "ingress_lossy_pool": { "type": "ingress", "mode": "dynamic" },
+                             "egress_lossless_pool": { "size": "13945824", "type": "egress", "mode": "dynamic" },
+                             "egress_lossy_pool": {"type": "egress", "mode": "dynamic" } },
+            "spc2_pool": {"ingress_lossless_pool": { "type": "ingress", "mode": "dynamic" },
+                             "ingress_lossy_pool": { "type": "ingress", "mode": "dynamic" },
+                             "egress_lossless_pool": { "size": "34287552", "type": "egress", "mode": "dynamic" },
+                             "egress_lossy_pool": { "type": "egress", "mode": "dynamic" } },
+            "spc3_pool": {"ingress_lossless_pool": { "type": "ingress", "mode": "dynamic" },
+                             "ingress_lossy_pool": { "type": "ingress", "mode": "dynamic" },
+                             "egress_lossless_pool": { "size": "60817392", "type": "egress", "mode": "dynamic" },
+                             "egress_lossy_pool": {"type": "egress", "mode": "dynamic" } }
+            }
     }
 
     def mlnx_default_buffer_parameters(self, db_version, table):
@@ -247,6 +312,9 @@ class MellanoxBufferMigrator():
         """
         To migrate buffer pool configuration
         """
+        self.is_buffer_config_default = False
+        buffer_pool_conf_in_db = {}
+
         # Buffer pools defined in old version
         old_default_buffer_pools = self.mlnx_default_buffer_parameters(old_version, "buffer_pool_list")
 
@@ -274,12 +342,16 @@ class MellanoxBufferMigrator():
             return False
 
         new_config_name = None
+        pool_mapping = self.mlnx_default_buffer_parameters(new_version, "pool_mapped_from_old_version")
         for old_config_name in old_pool_configuration_list:
             old_config = self.mlnx_default_buffer_parameters(old_version, old_config_name)
             log.log_info("Checking old pool configuration {}".format(old_config_name))
             if buffer_pool_conf_in_db == old_config:
-                new_config_name = old_config_name
-                log.log_info("Old buffer pool configuration {} will be migrate to new one".format(old_config_name))
+                if pool_mapping:
+                    new_config_name = pool_mapping[old_config_name]
+                else:
+                    new_config_name = old_config_name
+                log.log_info("Old buffer pool configuration {} will be migrate to new one {}".format(old_config_name, new_config_name))
                 break
 
         if not new_config_name:
@@ -291,27 +363,46 @@ class MellanoxBufferMigrator():
             log.log_error("Can't find the buffer pool configuration for {} in {}".format(new_config_name, new_version))
             return False
 
-        # Migrate old buffer conf to latest.
+        # Don't migrate the old buffer pool conf to latest until we know all the following buffer configuration matches default value.
         for pool in old_default_buffer_pools:
-            self.configDB.set_entry('BUFFER_POOL', pool, new_buffer_pool_conf.get(pool))
+            self.pending_update_items.append(('BUFFER_POOL', pool, new_buffer_pool_conf.get(pool)))
 
-            log.log_info("Successfully migrate mlnx buffer pool {} size to the latest.".format(pool))
+        self.is_buffer_config_default = True
 
         return True
+
+    def mlnx_get_buffer_profile_key(self):
+        device_data = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
+        if device_data:
+            platform = device_data.get('platform')
+        if not platform:
+            log.log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
+            return None
+
+        spc1_platforms = ["x86_64-mlnx_msn2010-r0", "x86_64-mlnx_msn2100-r0", "x86_64-mlnx_msn2410-r0", "x86_64-mlnx_msn2700-r0", "x86_64-mlnx_msn2740-r0"]
+        spc2_platforms = ["x86_64-mlnx_msn3700-r0", "x86_64-mlnx_msn3700c-r0"]
+        spc2_platform_with_gearbox = ['x86_64-mlnx_msn3800-r0']
+        spc3_platforms = ["x86_64-mlnx_msn4600c-r0", "x86_64-mlnx_msn4700-r0"]
+
+        if platform in spc2_platform_with_gearbox:
+            return "spc2_3800_headroom"
+        elif platform in spc3_platforms:
+            return "spc3_headroom"
+        elif platform in spc2_platforms:
+            return "spc2_headroom"
+        elif platform in spc1_platforms:
+            return "spc1_headroom"
+
+        return None
 
     def mlnx_migrate_buffer_profile(self, old_version, new_version):
         """
         This is to migrate BUFFER_PROFILE configuration
         """
-        device_data = self.configDB.get_table('DEVICE_METADATA')
-        if 'localhost' in device_data:
-            platform = device_data['localhost']['platform']
+        if not self.is_buffer_config_default:
+            return True
         else:
-            log.log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
-            return False
-
-        spc1_platforms = ["x86_64-mlnx_msn2010-r0", "x86_64-mlnx_msn2100-r0", "x86_64-mlnx_msn2410-r0", "x86_64-mlnx_msn2700-r0", "x86_64-mlnx_msn2740-r0"]
-        spc2_platforms = ["x86_64-mlnx_msn3700-r0", "x86_64-mlnx_msn3700c-r0"]
+            self.is_buffer_config_default = False
 
         # get profile
         buffer_profile_old_configure = self.mlnx_default_buffer_parameters(old_version, "buffer_profiles")
@@ -322,15 +413,13 @@ class MellanoxBufferMigrator():
         # we need to transform lossless pg profiles to new settings
         # to achieve that, we just need to remove this kind of profiles, buffermgrd will generate them automatically
         default_lossless_profiles = None
-        if platform == 'x86_64-mlnx_msn3800-r0':
-            default_lossless_profiles = self.mlnx_default_buffer_parameters(old_version, "spc2_3800_headroom")
-            new_lossless_profiles = self.mlnx_default_buffer_parameters(new_version, "spc2_3800_headroom")
-        elif platform in spc2_platforms:
-            default_lossless_profiles = self.mlnx_default_buffer_parameters(old_version, "spc2_headroom")
-            new_lossless_profiles = self.mlnx_default_buffer_parameters(new_version, "spc2_headroom")
-        elif platform in spc1_platforms:
-            default_lossless_profiles = self.mlnx_default_buffer_parameters(old_version, "spc1_headroom")
-            new_lossless_profiles = self.mlnx_default_buffer_parameters(new_version, "spc1_headroom")
+        headroom_key = self.mlnx_get_buffer_profile_key()
+        if not headroom_key:
+            default_lossless_profiles = None
+            new_lossless_profiles = None
+        else:
+            default_lossless_profiles = self.mlnx_default_buffer_parameters(old_version, headroom_key)
+            new_lossless_profiles = self.mlnx_default_buffer_parameters(new_version, headroom_key)
 
         if default_lossless_profiles and new_lossless_profiles:
             for name, profile in buffer_profile_conf.items():
@@ -346,12 +435,7 @@ class MellanoxBufferMigrator():
                         default_profile['size'] = new_profile['size']
                         default_profile['xon'] = new_profile['xon']
                         default_profile['xoff'] = str(int(default_profile['size']) - int(default_profile['xon']))
-                        self.configDB.set_entry('BUFFER_PROFILE', name, default_profile)
-
-        if not buffer_profile_new_configure:
-            # Not providing new profile configure in new version means they do need to be changed
-            log.log_notice("No buffer profile in {}, don't need to migrate non-lossless profiles".format(new_version))
-            return True
+                        self.pending_update_items.append(('BUFFER_PROFILE', name, default_profile))
 
         for name, profile in buffer_profile_old_configure.items():
             if name in buffer_profile_conf and profile == buffer_profile_conf[name]:
@@ -360,8 +444,56 @@ class MellanoxBufferMigrator():
             log.log_notice("Default profile {} isn't in database or doesn't match default value".format(name))
             return True
 
+        self.is_buffer_config_default = True
+
+        if not buffer_profile_new_configure:
+            # Not providing new profile configure in new version means they do need to be changed
+            log.log_notice("No buffer profile in {}, don't need to migrate non-lossless profiles".format(new_version))
+            return True
+
         for name, profile in buffer_profile_new_configure.items():
             log.log_info("Successfully migrate profile {}".format(name))
-            self.configDB.set_entry('BUFFER_PROFILE', name, profile)
+            self.pending_update_items.append(('BUFFER_PROFILE', name, profile))
 
         return True
+
+    def mlnx_append_item_on_pending_configuration_list(self, item):
+        self.pending_update_items.append(item)
+
+    def mlnx_abandon_pending_buffer_configuration(self):
+        """
+        We found the buffer configuration on the device doesn't match the default one, so no migration performed
+        Clear pending update item list in this case
+        """
+        self.pending_update_items = []
+        self.is_buffer_config_default = False
+
+    def mlnx_flush_new_buffer_configuration(self):
+        """
+        Flush all the pending items to config database
+        """
+        if not self.is_buffer_config_default:
+            log.log_notice("No item pending to be updated")
+            metadata = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
+            metadata['buffer_model'] = 'traditional'
+            self.configDB.set_entry('DEVICE_METADATA', 'localhost', metadata)
+            log.log_notice("Set buffer_model as traditional")
+            return True
+
+        for item in self.pending_update_items:
+            table, key, value = item
+            self.configDB.set_entry(table, key, value)
+            if value:
+                log.log_notice("Successfully migrate {} {} to {}".format(table, key, value))
+            else:
+                log.log_notice("Successfully remove {} {} which is no longer used".format(table, key))
+
+        return True
+
+    def mlnx_get_default_lossless_profile(self, db_version):
+        key = self.mlnx_get_buffer_profile_key()
+        if not key:
+            return None
+
+        default_profiles = self.mlnx_default_buffer_parameters(db_version, key)
+        return default_profiles

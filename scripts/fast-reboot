@@ -247,7 +247,8 @@ function backup_database()
         for _, k in ipairs(redis.call('keys', '*')) do
             if not string.match(k, 'FDB_TABLE|') and not string.match(k, 'WARM_RESTART_TABLE|') \
                                           and not string.match(k, 'MIRROR_SESSION_TABLE|') \
-                                          and not string.match(k, 'WARM_RESTART_ENABLE_TABLE|') then
+                                          and not string.match(k, 'WARM_RESTART_ENABLE_TABLE|') \
+                                          and not string.match(k, 'BUFFER_MAX_PARAM_TABLE|') then
                 redis.call('del', k)
             end
         end

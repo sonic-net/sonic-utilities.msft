@@ -1197,7 +1197,7 @@ def load_minigraph(db, no_service_restart):
         clicommon.run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
 
     # generate QoS and Buffer configs
-    clicommon.run_command("config qos reload", display_cmd=True)
+    clicommon.run_command("config qos reload --no-dynamic-buffer", display_cmd=True)
 
     # Write latest db version string into db
     db_migrator='/usr/local/bin/db_migrator.py'
@@ -1626,8 +1626,20 @@ def clear():
     log.log_info("'qos clear' executing...")
     _clear_qos()
 
+def _update_buffer_calculation_model(config_db, model):
+    """Update the buffer calculation model into CONFIG_DB"""
+    buffer_model_changed = False
+    device_metadata = config_db.get_entry('DEVICE_METADATA', 'localhost')
+    if device_metadata.get('buffer_model') != model:
+        buffer_model_changed = True
+        device_metadata['buffer_model'] = model
+        config_db.set_entry('DEVICE_METADATA', 'localhost', device_metadata)
+    return buffer_model_changed
+
 @qos.command('reload')
-def reload():
+@click.pass_context
+@click.option('--no-dynamic-buffer', is_flag=True, help="Disable dynamic buffer calculation")
+def reload(ctx, no_dynamic_buffer):
     """Reload QoS configuration"""
     log.log_info("'qos reload' executing...")
     _clear_qos()
@@ -1638,9 +1650,13 @@ def reload():
     if multi_asic.get_num_asics() > 1:
         namespace_list = multi_asic.get_namespaces_from_linux()
 
+    buffer_model_updated = False
+    vendors_supporting_dynamic_buffer = ["mellanox"]
+
     for ns in namespace_list:
         if ns is DEFAULT_NAMESPACE:
             asic_id_suffix = ""
+            config_db = ConfigDBConnector()
         else:
             asic_id = multi_asic.get_asic_id_from_name(ns)
             if asic_id is None:
@@ -1652,7 +1668,19 @@ def reload():
                 raise click.Abort()
             asic_id_suffix = str(asic_id)
 
-        buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers.json.j2")
+            config_db = ConfigDBConnector(
+                use_unix_socket_path=True, namespace=ns
+            )
+
+        config_db.connect()
+
+        if not no_dynamic_buffer and asic_type in vendors_supporting_dynamic_buffer:
+            buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers_dynamic.json.j2")
+            buffer_model_updated |= _update_buffer_calculation_model(config_db, "dynamic")
+        else:
+            buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers.json.j2")
+            if asic_type in vendors_supporting_dynamic_buffer:
+                buffer_model_updated |= _update_buffer_calculation_model(config_db, "traditional")
         if os.path.isfile(buffer_template_file):
             qos_template_file = os.path.join(hwsku_path, asic_id_suffix, "qos.json.j2")
             if os.path.isfile(qos_template_file):
@@ -1676,6 +1704,14 @@ def reload():
             click.secho("Buffer definition template not found at {}".format(
                 buffer_template_file
             ), fg="yellow")
+
+    if buffer_model_updated:
+        print("Buffer calculation model updated, restarting swss is required to take effect")
+
+def is_dynamic_buffer_enabled(config_db):
+    """Return whether the current system supports dynamic buffer calculation"""
+    device_metadata = config_db.get_entry('DEVICE_METADATA', 'localhost')
+    return 'dynamic' == device_metadata.get('buffer_model')
 
 #
 # 'warm_restart' group ('config warm_restart ...')
@@ -2475,6 +2511,244 @@ def remove(ctx, interface_name, ip_addr):
     except ValueError:
         ctx.fail("'ip_addr' is not valid.")
 
+
+#
+# buffer commands and utilities
+#
+def pgmaps_check_legality(ctx, interface_name, input_pg, is_new_pg):
+    """
+    Tool function to check whether input_pg is legal.
+    Three checking performed:
+    1. Whether the input_pg is legal: pgs are in range [0-7]
+    2. Whether the input_pg overlaps an existing pg in the port
+    """
+    config_db = ctx.obj["config_db"]
+
+    try:
+        lower = int(input_pg[0])
+        upper = int(input_pg[-1])
+
+        if upper < lower or lower < 0 or upper > 7:
+            ctx.fail("PG {} is not valid.".format(input_pg))
+    except Exception:
+        ctx.fail("PG {} is not valid.".format(input_pg))
+
+    # Check overlapping.
+    # To configure a new PG which is overlapping an existing one is not allowed
+    # For example, to add '5-6' while '3-5' existing is illegal
+    existing_pgs = config_db.get_table("BUFFER_PG")
+    if not is_new_pg:
+        if not (interface_name, input_pg) in existing_pgs.keys():
+            ctx.fail("PG {} doesn't exist".format(input_pg))
+        return
+
+    for k, v in existing_pgs.items():
+        port, existing_pg = k
+        if port == interface_name:
+            existing_lower = int(existing_pg[0])
+            existing_upper = int(existing_pg[-1])
+            if existing_upper < lower or existing_lower > upper:
+                # new and existing pgs disjoint, legal
+                pass
+            else:
+                ctx.fail("PG {} overlaps with existing PG {}".format(input_pg, existing_pg))
+
+
+def update_pg(ctx, interface_name, pg_map, override_profile, add = True):
+    config_db = ctx.obj["config_db"]
+
+    # Check whether port is legal
+    ports = config_db.get_entry("PORT", interface_name)
+    if not ports:
+        ctx.fail("Port {} doesn't exist".format(interface_name))
+
+    # Check whether pg_map is legal
+    # Check whether there is other lossless profiles configured on the interface
+    pgmaps_check_legality(ctx, interface_name, pg_map, add)
+
+    # All checking passed
+    if override_profile:
+        profile_dict = config_db.get_entry("BUFFER_PROFILE", override_profile)
+        if not profile_dict:
+            ctx.fail("Profile {} doesn't exist".format(override_profile))
+        if not 'xoff' in profile_dict.keys() and 'size' in profile_dict.keys():
+            ctx.fail("Profile {} doesn't exist or isn't a lossless profile".format(override_profile))
+        profile_full_name = "[BUFFER_PROFILE|{}]".format(override_profile)
+        config_db.set_entry("BUFFER_PG", (interface_name, pg_map), {"profile": profile_full_name})
+    else:
+        config_db.set_entry("BUFFER_PG", (interface_name, pg_map), {"profile": "NULL"})
+    adjust_pfc_enable(ctx, interface_name, pg_map, True)
+
+
+def remove_pg_on_port(ctx, interface_name, pg_map):
+    config_db = ctx.obj["config_db"]
+
+    # Check whether port is legal
+    ports = config_db.get_entry("PORT", interface_name)
+    if not ports:
+        ctx.fail("Port {} doesn't exist".format(interface_name))
+
+    # Remvoe all dynamic lossless PGs on the port
+    existing_pgs = config_db.get_table("BUFFER_PG")
+    removed = False
+    for k, v in existing_pgs.items():
+        port, existing_pg = k
+        if port == interface_name and (not pg_map or pg_map == existing_pg):
+            need_to_remove = False
+            referenced_profile = v.get('profile')
+            if referenced_profile and referenced_profile == '[BUFFER_PROFILE|ingress_lossy_profile]':
+                if pg_map:
+                    ctx.fail("Lossy PG {} can't be removed".format(pg_map))
+                else:
+                    continue
+            config_db.set_entry("BUFFER_PG", (interface_name, existing_pg), None)
+            adjust_pfc_enable(ctx, interface_name, pg_map, False)
+            removed = True
+    if not removed:
+        if pg_map:
+            ctx.fail("No specified PG {} found on port {}".format(pg_map, interface_name))
+        else:
+            ctx.fail("No lossless PG found on port {}".format(interface_name))
+
+
+def adjust_pfc_enable(ctx, interface_name, pg_map, add):
+    config_db = ctx.obj["config_db"]
+
+    # Fetch the original pfc_enable
+    qosmap = config_db.get_entry("PORT_QOS_MAP", interface_name)
+    pfc_enable = qosmap.get("pfc_enable")
+
+    pfc_set = set()
+    if pfc_enable:
+        for priority in pfc_enable.split(","):
+            pfc_set.add(int(priority))
+
+    if pg_map:
+        lower_bound = int(pg_map[0])
+        upper_bound = int(pg_map[-1])
+
+        for priority in range(lower_bound, upper_bound + 1):
+            if add:
+                pfc_set.add(priority)
+            elif priority in pfc_set:
+                pfc_set.remove(priority)
+
+        empty_set = set()
+        pfc_enable = ""
+        if not pfc_set.issubset(empty_set):
+            for priority in pfc_set:
+                pfc_enable += str(priority) + ","
+    elif not add:
+        # Remove all
+        pfc_enable = ""
+    else:
+        ctx.fail("Try to add empty priorities")
+
+    qosmap["pfc_enable"] = pfc_enable[:-1]
+    config_db.set_entry("PORT_QOS_MAP", interface_name, qosmap)
+
+
+#
+# 'buffer' subgroup ('config interface buffer ...')
+#
+@interface.group(cls=clicommon.AbbreviationGroup)
+@click.pass_context
+def buffer(ctx):
+    """Set or clear buffer configuration"""
+    config_db = ctx.obj["config_db"]
+    if not is_dynamic_buffer_enabled(config_db):
+        ctx.fail("This command can only be executed on a system with dynamic buffer enabled")
+
+
+#
+# 'priority_group' subgroup ('config interface buffer priority_group ...')
+#
+@buffer.group(cls=clicommon.AbbreviationGroup)
+@click.pass_context
+def priority_group(ctx):
+    """Set or clear buffer configuration"""
+    pass
+
+
+#
+# 'lossless' subgroup ('config interface buffer priority_group lossless ...')
+#
+@priority_group.group(cls=clicommon.AbbreviationGroup)
+@click.pass_context
+def lossless(ctx):
+    """Set or clear lossless PGs"""
+    pass
+
+
+#
+# 'add' subcommand
+#
+@lossless.command('add')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('pg_map', metavar='<pg_map>', required=True)
+@click.argument('override_profile', metavar='<override_profile>', required=False)
+@click.pass_context
+def add_pg(ctx, interface_name, pg_map, override_profile):
+    """Set lossless PGs for the interface"""
+    update_pg(ctx, interface_name, pg_map, override_profile)
+
+
+#
+# 'set' subcommand
+#
+@lossless.command('set')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('pg_map', metavar='<pg_map>', required=True)
+@click.argument('override_profile', metavar='<override_profile>', required=False)
+@click.pass_context
+def set_pg(ctx, interface_name, pg_map, override_profile):
+    """Set lossless PGs for the interface"""
+    update_pg(ctx, interface_name, pg_map, override_profile, False)
+
+
+#
+# 'remove' subcommand
+#
+@lossless.command('remove')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('pg_map', metavar='<pg_map', required=False)
+@click.pass_context
+def remove_pg(ctx, interface_name, pg_map):
+    """Clear lossless PGs for the interface"""
+    remove_pg_on_port(ctx, interface_name, pg_map)
+
+
+#
+# 'cable_length' subcommand
+#
+
+@interface.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('length', metavar='<length>', required=True)
+@click.pass_context
+def cable_length(ctx, interface_name, length):
+    """Set lossless PGs for the interface"""
+    config_db = ctx.obj["config_db"]
+
+    if not is_dynamic_buffer_enabled(config_db):
+        ctx.fail("This command can only be supported on a system with dynamic buffer enabled")
+
+    # Check whether port is legal
+    ports = config_db.get_entry("PORT", interface_name)
+    if not ports:
+        ctx.fail("Port {} doesn't exist".format(interface_name))
+
+    try:
+        assert "m" == length[-1]
+    except Exception:
+        ctx.fail("Invalid cable length. Should be in format <num>m, like 300m".format(cable_length))
+
+    keys = config_db.get_keys("CABLE_LENGTH")
+
+    cable_length_set = {}
+    cable_length_set[interface_name] = length
+    config_db.mod_entry("CABLE_LENGTH", keys[0], cable_length_set)
+
 #
 # 'transceiver' subgroup ('config interface transceiver ...')
 #
@@ -3054,6 +3328,152 @@ def priority(ctx, interface_name, priority, status):
             ctx.fail("'interface_name' is None!")
 
     clicommon.run_command("pfc config priority {0} {1} {2}".format(status, interface_name, priority))
+
+#
+# 'buffer' group ('config buffer ...')
+#
+
+@config.group(cls=clicommon.AbbreviationGroup)
+@click.pass_context
+def buffer(ctx):
+    """Configure buffer_profile"""
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    if not is_dynamic_buffer_enabled(config_db):
+        ctx.fail("This command can only be supported on a system with dynamic buffer enabled")
+
+
+@buffer.group(cls=clicommon.AbbreviationGroup)
+@click.pass_context
+def profile(ctx):
+    """Configure buffer profile"""
+    pass
+
+
+@profile.command('add')
+@click.argument('profile', metavar='<profile>', required=True)
+@click.option('--xon', metavar='<xon>', type=int, help="Set xon threshold")
+@click.option('--xoff', metavar='<xoff>', type=int, help="Set xoff threshold")
+@click.option('--size', metavar='<size>', type=int, help="Set reserved size size")
+@click.option('--dynamic_th', metavar='<dynamic_th>', type=str, help="Set dynamic threshold")
+@click.option('--pool', metavar='<pool>', type=str, help="Buffer pool")
+@clicommon.pass_db
+def add_profile(db, profile, xon, xoff, size, dynamic_th, pool):
+    """Add or modify a buffer profile"""
+    config_db = db.cfgdb
+    ctx = click.get_current_context()
+
+    profile_entry = config_db.get_entry('BUFFER_PROFILE', profile)
+    if profile_entry:
+        ctx.fail("Profile {} already exist".format(profile))
+
+    update_profile(ctx, config_db, profile, xon, xoff, size, dynamic_th, pool)
+
+
+@profile.command('set')
+@click.argument('profile', metavar='<profile>', required=True)
+@click.option('--xon', metavar='<xon>', type=int, help="Set xon threshold")
+@click.option('--xoff', metavar='<xoff>', type=int, help="Set xoff threshold")
+@click.option('--size', metavar='<size>', type=int, help="Set reserved size size")
+@click.option('--dynamic_th', metavar='<dynamic_th>', type=str, help="Set dynamic threshold")
+@click.option('--pool', metavar='<pool>', type=str, help="Buffer pool")
+@clicommon.pass_db
+def set_profile(db, profile, xon, xoff, size, dynamic_th, pool):
+    """Add or modify a buffer profile"""
+    config_db = db.cfgdb
+    ctx = click.get_current_context()
+
+    profile_entry = config_db.get_entry('BUFFER_PROFILE', profile)
+    if not profile_entry:
+        ctx.fail("Profile {} doesn't exist".format(profile))
+
+    if not 'xoff' in profile_entry.keys() and xoff:
+        ctx.fail("Can't change profile {} from dynamically calculating headroom to non-dynamically one".format(profile))
+
+    update_profile(ctx, config_db, profile, xon, xoff, size, dynamic_th, pool, profile_entry)
+
+
+def update_profile(ctx, config_db, profile_name, xon, xoff, size, dynamic_th, pool, profile_entry = None):
+    params = {}
+    if profile_entry:
+        params = profile_entry
+    dynamic_calculate = True
+
+    if not pool:
+        pool = 'ingress_lossless_pool'
+    params['pool'] = '[BUFFER_POOL|' + pool + ']'
+    if not config_db.get_entry('BUFFER_POOL', pool):
+        ctx.fail("Pool {} doesn't exist".format(pool))
+
+    if xon:
+        params['xon'] = xon
+        dynamic_calculate = False
+    else:
+        xon = params.get('xon')
+
+    if xoff:
+        params['xoff'] = xoff
+        dynamic_calculate = False
+    else:
+        xoff = params.get('xoff')
+
+    if size:
+        params['size'] = size
+        dynamic_calculate = False
+        if xon and not xoff:
+            xoff = int(size) - int (xon)
+            params['xoff'] = xoff
+    elif not dynamic_calculate:
+        if xon and xoff:
+            size = int(xon) + int(xoff)
+            params['size'] = size
+        else:
+            ctx.fail("Either both xon and xoff or size should be provided")
+
+    if dynamic_calculate:
+        params['headroom_type'] = 'dynamic'
+        if not dynamic_th:
+            ctx.fail("Either size information (xon, xoff, size) or dynamic_th needs to be provided")
+
+    if dynamic_th:
+        params['dynamic_th'] = dynamic_th
+    else:
+        # Fetch all the keys of default_lossless_buffer_parameter table
+        # and then get the default_dynamic_th from that entry (should be only one)
+        keys = config_db.get_keys('DEFAULT_LOSSLESS_BUFFER_PARAMETER')
+        if len(keys) > 1 or len(keys) == 0:
+            ctx.fail("Multiple or no entry in DEFAULT_LOSSLESS_BUFFER_PARAMETER found while no dynamic_th specified")
+
+        default_lossless_param = config_db.get_entry('DEFAULT_LOSSLESS_BUFFER_PARAMETER', keys[0])
+        if 'default_dynamic_th' in default_lossless_param.keys():
+            params['dynamic_th'] = default_lossless_param['default_dynamic_th']
+        else:
+            ctx.fail("No dynamic_th defined in DEFAULT_LOSSLESS_BUFFER_PARAMETER")
+
+    config_db.set_entry("BUFFER_PROFILE", (profile_name), params)
+
+@profile.command('remove')
+@click.argument('profile', metavar='<profile>', required=True)
+@clicommon.pass_db
+def remove_profile(db, profile):
+    """Delete a buffer profile"""
+    config_db = db.cfgdb
+    ctx = click.get_current_context()
+
+    full_profile_name = '[BUFFER_PROFILE|{}]'.format(profile)
+    existing_pgs = config_db.get_table("BUFFER_PG")
+    for k, v in existing_pgs.items():
+        port, pg = k
+        referenced_profile = v.get('profile')
+        if referenced_profile and referenced_profile == full_profile_name:
+            ctx.fail("Profile {} is referenced by {}|{} and can't be removed".format(profile, port, pg))
+
+    entry = config_db.get_entry("BUFFER_PROFILE", profile)
+    if entry:
+        config_db.set_entry("BUFFER_PROFILE", profile, None)
+    else:
+        ctx.fail("Profile {} doesn't exist".format(profile))
 
 #
 # 'platform' group ('config platform ...')

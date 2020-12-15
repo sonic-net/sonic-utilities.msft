@@ -327,5 +327,37 @@
     },
     "MUX_CABLE_TABLE|Ethernet12": {
         "state": "unknown"
+    },
+    "BUFFER_POOL_TABLE|egress_lossless_pool": {
+        "mode": "dynamic",
+        "size": "13945824",
+        "type": "egress"
+    },
+    "BUFFER_POOL_TABLE|egress_lossy_pool": {
+        "mode": "dynamic",
+        "size": "4580864",
+        "type": "egress"
+    },
+    "BUFFER_POOL_TABLE|ingress_lossless_pool": {
+        "mode": "dynamic",
+        "size": "4580864",
+        "type": "ingress"
+    },
+    "BUFFER_POOL_TABLE|ingress_lossy_pool": {
+        "mode": "dynamic",
+        "size": "4580864",
+        "type": "ingress"
+    },
+    "BUFFER_PROFILE_TABLE|ingress_lossy_profile": {
+        "dynamic_th": "3",
+        "pool": "[BUFFER_POOL_TABLE|ingress_lossy_pool]",
+        "size": "0"
+    },
+    "BUFFER_PROFILE_TABLE|headroom_profile": {
+        "dynamic_th": "0",
+        "pool": "[BUFFER_POOL_TABLE|ingress_lossless_pool]",
+        "xon": "18432",
+        "xoff": "32768",
+        "size": "51200"
     }
 }

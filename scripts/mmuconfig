@@ -29,37 +29,74 @@ BUFFER_PROFILE_FIELDS = {
     "alpha": DYNAMIC_THRESHOLD
 }
 
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+
+except KeyError:
+    pass
 
 class MmuConfig(object):
-    def __init__(self, verbose):
+    def __init__(self, verbose, config):
         self.verbose = verbose
+        self.config = config
 
         # Set up db connections
-        self.db = swsssdk.ConfigDBConnector()
-        self.db.connect()
+        if self.config:
+            self.db = swsssdk.ConfigDBConnector()
+            self.db.connect()
+        else:
+            self.db = swsssdk.SonicV2Connector(host='127.0.0.1')
+            self.db.connect(self.db.STATE_DB, False)
+
+    def get_table(self, tablename):
+        if self.config:
+            return self.db.get_table(tablename)
+
+        entries = {}
+        keys = self.db.keys(self.db.STATE_DB, tablename + '*')
+
+        if not keys:
+            return None
+
+        for key in keys:
+            entries[key.split('|')[1]] = self.db.get_all(self.db.STATE_DB, key)
+
+        return entries
 
     def list(self):
-        buf_pools = self.db.get_table(BUFFER_POOL_TABLE_NAME)
-        for pool_name, pool_data in buf_pools.items():
-            config = []
+        buf_pools = self.get_table(BUFFER_POOL_TABLE_NAME)
+        if buf_pools:
+            for pool_name, pool_data in buf_pools.items():
+                config = []
 
-            print("Pool: " + pool_name)
-            for field, value in pool_data.items():
-                config.append([field, value])
-            print(tabulate.tabulate(config) + "\n")
-        if self.verbose:
-            print("Total pools: %d\n\n" % len(buf_pools))
+                print("Pool: " + pool_name)
+                for field, value in pool_data.items():
+                    config.append([field, value])
+                print(tabulate.tabulate(config) + "\n")
+            if self.verbose:
+                print("Total pools: %d\n\n" % len(buf_pools))
+        else:
+            print("No buffer pool information available")
 
-        buf_profs = self.db.get_table(BUFFER_PROFILE_TABLE_NAME)
-        for prof_name, prof_data in buf_profs.items():
-            config = []
+        buf_profs = self.get_table(BUFFER_PROFILE_TABLE_NAME)
+        if buf_profs:
+            for prof_name, prof_data in buf_profs.items():
+                config = []
 
-            print("Profile: " + prof_name)
-            for field, value in prof_data.items():
-                config.append([field, value])
-            print(tabulate.tabulate(config) + "\n")
-        if self.verbose:
-            print("Total profiles: %d" % len(buf_profs))
+                print("Profile: " + prof_name)
+                for field, value in prof_data.items():
+                    config.append([field, value])
+                print(tabulate.tabulate(config) + "\n")
+            if self.verbose:
+                print("Total profiles: %d" % len(buf_profs))
+        else:
+            print("No buffer profile information available")
 
     def set(self, profile, field_alias, value):
         if os.geteuid() != 0:
@@ -82,23 +119,31 @@ class MmuConfig(object):
         self.db.mod_entry(BUFFER_PROFILE_TABLE_NAME, profile, {field: value})
 
 
-def main():
-    parser = argparse.ArgumentParser(description='Show and change: mmu configuration',
-                                     formatter_class=argparse.RawTextHelpFormatter)
+def main(config):
+    if config:
+        parser = argparse.ArgumentParser(description='Show and change: mmu configuration',
+                                         formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument('-l', '--list', action='store_true', help='show mmu configuration')
-    parser.add_argument('-p', '--profile', type=str, help='specify buffer profile name', default=None)
-    parser.add_argument('-a', '--alpha', type=str, help='set n for dyanmic threshold alpha 2^(n)', default=None)
-    parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
+        parser.add_argument('-l', '--list', action='store_true', help='show mmu configuration')
+        parser.add_argument('-p', '--profile', type=str, help='specify buffer profile name', default=None)
+        parser.add_argument('-a', '--alpha', type=str, help='set n for dyanmic threshold alpha 2^(n)', default=None)
+        parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
+    else:
+        parser = argparse.ArgumentParser(description='Show buffer state',
+                                         formatter_class=argparse.RawTextHelpFormatter)
+
+        parser.add_argument('-l', '--list', action='store_true', help='show buffer state')
+        parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
+
     parser.add_argument('-vv', '--verbose', action='store_true', help='verbose output', default=False)
 
     args = parser.parse_args()
 
     try:
-        mmu_cfg = MmuConfig(args.verbose)
+        mmu_cfg = MmuConfig(args.verbose, config)
         if args.list:
             mmu_cfg.list()
-        elif args.profile:
+        elif config and args.profile:
             if args.alpha:
                 mmu_cfg.set(args.profile, "alpha", args.alpha)
         else:
@@ -110,4 +155,7 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    main()
+    if sys.argv[0].split('/')[-1] == "mmuconfig":
+        main(True)
+    else:
+        main(False)
