@@ -20,6 +20,7 @@ MV=mv
 GREP=grep
 TOUCH=touch
 V=
+ALLOW_PROCESS_STOP=
 NOOP=false
 DO_COMPRESS=true
 CMD_PREFIX=
@@ -763,7 +764,7 @@ main() {
     # run 'hw-management-generate-dump.sh' script and save the result file
     HW_DUMP_FILE=/usr/bin/hw-management-generate-dump.sh
     if [ -f "$HW_DUMP_FILE" ]; then
-      /usr/bin/hw-management-generate-dump.sh
+      /usr/bin/hw-management-generate-dump.sh $ALLOW_PROCESS_STOP
       save_file "/tmp/hw-mgmt-dump*" "hw-mgmt" false
       rm -f /tmp/hw-mgmt-dump*
     else
@@ -827,6 +828,9 @@ OPTIONS
         passed to them
     -n
         Noop mode. Don't actually create anything, just echo what would happen
+    -a
+        Allow any process stop. This allows for collection of platform HW register
+        status, which may require potential system interruption
     -z
         Don't compress the tar at the end.
     -s DATE
@@ -837,7 +841,7 @@ OPTIONS
 EOF
 }
 
-while getopts ":xnvhzs:" opt; do
+while getopts ":xnvhzsa:" opt; do
     case $opt in
         x)
             # enable bash debugging
@@ -867,6 +871,9 @@ while getopts ":xnvhzs:" opt; do
             ;;
         z)
             DO_COMPRESS=false
+            ;;
+        a)
+            ALLOW_PROCESS_STOP="-a"
             ;;
         s)
             SINCE_DATE="${OPTARG}"

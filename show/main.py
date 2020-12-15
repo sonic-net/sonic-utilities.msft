@@ -1128,11 +1128,16 @@ def users(verbose):
 @cli.command()
 @click.option('--since', required=False, help="Collect logs and core files since given date")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def techsupport(since, verbose):
+@click.option('--allow-process-stop', is_flag=True, help="Dump additional data which may require system interruption")
+def techsupport(since, verbose, allow_process_stop):
     """Gather information for troubleshooting"""
     cmd = "sudo generate_dump -v"
+    if allow_process_stop:
+        cmd += " -a"
+
     if since:
         cmd += " -s {}".format(since)
+
     run_command(cmd, display_cmd=verbose)
 
 
