@@ -12,6 +12,7 @@ import sys
 import threading
 import time
 
+from socket import AF_INET, AF_INET6
 from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports
 from sonic_py_common import device_info, multi_asic
@@ -1814,6 +1815,21 @@ def vrf_add_management_vrf(config_db):
         return None
     config_db.mod_entry('MGMT_VRF_CONFIG', "vrf_global", {"mgmtVrfEnabled": "true"})
     mvrf_restart_services()
+    """
+    The regular expression for grep in below cmd is to match eth0 line in /proc/net/route, sample file:
+    $ cat /proc/net/route
+        Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask            MTU     Window  IRTT
+         eth0    00000000        01803B0A        0003    0       0       202     00000000        0       0       0
+    """
+    cmd = "cat /proc/net/route | grep -E \"eth0\s+00000000\s+[0-9A-Z]+\s+[0-9]+\s+[0-9]+\s+[0-9]+\s+202\" | wc -l"
+    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    output = proc.communicate()
+    if int(output[0]) >= 1:
+        cmd="ip -4 route del default dev eth0 metric 202"
+        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+        proc.communicate()
+        if proc.returncode != 0:
+            click.echo("Could not delete eth0 route")
 
 def vrf_delete_management_vrf(config_db):
     """Disable management vrf in config DB"""
@@ -1833,6 +1849,8 @@ def snmpagentaddress(ctx):
     config_db.connect()
     ctx.obj = {'db': config_db}
 
+ip_family = {4: AF_INET, 6: AF_INET6}
+
 @snmpagentaddress.command('add')
 @click.argument('agentip', metavar='<SNMP AGENT LISTENING IP Address>', required=True)
 @click.option('-p', '--port', help="SNMP AGENT LISTENING PORT")
@@ -1842,13 +1860,43 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
     """Add the SNMP agent listening IP:Port%Vrf configuration"""
 
     #Construct SNMP_AGENT_ADDRESS_CONFIG table key in the format ip|<port>|<vrf>
+    if not clicommon.is_ipaddress(agentip):
+        click.echo("Invalid IP address")
+        return False
+    config_db = ctx.obj['db']
+    if not vrf:
+        entry = config_db.get_entry('MGMT_VRF_CONFIG', "vrf_global")
+        if entry and entry['mgmtVrfEnabled'] == 'true' :
+            click.echo("ManagementVRF is Enabled. Provide vrf.")
+            return False
+    found = 0
+    ip = ipaddress.ip_address(agentip)
+    for intf in netifaces.interfaces():
+        ipaddresses = netifaces.ifaddresses(intf)
+        if ip_family[ip.version] in ipaddresses:
+            for ipaddr in ipaddresses[ip_family[ip.version]]:
+                if agentip == ipaddr['addr']:
+                    found = 1
+                    break;
+        if found == 1:
+            break;
+    else:
+        click.echo("IP addfress is not available")
+        return
+
     key = agentip+'|'
     if port:
         key = key+port
+    #snmpd does not start if we have two entries with same ip and port.
+    key1 = "SNMP_AGENT_ADDRESS_CONFIG|" + key + '*'
+    entry = config_db.get_keys(key1)
+    if entry:
+        ip_port = agentip + ":" + port
+        click.echo("entry with {} already exists ".format(ip_port))
+        return
     key = key+'|'
     if vrf:
         key = key+vrf
-    config_db = ctx.obj['db']
     config_db.set_entry('SNMP_AGENT_ADDRESS_CONFIG', key, {})
 
     #Restarting the SNMP service will regenerate snmpd.conf and rerun snmpd

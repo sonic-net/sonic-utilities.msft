@@ -280,7 +280,7 @@ def is_mgmt_vrf_enabled(ctx):
 #
 
 @cli.group('mgmt-vrf', invoke_without_command=True)
-@click.argument('routes', required=False)
+@click.argument('routes', required=False, type=click.Choice(["routes"]))
 @click.pass_context
 def mgmt_vrf(ctx,routes):
     """Show management VRF attributes"""
