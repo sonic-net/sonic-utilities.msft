@@ -53,7 +53,7 @@ def del_vlan(db, vid):
 
 def restart_ndppd():
     verify_swss_running_cmd = "docker container inspect -f '{{.State.Status}}' swss"
-    docker_exec_cmd = "docker exec -it swss {}"
+    docker_exec_cmd = "docker exec -i swss {}"
     ndppd_config_gen_cmd = "sonic-cfggen -d -t /usr/share/sonic/templates/ndppd.conf.j2,/etc/ndppd.conf"
     ndppd_restart_cmd = "supervisorctl restart ndppd"
 
