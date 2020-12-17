@@ -182,7 +182,7 @@ def generate_fdb_entries(filename):
 
 def get_if(iff, cmd):
     s = socket.socket()
-    ifreq = ioctl(s, cmd, struct.pack("16s16x",iff))
+    ifreq = ioctl(s, cmd, struct.pack("16s16x",bytes(iff.encode())))
     s.close()
     return ifreq
 
