@@ -1,5 +1,6 @@
 import os
 import sys
+from importlib import reload
 
 from click.testing import CliRunner
 import crm.main as crm
@@ -1298,3 +1299,4 @@ class TestCrmMultiAsic(object):
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
         from .mock_tables import mock_single_asic
+        reload(mock_single_asic)

@@ -119,5 +119,10 @@
     "PFC_WD|GLOBAL": {
         "BIG_RED_SWITCH": "enable",
         "POLL_INTERVAL": "199"
+    },
+    "FEATURE|bgp": {
+        "state": "disabled",
+        "auto_restart": "disabled",
+        "high_mem_alert": "disabled"
     }
 }

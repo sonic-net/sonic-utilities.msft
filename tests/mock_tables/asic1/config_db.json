@@ -131,5 +131,10 @@
     },
     "PEER_SWITCH|sonic" : {
       "address_ipv4": "10.2.2.2"
+    },
+    "FEATURE|bgp": {
+        "state": "enabled",
+        "auto_restart": "enabled",
+        "high_mem_alert": "disabled"
     }
 }
