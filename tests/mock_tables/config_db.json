@@ -1333,6 +1333,32 @@
     "PEER_SWITCH|sonic-switch" : {
       "address_ipv4": "10.2.2.2"
     },
+    "VXLAN_TUNNEL|vtep1": {
+         "src_ip": "1.1.1.1"
+    },
+    "VXLAN_EVPN_NVO|nvo1": {
+         "source_vtep": "vtep1"
+    },
+    "VXLAN_TUNNEL_MAP|vtep1|map_100_Vlan100": {
+         "vni" : "100",
+         "vlan": "Vlan100"
+    },
+    "VXLAN_TUNNEL_MAP|vtep1|map_101_Vlan101": {
+         "vni" : "101",
+         "vlan": "Vlan101"
+    },
+    "VXLAN_TUNNEL_MAP|vtep1|map_102_Vlan102": {
+         "vni" : "102",
+         "vlan": "Vlan102"
+    },
+    "VXLAN_TUNNEL_MAP|vtep1|map_200_Vlan200": {
+         "vni" : "200",
+         "vlan": "Vlan200"
+    },
+    "VRF|Vrf1": {
+         "fallback": "false",
+         "vni" : "1000"
+    },
     "BUFFER_POOL|egress_lossless_pool": {
         "mode": "dynamic",
         "size": "13945824",

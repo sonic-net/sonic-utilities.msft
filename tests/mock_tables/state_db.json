@@ -328,6 +328,24 @@
     "MUX_CABLE_TABLE|Ethernet12": {
         "state": "unknown"
     },
+    "VXLAN_TUNNEL_TABLE|EVPN_25.25.25.25": {
+        "src_ip": "1.1.1.1",
+        "dst_ip": "25.25.25.25",
+        "tnl_src": "EVPN",
+        "operstatus": "down"
+    },
+    "VXLAN_TUNNEL_TABLE|EVPN_25.25.25.26": {
+        "src_ip": "1.1.1.1",
+        "dst_ip": "25.25.25.26",
+        "tnl_src": "EVPN",
+        "operstatus": "down"
+    },
+    "VXLAN_TUNNEL_TABLE|EVPN_25.25.25.27": {
+        "src_ip": "1.1.1.1",
+        "dst_ip": "25.25.25.27",
+        "tnl_src": "EVPN",
+        "operstatus": "down"
+    },
     "BUFFER_POOL_TABLE|egress_lossless_pool": {
         "mode": "dynamic",
         "size": "13945824",

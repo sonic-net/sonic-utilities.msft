@@ -24,7 +24,6 @@ from utilities_common.intf_filter import parse_interface_in_filter
 import utilities_common.cli as clicommon
 from .utils import log
 
-
 from . import aaa
 from . import chassis_modules
 from . import console
@@ -35,6 +34,7 @@ from . import mlnx
 from . import muxcable
 from . import nat
 from . import vlan
+from . import vxlan
 from .config_mgmt import ConfigMgmtDPB
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
@@ -885,6 +885,7 @@ config.add_command(kube.kubernetes)
 config.add_command(muxcable.muxcable)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
+config.add_command(vxlan.vxlan)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -2977,6 +2978,56 @@ def del_vrf(ctx, vrf_name):
         del_interface_bind_to_vrf(config_db, vrf_name)
         config_db.set_entry('VRF', vrf_name, None)
 
+
+@vrf.command('add_vrf_vni_map')
+@click.argument('vrfname', metavar='<vrf-name>', required=True, type=str)
+@click.argument('vni', metavar='<vni>', required=True)
+@click.pass_context
+def add_vrf_vni_map(ctx, vrfname, vni):
+    config_db = ctx.obj['config_db']
+    found = 0
+    if vrfname not in config_db.get_table('VRF').keys():
+        ctx.fail("vrf {} doesnt exists".format(vrfname))
+    if not vni.isdigit():
+        ctx.fail("Invalid VNI {}. Only valid VNI is accepted".format(vni))
+
+    if clicommon.vni_id_is_valid(int(vni)) is False:
+        ctx.fail("Invalid VNI {}. Valid range [1 to 16777215].".format(vni))
+
+    vxlan_table = config_db.get_table('VXLAN_TUNNEL_MAP')
+    vxlan_keys = vxlan_table.keys()
+    if vxlan_keys is not None:
+        for key in vxlan_keys:
+            if (vxlan_table[key]['vni'] == vni):
+                found = 1
+                break
+
+    if (found == 0):
+        ctx.fail("VLAN VNI not mapped. Please create VLAN VNI map entry first")
+
+    found = 0
+    vrf_table = config_db.get_table('VRF')
+    vrf_keys = vrf_table.keys()
+    if vrf_keys is not None:
+        for vrf_key in vrf_keys:
+            if ('vni' in vrf_table[vrf_key] and vrf_table[vrf_key]['vni'] == vni):
+                found = 1
+                break
+
+    if (found == 1):
+        ctx.fail("VNI already mapped to vrf {}".format(vrf_key))
+
+    config_db.mod_entry('VRF', vrfname, {"vni": vni})
+
+@vrf.command('del_vrf_vni_map')
+@click.argument('vrfname', metavar='<vrf-name>', required=True, type=str)
+@click.pass_context
+def del_vrf_vni_map(ctx, vrfname):
+    config_db = ctx.obj['config_db']
+    if vrfname not in config_db.get_table('VRF').keys():
+        ctx.fail("vrf {} doesnt exists".format(vrfname))
+
+    config_db.mod_entry('VRF', vrfname, {"vni": 0})
 
 #
 # 'route' group ('config route ...')

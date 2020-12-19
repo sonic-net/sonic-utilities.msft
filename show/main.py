@@ -1522,6 +1522,5 @@ def ztp(status, verbose):
        cmd = cmd + " --verbose"
     run_command(cmd, display_cmd=verbose)
 
-
 if __name__ == '__main__':
     cli()

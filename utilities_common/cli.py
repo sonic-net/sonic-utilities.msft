@@ -301,6 +301,34 @@ def is_port_mirror_dst_port(config_db, port):
 
     return False
 
+def vni_id_is_valid(vni):
+    """Check if the vni id is in acceptable range (between 1 and 2^24)
+    """
+
+    if (vni < 1) or (vni > 16777215):
+        return False
+
+    return True
+
+def is_vni_vrf_mapped(db, vni):
+    """Check if the vni is mapped to vrf
+    """
+
+    found = 0
+    vrf_table = db.cfgdb.get_table('VRF')
+    vrf_keys = vrf_table.keys()
+    if vrf_keys is not None:
+      for vrf_key in vrf_keys:
+        if ('vni' in vrf_table[vrf_key] and vrf_table[vrf_key]['vni'] == vni):
+           found = 1
+           break
+
+    if (found == 1):
+        print("VNI {} mapped to Vrf {}, Please remove VRF VNI mapping".format(vni, vrf_key))
+        return False
+
+    return True
+
 def interface_has_mirror_config(mirror_table, interface_name):
     """Check if port is already configured with mirror config """
     for _,v in mirror_table.items():
