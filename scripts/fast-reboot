@@ -20,6 +20,8 @@ PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
 LOG_SSD_HEALTH="/usr/local/bin/log_ssd_health"
 SSD_FW_UPDATE="ssd-fw-upgrade"
+TAG_LATEST=yes
+
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
 MIN_HD_SPACE_NEEDED=100000
@@ -63,6 +65,7 @@ function showHelpAndExit()
     echo "    -c    : specify control plane assistant IP list"
     echo "    -s    : strict mode: do not proceed without:"
     echo "            - control plane assistant IP list."
+    echo "    -t    : Don't tag the current kube images as latest"
 
     exit "${EXIT_SUCCESS}"
 }
@@ -97,6 +100,9 @@ function parseOptions()
                 ;;
             s )
                 STRICT=yes
+                ;;
+            t )
+                TAG_LATEST=no
                 ;;
         esac
     done
@@ -438,6 +444,13 @@ setup_reboot_variables
 
 reboot_pre_check
 
+if test -f /usr/local/bin/ctrmgr_tools.py
+then
+    if [[ x"${TAG_LATEST}" == x"yes" ]]; then
+        /usr/local/bin/ctrmgr_tools.py tag-all
+    fi
+fi
+
 # Install new FW for mellanox platforms before control plane goes down
 # So on boot switch will not spend time to upgrade FW increasing the CP downtime
 if [[ "$sonic_asic_type" == "mellanox" ]]; then
@@ -544,11 +557,11 @@ debug "Stopping bgp ..."
 systemctl stop bgp
 debug "Stopped  bgp ..."
 
-# Kill lldp, otherwise it sends informotion about reboot.
+# Kill lldp, otherwise it sends information about reboot.
 # We call `docker kill lldp` to ensure the container stops as quickly as possible,
 # then immediately call `systemctl stop lldp` to prevent the service from
 # restarting the container automatically.
-docker kill lldp &> /dev/null || debug "Docker lldp is not running ($?) ..."
+container kill lldp &> /dev/null || debug "Docker lldp is not running ($?) ..."
 systemctl stop lldp
 
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
@@ -605,14 +618,19 @@ debug "Stopped  syncd ..."
 # then immediately call `systemctl stop ...` to prevent the service from
 # restarting the container automatically.
 debug "Stopping all remaining containers ..."
-for CONTAINER_NAME in $(docker ps --format '{{.Names}}'); do
-    CONTAINER_STOP_RC=0
-    docker kill $CONTAINER_NAME &> /dev/null || CONTAINER_STOP_RC=$?
-    systemctl stop $CONTAINER_NAME || debug "Ignore stopping $CONTAINER_NAME error $?"
-    if [[ CONTAINER_STOP_RC -ne 0 ]]; then
-        debug "Failed killing container $CONTAINER_NAME RC $CONTAINER_STOP_RC ."
-    fi
-done
+if test -f /usr/local/bin/ctrmgr_tools.py
+then
+    /usr/local/bin/ctrmgr_tools.py kill-all
+else
+    for CONTAINER_NAME in $(docker ps --format '{{.Names}}'); do
+        CONTAINER_STOP_RC=0
+        docker kill $CONTAINER_NAME &> /dev/null || CONTAINER_STOP_RC=$?
+        systemctl stop $CONTAINER_NAME || debug "Ignore stopping $CONTAINER_NAME error $?"
+        if [[ CONTAINER_STOP_RC -ne 0 ]]; then
+            debug "Failed killing container $CONTAINER_NAME RC $CONTAINER_STOP_RC ."
+        fi
+    done
+fi
 debug "Stopped all remaining containers ..."
 
 # Stop the docker container engine. Otherwise we will have a broken docker storage

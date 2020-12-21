@@ -29,6 +29,7 @@ EXIT_SONIC_INSTALLER_VERIFY_REBOOT=21
 SSD_FW_UPDATE="ssd-fw-upgrade"
 REBOOT_SCRIPT_NAME=$(basename $0)
 REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
+TAG_LATEST=yes
 
 function debug()
 {
@@ -36,6 +37,16 @@ function debug()
         echo `date` $@
     fi
     logger "$@"
+}
+
+function tag_images()
+{
+    if test -f /usr/local/bin/ctrmgr_tools.py
+    then
+        if [[ x"${TAG_LATEST}" == x"yes" ]]; then
+            /usr/local/bin/ctrmgr_tools.py tag-all
+        fi
+    fi
 }
 
 function stop_sonic_services()
@@ -110,6 +121,9 @@ function parse_options()
             v )
                 VERBOSE=yes
                 ;;
+            t )
+                TAG_LATEST=no
+                ;;
         esac
     done
 }
@@ -126,6 +140,9 @@ debug "User requested rebooting device ..."
 
 setup_reboot_variables
 reboot_pre_check
+
+# Tag remotely deployed images as local
+tag_images
 
 # Stop SONiC services gracefully.
 stop_sonic_services
