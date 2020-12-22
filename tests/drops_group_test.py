@@ -82,7 +82,7 @@ Ethernet8      N/A         0           0         0           0          0       
 sonic_drops_test               0                    0
 """
 
-dropstat_path = "/tmp/dropstat"
+dropstat_path = "/tmp/dropstat-27"
 
 class TestDropCounters(object):
     @classmethod

@@ -30,7 +30,8 @@ try:
         sys.path.insert(0, modules_path)
         sys.path.insert(0, test_path)
         import mock_tables.dbconnector
-        socket.gethostname = lambda : 'sonic_drops_test'
+        socket.gethostname = lambda: 'sonic_drops_test'
+        os.getuid = lambda: 27
 except KeyError:
     pass
 
@@ -75,8 +76,10 @@ std_port_headers_map = {
 # Standard Switch-Level Headers
 std_switch_description_header = ['DEVICE']
 
-# Bookkeeping Files
-dropstat_dir = '/tmp/dropstat/'
+
+def get_dropstat_dir():
+    dropstat_dir_prefix = '/tmp/dropstat'
+    return "{}-{}/".format(dropstat_dir_prefix, os.getuid())
 
 
 class DropStat(object):
@@ -89,8 +92,9 @@ class DropStat(object):
         self.db.connect(self.db.ASIC_DB)
         self.db.connect(self.db.APPL_DB)
 
-        self.port_drop_stats_file = os.path.join(dropstat_dir, 'port-stats-{}'.format(os.getuid()))
-        self.switch_drop_stats_file = os.path.join(dropstat_dir + 'switch-stats-{}'.format(os.getuid()))
+        dropstat_dir = get_dropstat_dir()
+        self.port_drop_stats_file = os.path.join(dropstat_dir, 'port-stats')
+        self.switch_drop_stats_file = os.path.join(dropstat_dir + 'switch-stats')
 
         self.stat_lookup = {}
         self.reverse_stat_lookup = {}
@@ -405,6 +409,8 @@ Examples:
     group = args.group
     counter_type = args.type
 
+    dropstat_dir = get_dropstat_dir()
+
     # Create the directory to hold clear results
     if not os.path.exists(dropstat_dir):
         try:
@@ -421,6 +427,7 @@ Examples:
         dcstat.show_drop_counts(group, counter_type)
     else:
         print("Command not recognized")
+
 
 if __name__ == '__main__':
     main()
