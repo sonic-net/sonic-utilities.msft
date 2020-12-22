@@ -1258,7 +1258,7 @@ def synchronous_mode(sync_mode):
                config reload -y \n
             2. systemctl restart swss
     """
-    
+
     if sync_mode == 'enable' or sync_mode == 'disable':
         config_db = ConfigDBConnector()
         config_db.connect()
@@ -2352,12 +2352,12 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         portJson = dict(); portJson['PORT'] = port_dict
 
         # breakout_Ports will abort operation on failure, So no need to check return
-        breakout_Ports(cm, delPorts=final_delPorts, portJson=portJson, force=force_remove_dependencies, 
+        breakout_Ports(cm, delPorts=final_delPorts, portJson=portJson, force=force_remove_dependencies,
                        loadDefConfig=load_predefined_config, verbose=verbose)
 
         # Set Current Breakout mode in config DB
         brkout_cfg_keys = config_db.get_keys('BREAKOUT_CFG')
-        if interface_name.decode("utf-8") not in  brkout_cfg_keys:
+        if interface_name not in  brkout_cfg_keys:
             click.secho("[ERROR] {} is not present in 'BREAKOUT_CFG' Table!".format(interface_name), fg='red')
             raise click.Abort()
         config_db.set_entry("BREAKOUT_CFG", interface_name, {'brkout_mode': target_brkout_mode})
@@ -2367,6 +2367,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
 
     except Exception as e:
         click.secho("Failed to break out Port. Error: {}".format(str(e)), fg='magenta')
+
         sys.exit(0)
 
 def _get_all_mgmtinterface_keys():
