@@ -147,7 +147,7 @@ def main():
         fdb = FdbShow()
         fdb.display(args.vlan, args.port)
     except Exception as e:
-        print(e.message)
+        print(str(e))
         sys.exit(1)
 
 if __name__ == "__main__":

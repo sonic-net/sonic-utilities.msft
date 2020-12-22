@@ -367,7 +367,7 @@ def main():
             nat.fetch_nat_zone()
             nat.display_nat_zone()
     except Exception as e:
-        print(e.message)
+        print(str(e))
         sys.exit(1)
 
 if __name__ == "__main__":

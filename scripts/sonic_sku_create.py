@@ -631,7 +631,7 @@ class SkuCreate(object):
         try:
             shutil.copytree(self.base_sku_dir, self.new_sku_dir)
         except OSError as e:
-            print(e.message, file=sys.stderr)
+            print(str(e), file=sys.stderr)
 
     def remove_sku_dir(self):
         # remove SKU directory 
@@ -653,7 +653,7 @@ class SkuCreate(object):
             else:
                 print("SKU directory: "+ self.new_sku_dir + " was NOT removed")
         except OSError as e:
-            print(e.message, file=sys.stderr) 
+            print(str(e), file=sys.stderr) 
 
     def platform_specific(self):
         # Function that checks for Platform specific restrictions

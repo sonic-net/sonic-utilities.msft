@@ -151,7 +151,7 @@ def main(config):
             sys.exit(1)
 
     except Exception as e:
-        print("Exception caught:", e.message, file=sys.stderr)
+        print("Exception caught:", str(e), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":

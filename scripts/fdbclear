@@ -50,7 +50,7 @@ def main():
             fdb.send_notification("ALL", "ALL")
             print("FDB entries are cleared.")
     except Exception as e:
-        print(e.message)
+        print(str(e))
         sys.exit(1)
 
 if __name__ == "__main__":

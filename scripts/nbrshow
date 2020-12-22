@@ -261,7 +261,7 @@ def main():
             arp.display()
 
     except Exception as e:
-        print(e.message)
+        print(str(e))
         sys.exit(1)
 
 
