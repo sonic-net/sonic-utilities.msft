@@ -47,6 +47,9 @@ acl_group             percentage                     70                85
 acl_entry             percentage                     70                85
 acl_counter           percentage                     70                85
 fdb_entry             percentage                     70                85
+ipmc_entry            percentage                     70                85
+snat_entry            percentage                     70                85
+dnat_entry            percentage                     70                85
 
 """
 
@@ -119,6 +122,30 @@ crm_show_thresholds_nexthop_group_object = """\
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 nexthop_group    percentage                     70                85
+
+"""
+
+crm_show_thresholds_snat = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+snat_entry       percentage                     70                85
+
+"""
+
+crm_show_thresholds_dnat = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+dnat_entry       percentage                     70                85
+
+"""
+
+crm_show_thresholds_ipmc = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+ipmc_entry       percentage                     70                85
 
 """
 
@@ -216,6 +243,30 @@ nexthop_group    percentage                     60                90
 
 """
 
+crm_new_show_thresholds_snat = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+snat_entry       percentage                     60                90
+
+"""
+
+crm_new_show_thresholds_dnat = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+dnat_entry       percentage                     60                90
+
+"""
+
+crm_new_show_thresholds_ipmc = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+ipmc_entry       percentage                     60                90
+
+"""
+
 crm_show_resources_acl_group = """\
 
 Stage    Bind Point    Resource Name      Used Count    Available Count
@@ -267,6 +318,9 @@ ipv6_neighbor                    8               4084
 nexthop_group_member             0              16384
 nexthop_group                    0                512
 fdb_entry                        0              32767
+ipmc_entry                       0              24576
+snat_entry                       0               1024
+dnat_entry                       0               1024
 
 
 Stage    Bind Point    Resource Name      Used Count    Available Count
@@ -374,6 +428,30 @@ nexthop_group               0                512
 
 """
 
+crm_show_resources_snat = """\
+
+Resource Name      Used Count    Available Count
+---------------  ------------  -----------------
+snat_entry                  0               1024
+
+"""
+
+crm_show_resources_dnat = """\
+
+Resource Name      Used Count    Available Count
+---------------  ------------  -----------------
+dnat_entry                  0               1024
+
+"""
+
+crm_show_resources_ipmc = """\
+
+Resource Name      Used Count    Available Count
+---------------  ------------  -----------------
+ipmc_entry                  0              24576
+
+"""
+
 crm_multi_asic_show_resources_acl_group = """\
 
 ASIC0
@@ -467,6 +545,9 @@ ipv6_neighbor                    8               4084
 nexthop_group_member             0              16384
 nexthop_group                    0                512
 fdb_entry                        0              32767
+ipmc_entry                       0              24576
+snat_entry                       0               1024
+dnat_entry                       0               1024
 
 
 ASIC1
@@ -482,6 +563,9 @@ ipv6_neighbor                    8               4084
 nexthop_group_member             0              16384
 nexthop_group                    0                512
 fdb_entry                        0              32767
+ipmc_entry                       0              24576
+snat_entry                       0               1024
+dnat_entry                       0               1024
 
 
 ASIC0
@@ -710,6 +794,58 @@ nexthop_group               0                512
 
 """
 
+crm_multi_asic_show_resources_snat = """\
+
+ASIC0
+
+Resource Name      Used Count    Available Count
+---------------  ------------  -----------------
+snat_entry                  0               1024
+
+
+ASIC1
+
+Resource Name      Used Count    Available Count
+---------------  ------------  -----------------
+snat_entry                  0               1024
+
+"""
+
+crm_multi_asic_show_resources_dnat = """\
+
+ASIC0
+
+Resource Name      Used Count    Available Count
+---------------  ------------  -----------------
+dnat_entry                  0               1024
+
+
+ASIC1
+
+Resource Name      Used Count    Available Count
+---------------  ------------  -----------------
+dnat_entry                  0               1024
+
+"""
+
+crm_multi_asic_show_resources_ipmc = """\
+
+ASIC0
+
+Resource Name      Used Count    Available Count
+---------------  ------------  -----------------
+ipmc_entry                  0              24576
+
+
+ASIC1
+
+Resource Name      Used Count    Available Count
+---------------  ------------  -----------------
+ipmc_entry                  0              24576
+
+"""
+
+
 class TestCrm(object):
     @classmethod
     def setup_class(cls):
@@ -913,6 +1049,54 @@ class TestCrm(object):
         assert result.exit_code == 0
         assert result.output == crm_new_show_thresholds_nexthop_group_object
 
+    def test_crm_show_thresholds_snat(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'snat'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_snat
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'snat', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'snat', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'snat'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_snat
+
+    def test_crm_show_thresholds_dnat(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'dnat'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_dnat
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'dnat', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'dnat', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'dnat'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_dnat
+
+    def test_crm_show_thresholds_ipmc(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipmc'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_ipmc
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipmc', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipmc', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipmc'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_ipmc
+
     def test_crm_show_resources_acl_group(self):
         runner = CliRunner()
         result = runner.invoke(crm.cli, ['show', 'resources', 'acl', 'group'])
@@ -996,6 +1180,27 @@ class TestCrm(object):
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_show_resources_nexthop_group_object
+
+    def test_crm_show_resources_snat(self):
+        runner = CliRunner()
+        result = runner.invoke(crm.cli, ['show', 'resources', 'snat'])
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_resources_snat
+
+    def test_crm_show_resources_dnat(self):
+        runner = CliRunner()
+        result = runner.invoke(crm.cli, ['show', 'resources', 'dnat'])
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_resources_dnat
+
+    def test_crm_show_resources_ipmc(self):
+        runner = CliRunner()
+        result = runner.invoke(crm.cli, ['show', 'resources', 'ipmc'])
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_resources_ipmc
 
     @classmethod
     def teardown_class(cls):
@@ -1209,6 +1414,55 @@ class TestCrmMultiAsic(object):
         assert result.exit_code == 0
         assert result.output == crm_new_show_thresholds_nexthop_group_object
 
+    def test_crm_show_thresholds_snat(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'snat'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_snat
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'snat', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'snat', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'snat'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_snat
+
+    def test_crm_show_thresholds_dnat(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'dnat'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_dnat
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'dnat', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'dnat', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'dnat'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_dnat
+
+    def test_crm_show_thresholds_ipmc(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipmc'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_ipmc
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipmc', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'ipmc', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'ipmc'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_ipmc
+
+
     def test_crm_multi_asic_show_resources_acl_group(self):
         runner = CliRunner()
         result = runner.invoke(crm.cli, ['show', 'resources', 'acl', 'group'])
@@ -1292,6 +1546,28 @@ class TestCrmMultiAsic(object):
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_multi_asic_show_resources_nexthop_group_object
+
+    def test_crm_multi_asic_show_resources_snat(self):
+        runner = CliRunner()
+        result = runner.invoke(crm.cli, ['show', 'resources', 'snat'])
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_multi_asic_show_resources_snat
+
+    def test_crm_multi_asic_show_resources_dnat(self):
+        runner = CliRunner()
+        result = runner.invoke(crm.cli, ['show', 'resources', 'dnat'])
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_multi_asic_show_resources_dnat
+
+    def test_crm_multi_asic_show_resources_ipmc(self):
+        runner = CliRunner()
+        result = runner.invoke(crm.cli, ['show', 'resources', 'ipmc'])
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_multi_asic_show_resources_ipmc
+
 
     @classmethod
     def teardown_class(cls):

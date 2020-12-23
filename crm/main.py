@@ -40,7 +40,11 @@ class Crm:
         crm_info = configdb.get_entry('CRM', 'Config')
 
         if crm_info:
-            click.echo('\nPolling Interval: ' + crm_info['polling_interval'] + ' second(s)\n')
+            try:
+                click.echo('\nPolling Interval: ' + crm_info['polling_interval'] + ' second(s)\n')
+            except KeyError:
+                click.echo('\nError! Could not get CRM configuration.\n')
+                click.echo('\nError! Please configure polling interval.\n')
         else:
             click.echo('\nError! Could not get CRM configuration.\n')
 
@@ -66,10 +70,16 @@ class Crm:
             if resource == 'all':
                 for res in ["ipv4_route", "ipv6_route", "ipv4_nexthop", "ipv6_nexthop", "ipv4_neighbor", "ipv6_neighbor",
                             "nexthop_group_member", "nexthop_group", "acl_table", "acl_group", "acl_entry",
-                            "acl_counter", "fdb_entry"]:
-                    data.append([res, crm_info[res + "_threshold_type"], crm_info[res + "_low_threshold"], crm_info[res + "_high_threshold"]])
+                            "acl_counter", "fdb_entry", "ipmc_entry", "snat_entry", "dnat_entry"]:
+                    try:
+                        data.append([res, crm_info[res + "_threshold_type"], crm_info[res + "_low_threshold"], crm_info[res + "_high_threshold"]])
+                    except KeyError:
+                        pass
             else:
-                data.append([resource, crm_info[resource + "_threshold_type"], crm_info[resource + "_low_threshold"], crm_info[resource + "_high_threshold"]])
+                try:
+                    data.append([resource, crm_info[resource + "_threshold_type"], crm_info[resource + "_low_threshold"], crm_info[resource + "_high_threshold"]])
+                except KeyError:
+                    pass
         else:
             click.echo('\nError! Could not get CRM configuration.')
 
@@ -87,10 +97,12 @@ class Crm:
         if crm_stats:
             if resource == 'all':
                 for res in ["ipv4_route", "ipv6_route", "ipv4_nexthop", "ipv6_nexthop", "ipv4_neighbor", "ipv6_neighbor",
-                            "nexthop_group_member", "nexthop_group", "fdb_entry"]:
-                    data.append([res, crm_stats['crm_stats_' + res + "_used"], crm_stats['crm_stats_' + res + "_available"]])
+                            "nexthop_group_member", "nexthop_group", "fdb_entry", "ipmc_entry", "snat_entry", "dnat_entry"]:
+                    if 'crm_stats_' + res + "_used" in crm_stats.keys() and 'crm_stats_' + res + "_available" in crm_stats.keys():
+                        data.append([res, crm_stats['crm_stats_' + res + "_used"], crm_stats['crm_stats_' + res + "_available"]])
             else:
-                data.append([resource, crm_stats['crm_stats_' + resource + "_used"], crm_stats['crm_stats_' + resource + "_available"]])
+                if 'crm_stats_' + resource + "_used" in crm_stats.keys() and 'crm_stats_' + resource + "_available" in crm_stats.keys():
+                    data.append([resource, crm_stats['crm_stats_' + resource + "_used"], crm_stats['crm_stats_' + resource + "_available"]])
 
         return data
 
@@ -355,6 +367,36 @@ fdb.add_command(high)
 
 @thresholds.group()
 @click.pass_context
+def ipmc(ctx):
+    """CRM configuration for IPMC resource"""
+    ctx.obj["crm"].res_type = 'ipmc_entry'
+
+ipmc.add_command(type)
+ipmc.add_command(low)
+ipmc.add_command(high)
+
+@thresholds.group()
+@click.pass_context
+def snat(ctx):
+    """CRM configuration for Source NAT resource"""
+    ctx.obj["crm"].res_type = 'snat_entry'
+
+snat.add_command(type)
+snat.add_command(low)
+snat.add_command(high)
+
+@thresholds.group()
+@click.pass_context
+def dnat(ctx):
+    """CRM configuration for Destination NAT resource"""
+    ctx.obj["crm"].res_type = 'dnat_entry'
+
+dnat.add_command(type)
+dnat.add_command(low)
+dnat.add_command(high)
+
+@thresholds.group()
+@click.pass_context
 def acl(ctx):
     """CRM configuration for ACL resource"""
     pass
@@ -540,12 +582,42 @@ def fdb(ctx):
     elif ctx.obj["crm"].cli_mode == 'resources':
         ctx.obj["crm"].show_resources('fdb_entry')
 
+@resources.command()
+@click.pass_context
+def ipmc(ctx):
+    """Show CRM information for IPMC resource"""
+    if ctx.obj["crm"].cli_mode == 'thresholds':
+        ctx.obj["crm"].show_thresholds('ipmc_entry')
+    elif ctx.obj["crm"].cli_mode == 'resources':
+        ctx.obj["crm"].show_resources('ipmc_entry')
+
+@resources.command()
+@click.pass_context
+def snat(ctx):
+    """Show CRM information for SNAT resource"""
+    if ctx.obj["crm"].cli_mode == 'thresholds':
+        ctx.obj["crm"].show_thresholds('snat_entry')
+    elif ctx.obj["crm"].cli_mode == 'resources':
+        ctx.obj["crm"].show_resources('snat_entry')
+
+@resources.command()
+@click.pass_context
+def dnat(ctx):
+    """Show CRM information for DNAT resource"""
+    if ctx.obj["crm"].cli_mode == 'thresholds':
+        ctx.obj["crm"].show_thresholds('dnat_entry')
+    elif ctx.obj["crm"].cli_mode == 'resources':
+        ctx.obj["crm"].show_resources('dnat_entry')
+
 thresholds.add_command(acl)
 thresholds.add_command(all)
 thresholds.add_command(fdb)
 thresholds.add_command(ipv4)
 thresholds.add_command(ipv6)
 thresholds.add_command(nexthop)
+thresholds.add_command(ipmc)
+thresholds.add_command(snat)
+thresholds.add_command(dnat)
 
 
 if __name__ == '__main__':

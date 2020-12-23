@@ -1687,7 +1687,13 @@
         "crm_stats_ipv6_route_used":"60",
         "crm_stats_ipv6_route_available":"16324",
         "crm_stats_ipv6_nexthop_used":"8",
-        "crm_stats_ipv6_neighbor_available":"4084"
+        "crm_stats_ipv6_neighbor_available":"4084",
+        "crm_stats_ipmc_entry_used":"0",
+        "crm_stats_ipmc_entry_available":"24576",
+        "crm_stats_snat_entry_used":"0",
+        "crm_stats_snat_entry_available":"1024",
+        "crm_stats_dnat_entry_used":"0",
+        "crm_stats_dnat_entry_available":"1024"
     },
     "CRM:ACL_STATS:EGRESS:PORT":{
         "crm_stats_acl_table_used":"0",

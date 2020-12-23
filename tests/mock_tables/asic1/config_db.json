@@ -117,7 +117,16 @@
         "ipv6_route_low_threshold": "70",
         "acl_entry_high_threshold": "85",
         "fdb_entry_low_threshold": "70",
-        "ipv6_nexthop_high_threshold": "85"
+        "ipv6_nexthop_high_threshold": "85",
+        "snat_entry_threshold_type": "percentage",
+        "snat_entry_high_threshold": "85",
+        "snat_entry_low_threshold": "70",
+        "dnat_entry_threshold_type": "percentage",
+        "dnat_entry_high_threshold": "85",
+        "dnat_entry_low_threshold": "70",
+        "ipmc_entry_threshold_type": "percentage",
+        "ipmc_entry_high_threshold": "85",
+        "ipmc_entry_low_threshold": "70"
     },
     "MUX_CABLE|Ethernet32": {
         "state": "auto",
