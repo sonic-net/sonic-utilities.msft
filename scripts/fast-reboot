@@ -558,7 +558,13 @@ debug "Stopping bgp ..."
 systemctl stop bgp
 debug "Stopped  bgp ..."
 
-# Kill lldp, otherwise it sends information about reboot.
+# Kill sflow docker	
+debug "Stopping sflow ..."	
+container kill sflow &> /dev/null || debug "Docker sflow is not running ($?) ..."
+systemctl stop sflow
+debug "Stopped sflow ..."
+
+# Kill lldp, otherwise it sends informotion about reboot.
 # We call `docker kill lldp` to ensure the container stops as quickly as possible,
 # then immediately call `systemctl stop lldp` to prevent the service from
 # restarting the container automatically.
