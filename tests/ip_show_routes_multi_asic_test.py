@@ -91,20 +91,6 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         assert result.exit_code == 0
         assert result.output == show_ip_route_common.show_ipv6_route_multi_asic_specific_route_output
 
-    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
-                             ['ip_route'], indirect=['setup_multi_asic_bgp_instance'])
-    def test_show_multi_asic_ip_route_tables_option_err(
-            self,
-            setup_ip_route_commands,
-            setup_multi_asic_bgp_instance):
-        show = setup_ip_route_commands
-        runner = CliRunner()
-        result = runner.invoke(
-            show.cli.commands["ip"].commands["route"], ["tables"])
-        print("{}".format(result.output))
-        assert result.exit_code == 0
-        assert result.output == show_ip_route_common.show_ip_route_multi_asic_invalid_tables_cmd_err_output
-
     # note that we purposely use the single bgp instance setup to cause trigger a param error bad 
     # just bail out while executing in multi-asic show ipv6 route handling.
     # This is to test out the error parm handling code path
@@ -219,6 +205,20 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         print("{}".format(result.output))
         assert result.exit_code == 0
         assert result.output == "" 
+
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             ['ip_route_summary'], indirect=['setup_multi_asic_bgp_instance'])
+    def test_show_multi_asic_ip_route_summay(
+            self,
+            setup_ip_route_commands,
+            setup_multi_asic_bgp_instance):
+        show = setup_ip_route_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ip"].commands["route"], ["summary"])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_ip_route_common.show_ip_route_summary_expected_output
 
     @classmethod
     def teardown_class(cls):

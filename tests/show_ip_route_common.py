@@ -584,10 +584,6 @@ show_ip_route_multi_asic_invalid_display_err_output = """\
 dislay option 'everything' is not a valid option.
 """
 
-show_ip_route_multi_asic_invalid_tables_cmd_err_output = """\
-% Unknown command: show ip route tables 
-"""
-
 show_ip_route_multi_asic_specific_route_output = """\
 Routing entry for 10.0.0.4/31
   Known via "connected", distance 0, metric 0, best
@@ -644,3 +640,25 @@ show_ipv6_route_multi_asic_json_output = """\
 }
 """
 
+show_ip_route_summary_expected_output = """\
+asic0:
+Route Source         Routes               FIB  (vrf default)
+kernel               1                    1
+connected            6                    6
+static               1                    0
+ebgp                 6371                 6371
+ibgp                 88                   88
+------
+Totals               6467                 6466
+
+asic2:
+Route Source         Routes               FIB  (vrf default)
+kernel               1                    1
+connected            14                   14
+static               1                    0
+ebgp                 42                   42
+ibgp                 6409                 6409
+------
+Totals               6467                 6466
+
+"""
