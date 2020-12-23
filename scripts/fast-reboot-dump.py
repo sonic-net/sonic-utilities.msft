@@ -86,6 +86,8 @@ def get_map_port_id_2_iface_name(db):
     keys = [] if keys is None else keys
     for key in keys:
         value = db.get_all(db.ASIC_DB, key)
+        if value['SAI_HOSTIF_ATTR_TYPE'] != 'SAI_HOSTIF_TYPE_NETDEV':
+            continue
         port_id = value['SAI_HOSTIF_ATTR_OBJ_ID']
         iface_name = value['SAI_HOSTIF_ATTR_NAME']
         port_id_2_iface[port_id] = iface_name
