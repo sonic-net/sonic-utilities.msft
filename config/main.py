@@ -37,6 +37,21 @@ from . import vlan
 from . import vxlan
 from .config_mgmt import ConfigMgmtDPB
 
+# mock masic APIs for unit test
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1" or os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+        import mock_tables.mock_multi_asic
+        mock_tables.dbconnector.load_namespace_config()
+except KeyError:
+    pass
+
+
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 
 SONIC_GENERATED_SERVICE_PATH = '/etc/sonic/generated_services.conf'
@@ -1641,12 +1656,24 @@ def _update_buffer_calculation_model(config_db, model):
 @qos.command('reload')
 @click.pass_context
 @click.option('--no-dynamic-buffer', is_flag=True, help="Disable dynamic buffer calculation")
-def reload(ctx, no_dynamic_buffer):
+@click.option(
+    '--json-data', type=click.STRING,
+    help="json string with additional data, valid with --dry-run option"
+)
+@click.option(
+    '--dry_run', type=click.STRING,
+    help="Dry run, writes config to the given file"
+)
+def reload(ctx, no_dynamic_buffer, dry_run, json_data):
     """Reload QoS configuration"""
     log.log_info("'qos reload' executing...")
     _clear_qos()
 
     _, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
+    sonic_version_file = device_info.get_sonic_version_file()
+    from_db = "-d --write-to-db"
+    if dry_run:
+        from_db = "--additional-data \'{}\'".format(json_data) if json_data else ""
 
     namespace_list = [DEFAULT_NAMESPACE]
     if multi_asic.get_num_asics() > 1:
@@ -1683,17 +1710,17 @@ def reload(ctx, no_dynamic_buffer):
             buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers.json.j2")
             if asic_type in vendors_supporting_dynamic_buffer:
                 buffer_model_updated |= _update_buffer_calculation_model(config_db, "traditional")
+
         if os.path.isfile(buffer_template_file):
-            qos_template_file = os.path.join(hwsku_path, asic_id_suffix, "qos.json.j2")
+            qos_template_file = os.path.join(
+                hwsku_path, asic_id_suffix, "qos.json.j2"
+            )
             if os.path.isfile(qos_template_file):
                 cmd_ns = "" if ns is DEFAULT_NAMESPACE else "-n {}".format(ns)
-                sonic_version_file = os.path.join('/', "etc", "sonic", "sonic_version.yml")
-                command = "{} {} -d -t {},config-db -t {},config-db -y {} --write-to-db".format(
-                    SONIC_CFGGEN_PATH,
-                    cmd_ns,
-                    buffer_template_file,
-                    qos_template_file,
-                    sonic_version_file
+                fname = "{}{}".format(dry_run, asic_id_suffix) if dry_run else "config-db"
+                command = "{} {} {} -t {},{} -t {},{} -y {}".format(
+                    SONIC_CFGGEN_PATH, cmd_ns, from_db, buffer_template_file,
+                    fname, qos_template_file, fname, sonic_version_file
                 )
                 # Apply the configurations only when both buffer and qos
                 # configuration files are present
