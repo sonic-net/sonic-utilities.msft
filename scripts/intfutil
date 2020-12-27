@@ -22,7 +22,7 @@ try:
     if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
         import mock_tables.mock_multi_asic
         mock_tables.dbconnector.load_namespace_config()
-
+           
 except KeyError:
     pass
 
@@ -461,7 +461,7 @@ class IntfDescription(object):
             self.intf_name = intf_name
 
     def display_intf_description(self):
-
+        
         self.get_intf_description()
 
         # Sorting and tabulating the result table.
