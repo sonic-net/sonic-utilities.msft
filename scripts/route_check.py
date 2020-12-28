@@ -166,7 +166,7 @@ def get_interfaces():
 
 def filter_out_local_interfaces(keys):
     rt = []
-    local_if = set(['eth0', 'lo', 'docker0'])
+    local_if_re = ['eth0', 'lo', 'docker0', 'Loopback\d+']
 
     db = ConfigDBConnector()
     db.db_connect('APPL_DB')
@@ -176,7 +176,7 @@ def filter_out_local_interfaces(keys):
         if not e:
             # Prefix might have been added. So try w/o it.
             e = db.get_entry('ROUTE_TABLE', k.split("/")[0])
-        if not e or (e['ifname'] not in local_if):
+        if not e or all([not re.match(x, e['ifname']) for x in local_if_re]):
             rt.append(k)
 
     return rt
