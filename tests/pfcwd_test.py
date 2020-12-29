@@ -1,8 +1,10 @@
 import imp
 import os
 import sys
+from unittest.mock import patch
 
 from click.testing import CliRunner
+
 from utilities_common.db import Db
 
 from .pfcwd_input.pfcwd_test_vectors import *
@@ -78,7 +80,8 @@ class TestPfcwd(object):
             if 'rc_output' in input:
                 assert result.output == input['rc_output']
 
-    def test_pfcwd_start_ports_valid(self):
+    @patch('pfcwd.main.os')
+    def test_pfcwd_start_ports_valid(self, mock_os):
         # pfcwd start --action drop --restoration-time 200 Ethernet0 200
         import pfcwd.main as pfcwd
         runner = CliRunner()
@@ -92,6 +95,7 @@ class TestPfcwd(object):
         print(result.output)
         assert result.output == pfcwd_show_config_output
 
+        mock_os.geteuid.return_value = 0
         result = runner.invoke(
             pfcwd.cli.commands["start"],
             [
@@ -112,7 +116,8 @@ class TestPfcwd(object):
         assert result.exit_code == 0
         assert result.output == pfcwd_show_start_config_output_pass
 
-    def test_pfcwd_start_actions(self):
+    @patch('pfcwd.main.os')
+    def test_pfcwd_start_actions(self, mock_os):
         # pfcwd start --action fwd --restoration-time 200 Ethernet0 200
         import pfcwd.main as pfcwd
         runner = CliRunner()
@@ -126,6 +131,7 @@ class TestPfcwd(object):
         print(result.output)
         assert result.output == pfcwd_show_config_output
 
+        mock_os.geteuid.return_value = 0
         result = runner.invoke(
             pfcwd.cli.commands["start"],
             [
@@ -267,7 +273,8 @@ class TestMultiAsicPfcwdShow(object):
         assert result.exit_code == 0
         assert result.output == show_pfcwd_config_with_ports
 
-    def test_pfcwd_start_ports_masic_valid(self):
+    @patch('pfcwd.main.os')
+    def test_pfcwd_start_ports_masic_valid(self, mock_os):
         # pfcwd start --action forward --restoration-time 200 Ethernet0 200
         import pfcwd.main as pfcwd
         runner = CliRunner()
@@ -280,6 +287,7 @@ class TestMultiAsicPfcwdShow(object):
         print(result.output)
         assert result.output == show_pfc_config_all
 
+        mock_os.geteuid.return_value = 0
         result = runner.invoke(
             pfcwd.cli.commands["start"],
             [
@@ -300,7 +308,8 @@ class TestMultiAsicPfcwdShow(object):
         assert result.exit_code == 0
         assert result.output == show_pfc_config_start_pass
 
-    def test_pfcwd_start_actions_masic(self):
+    @patch('pfcwd.main.os')
+    def test_pfcwd_start_actions_masic(self, mock_os):
         # pfcwd start --action drop --restoration-time 200 Ethernet0 200
         import pfcwd.main as pfcwd
         runner = CliRunner()
@@ -313,6 +322,7 @@ class TestMultiAsicPfcwdShow(object):
         print(result.output)
         assert result.output == show_pfc_config_all
 
+        mock_os.geteuid.return_value = 0
         result = runner.invoke(
             pfcwd.cli.commands["start"],
             [
