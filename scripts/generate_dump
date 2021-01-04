@@ -26,15 +26,104 @@ DO_COMPRESS=true
 CMD_PREFIX=
 SINCE_DATE="@0" # default is set to January 1, 1970 at 00:00:00 GMT
 REFERENCE_FILE=/tmp/reference
+TECHSUPPORT_TIME_INFO=`mktemp "/tmp/techsupport_time_info.XXXXXXXXXX"`
 BASE=sonic_dump_`hostname`_`date +%Y%m%d_%H%M%S`
 DUMPDIR=/var/dump
 TARDIR=$DUMPDIR/$BASE
 TARFILE=$DUMPDIR/$BASE.tar
 LOGDIR=$DUMPDIR/$BASE/dump
 NUM_ASICS=1
+HOME=${HOME:-/root}
+USER=${USER:-root}
+TIMEOUT_MIN="5"
+SKIP_BCMCMD=0
+
+handle_signal()
+{
+    echo "Generate Dump received interrupt" >&2
+    $RM $V -rf $TARDIR
+    exit 1
+}
+trap 'handle_signal' SIGINT
+
+save_bcmcmd() {
+    local start_t=$(date +%s%3N)
+    local end_t=0
+    local cmd="$1"
+    local filename=$2
+    local filepath="${LOGDIR}/$filename"
+    local do_gzip=${3:-false}
+    local tarpath="${BASE}/dump/$filename"
+    local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
+    [ ! -d $LOGDIR ] && $MKDIR $V -p $LOGDIR
+
+    if [ $SKIP_BCMCMD -eq 1 ]; then
+        echo "Skip $cmd"
+        return 0
+    fi
+    # eval required here to re-evaluate the $cmd properly at runtime
+    # This is required if $cmd has quoted strings that should be bunched
+    # as one argument, e.g. vtysh -c "COMMAND HERE" needs to have
+    # "COMMAND HERE" bunched together as 1 arg to vtysh -c
+    if $NOOP; then
+        echo "${timeout_cmd} $cmd &> '${filepath}'"
+    else
+        eval "${timeout_cmd} $cmd" &> "${filepath}"
+        ret=$?
+        if [ $ret -ne 0 ]; then
+            if [ $ret -eq 124 ]; then
+                echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
+            else
+                grep "polling socket timeout: Success" ${filepath} &>/dev/null
+                if [ $? -eq 0 ]; then
+                    echo "bcmcmd command timeout. Setting SKIP_BCMCMD to true ..."
+                    SKIP_BCMCMD=1
+                fi
+            fi
+        fi
+    fi
+    if $do_gzip
+        gzip ${filepath} 2>/dev/null
+        tarpath="${tarpath}.gz"
+        filepath="${filepath}.gz"
+    fi
+    ($TAR $V -rhf $TARFILE -C $DUMPDIR "$tarpath" \
+        || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
+        && $RM $V -rf "$filepath"
+    end_t=$(date +%s%3N)
+    echo "[ save_bcmcmd:$cmd ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
+}
+
+###############################################################################
+# Runs a given bcmcmd command in all namesapces in case of multi ASIC platform
+# Globals:
+#  NUM_ASICS
+# Arguments:
+#  cmd: The command to run. Make sure that arguments with spaces have quotes
+#  filename: the filename to save the output as in $BASE/dump
+#  do_gzip: (OPTIONAL) true or false. Should the output be gzipped
+# Returns:
+#  None
+###############################################################################
+save_bcmcmd_all_ns() {
+    local do_gzip=${3:-false}
+
+    if [[ ( "$NUM_ASICS" > 1 ) ]]; then
+        for (( i=0; i<$NUM_ASICS; i++ ))
+        do
+            local cmd="bcmcmd -n $i $1"
+            local file="$2.$i"
+            save_bcmcmd "$cmd" "$file" "$do_gzip"
+        done
+    else
+        local cmd="bcmcmd $1"
+        save_bcmcmd "$cmd" "$2" "$do_gzip"
+    fi
+}
 
 ###############################################################################
 # Runs a comamnd and saves its output to the incrementally built tar.
+# Command gets timedout if it runs for more than TIMEOUT_MIN minutes.
 # Globals:
 #  LOGDIR
 #  BASE
@@ -53,11 +142,14 @@ NUM_ASICS=1
 #  None
 ###############################################################################
 save_cmd() {
+    local start_t=$(date +%s%3N)
+    local end_t=0
     local cmd="$1"
     local filename=$2
     local filepath="${LOGDIR}/$filename"
     local do_gzip=${3:-false}
     local tarpath="${BASE}/dump/$filename"
+    local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
     [ ! -d $LOGDIR ] && $MKDIR $V -p $LOGDIR
 
     # eval required here to re-evaluate the $cmd properly at runtime
@@ -68,23 +160,31 @@ save_cmd() {
     then
         tarpath="${tarpath}.gz"
         filepath="${filepath}.gz"
+        local cmds="$cmd 2>&1 | gzip -c > '${filepath}'"
         if $NOOP; then
-            echo "eval $cmd 2>&1 | gzip -c > '${filepath}'"
+            echo "${timeout_cmd} bash -c \"${cmds}\""
         else
-            eval "$cmd" 2>&1 | gzip -c > "${filepath}"
+            eval "${timeout_cmd} bash -c \"${cmds}\""
+            if [ $? -ne 0 ]; then
+                echo "Command: $cmds timedout after ${TIMEOUT_MIN} minutes."
+            fi
         fi
     else
         if $NOOP; then
-            echo "eval $cmd &> '$filepath'"
+            echo "${timeout_cmd} $cmd &> '$filepath'"
         else
-            eval "$cmd" &> "$filepath"
+            eval "${timeout_cmd} $cmd" &> "$filepath"
+            if [ $? -ne 0 ]; then
+                echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
+            fi
         fi
     fi
     ($TAR $V -rhf $TARFILE -C $DUMPDIR "$tarpath" \
         || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
         && $RM $V -rf "$filepath"
+    end_t=$(date +%s%3N)
+    echo "[ save_cmd:$cmd ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 }
-
 
 ###############################################################################
 # Runs a given command in all namesapces in case of multi ASIC platform, in
@@ -99,10 +199,7 @@ save_cmd() {
 #  None
 ###############################################################################
 save_cmd_all_ns() {
-    echo $1
-    echo $2
     local do_zip=${3:-false}
-    echo ${do_zip}
 
     # host or default namespace
     save_cmd "$1" "$2" "$do_zip"
@@ -135,7 +232,6 @@ get_vtysh_namespace() {
     else
         ns=" -n  ${asic_id}"
     fi
-    echo "$ns"
 }
 
 ###############################################################################
@@ -188,6 +284,38 @@ save_ip() {
 }
 
 ###############################################################################
+# Runs a bridge command and saves its output to the incrementally built tar.
+# Globals:
+#  None
+# Arguments:
+#  cmd: the bridge command to run sans 'bridge'
+#  filename: Files will be named 'bridge.<filename>'
+#  do_gzip: (OPTIONAL) true or false. Should the output be gzipped
+# Returns:
+#  None
+###############################################################################
+save_bridge() {
+    local br_args=$1
+    local filename="bridge.$2"
+    local do_gzip=${3:-false}
+    save_cmd_all_ns "bridge $br_args" "$filename" $do_gzip
+}
+
+###############################################################################
+# Dump the bridge L2 information 
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_bridge_info() {
+    save_bridge "fdb show" "fdb"
+    save_bridge "vlan show" "vlan"
+}
+
+###############################################################################
 # Iterates all neighbors and runs save_vtysh to save each neighbor's
 # advertised-routes and received-routes
 # On multi ASIC platform, collects information from all namespaces
@@ -199,10 +327,11 @@ save_ip() {
 #  None
 ###############################################################################
 save_bgp_neighbor() {
+    local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
     local asic_id=${1:-""}
     local ns=$(get_vtysh_namespace $asic_id)
 
-    neighbor_list_v4=$(vtysh $ns -c "show ip bgp neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}')
+    neighbor_list_v4=$(${timeout_cmd} vtysh $ns -c "show ip bgp neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}')
     for word in $neighbor_list_v4; do
         save_cmd "vtysh $ns -c \"show ip bgp neighbors $word advertised-routes\"" "ip.bgp.neighbor.$word.adv$asic_id"
         save_cmd "vtysh $ns -c \"show ip bgp neighbors $word routes\"" "ip.bgp.neighbor.$word.rcv$asic_id"
@@ -211,6 +340,15 @@ save_bgp_neighbor() {
     for word in $neighbor_list_v6; do
         save_cmd "vtysh $ns -c \"show bgp ipv6 neighbors $word advertised-routes\"" "ipv6.bgp.neighbor.$word.adv$asic_id"
         save_cmd "vtysh $ns -c \"show bgp ipv6 neighbors $word routes\"" "ipv6.bgp.neighbor.$word.rcv$asic_id"
+    done
+
+    vrf_list=`${timeout_cmd} vtysh $ns -c "show vrf" | awk -F" " '{print $2}'`
+    for vrf in $vrf_list; do
+        neighbor_list=`${timeout_cmd} vtysh $ns -c "show ip bgp vrf $vrf neighbors" | grep "BGP neighbor is" | awk -F '[, ]' '{print $4}'`
+        for word in $neighbor_list; do
+            save_cmd "vtysh $ns -c \"show ip bgp vrf $vrf neighbors $word advertised-routes\"" "ip.bgp.neighbor.$vrf.$word.adv$asic_id"
+            save_cmd "vtysh $ns -c \"show ip bgp vrf $vrf neighbors $word routes\"" "ip.bgp.neighbor.$vrf.$word.rcv$asic_id"
+        done
     done
 }
 
@@ -254,6 +392,22 @@ save_nat_info() {
 }
 
 ###############################################################################
+# Dump the BFD information from vtysh
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_bfd_info() {
+    save_vtysh "show bfd peers" "frr.bfd.peers"
+    save_vtysh "show bfd peers counters" "frr.bfd.peers.counters"
+    save_vtysh "show bfd peers json" "frr.bfd.peers.json"
+    save_vtysh "show bfd peers counters json" "frr.bfd.peers.counters.json"
+}
+
+###############################################################################
 # Save IP related info
 # Globals:
 #  None
@@ -268,6 +422,7 @@ save_ip_info() {
     save_ip "rule" "rule"
     save_ip "route show table all" "route"
     save_ip "neigh" "neigh"
+    save_ip "-s neigh show nud noarp" "neigh.noarp"
 }
 
 ###############################################################################
@@ -287,6 +442,25 @@ save_bgp_info() {
     save_vtysh "show bgp ipv6 neighbors" "bgp.ipv6.neighbors"
     save_vtysh "show bgp ipv6" "bgp.ipv6.table"
     save_bgp_neighbor_all_ns
+}
+
+###############################################################################
+# Save FRR related info
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_frr_info() {
+    save_vtysh "show running-config" "frr.running_config"
+    save_vtysh "show ip route vrf all" "frr.ip_route"
+    save_vtysh "show ipv6 route vrf all" "frr.ip6_route"
+    save_vtysh "show zebra fpm stats" "frr.fpm.stats"
+    save_vtysh "show zebra dplane detailed" "frr.dplane"
+    save_vtysh "show interface vrf all" "frr.interfaces"
+    save_vtysh "show zebra client summary" "frr.client"
 }
 
 ###############################################################################
@@ -335,13 +509,19 @@ save_proc() {
 ###############################################################################
 # Dumps all fields and values from given Redis DB.
 # Arguments:
-#  DB name: filename to which output will be saved
+#  DB name: DB name 
+#  Filename: Destination filename, if not given then filename would be DB name 
 # Returns:
 #  None
 ###############################################################################
 save_redis() {
     local db_name=$1
-    save_cmd_all_ns "sonic-db-dump -n '$db_name' -y" "$db_name.json"
+    if [ $# -ge 2 ] && [ -n "$2" ]; then
+        local dest_file_name=$2
+    else
+        local dest_file_name="$db_name"
+    fi
+    save_cmd_all_ns "sonic-db-dump -n '$db_name' -y" "$dest_file_name.json"
 }
 
 ###############################################################################
@@ -382,6 +562,8 @@ save_saidump() {
 #  None
 ###############################################################################
 save_platform() {
+    local start_t=$(date +%s%3N)
+    local end_t=0
     local type="$1"
     local filename=$2
     local filepath="${LOGDIR}/$filename"
@@ -393,6 +575,8 @@ save_platform() {
 
     ($TAR $V -uhf $TARFILE -C $DUMPDIR "$tarpath" \
         || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.")
+    end_t=$(date +%s%3N)
+    echo "[ save_platform:$type ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 }
 
 ###############################################################################
@@ -432,11 +616,14 @@ save_platform_info() {
 #  None
 ###############################################################################
 save_file() {
+    local start_t=$(date +%s%3N)
+    local end_t=0
     local orig_path=$1
     local supp_dir=$2
     local gz_path="$TARDIR/$supp_dir/$(basename $orig_path)"
     local tar_path="${BASE}/$supp_dir/$(basename $orig_path)"
     local do_gzip=${3:-true}
+    local do_tar_append=${4:-true}
     [ ! -d "$TARDIR/$supp_dir" ] && $MKDIR $V -p "$TARDIR/$supp_dir"
 
     if $do_gzip; then
@@ -454,9 +641,14 @@ save_file() {
             cp $orig_path $gz_path
         fi
     fi
-    ($TAR $V -rhf $TARFILE -C $DUMPDIR "$tar_path" \
-        || abort "${ERROR_PROCFS_SAVE_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
-        && $RM $V -f "$gz_path"
+
+    if $do_tar_append; then
+        ($TAR $V -rhf $TARFILE -C $DUMPDIR "$tar_path" \
+            || abort "${ERROR_PROCFS_SAVE_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
+            && $RM $V -f "$gz_path"
+    fi
+    end_t=$(date +%s%3N)
+    echo "[ save_file:$orig_path] : $(($end_t-$start_t)) msec"  >> $TECHSUPPORT_TIME_INFO
 }
 
 ###############################################################################
@@ -538,17 +730,77 @@ collect_mellanox() {
 #  None
 ###############################################################################
 collect_broadcom() {
-    save_cmd "bcmcmd -t5 version" "broadcom.version"
-    save_cmd "bcmcmd -t5 soc" "broadcom.soc"
-    save_cmd "bcmcmd -t5 ps" "broadcom.ps"
+    local platform=$(show platform summary --json | python -c 'import sys, json; \
+        print(json.load(sys.stdin)["platform"])')
+    local hwsku=$(show platform summary --json | python -c 'import sys, json; \
+        print(json.load(sys.stdin)["hwsku"])')
+
+    # save SAI configuration files (config.bcm, port_config.ini, sai.profile)
+    if [ -d /usr/share/sonic/device/${platform}/${hwsku} ]; then
+        # copy all the files in the HWSKU directory
+        pushd /usr/share/sonic/device/${platform}/${hwsku} > /dev/null
+        for file in $(find . -maxdepth 2 -type f); do
+            save_file ${file} sai false
+        done
+        popd > /dev/null
+
+        if [[ ("$NUM_ASICS" > 1) ]]; then
+            for (( i=0; i<$NUM_ASICS; i++ ))
+            do
+                # config.bcm - copy the one with chip common properties merged
+                for file in $(find /var/run/docker-syncd$i -type f -name "*.bcm"); do
+                    save_file ${file} sai$i false
+                done
+                # sai.profile - copy the final sai.profile generated in docker-syncd
+                if [ -f /var/run/docker-syncd$i/sai.profile ]; then
+                    save_file /var/run/docker-syncd$i/sai.profile sai$i false
+                fi
+            done
+        else
+            # config.bcm - copy the one with chip common properties merged
+            for file in $(find /var/run/docker-syncd -type f -name "*.bcm"); do
+                save_file ${file} sai false
+            done
+            # sai.profile - copy the final sai.profile generated in docker-syncd
+            if [ -f /var/run/docker-syncd/sai.profile ]; then
+                save_file /var/run/docker-syncd/sai.profile sai false
+            fi
+        fi
+    else
+        echo "'/usr/share/sonic/device/${platform}/${hwsku}' does not exist" > /tmp/error
+        save_file /tmp/error sai false
+    fi
+
     save_cmd "cat /proc/bcm/knet/debug" "broadcom.knet.debug"
     save_cmd "cat /proc/bcm/knet/dma" "broadcom.knet.dma"
-    save_cmd "cat /proc/bcm/knet/dstats" "broadcom.knet.dstats"
     save_cmd "cat /proc/bcm/knet/link" "broadcom.knet.link"
     save_cmd "cat /proc/bcm/knet/rate" "broadcom.knet.rate"
-    save_cmd "cat /proc/bcm/knet/stats" "broadcom.knet.stats"
-    save_cmd "bcmcmd \"l3 nat_ingress show\"" "broadcom.nat.ingress"
-    save_cmd "bcmcmd \"l3 nat_egress show\"" "broadcom.nat.egress"
+
+    save_bcmcmd_all_ns "-t5 version" "broadcom.version"
+    save_bcmcmd_all_ns "-t5 soc" "broadcom.soc"
+    save_bcmcmd_all_ns "-t5 ps" "broadcom.ps"
+    save_bcmcmd_all_ns "\"l3 nat_ingress show\"" "broadcom.nat.ingress"
+    save_bcmcmd_all_ns "\"l3 nat_egress show\"" "broadcom.nat.egress"
+    save_bcmcmd_all_ns "\"ipmc table show\"" "broadcom.ipmc"
+    save_bcmcmd_all_ns "\"multicast show\"" "broadcom.multicast"
+    save_bcmcmd_all_ns "\"conf show\"" "conf.summary"
+    save_bcmcmd_all_ns "\"fp show\"" "fp.summary"
+    save_bcmcmd_all_ns "\"pvlan show\"" "pvlan.summary"
+    save_bcmcmd_all_ns "\"l2 show\"" "l2.summary"
+    save_bcmcmd_all_ns "\"l3 intf show\"" "l3.intf.summary"
+    save_bcmcmd_all_ns "\"l3 defip show\"" "l3.defip.summary"
+    save_bcmcmd_all_ns "\"l3 l3table show\"" "l3.l3table.summary"
+    save_bcmcmd_all_ns "\"l3 egress show\"" "l3.egress.summary"
+    save_bcmcmd_all_ns "\"l3 ecmp egress show\"" "l3.ecmp.egress.summary"
+    save_bcmcmd_all_ns "\"l3 multipath show\"" "l3.multipath.summary"
+    save_bcmcmd_all_ns "\"l3 ip6host show\"" "l3.ip6host.summary"
+    save_bcmcmd_all_ns "\"l3 ip6route show\"" "l3.ip6route.summary"
+    save_bcmcmd_all_ns "\"mc show\"" "multicast.summary"
+    save_bcmcmd_all_ns "\"cstat *\"" "cstat.summary"
+    save_bcmcmd_all_ns "\"mirror show\"" "mirror.summary"
+    save_bcmcmd_all_ns "\"mirror dest show\"" "mirror.dest.summary"
+    save_bcmcmd_all_ns "\"port *\"" "port.summary"
+    save_bcmcmd_all_ns "\"d chg my_station_tcam\"" "mystation.tcam.summary"
 }
 
 ###############################################################################
@@ -569,7 +821,7 @@ collect_arista() {
 ###############################################################################
 # Save log file
 # Globals:
-#  None
+#  TAR, TARFILE, DUMPDIR, BASE, TARDIR, TECHSUPPORT_TIME_INFO
 # Arguments:
 #  None
 # Returns:
@@ -579,6 +831,7 @@ save_log_files() {
     disable_logrotate
     trap enable_logrotate HUP INT QUIT TERM KILL ABRT ALRM
 
+    start_t=$(date +%s%3N)
     # gzip up all log files individually before placing them in the incremental tarball
     for file in $(find_files "/var/log/"); do
         # ignore the sparse file lastlog
@@ -586,14 +839,45 @@ save_log_files() {
             continue
         fi
         # don't gzip already-gzipped log files :)
+        # do not append the individual files to the main tarball
         if [ -z "${file##*.gz}" ]; then
-            save_file $file log false
+            save_file $file log false false
         else
-            save_file $file log true
+            save_file $file log true false
         fi
     done
 
+    # Append the log folder to the main tarball
+    ($TAR $V -rhf $TARFILE -C $DUMPDIR ${BASE}/log \
+        || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting for safety") \
+        && $RM $V -rf $TARDIR/log
+    end_t=$(date +%s%3N)
+    echo "[ TAR /var/log Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
+
     enable_logrotate
+}
+
+###############################################################################
+# Save warmboot files
+# Globals:
+#  TARDIR, TARFILE, TAR, DUMPDIR, TECHSUPPORT_TIME_INFO
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_warmboot_files() {
+    # Copy the warmboot files
+    mkdir -p $TARDIR
+    $CP $V -rf /host/warmboot $TARDIR
+
+    start_t=$(date +%s%3N)
+    ($TAR $V --warning=no-file-removed  -rhf $TARFILE -C $DUMPDIR --mode=+rw \
+        $BASE/warmboot \
+        || abort "${ERROR_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
+        && $RM $V -rf $TARDIR
+    end_t=$(date +%s%3N)
+    echo "[ Warm-boot Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 }
 
 ###############################################################################
@@ -644,6 +928,39 @@ get_asic_count() {
     echo `eval ${cmd} 2>&1`
 }
 
+###############################################################################
+# Get counter snapshot
+# Globals:
+#  None
+# Arguments:
+#  asic_name: Name of the asic vendor
+#  index: Index of counter snapshot
+# Returns:
+#  None
+###############################################################################
+save_counter_snapshot() {
+    local asic_name="$1"
+    local idx=$2
+    counter_t=$(date +'%d/%m/%Y %H:%M:%S:%6N')
+
+    save_cmd "echo $counter_t" "date.counter_$idx"
+    save_cmd "show interface counters" "interface.counters_$idx"
+    save_cmd_all_ns "show queue counters" "queue.counters_$idx"
+    save_redis "COUNTERS_DB" "COUNTERS_DB_$idx"
+
+    if [ "$asic_name" = "broadcom" ]; then
+        save_cmd "cat /proc/bcm/knet/dstats" "broadcom.knet_drop.counters_$idx"
+        save_cmd "cat /proc/bcm/knet/stats" "broadcom.knet_filter.counters_$idx"
+        if [ -e /usr/local/bin/softnet_stat.sh ]; then
+            save_cmd "softnet_stat.sh" "softnet_queue.counters_$idx"
+        fi
+        if [ -e /proc/bcm/knet/rx_drop ]; then
+            save_cmd "cat /proc/bcm/knet/rx_drop" "broadcom.knet_queue.counters_$idx"
+        fi
+    fi
+    save_cmd_all_ns "netstat -i" "netstat.counters_$idx"
+    save_cmd_all_ns "ifconfig -a" "ifconfig.counters_$idx"
+}
 
 ###############################################################################
 # Main generate_dump routine
@@ -655,6 +972,8 @@ get_asic_count() {
 #  None
 ###############################################################################
 main() {
+    local start_t=0
+    local end_t=0
     if [ `whoami` != root ] && ! $NOOP;
     then
         echo "$0: must be run as root (or in sudo)" >&2
@@ -671,6 +990,10 @@ main() {
     $TAR $V -chf $TARFILE -C $DUMPDIR $BASE
     $RM $V -f $TARDIR/sonic_dump
 
+    # Start populating timing data
+    echo $BASE > $TECHSUPPORT_TIME_INFO
+    start_t=$(date +%s%3N)
+
     # Capture /proc state early
     save_proc /proc/buddyinfo /proc/cmdline /proc/consoles \
         /proc/cpuinfo /proc/devices /proc/diskstats /proc/dma \
@@ -682,6 +1005,18 @@ main() {
         /proc/uptime /proc/version /proc/vmallocinfo /proc/vmstat \
         /proc/zoneinfo \
         || abort "${ERROR_PROCFS_SAVE_FAILED}" "Proc saving operation failed. Aborting for safety."
+    end_t=$(date +%s%3N)
+    echo "[ Capture Proc State ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
+
+    # Save all the processes within each docker
+    save_cmd "show services" services.summary
+
+    # Save reboot cause information
+    save_cmd "show reboot-cause" reboot.cause
+
+    local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
+    # 1st counter snapshot early. Need 2 snapshots to make sense of counters trend.
+    save_counter_snapshot $asic 1
 
     save_cmd "systemd-analyze blame" "systemd.analyze.blame"
     save_cmd "systemd-analyze dump" "systemd.analyze.dump"
@@ -689,6 +1024,7 @@ main() {
 
     save_platform_info
 
+    save_cmd "show vlan brief" "vlan.summary"
     save_cmd "show version" "version"
     save_cmd "show platform summary" "platform.summary"
     save_cmd "cat /host/machine.conf" "machine.conf"
@@ -700,16 +1036,32 @@ main() {
     save_cmd "sysctl -a" "sysctl"
 
     save_ip_info
+    save_bridge_info
+
+    save_frr_info
     save_bgp_info
 
     save_cmd "show interface status -d all" "interface.status"
-    save_cmd "show interface counters -d all" "interface.counters"
     save_cmd "show interface transceiver presence" "interface.xcvrs.presence"
     save_cmd "show interface transceiver eeprom --dom" "interface.xcvrs.eeprom"
+    save_cmd_all_ns "show ip interface" "ip.interface"
 
     save_cmd "lldpctl" "lldpctl"
+    if [[ ( "$NUM_ASICS" > 1 ) ]]; then
+        for (( i=0; i<$NUM_ASICS; i++ ))
+        do
+            save_cmd "docker exec -it lldp$i lldpcli show statistics" "lldp$i.statistics"
+            save_cmd "docker logs bgp$i" "docker.bgp$i.log"
+            save_cmd "docker logs swss$i" "docker.swss$i.log"
+        done
+    else
+        save_cmd "docker exec -it lldp lldpcli show statistics" "lldp.statistics"
+        save_cmd "docker logs bgp" "docker.bgp.log"
+        save_cmd "docker logs swss" "docker.swss.log"
+    fi
 
     save_cmd "ps aux" "ps.aux"
+    save_cmd "top -b -n 1" "top"
     save_cmd "free" "free"
     save_cmd "vmstat 1 5" "vmstat"
     save_cmd "vmstat -m" "vmstat.m"
@@ -719,6 +1071,7 @@ main() {
     save_cmd "dmesg" "dmesg"
 
     save_nat_info
+    save_bfd_info
     save_redis_info
 
     save_cmd "docker ps -a" "docker.ps"
@@ -726,7 +1079,6 @@ main() {
 
     save_saidump
 
-    local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
     if [[ "$asic" = "mellanox" ]]; then
         collect_mellanox
     fi
@@ -739,12 +1091,22 @@ main() {
         collect_arista
     fi
 
+    # 2nd counter snapshot late. Need 2 snapshots to make sense of counters trend.
+    save_counter_snapshot $asic 2
+
     $RM $V -rf $TARDIR
     $MKDIR $V -p $TARDIR
     $MKDIR $V -p $LOGDIR
-    $LN $V -s /etc $TARDIR/etc
+    # Copying the /etc files to a directory and then tar it
+    $CP -r /etc $TARDIR/etc
+    rm_list=$(find -L $TARDIR/etc -maxdepth 5 -type l)
+    if [ ! -z "$rm_list" ]
+    then
+        rm $rm_list
+    fi
 
-    ($TAR $V -rhf $TARFILE -C $DUMPDIR --mode=+rw \
+    start_t=$(date +%s%3N)
+    ($TAR $V --warning=no-file-removed -rhf $TARFILE -C $DUMPDIR --mode=+rw \
         --exclude="etc/alternatives" \
         --exclude="*/etc/passwd*" \
         --exclude="*/etc/shadow*" \
@@ -758,8 +1120,29 @@ main() {
         $BASE/etc \
         || abort "${ERROR_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
         && $RM $V -rf $TARDIR
+    end_t=$(date +%s%3N)
+    echo "[ TAR /etc Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 
+    if [ "$asic" = "broadcom" ]; then
+        if [[ ("$NUM_ASICS" > 1) ]]; then
+            for (( i=0; i<$NUM_ASICS; i++ ))
+            do
+                sudo docker exec -i syncd$i touch /var/log/diagrun.log
+                sudo docker exec -i syncd$i touch /var/log/bcm_diag_post
+
+                sudo docker cp syncd$i:/var/log/diagrun.log /var/log/diagrun.log.$i
+                sudo docker cp syncd$i:/var/log/bcm_diag_post /var/log/bcm_diag_post.$i
+            done
+        else
+           sudo docker exec -i syncd touch /var/log/diagrun.log
+           sudo docker exec -i syncd touch /var/log/bcm_diag_post
+
+           sudo docker cp syncd:/var/log/diagrun.log /var/log/diagrun.log
+           sudo docker cp syncd:/var/log/bcm_diag_post /var/log/bcm_diag_post
+        fi
+    fi
     save_log_files
+    save_warmboot_files
     save_crash_files
 
     # run 'hw-management-generate-dump.sh' script and save the result file
@@ -771,6 +1154,8 @@ main() {
     else
       echo "HW Mgmt dump script $HW_DUMP_FILE does not exist"
     fi
+    # Save techsupport timing profile info
+    save_file $TECHSUPPORT_TIME_INFO log false
 
     # clean up working tar dir before compressing
     $RM $V -rf $TARDIR
@@ -838,11 +1223,13 @@ OPTIONS
         Collect logs since DATE;
         The argument is a mostly free format human readable string such as
         "24 March", "yesterday", etc.
+    -t TIMEOUT_MINS
+        Command level timeout in minutes
 
 EOF
 }
 
-while getopts ":xnvhzsa:" opt; do
+while getopts ":xnvhzas:t:" opt; do
     case $opt in
         x)
             # enable bash debugging
@@ -880,6 +1267,9 @@ while getopts ":xnvhzsa:" opt; do
             SINCE_DATE="${OPTARG}"
             # validate date expression
             date --date="${SINCE_DATE}" &> /dev/null || abort "${ERROR_INVALID_ARGUMENT}" "Invalid date expression passed: '${SINCE_DATE}'"
+            ;;
+        t)
+            TIMEOUT_MIN="${OPTARG}"
             ;;
         /?)
             echo "Invalid option: -$OPTARG" >&2
