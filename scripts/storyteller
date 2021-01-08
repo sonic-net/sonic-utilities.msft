@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+
+'''
+Story Teller:
+    Utility to help analyze log for certain sequence of events.
+    e.g.: reboot (including warm/fast reboot), interface flapping, etc.
+'''
+
+import argparse
+import subprocess
+
+regex_dict = {
+                'bgp'       : 'bgpcfgd',
+                'crash'     : 'what\|unexpected exception\|notify_OA_about_syncd_exception\|SIG\|not expected',
+                'interface' : 'updatePortOperStatus\|Configure .* to',
+                'lag'       : 'link becomes\|addLag',
+                'reboot'    : 'BOOT\|rc.local\|old_config\|minigraph.xml\|Rebooting\|reboot\|executeOperationsOnAsic\|getAsicView\|dumpVidToAsicOperatioId',
+                'service'   : 'Starting\|Stopping\|Started\|Stopped',
+             }
+
+
+def exec_cmd(cmd):
+    out = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, text=True)
+    stdout, stderr = out.communicate()
+    return out.returncode, stdout, stderr
+
+
+def build_options(after=0, before=0, context=0):
+    options = []
+    if after:
+        options.append('-A {}'.format(after))
+    if before:
+        options.append('-B {}'.format(before))
+    if context:
+        options.append('-C {}'.format(context))
+
+    return ' '.join(x for x in options)
+
+
+def find_log(log, regex, after=0, before=0, context=0):
+    options = build_options(after, before, context)
+    cmd = 'ls -rt /var/log/{}* | xargs zgrep -a {} "{}"'.format(log, options, regex)
+    _, out, _ = exec_cmd(cmd)
+    '''
+        Opportunity to improve:
+            output (out) can be split to lines and send to a filter to
+            decide if a line should be printed out or not.
+            e.g. limited to a certain time span.
+    '''
+    print(out)
+
+
+def build_regex(category):
+    regex = []
+    for c in category.split(','):
+        # if c is not found, add c to grep list directly
+        regex.append(regex_dict[c] if c in regex_dict else c)
+
+    return '\|'.join(x for x in regex)
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Story Teller')
+
+    parser.add_argument('-l', '--log', help='log file prefix, e.g. syslog; default: syslog',
+                        type=str, required=False, default='syslog')
+    parser.add_argument('-c', '--category', help='Categories: bgp, crash, interface, lag, reboot, service Specify multiple categories as c1,c2,c3; default: reboot',
+                        type=str, required=False, default='reboot')
+    parser.add_argument('-A', '--after', help='Show N lines after match',
+                        type=int, required=False, default=0)
+    parser.add_argument('-B', '--before', help='Show N lines before match',
+                        type=int, required=False, default=0)
+    parser.add_argument('-C', '--context', help='Show N lines before and after match',
+                        type=int, required=False, default=0)
+
+    args = parser.parse_args()
+
+    log = args.log
+    reg = build_regex(args.category)
+
+    find_log(log, reg, args.after, args.before, args.context)
+
+
+if __name__ == '__main__':
+    main()
