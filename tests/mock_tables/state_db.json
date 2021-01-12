@@ -377,5 +377,17 @@
         "xon": "18432",
         "xoff": "32768",
         "size": "51200"
+    },
+    "CHASSIS_MIDPLANE_TABLE|SUPERVISOR0": {
+        "ip_address": "192.168.1.100",
+        "access": "True"
+    },
+    "CHASSIS_MIDPLANE_TABLE|LINE-CARD0": {
+        "ip_address": "192.168.1.1",
+        "access": "True"
+    },
+    "CHASSIS_MIDPLANE_TABLE|LINE-CARD1": {
+        "ip_address": "192.168.1.2",
+        "access": "False"
     }
 }
