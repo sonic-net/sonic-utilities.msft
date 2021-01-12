@@ -546,6 +546,12 @@
     "PORTCHANNEL_INTERFACE|PortChannel0004|FC00::7D/126": {
         "NULL": "NULL"
     },
+    "INTERFACE|Ethernet0": {
+        "NULL": "NULL"
+    },
+    "INTERFACE|Ethernet0|14.14.0.1/24": {
+        "NULL": "NULL"
+    },
     "DEBUG_COUNTER|DEBUG_0": {
         "type": "PORT_INGRESS_DROPS"
     },
