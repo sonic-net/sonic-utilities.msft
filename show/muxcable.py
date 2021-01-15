@@ -63,7 +63,7 @@ def get_switch_name(config_db):
     info_dict = config_db.get_entry("DEVICE_METADATA", "localhost")
     #click.echo("{} ".format(info_dict))
 
-    switch_name = get_value_for_key_in_dict(info_dict, "localhost", "hostname", "DEVICE_METADATA")
+    switch_name = get_value_for_key_in_dict(info_dict, "localhost", "peer_switch", "DEVICE_METADATA")
     if switch_name is not None:
         return switch_name
     else:

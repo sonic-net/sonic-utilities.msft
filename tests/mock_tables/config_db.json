@@ -666,6 +666,7 @@
         "hwsku": "Mellanox-SN3800-D112C8",
         "mac": "1d:34:db:16:a6:00",
         "platform": "x86_64-mlnx_msn3800-r0",
+        "peer_switch": "sonic-switch",
         "type": "ToRRouter"
     },
     "DEVICE_NEIGHBOR|Ethernet4": {
