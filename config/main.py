@@ -1685,10 +1685,10 @@ def start(action, restoration_time, ports, detection_time, verbose):
 
     if ports:
         ports = set(ports) - set(['ports', 'detection-time'])
-        cmd += " ports {}".format(' '.join(ports))
+        cmd += " {}".format(' '.join(ports))
 
     if detection_time:
-        cmd += " detection-time {}".format(detection_time)
+        cmd += " {}".format(detection_time)
 
     if restoration_time:
         cmd += " --restoration-time {}".format(restoration_time)
