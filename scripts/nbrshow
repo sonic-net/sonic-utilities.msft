@@ -95,6 +95,10 @@ class NbrBase(object):
             elif 'bvid' in fdb:
                 try:
                     vlan_id = port_util.get_vlan_id_from_bvid(self.db, fdb["bvid"])
+                    if vlan_id is None:
+                        # the case could be happened if the FDB entry has created with linking to
+                        # default VLAN 1, which is not present in the system
+                        continue
                 except Exception:
                     vlan_id = fdb["bvid"]
                     print("Failed to get Vlan id for bvid {}\n".format(fdb["bvid"]))
