@@ -82,7 +82,7 @@ save_bcmcmd() {
             fi
         fi
     fi
-    if $do_gzip
+    if $do_gzip; then
         gzip ${filepath} 2>/dev/null
         tarpath="${tarpath}.gz"
         filepath="${filepath}.gz"
@@ -302,7 +302,7 @@ save_bridge() {
 }
 
 ###############################################################################
-# Dump the bridge L2 information 
+# Dump the bridge L2 information
 # Globals:
 #  None
 # Arguments:
@@ -509,8 +509,8 @@ save_proc() {
 ###############################################################################
 # Dumps all fields and values from given Redis DB.
 # Arguments:
-#  DB name: DB name 
-#  Filename: Destination filename, if not given then filename would be DB name 
+#  DB name: DB name
+#  Filename: Destination filename, if not given then filename would be DB name
 # Returns:
 #  None
 ###############################################################################
