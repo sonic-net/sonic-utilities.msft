@@ -198,7 +198,11 @@ class EcnQ(object):
             port_table = self.config_db.get_table(DEVICE_NEIGHBOR_TABLE_NAME)
             self.ports_key = port_table.keys()
 
-            self.ports_key = sorted(self.ports_key, key = lambda k: int(k[8:]))
+            # In multi-ASIC platforms backend ethernet ports are identified as
+            # 'Ethernet-BPxy'. Add 1024 to sort backend ports to the end.
+            self.ports_key.sort(
+                key = lambda k: int(k[8:]) if "BP" not in k else int(k[11:]) + 1024
+            )
 
     def set(self, enable):
         if os.geteuid() != 0:
