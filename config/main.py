@@ -116,7 +116,7 @@ def _get_breakout_options(ctx, args, incomplete):
             for i in breakout_mode_list.split(','):
                     breakout_mode_options.append(i)
             all_mode_options = [str(c) for c in breakout_mode_options if incomplete in c]
-            return all_mode_options
+        return all_mode_options
 
 def shutdown_interfaces(ctx, del_intf_dict):
     """ shut down all the interfaces before deletion """
@@ -2422,6 +2422,14 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
 
     # Get current breakout mode
     cur_brkout_dict = config_db.get_table('BREAKOUT_CFG')
+    if len(cur_brkout_dict) == 0:
+        click.secho("[ERROR] BREAKOUT_CFG table is NOT present in CONFIG DB", fg='red')
+        raise click.Abort()
+
+    if interface_name not in cur_brkout_dict.keys():
+        click.secho("[ERROR] {} interface is NOT present in BREAKOUT_CFG table of CONFIG DB".format(interface_name), fg='red')
+        raise click.Abort()
+
     cur_brkout_mode = cur_brkout_dict[interface_name]["brkout_mode"]
 
     # Validate Interface and Breakout mode
