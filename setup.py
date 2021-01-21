@@ -61,7 +61,8 @@ setup(
                   'mock_tables/asic2/*.json',
                   'filter_fdb_input/*',
                   'pfcwd_input/*',
-                  'wm_input/*']
+                  'wm_input/*',
+                  'ecn_input/*']
     },
     scripts=[
         'scripts/aclshow',

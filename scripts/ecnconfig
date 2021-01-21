@@ -48,11 +48,24 @@ ECN status:
 queue 3: on
 """
 import argparse
+import json
 import os
 import sys
 
 import swsssdk
 from tabulate import tabulate
+
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        import mock_tables.dbconnector
+
+except KeyError:
+    pass
 
 WRED_PROFILE_TABLE_NAME = "WRED_PROFILE"
 WRED_CONFIG_FIELDS = {
@@ -78,11 +91,12 @@ lossless_queues         = ['3', '4']
 
 class EcnConfig(object):
     """
-    Process aclstat
+    Process ecnconfig
     """
-    def __init__(self, verbose):
+    def __init__(self, filename, verbose):
         self.ports = []
         self.queues = []
+        self.filename = filename
         self.verbose = verbose
 
         # Set up db connections
@@ -109,8 +123,8 @@ class EcnConfig(object):
 
         for profile_name, profile_data in wred_profiles.items():
             if profile_name == profile:
-                return profile_data 
-    
+                return profile_data
+
         return None
 
     def validate_profile_data(self, profile_data):
@@ -125,7 +139,7 @@ class EcnConfig(object):
                 if 'threshold' in field:
                     if value.isdigit() == False:
                         print("Invalid %s (%s). %s should be an non-negative integer." % (key, value, key))
-                        result = False 
+                        result = False
 
                 elif 'probability' in field:
                     if value.isdigit() == False or int(value) < 0 or int(value) > 100:
@@ -133,9 +147,9 @@ class EcnConfig(object):
                         result = False
 
         if result == False:
-            return result 
+            return result
 
-        # check if min threshold is no larger than max threshold 
+        # check if min threshold is no larger than max threshold
         colors = ['g', 'y', 'r']
         for color in colors:
             if (WRED_CONFIG_FIELDS[color + 'min'] in profile_data and
@@ -145,11 +159,11 @@ class EcnConfig(object):
                 max_thresh = int(profile_data[WRED_CONFIG_FIELDS[color + 'max']])
 
                 if min_thresh > max_thresh:
-                    print("Invalid %s (%d) and %s (%d). %s should be no smaller than %s" % 
+                    print("Invalid %s (%d) and %s (%d). %s should be smaller than %s" %
                           (color + 'min', min_thresh, color + 'max', max_thresh, color + 'min', color + 'max'))
-                    result = False 
+                    result = False
 
-        return result 
+        return result
 
     def set_wred_threshold(self, profile, threshold, value):
         if os.geteuid() != 0:
@@ -159,15 +173,23 @@ class EcnConfig(object):
         if self.verbose:
             print("Setting %s value to %s" % (field, value))
         self.db.mod_entry(WRED_PROFILE_TABLE_NAME, profile, {field: value})
+        if self.filename is not None:
+            prof_table = self.db.get_table(WRED_PROFILE_TABLE_NAME)
+            with open(self.filename, "w") as fd:
+                json.dump(prof_table, fd)
 
     def set_wred_prob(self, profile, drop_color, value):
         if os.geteuid() != 0:
             sys.exit("Root privileges required for this operation")
-        
+
         field = WRED_CONFIG_FIELDS[drop_color]
         if self.verbose:
             print("Setting %s value to %s%%" % (field, value))
         self.db.mod_entry(WRED_PROFILE_TABLE_NAME, profile, {field: value})
+        if self.filename is not None:
+            prof_table = self.db.get_table(WRED_PROFILE_TABLE_NAME)
+            with open(self.filename, "w") as fd:
+                json.dump(prof_table, fd)
 
 class EcnQ(object):
     """
@@ -253,21 +275,35 @@ def main():
 
     parser.add_argument('command', nargs='?', choices=['on', 'off'], type=str, help='turn on/off ecn', default=None)
     parser.add_argument('-q', '--queue', type=str, help='specify queue index list: 3,4', default=None)
+    parser.add_argument('-f', '--filename', help='file used by mock tests', type=str, default=None)
+
+    if os.environ.get("UTILITIES_UNIT_TESTING", "0") == "2":
+        sys.argv.extend(['-f', '/tmp/ecnconfig'])
 
     args = parser.parse_args()
 
     try:
         if args.list or args.profile:
-            prof_cfg = EcnConfig(args.verbose)
+            prof_cfg = EcnConfig(args.filename, args.verbose)
             if args.list:
-                if len(sys.argv) > (3 if args.verbose else 2):
+                arg_len_max = 2
+                if args.verbose:
+                    arg_len_max += 1
+                if args.filename:
+                    arg_len_max += 2
+                if len(sys.argv) > arg_len_max:
                     raise Exception("Input arguments error. No set options allowed when -l[ist] specified")
                 prof_cfg.list()
             elif args.profile:
-                if len(sys.argv) < (5 if args.verbose else 4):
+                arg_len_min = 4
+                if args.verbose:
+                    arg_len_min += 1
+                if args.filename:
+                    arg_len_min += 2
+                if len(sys.argv) < arg_len_min:
                     raise Exception("Input arguments error. Specify at least one threshold parameter to set")
 
-                # get current configuration data 
+                # get current configuration data
                 wred_profile_data = prof_cfg.get_profile_data(args.profile)
                 if wred_profile_data is None:
                     raise Exception("Input arguments error. Invalid WRED profile %s" % (args.profile))

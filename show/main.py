@@ -15,7 +15,7 @@ from tabulate import tabulate
 from utilities_common.db import Db
 
 from . import acl
-from . import bgp_common 
+from . import bgp_common
 from . import chassis_modules
 from . import dropcounters
 from . import feature
@@ -1449,11 +1449,11 @@ def policer(policer_name, verbose):
 # 'ecn' command ("show ecn")
 #
 @cli.command('ecn')
-def ecn():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def ecn(verbose):
     """Show ECN configuration"""
     cmd = "ecnconfig -l"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-    click.echo(proc.stdout.read())
+    run_command(cmd, display_cmd=verbose)
 
 
 #

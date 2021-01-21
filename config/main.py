@@ -3533,8 +3533,11 @@ def remove_reasons(counter_name, reasons, verbose):
 @click.option('-ymin', metavar='<yellow threshold min>', type=int, help="Set yellow min threshold")
 @click.option('-gmax', metavar='<green threshold max>', type=int, help="Set green max threshold")
 @click.option('-gmin', metavar='<green threshold min>', type=int, help="Set green min threshold")
+@click.option('-rdrop', metavar='<red drop probability>', type=click.IntRange(0, 100), help="Set red drop probability")
+@click.option('-ydrop', metavar='<yellow drop probability>', type=click.IntRange(0, 100), help="Set yellow drop probability")
+@click.option('-gdrop', metavar='<green drop probability>', type=click.IntRange(0, 100), help="Set green drop probability")
 @click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
-def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
+def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, rdrop, ydrop, gdrop, verbose):
     """ECN-related configuration tasks"""
     log.log_info("'ecn -profile {}' executing...".format(profile))
     command = "ecnconfig -p %s" % profile
@@ -3544,6 +3547,9 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, verbose):
     if ymin is not None: command += " -ymin %d" % ymin
     if gmax is not None: command += " -gmax %d" % gmax
     if gmin is not None: command += " -gmin %d" % gmin
+    if rdrop is not None: command += " -rdrop %d" % rdrop
+    if ydrop is not None: command += " -ydrop %d" % ydrop
+    if gdrop is not None: command += " -gdrop %d" % gdrop
     if verbose: command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
 
