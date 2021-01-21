@@ -302,17 +302,18 @@ def construct_neighbor_advertiser_slice():
             ipv6_mappings.append(mapping)
             ctr += 1
 
-        vlan_interface_obj = {
-            'vlanId': vlan_id,
-            'vxlanId': vxlan_id,
-            'ipv4AddrMappings': ipv4_mappings,
-            'ipv6AddrMappings': ipv6_mappings
-        }
+        if len(ipv4_mappings) > 0 or len(ipv6_mappings) > 0:
+            vlan_interface_obj = {
+                'vlanId': vlan_id,
+                'vxlanId': vxlan_id,
+                'ipv4AddrMappings': ipv4_mappings,
+                'ipv6AddrMappings': ipv6_mappings
+            }
 
-        if vxlanPort:
-            vlan_interface_obj['vxlanPort'] = vxlanPort
+            if vxlanPort:
+                vlan_interface_obj['vxlanPort'] = vxlanPort
 
-        vlan_interfaces_obj.append(vlan_interface_obj)
+            vlan_interfaces_obj.append(vlan_interface_obj)
 
     slice_obj = {
         'switchInfo': switch_info_obj,
