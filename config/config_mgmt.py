@@ -126,7 +126,8 @@ class ConfigMgmt():
         try:
             self.sy.validate_data_tree()
         except Exception as e:
-            self.sysLog(msg='Data Validation Failed')
+            self.sysLog(doPrint=True, logLevel=syslog.LOG_ERR,
+                msg='Data Validation Failed')
             return False
 
         self.sysLog(msg='Data Validation successful', doPrint=True)
@@ -146,7 +147,8 @@ class ConfigMgmt():
         # log debug only if enabled
         if self.DEBUG == False and logLevel == syslog.LOG_DEBUG:
             return
-        if flags.interactive !=0 and doPrint == True:
+        # always print < Info level msg with doPrint flag
+        if doPrint == True and (logLevel < syslog.LOG_INFO or flags.interactive != 0):
             print("{}".format(msg))
         syslog.openlog(self.SYSLOG_IDENTIFIER)
         syslog.syslog(logLevel, msg)
@@ -712,18 +714,31 @@ class ConfigMgmtDPB(ConfigMgmt):
             '''
             if isinstance(inp, dict):
                 # Example Case: diff = PORT': {delete: {u'Ethernet1': {...}}}}
+                self.sysLog(logLevel=syslog.LOG_DEBUG, \
+                    msg="Delete Dict diff:{}".format(diff))
                 for key in diff:
                     # make sure keys from diff are present in inp but not in outp
                     if key in inp and key not in outp:
-                        # assign key to None(null), redis will delete entire key
-                        config[key] = None
+                        if type(inp[key]) == list:
+                            self.sysLog(logLevel=syslog.LOG_DEBUG, \
+                                msg="Delete List key:{}".format(key))
+                            # assign current lists as empty.
+                            config[key] = []
+                        else:
+                            self.sysLog(logLevel=syslog.LOG_DEBUG, \
+                                msg="Delete Dict key:{}".format(key))
+                            # assign key to None(null), redis will delete entire key
+                            config[key] = None
                     else:
                         # should not happen
                         raise Exception('Invalid deletion of {} in diff'.format(key))
 
             elif isinstance(inp, list):
-                # Example case: {u'VLAN': {u'Vlan100': {'members': {delete: [(95, 'Ethernet1')]}}
-                # just take list from outputs
+                # Example case: diff: [(3, 'Ethernet10'), (2, 'Ethernet8')]
+                # inp:['Ethernet0', 'Ethernet4', 'Ethernet8', 'Ethernet10']
+                # outp:['Ethernet0', 'Ethernet4']
+                self.sysLog(logLevel=syslog.LOG_DEBUG, \
+                    msg="Delete List diff: {} inp:{} outp:{}".format(diff, inp, outp))
                 config.extend(outp)
             return
 
@@ -733,9 +748,13 @@ class ConfigMgmtDPB(ConfigMgmt):
             '''
             if isinstance(outp, dict):
                 # Example Case: diff = PORT': {insert: {u'Ethernet1': {...}}}}
+                self.sysLog(logLevel=syslog.LOG_DEBUG, \
+                    msg="Insert Dict diff:{}".format(diff))
                 for key in diff:
                     # make sure keys are only in outp
                     if key not in inp and key in outp:
+                        self.sysLog(logLevel=syslog.LOG_DEBUG, \
+                            msg="Insert Dict key:{}".format(key))
                         # assign key in config same as outp
                         config[key] = outp[key]
                     else:
@@ -743,9 +762,17 @@ class ConfigMgmtDPB(ConfigMgmt):
                         raise Exception('Invalid insertion of {} in diff'.format(key))
 
             elif isinstance(outp, list):
-                # just take list from output
-                # Example case: {u'VLAN': {u'Vlan100': {'members': {insert: [(95, 'Ethernet1')]}}
+                # Example diff:[(2, 'Ethernet8'), (3, 'Ethernet10')]
+                # in:['Ethernet0', 'Ethernet4']
+                # out:['Ethernet0', 'Ethernet4', 'Ethernet8', 'Ethernet10']
+                self.sysLog(logLevel=syslog.LOG_DEBUG, \
+                    msg="Insert list diff:{} inp:{} outp:{}".format(diff, inp, outp))
                 config.extend(outp)
+                # configDb stores []->[""], i.e. empty list as list of empty
+                # string. While adding default config for newly created ports,
+                # inp can be [""], in that case remove it from delta config.
+                if inp == ['']:
+                    config.remove('');
             return
 
         def _recurCreateConfig(diff, inp, outp, config):
