@@ -270,8 +270,8 @@ class SysInfoProvider(object):
 
         if os.path.exists(PLUGIN_PATH):
             fp = open(PLUGIN_PATH, 'r')
-            line = fp.readlines()
-            SysInfoProvider.DEVICE_PREFIX = "/dev/" + line[0]
+            lines = fp.readlines()
+            SysInfoProvider.DEVICE_PREFIX = "/dev/" + lines[0].rstrip()
 
     @staticmethod
     def list_console_ttys():
