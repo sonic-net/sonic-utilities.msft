@@ -544,3 +544,13 @@ def json_dump(data):
     return json.dumps(
         data, sort_keys=True, indent=2, ensure_ascii=False
     )
+    
+def interface_is_untagged_member(db, interface_name):
+    """ Check if interface is already untagged member"""    
+    vlan_member_table = db.get_table('VLAN_MEMBER')
+    
+    for key,val in vlan_member_table.items():
+        if(key[1] == interface_name):
+            if (val['tagging_mode'] == 'untagged'):
+                return True
+    return False
