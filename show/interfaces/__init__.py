@@ -1,4 +1,5 @@
 import json
+import os
 
 import click
 import utilities_common.cli as clicommon
@@ -6,8 +7,30 @@ import utilities_common.multi_asic as multi_asic_util
 from natsort import natsorted
 from tabulate import tabulate
 from sonic_py_common import multi_asic
+from sonic_py_common import device_info
+from swsssdk import ConfigDBConnector
+from portconfig import get_child_ports
 
 from . import portchannel
+from collections import OrderedDict
+
+HWSKU_JSON = 'hwsku.json'
+
+# Read given JSON file
+def readJsonFile(fileName):
+    try:
+        with open(fileName) as f:
+            result = json.load(f)
+    except FileNotFoundError as e:
+        click.echo("{}".format(str(e)), err=True)
+        raise click.Abort()
+    except json.decoder.JSONDecodeError as e:
+        click.echo("Invalid JSON file format('{}')\n{}".format(fileName, str(e)), err=True)
+        raise click.Abort()
+    except Exception as e:
+        click.echo("{}\n{}".format(type(e), str(e)), err=True)
+        raise click.Abort()
+    return result
 
 def try_convert_interfacename_from_alias(ctx, interfacename):
     """try to convert interface name from alias"""
@@ -144,13 +167,14 @@ def breakout(ctx):
 
     if ctx.invoked_subcommand is None:
         # Get port capability from platform and hwsku related files
-        platform_path, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
-        platform_file = os.path.join(platform_path, PLATFORM_JSON)
+        hwsku_path = device_info.get_path_to_hwsku_dir()
+        platform_file = device_info.get_path_to_port_config_file()
         platform_dict = readJsonFile(platform_file)['interfaces']
-        hwsku_dict = readJsonFile(os.path.join(hwsku_path, HWSKU_JSON))['interfaces']
+        hwsku_file = os.path.join(hwsku_path, HWSKU_JSON)
+        hwsku_dict = readJsonFile(hwsku_file)['interfaces']
 
         if not platform_dict or not hwsku_dict:
-            click.echo("Can not load port config from {} or {} file".format(PLATFORM_JSON, HWSKU_JSON))
+            click.echo("Can not load port config from {} or {} file".format(platform_file, hwsku_file))
             raise click.Abort()
 
         for port_name in platform_dict:
@@ -161,9 +185,9 @@ def breakout(ctx):
             platform_dict[port_name]["Current Breakout Mode"] = cur_brkout_mode
 
             # List all the child ports if present
-            child_port_dict = get_child_ports(port_name, cur_brkout_mode, platformFile)
+            child_port_dict = get_child_ports(port_name, cur_brkout_mode, platform_file)
             if not child_port_dict:
-                click.echo("Cannot find ports from {} file ".format(PLATFORM_JSON))
+                click.echo("Cannot find ports from {} file ".format(platform_file))
                 raise click.Abort()
 
             child_ports = natsorted(list(child_port_dict.keys()))
