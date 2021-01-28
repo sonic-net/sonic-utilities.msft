@@ -15,6 +15,8 @@ from .common import run_command, run_command_or_raise
 from .exception import SonicRuntimeException
 
 SYSLOG_IDENTIFIER = "sonic-installer"
+LOG_ERR = logger.Logger.LOG_PRIORITY_ERROR 
+LOG_NOTICE = logger.Logger.LOG_PRIORITY_NOTICE
 
 # Global Config object
 _config = None
@@ -123,6 +125,15 @@ def get_docker_tag_name(image):
     return tag
 
 
+def echo_and_log(msg, priority=LOG_NOTICE, fg=None):
+    if priority >= LOG_ERR:
+        # Print to stderr if priority is error
+        click.secho(msg, fg=fg, err=True)
+    else:
+        click.secho(msg, fg=fg)
+    log.log(priority, msg, False)
+        
+
 # Function which validates whether a given URL specifies an existent file
 # on a reachable remote machine. Will abort the current operation if not
 def validate_url_or_abort(url):
@@ -135,12 +146,12 @@ def validate_url_or_abort(url):
         response_code = None
 
     if not response_code:
-        click.echo("Did not receive a response from remote machine. Aborting...")
+        echo_and_log("Did not receive a response from remote machine. Aborting...", LOG_ERR)
         raise click.Abort()
     else:
         # Check for a 4xx response code which indicates a nonexistent URL
         if response_code / 100 == 4:
-            click.echo("Image file not found on remote machine. Aborting...")
+            echo_and_log("Image file not found on remote machine. Aborting...", LOG_ERR)
             raise click.Abort()
 
 
@@ -207,6 +218,7 @@ def print_deprecation_warning(deprecated_cmd_or_subcmd, new_cmd_or_subcmd):
                 fg="red", err=True)
     click.secho("Please use '{}' instead".format(new_cmd_or_subcmd), fg="red", err=True)
 
+
 def update_sonic_environment(click, binary_image_version):
     """Prepare sonic environment variable using incoming image template file. If incoming image template does not exist
        use current image template file.
@@ -248,8 +260,7 @@ def update_sonic_environment(click, binary_image_version):
             print(sonic_env, file=ef)
         os.chmod(env_file, 0o644)
     except SonicRuntimeException as ex:
-        click.secho("Warning: SONiC environment variables are not supported for this image: {0}".format(str(ex)),
-                    fg="red", err=True)
+        echo_and_log("Warning: SONiC environment variables are not supported for this image: {0}".format(str(ex)), LOG_ERR, fg="red")
         if os.path.exists(env_file):
             os.remove(env_file)
             os.rmdir(env_dir)
@@ -282,13 +293,13 @@ def install(url, force, skip_migration=False):
     bootloader = get_bootloader()
 
     if url.startswith('http://') or url.startswith('https://'):
-        click.echo('Downloading image...')
+        echo_and_log('Downloading image...')
         validate_url_or_abort(url)
         try:
             urlretrieve(url, bootloader.DEFAULT_IMAGE_PATH, reporthook)
             click.echo('')
         except Exception as e:
-            click.echo("Download error", e)
+            echo_and_log("Download error", e)
             raise click.Abort()
         image_path = bootloader.DEFAULT_IMAGE_PATH
     else:
@@ -296,28 +307,28 @@ def install(url, force, skip_migration=False):
 
     binary_image_version = bootloader.get_binary_image_version(image_path)
     if not binary_image_version:
-        click.echo("Image file does not exist or is not a valid SONiC image file")
+        echo_and_log("Image file does not exist or is not a valid SONiC image file", LOG_ERR)
         raise click.Abort()
 
     # Is this version already installed?
     if binary_image_version in bootloader.get_installed_images():
-        click.echo("Image {} is already installed. Setting it as default...".format(binary_image_version))
+        echo_and_log("Image {} is already installed. Setting it as default...".format(binary_image_version))
         if not bootloader.set_default_image(binary_image_version):
-            click.echo('Error: Failed to set image as default')
+            echo_and_log('Error: Failed to set image as default', LOG_ERR)
             raise click.Abort()
     else:
         # Verify that the binary image is of the same type as the running image
         if not bootloader.verify_binary_image(image_path) and not force:
-            click.echo("Image file '{}' is of a different type than running image.\n".format(url) +
+            echo_and_log("Image file '{}' is of a different type than running image.\n".format(url) +
                 "If you are sure you want to install this image, use -f|--force.\n" +
-                "Aborting...")
+                "Aborting...", LOG_ERR)
             raise click.Abort()
 
-        click.echo("Installing image {} and setting it as default...".format(binary_image_version))
+        echo_and_log("Installing image {} and setting it as default...".format(binary_image_version))
         bootloader.install_image(image_path)
         # Take a backup of current configuration
         if skip_migration:
-            click.echo("Skipping configuration migration as requested in the command option.")
+            echo_and_log("Skipping configuration migration as requested in the command option.")
         else:
             run_command('config-setup backup')
 
@@ -326,7 +337,7 @@ def install(url, force, skip_migration=False):
     # Finally, sync filesystem
     run_command("sync;sync;sync")
     run_command("sleep 3")  # wait 3 seconds after sync
-    click.echo('Done')
+    echo_and_log('Done')
 
 
 # List installed images
@@ -355,7 +366,7 @@ def set_default(image):
 
     bootloader = get_bootloader()
     if image not in bootloader.get_installed_images():
-        click.echo('Error: Image does not exist')
+        echo_and_log('Error: Image does not exist', LOG_ERR)
         raise click.Abort()
     bootloader.set_default_image(image)
 
@@ -371,7 +382,7 @@ def set_next_boot(image):
 
     bootloader = get_bootloader()
     if image not in bootloader.get_installed_images():
-        click.echo('Error: Image does not exist')
+        echo_and_log('Error: Image does not exist', LOG_ERR)
         sys.exit(1)
     bootloader.set_next_image(image)
 
@@ -387,10 +398,10 @@ def remove(image):
     images = bootloader.get_installed_images()
     current = bootloader.get_current_image()
     if image not in images:
-        click.echo('Image does not exist')
+        echo_and_log('Image does not exist', LOG_ERR)
         sys.exit(1)
     if image == current:
-        click.echo('Cannot remove current image')
+        echo_and_log('Cannot remove current image', LOG_ERR)
         sys.exit(1)
     # TODO: check if image is next boot or default boot and fix these
     bootloader.remove_image(image)
@@ -427,12 +438,12 @@ def cleanup():
     image_removed = 0
     for image in images:
         if image != curimage and image != nextimage:
-            click.echo("Removing image %s" % image)
+            echo_and_log("Removing image %s" % image)
             bootloader.remove_image(image)
             image_removed += 1
 
     if image_removed == 0:
-        click.echo("No image(s) to remove")
+        echo_and_log("No image(s) to remove")
 
 
 DOCKER_CONTAINER_LIST = [
@@ -474,12 +485,12 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
 
     DEFAULT_IMAGE_PATH = os.path.join("/tmp/", image_name)
     if url.startswith('http://') or url.startswith('https://'):
-        click.echo('Downloading image...')
+        echo_and_log('Downloading image...')
         validate_url_or_abort(url)
         try:
             urlretrieve(url, DEFAULT_IMAGE_PATH, reporthook)
         except Exception as e:
-            click.echo("Download error", e)
+            echo_and_log("Download error: {}".format(e), LOG_ERR)
             raise click.Abort()
         image_path = DEFAULT_IMAGE_PATH
     else:
@@ -488,7 +499,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     # Verify that the local file exists and is a regular file
     # TODO: Verify the file is a *proper Docker image file*
     if not os.path.isfile(image_path):
-        click.echo("Image file '{}' does not exist or is not a regular file. Aborting...".format(image_path))
+        echo_and_log("Image file '{}' does not exist or is not a regular file. Aborting...".format(image_path), LOG_ERR)
         raise click.Abort()
 
     warm_configured = False
@@ -525,7 +536,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
             (out, err) = proc.communicate()
             if proc.returncode != 0:
                 if not skip_check:
-                    click.echo("Orchagent is not in clean state, RESTARTCHECK failed")
+                    echo_and_log("Orchagent is not in clean state, RESTARTCHECK failed", LOG_ERR)
                     # Restore orignal config before exit
                     if warm_configured is False and warm:
                         run_command("config warm_restart disable %s" % container_name)
@@ -537,27 +548,27 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
 
                     sys.exit(proc.returncode)
                 else:
-                    click.echo("Orchagent is not in clean state, upgrading it anyway")
+                    echo_and_log("Orchagent is not in clean state, upgrading it anyway")
             else:
-                click.echo("Orchagent is in clean state and frozen for warm upgrade")
+                echo_and_log("Orchagent is in clean state and frozen for warm upgrade")
 
             warm_app_names = ["orchagent", "neighsyncd"]
 
         elif container_name == "bgp":
             # Kill bgpd to restart the bgp graceful restart procedure
-            click.echo("Stopping bgp ...")
+            echo_and_log("Stopping bgp ...")
             run_command("docker exec -i bgp pkill -9 zebra")
             run_command("docker exec -i bgp pkill -9 bgpd")
             warm_app_names = ["bgp"]
-            click.echo("Stopped  bgp ...")
+            echo_and_log("Stopped  bgp ...")
 
         elif container_name == "teamd":
-            click.echo("Stopping teamd ...")
+            echo_and_log("Stopping teamd ...")
             # Send USR1 signal to all teamd instances to stop them
             # It will prepare teamd for warm-reboot
             run_command("docker exec -i teamd pkill -USR1 teamd > /dev/null")
             warm_app_names = ["teamsyncd"]
-            click.echo("Stopped  teamd ...")
+            echo_and_log("Stopped  teamd ...")
 
         # clean app reconcilation state from last warm start if exists
         for warm_app_name in warm_app_names:
@@ -602,8 +613,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
                 log.log_notice("%s reached %s state" % (warm_app_name, state))
             sys.stdout.write("]\n\r")
             if state != exp_state:
-                click.echo("%s failed to reach %s state" % (warm_app_name, exp_state))
-                log.log_error("%s failed to reach %s state" % (warm_app_name, exp_state))
+                echo_and_log("%s failed to reach %s state" % (warm_app_name, exp_state), LOG_ERR)
     else:
         exp_state = ""  # this is cold upgrade
 
@@ -613,9 +623,9 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
             run_command("config warm_restart disable %s" % container_name)
 
     if state == exp_state:
-        click.echo('Done')
+        echo_and_log('Done')
     else:
-        click.echo('Failed')
+        echo_and_log('Failed', LOG_ERR)
         sys.exit(1)
 
 
@@ -635,7 +645,7 @@ def rollback_docker(container_name):
     # All images id under the image name
     image_id_all = get_container_image_id_all(image_name)
     if len(image_id_all) != 2:
-        click.echo("Two images required, but there are '{}' images for '{}'. Aborting...".format(len(image_id_all), image_name))
+        echo_and_log("Two images required, but there are '{}' images for '{}'. Aborting...".format(len(image_id_all), image_name), LOG_ERR)
         raise click.Abort()
 
     image_latest = image_name + ":latest"
@@ -649,11 +659,11 @@ def rollback_docker(container_name):
     # make previous image as latest
     run_command("docker tag %s:%s %s:latest" % (image_name, version_tag, image_name))
     if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
-        click.echo("Cold reboot is required to restore system state after '{}' rollback !!".format(container_name))
+        echo_and_log("Cold reboot is required to restore system state after '{}' rollback !!".format(container_name), LOG_ERR)
     else:
         run_command("systemctl restart %s" % container_name)
 
-    click.echo('Done')
+    echo_and_log('Done')
 
 # verify the next image
 @sonic_installer.command('verify-next-image')
@@ -661,7 +671,7 @@ def verify_next_image():
     """ Verify the next image for reboot"""
     bootloader = get_bootloader()
     if not bootloader.verify_next_image():
-        click.echo('Image verification failed')
+        echo_and_log('Image verification failed', LOG_ERR)
         sys.exit(1)
     click.echo('Image successfully verified')
 
