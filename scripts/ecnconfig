@@ -89,6 +89,10 @@ OFF                        = "[]"
 
 lossless_queues         = ['3', '4']
 
+def chk_exec_privilege():
+    if os.geteuid() != 0 and os.environ.get("UTILITIES_UNIT_TESTING", "0") != "2":
+        sys.exit("Root privileges required for this operation")
+
 class EcnConfig(object):
     """
     Process ecnconfig
@@ -166,8 +170,7 @@ class EcnConfig(object):
         return result
 
     def set_wred_threshold(self, profile, threshold, value):
-        if os.geteuid() != 0:
-            sys.exit("Root privileges required for this operation")
+        chk_exec_privilege()
 
         field = WRED_CONFIG_FIELDS[threshold]
         if self.verbose:
@@ -179,8 +182,7 @@ class EcnConfig(object):
                 json.dump(prof_table, fd)
 
     def set_wred_prob(self, profile, drop_color, value):
-        if os.geteuid() != 0:
-            sys.exit("Root privileges required for this operation")
+        chk_exec_privilege()
 
         field = WRED_CONFIG_FIELDS[drop_color]
         if self.verbose:
@@ -227,8 +229,8 @@ class EcnQ(object):
             )
 
     def set(self, enable):
-        if os.geteuid() != 0:
-            sys.exit("Root privileges required for this operation")
+        chk_exec_privilege()
+
         for queue in self.queues:
             if self.verbose:
                 print("%s ECN on %s queue %s" % ("Enable" if enable else "Disable", ','.join(self.ports_key), queue))
