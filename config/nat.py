@@ -1,8 +1,7 @@
 import ipaddress
 
 import click
-from swsssdk import ConfigDBConnector
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 
 
 def is_valid_ipv4_address(address):

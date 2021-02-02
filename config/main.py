@@ -17,8 +17,7 @@ from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name
-from swsssdk import ConfigDBConnector, SonicDBConfig
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 import utilities_common.cli as clicommon
@@ -1882,14 +1881,14 @@ def is_dynamic_buffer_enabled(config_db):
 @click.option('-s', '--redis-unix-socket-path', help='unix socket path for redis connection')
 def warm_restart(ctx, redis_unix_socket_path):
     """warm_restart-related configuration tasks"""
-    kwargs = {}
-    if redis_unix_socket_path:
-        kwargs['unix_socket_path'] = redis_unix_socket_path
-    config_db = ConfigDBConnector(**kwargs)
+    # Note: redis_unix_socket_path is a path string, and the ground truth is now from database_config.json.
+    # We only use it as a bool indicator on either unix_socket_path or tcp port
+    use_unix_socket_path = bool(redis_unix_socket_path)
+    config_db = ConfigDBConnector(use_unix_socket_path=use_unix_socket_path)
     config_db.connect(wait_for_init=False)
 
     # warm restart enable/disable config is put in stateDB, not persistent across cold reboot, not saved to config_DB.json file
-    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db = SonicV2Connector(use_unix_socket_path=use_unix_socket_path)
     state_db.connect(state_db.STATE_DB, False)
     TABLE_NAME_SEPARATOR = '|'
     prefix = 'WARM_RESTART_ENABLE_TABLE' + TABLE_NAME_SEPARATOR

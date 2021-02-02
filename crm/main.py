@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import click
-import swsssdk
+from swsscommon.swsscommon import ConfigDBConnector, SonicDBConfig
 from tabulate import tabulate
 from utilities_common import multi_asic as multi_asic_util
 from sonic_py_common import multi_asic
@@ -34,7 +34,7 @@ class Crm:
             # Get the namespace list
             namespaces = multi_asic.get_namespace_list()
 
-            configdb = swsssdk.ConfigDBConnector(namespace=namespaces[0])
+            configdb = ConfigDBConnector(namespace=namespaces[0])
             configdb.connect()
 
         crm_info = configdb.get_entry('CRM', 'Config')
@@ -58,7 +58,7 @@ class Crm:
             # Get the namespace list
             namespaces = multi_asic.get_namespace_list()
 
-            configdb = swsssdk.ConfigDBConnector(namespace=namespaces[0])
+            configdb = ConfigDBConnector(namespace=namespaces[0])
             configdb.connect()
 
         crm_info = configdb.get_entry('CRM', 'Config')
@@ -218,7 +218,7 @@ def cli(ctx):
     ctx.obj = context
 
     # Load the global config file database_global.json once.
-    swsssdk.SonicDBConfig.load_sonic_global_db_config()
+    SonicDBConfig.load_sonic_global_db_config()
 
 @cli.group()
 @click.pass_context

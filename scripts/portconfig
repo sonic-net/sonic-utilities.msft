@@ -19,7 +19,7 @@ optional arguments:
 """
 import sys
 import argparse
-import swsssdk
+from swsscommon.swsscommon import ConfigDBConnector, SonicDBConfig
 
 PORT_TABLE_NAME = "PORT"
 PORT_SPEED_CONFIG_FIELD_NAME = "speed"
@@ -35,9 +35,9 @@ class portconfig(object):
 
         # Set up db connections
         if namespace is None:
-            self.db = swsssdk.ConfigDBConnector()
+            self.db = ConfigDBConnector()
         else:
-            self.db = swsssdk.ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+            self.db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         self.db.connect()
 
         # check whether table for this port exists
@@ -81,7 +81,7 @@ def main():
     args = parser.parse_args()
 
     if args.namespace is not None:
-        swsssdk.SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
+        SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
 
     try:
         port = portconfig(args.verbose, args.port, args.namespace)

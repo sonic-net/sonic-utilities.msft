@@ -10,7 +10,6 @@
 # - Add more filters to the show commands (e.g. filter by name, alias, etc.)
 # - Add the ability to change readonly attributes like group, description, etc.
 
-import swsssdk
 import argparse
 import os
 import sys
@@ -27,6 +26,9 @@ try:
         import mock_tables.dbconnector
 except KeyError:
     pass
+
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+
 
 # CONFIG_DB Tables
 DEBUG_COUNTER_CONFIG_TABLE = 'DEBUG_COUNTER'
@@ -52,10 +54,10 @@ class InvalidArgumentError(RuntimeError):
 
 class DropConfig(object):
     def __init__(self):
-        self.config_db = swsssdk.ConfigDBConnector()
+        self.config_db = ConfigDBConnector()
         self.config_db.connect()
 
-        self.state_db = swsssdk.SonicV2Connector(host='127.0.0.1')
+        self.state_db = SonicV2Connector(use_unix_socket_path=False)
         self.state_db.connect(self.state_db.STATE_DB)
 
     # -c show_config

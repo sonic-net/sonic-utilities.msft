@@ -1,5 +1,5 @@
 import click
-from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector
 import utilities_common.cli as clicommon
 
 def add_table_kv(table, entry, key, val):

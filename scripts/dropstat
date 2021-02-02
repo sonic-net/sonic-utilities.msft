@@ -17,7 +17,6 @@ import os
 import socket
 import sys
 
-import swsssdk
 from collections import OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
@@ -34,6 +33,9 @@ try:
         os.getuid = lambda: 27
 except KeyError:
     pass
+
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+
 
 # COUNTERS_DB Tables
 DEBUG_COUNTER_PORT_STAT_MAP = 'COUNTERS_DEBUG_NAME_PORT_STAT_MAP'
@@ -84,10 +86,10 @@ def get_dropstat_dir():
 
 class DropStat(object):
     def __init__(self):
-        self.config_db = swsssdk.ConfigDBConnector()
+        self.config_db = ConfigDBConnector()
         self.config_db.connect()
 
-        self.db = swsssdk.SonicV2Connector(host='127.0.0.1')
+        self.db = SonicV2Connector(use_unix_socket_path=False)
         self.db.connect(self.db.COUNTERS_DB)
         self.db.connect(self.db.ASIC_DB)
         self.db.connect(self.db.APPL_DB)

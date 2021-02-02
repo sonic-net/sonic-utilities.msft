@@ -1,6 +1,6 @@
 import click
 import utilities_common.cli as clicommon
-from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector
 
 #
 # 'kdump command ("show kdump ...")

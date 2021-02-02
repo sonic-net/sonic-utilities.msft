@@ -14,8 +14,8 @@ try:
 
     # SONiC specific imports
     import sonic_yang
-    from swsssdk import ConfigDBConnector, port_util
-    from swsscommon.swsscommon import SonicV2Connector
+    from swsssdk import port_util
+    from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 
     # Using load_source to 'import /usr/local/bin/sonic-cfggen as sonic_cfggen'
     # since /usr/local/bin/sonic-cfggen does not have .py extension.
@@ -190,8 +190,8 @@ class ConfigMgmt():
         '''
         self.sysLog(doPrint=True, msg='Reading data from Redis configDb')
         # Read from config DB on sonic switch
-        db_kwargs = dict(); data = dict()
-        configdb = ConfigDBConnector(**db_kwargs)
+        data = dict()
+        configdb = ConfigDBConnector()
         configdb.connect()
         deep_update(data, FormatConverter.db_to_output(configdb.get_config()))
         self.configdbJsonIn =  FormatConverter.to_serialized(data)
@@ -211,8 +211,8 @@ class ConfigMgmt():
             void
         '''
         self.sysLog(doPrint=True, msg='Writing in Config DB')
-        db_kwargs = dict(); data = dict()
-        configdb = ConfigDBConnector(**db_kwargs)
+        data = dict()
+        configdb = ConfigDBConnector()
         configdb.connect(False)
         deep_update(data, FormatConverter.to_deserialized(jDiff))
         self.sysLog(msg="Write in DB: {}".format(data))

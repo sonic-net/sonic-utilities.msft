@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 from sonic_py_common import device_info
-from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector
 
 from .mock_tables import dbconnector
 from . import show_ip_route_common

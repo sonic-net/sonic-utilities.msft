@@ -8,7 +8,7 @@
 
 import argparse
 import sys
-import swsssdk
+from swsscommon.swsscommon import ConfigDBConnector
 
 
 class Watermarkcfg(object):
@@ -17,13 +17,13 @@ class Watermarkcfg(object):
         pass
 
     def set_interval(self, interval):
-        configdb = swsssdk.ConfigDBConnector()
+        configdb = ConfigDBConnector()
         configdb.connect()
 
         configdb.mod_entry('WATERMARK_TABLE', 'TELEMETRY_INTERVAL', {'interval': interval})
 
     def show_interval(self):
-        configdb = swsssdk.ConfigDBConnector()
+        configdb = ConfigDBConnector()
         configdb.connect()
 
         wm_info = configdb.get_entry('WATERMARK_TABLE', 'TELEMETRY_INTERVAL')

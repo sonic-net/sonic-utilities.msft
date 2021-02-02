@@ -1,7 +1,7 @@
 import os
 import click
 import utilities_common.cli as clicommon
-from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector
 
 @click.group(cls=clicommon.AbbreviationGroup, name="kdump")
 def kdump():

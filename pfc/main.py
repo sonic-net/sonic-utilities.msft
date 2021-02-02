@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import click
-import swsssdk
+from swsscommon.swsscommon import ConfigDBConnector
 from tabulate import tabulate
 from natsort import natsorted
 
@@ -12,7 +12,7 @@ def configPfcAsym(interface, pfc_asym):
     """
     PFC handler to configure asymmentric PFC.
     """
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
 
     configdb.mod_entry("PORT", interface, {'pfc_asym': pfc_asym})
@@ -24,7 +24,7 @@ def showPfcAsym(interface):
     """
     header = ('Interface', 'Asymmetric')
 
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
 
     if interface:
@@ -50,7 +50,7 @@ def showPfcAsym(interface):
     click.echo()
 
 def configPfcPrio(status, interface, priority):
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
 
     if interface not in configdb.get_keys('PORT_QOS_MAP'):
@@ -91,7 +91,7 @@ def showPfcPrio(interface):
     header = ('Interface', 'Lossless priorities')
     table = []
         
-    configdb = swsssdk.ConfigDBConnector()
+    configdb = ConfigDBConnector()
     configdb.connect()
     
     """Get all the interfaces with QoS map information"""

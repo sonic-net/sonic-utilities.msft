@@ -1,7 +1,6 @@
 import click
 import utilities_common.cli as clicommon
-from swsssdk import ConfigDBConnector
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 
 

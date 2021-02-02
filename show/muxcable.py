@@ -4,8 +4,7 @@ import sys
 import click
 import utilities_common.cli as clicommon
 from sonic_py_common import multi_asic
-from swsscommon import swsscommon
-from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 from utilities_common import platform_sfputil_helper
 
@@ -131,7 +130,7 @@ def status(port, json_output):
     namespaces = multi_asic.get_front_end_namespaces()
     for namespace in namespaces:
         asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-        per_npu_statedb[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
+        per_npu_statedb[asic_id] = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
         per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
 
         port_table_keys[asic_id] = per_npu_statedb[asic_id].keys(

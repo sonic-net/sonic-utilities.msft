@@ -26,7 +26,7 @@ import sys
 import xml.etree.ElementTree as ET
 
 from sonic_py_common import device_info
-from swsssdk import ConfigDBConnector, SonicDBConfig
+from swsscommon.swsscommon import ConfigDBConnector, SonicDBConfig
 from tabulate import tabulate
 
 BACKEND_ASIC_INTERFACE_NAME_PREFIX = 'Ethernet-BP'

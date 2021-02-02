@@ -11,7 +11,6 @@ import argparse
 import datetime
 import sys
 import os
-import swsssdk
 import sys
 import time
 
@@ -30,6 +29,8 @@ from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
 from utilities_common.netstat import ns_diff, ns_brate, ns_prate, table_as_json, STATUS_NA
+from swsscommon.swsscommon import SonicV2Connector
+
 
 NStats = namedtuple("NStats", "rx_b_ok, rx_p_ok, tx_b_ok, tx_p_ok,\
                     rx_b_err, rx_p_err, tx_b_err, tx_p_err,")
@@ -63,7 +64,7 @@ INTF_STATE_DISABLED = 'X'
 
 class Intfstat(object):
     def __init__(self):
-        self.db = swsssdk.SonicV2Connector(host='127.0.0.1')
+        self.db = SonicV2Connector(use_unix_socket_path=False)
         self.db.connect(self.db.COUNTERS_DB)
         self.db.connect(self.db.APPL_DB)
 

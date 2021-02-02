@@ -11,7 +11,6 @@ import json
 import os
 import sys
 
-import swsssdk
 from natsort import natsorted
 from tabulate import tabulate
 
@@ -26,6 +25,9 @@ try:
 
 except KeyError:
     pass
+
+from swsscommon.swsscommon import SonicV2Connector
+
 
 headerBufferPool = ['Pool', 'Bytes']
 
@@ -59,11 +61,11 @@ COUNTERS_BUFFER_POOL_NAME_MAP = "COUNTERS_BUFFER_POOL_NAME_MAP"
 class Watermarkstat(object):
 
     def __init__(self):
-        self.counters_db = swsssdk.SonicV2Connector(host='127.0.0.1')
+        self.counters_db = SonicV2Connector(use_unix_socket_path=False)
         self.counters_db.connect(self.counters_db.COUNTERS_DB)
         
         # connect APP DB for clear notifications
-        self.app_db = swsssdk.SonicV2Connector(host='127.0.0.1')
+        self.app_db = SonicV2Connector(use_unix_socket_path=False)
         self.app_db.connect(self.counters_db.APPL_DB)
 
         def get_queue_type(table_id):

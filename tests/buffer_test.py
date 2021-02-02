@@ -3,7 +3,7 @@ import os
 import sys
 from click.testing import CliRunner
 from unittest import TestCase
-from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector
 
 from .mock_tables import dbconnector
 
@@ -93,10 +93,12 @@ class TestBuffer(object):
         for input in testcase:
             exec_cmd = show.cli.commands[input['cmd'][0]].commands[input['cmd'][1]]
 
-            result = runner.invoke(exec_cmd, [])
+            result = runner.invoke(exec_cmd, [], catch_exceptions=True)
 
             print(result.exit_code)
             print(result.output)
+            if result.exception:
+                print(result.exception)
 
             assert result.exit_code == 0
             assert result.output == input['rc_output']

@@ -78,7 +78,7 @@ A sample for update:
 import argparse
 import json
 
-from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector
 
 test_only = False
 

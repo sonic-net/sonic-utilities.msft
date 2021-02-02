@@ -2,7 +2,7 @@ import os
 import sys
 from click.testing import CliRunner
 from unittest import TestCase
-from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)

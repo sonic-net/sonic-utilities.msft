@@ -5,8 +5,7 @@ import sys
 import click
 import utilities_common.cli as clicommon
 from sonic_py_common import multi_asic
-from swsssdk import ConfigDBConnector
-from swsscommon import swsscommon
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 from utilities_common import platform_sfputil_helper
 
@@ -123,7 +122,7 @@ def mode(state, port, json_output):
         # replace these with correct macros
         per_npu_configdb[asic_id] = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
         per_npu_configdb[asic_id].connect()
-        per_npu_statedb[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
+        per_npu_statedb[asic_id] = SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
         per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
 
         mux_tbl_cfg_db[asic_id] = per_npu_configdb[asic_id].get_table("MUX_CABLE")

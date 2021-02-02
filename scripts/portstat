@@ -19,12 +19,6 @@ from natsort import natsorted
 from tabulate import tabulate
 from sonic_py_common import multi_asic
 
-from utilities_common import constants
-from utilities_common.intf_filter import parse_interface_in_filter
-import  utilities_common.multi_asic as multi_asic_util
-from utilities_common.netstat import (ns_brate, ns_diff, ns_prate, ns_util,
-                                      table_as_json)
-
 # mock the redis for unit test purposes #
 try:
     if os.environ["UTILITIES_UNIT_TESTING"] == "2":
@@ -39,6 +33,13 @@ try:
            
 except KeyError:
     pass
+
+from utilities_common import constants
+from utilities_common.intf_filter import parse_interface_in_filter
+import  utilities_common.multi_asic as multi_asic_util
+from utilities_common.netstat import (ns_brate, ns_diff, ns_prate, ns_util,
+                                      table_as_json)
+
 
 PORT_RATE = 40
 

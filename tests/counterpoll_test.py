@@ -2,7 +2,6 @@ import click
 import json
 import os
 import pytest
-import swsssdk
 import sys
 import time
 from click.testing import CliRunner

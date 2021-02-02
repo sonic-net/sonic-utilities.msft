@@ -42,7 +42,7 @@ import argparse
 import sys
 
 from tabulate import tabulate
-from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector
 
 
 class NatConfig(object):

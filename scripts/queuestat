@@ -10,7 +10,7 @@ import _pickle as pickle
 import argparse
 import datetime
 import os.path
-import swsssdk
+from swsscommon.swsscommon import SonicV2Connector
 import sys
 
 from collections import namedtuple, OrderedDict
@@ -49,7 +49,7 @@ cnstat_fqn_file = 'N/A'
 
 class Queuestat(object):
     def __init__(self):
-        self.db = swsssdk.SonicV2Connector(host='127.0.0.1')
+        self.db = SonicV2Connector(use_unix_socket_path=False)
         self.db.connect(self.db.COUNTERS_DB)
 
         def get_queue_port(table_id):

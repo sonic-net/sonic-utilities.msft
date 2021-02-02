@@ -1,8 +1,7 @@
 import click
 import utilities_common.cli as clicommon
 from natsort import natsorted
-from swsssdk import ConfigDBConnector
-from swsssdk import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 
 #

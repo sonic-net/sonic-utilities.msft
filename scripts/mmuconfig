@@ -18,16 +18,8 @@ optional arguments:
 import os
 import sys
 import argparse
-import swsssdk
 import tabulate
-
-BUFFER_POOL_TABLE_NAME = "BUFFER_POOL"
-BUFFER_PROFILE_TABLE_NAME = "BUFFER_PROFILE"
-
-DYNAMIC_THRESHOLD = "dynamic_th"
-BUFFER_PROFILE_FIELDS = {
-    "alpha": DYNAMIC_THRESHOLD
-}
+import traceback
 
 # mock the redis for unit test purposes #
 try:
@@ -41,6 +33,16 @@ try:
 except KeyError:
     pass
 
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+
+BUFFER_POOL_TABLE_NAME = "BUFFER_POOL"
+BUFFER_PROFILE_TABLE_NAME = "BUFFER_PROFILE"
+
+DYNAMIC_THRESHOLD = "dynamic_th"
+BUFFER_PROFILE_FIELDS = {
+    "alpha": DYNAMIC_THRESHOLD
+}
+
 class MmuConfig(object):
     def __init__(self, verbose, config):
         self.verbose = verbose
@@ -48,10 +50,10 @@ class MmuConfig(object):
 
         # Set up db connections
         if self.config:
-            self.db = swsssdk.ConfigDBConnector()
+            self.db = ConfigDBConnector()
             self.db.connect()
         else:
-            self.db = swsssdk.SonicV2Connector(host='127.0.0.1')
+            self.db = SonicV2Connector(use_unix_socket_path=False)
             self.db.connect(self.db.STATE_DB, False)
 
     def get_table(self, tablename):
@@ -151,7 +153,8 @@ def main(config):
             sys.exit(1)
 
     except Exception as e:
-        print("Exception caught:", str(e), file=sys.stderr)
+        print("Exception caught: ", str(e), file=sys.stderr)
+        traceback.print_exc()
         sys.exit(1)
 
 if __name__ == "__main__":
