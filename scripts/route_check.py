@@ -320,7 +320,7 @@ def filter_out_local_interfaces(keys):
     :return keys filtered out of local
     """
     rt = []
-    local_if_re = ['eth0', 'lo', 'docker0', 'Loopback\d+']
+    local_if_re = ['eth0', 'lo', 'docker0', 'tun0', 'Loopback\d+']
 
     db = swsscommon.DBConnector(APPL_DB_NAME, 0)
     tbl = swsscommon.Table(db, 'ROUTE_TABLE')
