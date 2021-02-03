@@ -57,8 +57,7 @@ def get_routing_stack():
         proc = subprocess.Popen(command,
                                 stdout=subprocess.PIPE,
                                 shell=True,
-                                text=True,
-                                stderr=subprocess.STDOUT)
+                                text=True)
         stdout = proc.communicate()[0]
         proc.wait()
         result = stdout.rstrip('\n')
