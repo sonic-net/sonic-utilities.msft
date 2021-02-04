@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 
 import click
@@ -14,6 +15,8 @@ REDIS_TIMEOUT_MSECS = 0
 
 CONFIG_SUCCESSFUL = 101
 CONFIG_FAIL = 1
+EXIT_FAIL = 1
+EXIT_SUCCESS = 0
 STATUS_FAIL = 1
 STATUS_SUCCESSFUL = 102
 
@@ -335,3 +338,45 @@ def config(port, json_output):
             click.echo(tabulate(print_data, headers=headers))
 
         sys.exit(CONFIG_SUCCESSFUL)
+
+
+@muxcable.command()
+@click.argument('port', required=True, default=None, type=click.INT)
+@click.argument('target', required=True, default=None, type=click.INT)
+def berinfo(port, target):
+    """Show muxcable BER (bit error rate) information"""
+
+    if os.geteuid() != 0:
+        click.echo("Root privileges are required for this operation")
+        sys.exit(EXIT_FAIL)
+    import sonic_y_cable.y_cable
+    res = sonic_y_cable.y_cable.get_ber_info(port, target)
+    if res == False or res == -1:
+        click.echo("Unable to fetch ber info")
+        sys.exit(EXIT_FAIL)
+    headers = ['Lane1', 'Lane2', 'Lane3', 'Lane4']
+    lane_data = []
+    lane_data.append(res)
+    click.echo(tabulate(lane_data, headers=headers))
+    sys.exit(EXIT_SUCCESS)
+
+
+@muxcable.command()
+@click.argument('port', required=True, default=None, type=click.INT)
+@click.argument('target', required=True, default=None, type=click.INT)
+def eyeinfo(port, target):
+    """Show muxcable eye information in mv"""
+
+    if os.geteuid() != 0:
+        click.echo("Root privileges are required for this operation")
+        sys.exit(EXIT_FAIL)
+    import sonic_y_cable.y_cable
+    res = sonic_y_cable.y_cable.get_eye_info(port, target)
+    if res == False or res == -1:
+        click.echo("Unable to fetch eye info")
+        sys.exit(EXIT_FAIL)
+    headers = ['Lane1', 'Lane2', 'Lane3', 'Lane4']
+    lane_data = []
+    lane_data.append(res)
+    click.echo(tabulate(lane_data, headers=headers))
+    sys.exit(EXIT_SUCCESS)

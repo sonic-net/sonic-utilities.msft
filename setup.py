@@ -156,6 +156,7 @@ setup(
         'netifaces==0.10.7',
         'pexpect==4.8.0',
         'requests==2.25.0',
+        'sonic-platform-common',
         'sonic-py-common',
         'sonic-yang-mgmt',
         'swsssdk>=2.0.1',

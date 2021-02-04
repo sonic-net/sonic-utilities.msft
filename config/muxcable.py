@@ -70,7 +70,7 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_c
     ipv6_value = get_value_for_key_in_config_tbl(config_db, port, "server_ipv6", "MUX_CABLE")
 
     state = get_value_for_key_in_dict(muxcable_statedb_dict, port, "state", "MUX_CABLE_TABLE")
-    if (state == "active" and configdb_state == "active") or (state == "standby" and configdb_state == "active") or (state == "unknown" and  configdb_state == "active") :
+    if (state == "active" and configdb_state == "active") or (state == "standby" and configdb_state == "active") or (state == "unknown" and configdb_state == "active"):
         if state_cfg_val == "active":
             # status is already active, so right back error
             port_status_dict[port] = 'OK'
@@ -89,7 +89,7 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_c
             # dont write anything to db, write OK to user
             port_status_dict[port] = 'OK'
 
-    elif (state == "standby" and configdb_state == "auto") or (state == "unknown" and  configdb_state == "auto"):
+    elif (state == "standby" and configdb_state == "auto") or (state == "unknown" and configdb_state == "auto"):
         if state_cfg_val == "active":
             # make the state active
             config_db.set_entry("MUX_CABLE", port, {"state": "active",
@@ -187,3 +187,73 @@ def mode(state, port, json_output):
                 click.echo(tabulate(data, headers=headers))
 
         sys.exit(CONFIG_SUCCESSFUL)
+
+@muxcable.group(cls=clicommon.AbbreviationGroup)
+def prbs():
+    """Enable/disable PRBS mode on a port"""
+    pass
+
+@prbs.command()
+@click.argument('port', required=True, default=None, type=click.INT)
+@click.argument('target', required=True, default=None, type=click.INT)
+@click.argument('mode_value', required=True, default=None, type=click.INT)
+@click.argument('lane_map', required=True, default=None, type=click.INT)
+def enable(port, target, mode_value, lane_map):
+    """Enable PRBS mode on a port"""
+
+    import sonic_y_cable.y_cable
+    res = sonic_y_cable.y_cable.enable_prbs_mode(port, target, mode_value, lane_map)
+    if res != True:
+        click.echo("PRBS config unsuccesful")
+        sys.exit(CONFIG_FAIL)
+    click.echo("PRBS config sucessful")
+    sys.exit(CONFIG_SUCCESSFUL)
+
+@prbs.command()
+@click.argument('port', required=True, default=None, type=click.INT)
+@click.argument('target', required=True, default=None, type=click.INT)
+def disable(port, target):
+    """Disable PRBS mode on a port"""
+
+    import sonic_y_cable.y_cable
+    res = sonic_y_cable.y_cable.disable_prbs_mode(port, target)
+    if res != True:
+        click.echo("PRBS disable unsuccesful")
+        sys.exit(CONFIG_FAIL)
+    click.echo("PRBS disable sucessful")
+    sys.exit(CONFIG_SUCCESSFUL)
+
+@muxcable.group(cls=clicommon.AbbreviationGroup)
+def loopback():
+    """Enable/disable loopback mode on a port"""
+    pass
+
+
+@loopback.command()
+@click.argument('port', required=True, default=None, type=click.INT)
+@click.argument('target', required=True, default=None, type=click.INT)
+@click.argument('lane_map', required=True, default=None, type=click.INT)
+def enable(port, target, lane_map):
+    """Enable loopback mode on a port"""
+
+    import sonic_y_cable.y_cable
+    res = sonic_y_cable.y_cable.enable_loopback_mode(port, target, lane_map)
+    if res != True:
+        click.echo("loopback config unsuccesful")
+        sys.exit(CONFIG_FAIL)
+    click.echo("loopback config sucessful")
+    sys.exit(CONFIG_SUCCESSFUL)
+
+@loopback.command()
+@click.argument('port', required=True, default=None, type=click.INT)
+@click.argument('target', required=True, default=None, type=click.INT)
+def disable(port, target):
+    """Disable loopback mode on a port"""
+
+    import sonic_y_cable.y_cable
+    res = sonic_y_cable.y_cable.disable_loopback_mode(port, target)
+    if res != True:
+        click.echo("loopback disable unsuccesful")
+        sys.exit(CONFIG_FAIL)
+    click.echo("loopback disable sucessful")
+    sys.exit(CONFIG_SUCCESSFUL)
