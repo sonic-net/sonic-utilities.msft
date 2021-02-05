@@ -246,8 +246,12 @@ def po_speed_dict(po_int_dict, appl_db):
             po_list.append(key)
             if len(value) == 1:
                 interface_speed = appl_db.get(appl_db.APPL_DB, "PORT_TABLE:" + value[0], "speed")
-                interface_speed = '{}G'.format(interface_speed[:-3])
-                po_list.append(interface_speed)
+                if interface_speed is None:
+                    # If no speed was returned, append None without format
+                    po_list.append(None)
+                else:
+                    interface_speed = '{}G'.format(interface_speed[:-3])
+                    po_list.append(interface_speed)
             elif len(value) > 1:
                 for intf in value:
                     temp_speed = appl_db.get(appl_db.APPL_DB, "PORT_TABLE:" + intf, "speed")
@@ -272,6 +276,8 @@ def appl_db_portchannel_status_get(appl_db, config_db, po_name, status_type, por
     #print(full_table_id)
     if status_type == "speed":
         status = portchannel_speed_dict[po_name]
+        if status is None:
+            return "N/A"
         return status
     if status_type == "vlan":
         if combined_int_to_vlan_po_dict and po_name in combined_int_to_vlan_po_dict.keys():
