@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import requests
+import subprocess
 import sys
 import time
 import traceback
@@ -232,6 +233,21 @@ def get_vlan_addresses(vlan_interface):
     mac_addr = None
     ipv4_addr, ipv4_prefix = get_vlan_addr_prefix(vlan_interface, 4)
     ipv6_addr, ipv6_prefix = get_vlan_addr_prefix(vlan_interface, 6)
+
+    if len(ipv6_addr):
+        try:
+            out = subprocess.check_output(['ip', '-6', 'addr', 'show', vlan_interface])
+            out = out.decode('UTF-8')
+            for line in out.splitlines():
+                keys = line.split()
+                if keys[0] == 'inet6':
+                    ip = IPNetwork(keys[1])
+                    if str(ip.ip).startswith("fe80") and str(ip.ip) not in ipv6_addr:
+                        # Link local ipv6 address
+                        ipv6_addr.append(str(ip.ip))
+                        ipv6_prefix.append('128')
+        except Exception:
+            log.log_error('failed to get %s addresses from o.s.' % vlan_interface)
 
     metadata = config_db.get_table('DEVICE_METADATA')
     mac_addr = metadata['localhost']['mac']
