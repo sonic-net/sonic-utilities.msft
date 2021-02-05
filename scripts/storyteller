@@ -1,23 +1,29 @@
 #!/usr/bin/env python3
 
-'''
-Story Teller:
-    Utility to help analyze log for certain sequence of events.
-    e.g.: reboot (including warm/fast reboot), interface flapping, etc.
+'''Story Teller: Utility to help analyze log for certain sequence of events.
+
+e.g.: reboot (including warm/fast reboot), interface flapping, etc.
 '''
 
 import argparse
+import os
 import subprocess
+import sys
+
+from shlex import quote
 
 regex_dict = {
+                'acl'       : r'acl\|ACL\|Acl',
                 'bgp'       : 'bgpcfgd',
-                'crash'     : 'what\|unexpected exception\|notify_OA_about_syncd_exception\|SIG\|not expected',
-                'interface' : 'updatePortOperStatus\|Configure .* to',
-                'lag'       : 'link becomes\|addLag',
-                'reboot'    : 'BOOT\|rc.local\|old_config\|minigraph.xml\|Rebooting\|reboot\|executeOperationsOnAsic\|getAsicView\|dumpVidToAsicOperatioId\|neighbor_adv\|Pausing\|shutdown\|warm',
-                'service'   : 'Starting\|Stopping\|Started\|Stopped',
+                'crash'     : r'what\|unexpected exception\|notify_OA_about_syncd_exception\|SIG\|not expected',
+                'interface' : r'updatePortOperStatus\|Configure .* to',
+                'lag'       : r'link becomes\|addLag',
+                'reboot'    : r'BOOT\|rc.local\|old_config\|minigraph.xml\|Rebooting\|reboot\|executeOperationsOnAsic\|getAsicView\|dumpVidToAsicOperatioId\|neighbor_adv\|Pausing\|shutdown\|warm',
+                'service'   : r'Starting\|Stopping\|Started\|Stopped',
              }
 
+
+reference_file = '/tmp/storyteller_time_reference'
 
 def exec_cmd(cmd):
     # Use universal_newlines (instead of text) so that this tool can work with any python versions.
@@ -40,13 +46,12 @@ def build_options(after=0, before=0, context=0):
 
 def find_log(logpath, log, regex, after=0, before=0, context=0):
     options = build_options(after, before, context)
-    cmd = 'ls -rt {}/{}* | xargs zgrep -a {} "{}"'.format(logpath, log, options, regex)
+    cmd = 'find -L {}/{}* -newer {} | xargs zgrep -a {} "{}"'.format(logpath, log, reference_file, options, regex)
     _, out, _ = exec_cmd(cmd)
     '''
         Opportunity to improve:
             output (out) can be split to lines and send to a filter to
             decide if a line should be printed out or not.
-            e.g. limited to a certain time span.
     '''
     print(out)
 
@@ -57,10 +62,22 @@ def build_regex(category):
         # if c is not found, add c to grep list directly
         regex.append(regex_dict[c] if c in regex_dict else c)
 
-    return '\|'.join(x for x in regex)
+    return r'\|'.join(x for x in regex)
+
+
+def configure_time_filter(since):
+    ret_code, _, _ = exec_cmd('date --date {}'.format(since))
+    if ret_code:
+        print('invalid date "{}"'.format(since))
+        sys.exit(1)
+
+    exec_cmd('touch --date "{}" {}'.format(since, reference_file))
 
 
 def main():
+    if os.geteuid() != 0:
+        exit("Root privileges are required for this operation")
+
     parser = argparse.ArgumentParser(description='Story Teller')
 
     parser.add_argument('-l', '--log', help='log file prefix, e.g. syslog; default: syslog',
@@ -75,13 +92,21 @@ def main():
                         type=int, required=False, default=0)
     parser.add_argument('-C', '--context', help='Show N lines before and after match',
                         type=int, required=False, default=0)
+    parser.add_argument('-S', '--since', help='Filter logs since the given date',
+                        type=str, required=False, default="@0")
 
     args = parser.parse_args()
 
-    log = args.log
-    reg = build_regex(args.category)
+    # sanitize all string inputs
+    log = quote(args.log)
+    log_path = quote(args.logpath)
+    category = quote(args.category)
+    since = quote(args.since)
 
-    find_log(args.logpath, log, reg, args.after, args.before, args.context)
+    reg = build_regex(category)
+    configure_time_filter(since)
+
+    find_log(log_path, log, reg, args.after, args.before, args.context)
 
 
 if __name__ == '__main__':
