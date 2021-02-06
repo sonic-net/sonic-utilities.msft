@@ -13,6 +13,7 @@ from .exception import SonicRuntimeException
 HOST_PATH = '/host'
 IMAGE_PREFIX = 'SONiC-OS-'
 IMAGE_DIR_PREFIX = 'image-'
+ROOTFS_NAME = 'fs.squashfs'
 
 # Run bash command and print output to stdout
 def run_command(command):

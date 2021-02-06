@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 import zipfile
+from contextlib import contextmanager
 
 import click
 
@@ -18,7 +19,9 @@ from ..common import (
    HOST_PATH,
    IMAGE_DIR_PREFIX,
    IMAGE_PREFIX,
+   ROOTFS_NAME,
    run_command,
+   run_command_or_raise,
 )
 from .bootloader import Bootloader
 
@@ -34,7 +37,7 @@ def isSecureboot():
     global _secureboot
     if _secureboot is None:
         with open('/proc/cmdline') as f:
-           m  = re.search(r"secure_boot_enable=[y1]", f.read())
+            m = re.search(r"secure_boot_enable=[y1]", f.read())
         _secureboot = bool(m)
     return _secureboot
 
@@ -179,3 +182,25 @@ class AbootBootloader(Bootloader):
     def detect(cls):
         with open('/proc/cmdline') as f:
             return 'Aboot=' in f.read()
+
+    def _get_swi_file_offset(self, swipath, filename):
+        with zipfile.ZipFile(swipath) as swi:
+            with swi.open(filename) as f:
+                return f._fileobj.tell() # pylint: disable=protected-access
+
+    @contextmanager
+    def get_rootfs_path(self, image_path):
+        rootfs_path = os.path.join(image_path, ROOTFS_NAME)
+        if os.path.exists(rootfs_path) and not isSecureboot():
+            yield rootfs_path
+            return
+
+        swipath = os.path.join(image_path, DEFAULT_SWI_IMAGE)
+        offset = self._get_swi_file_offset(swipath, ROOTFS_NAME)
+        loopdev = subprocess.check_output(['losetup', '-f']).rstrip()
+
+        try:
+            run_command_or_raise(['losetup', '-o', str(offset), loopdev, swipath])
+            yield loopdev
+        finally:
+            run_command_or_raise(['losetup', '-d', loopdev])

@@ -11,7 +11,7 @@ from sonic_py_common import logger
 from swsscommon.swsscommon import SonicV2Connector
 
 from .bootloader import get_bootloader
-from .common import run_command, run_command_or_raise
+from .common import run_command, run_command_or_raise, IMAGE_PREFIX
 from .exception import SonicRuntimeException
 
 SYSLOG_IDENTIFIER = "sonic-installer"
@@ -218,8 +218,7 @@ def print_deprecation_warning(deprecated_cmd_or_subcmd, new_cmd_or_subcmd):
                 fg="red", err=True)
     click.secho("Please use '{}' instead".format(new_cmd_or_subcmd), fg="red", err=True)
 
-
-def update_sonic_environment(click, binary_image_version):
+def update_sonic_environment(click, bootloader, binary_image_version):
     """Prepare sonic environment variable using incoming image template file. If incoming image template does not exist
        use current image template file.
     """
@@ -234,38 +233,38 @@ def update_sonic_environment(click, binary_image_version):
     SONIC_ENV_TEMPLATE_FILE = os.path.join("usr", "share", "sonic", "templates", "sonic-environment.j2")
     SONIC_VERSION_YML_FILE = os.path.join("etc", "sonic", "sonic_version.yml")
 
-    sonic_version = re.sub("SONiC-OS-", '', binary_image_version)
-    new_image_dir = os.path.join('/', "host", "image-{0}".format(sonic_version))
-    new_image_squashfs_path = os.path.join(new_image_dir, "fs.squashfs")
+    sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version)
+    new_image_dir = bootloader.get_image_path(binary_image_version)
     new_image_mount = os.path.join('/', "tmp", "image-{0}-fs".format(sonic_version))
     env_dir = os.path.join(new_image_dir, "sonic-config")
     env_file = os.path.join(env_dir, "sonic-environment")
 
-    try:
-        mount_next_image_fs(new_image_squashfs_path, new_image_mount)
+    with bootloader.get_rootfs_path(new_image_dir) as new_image_squashfs_path:
+        try:
+            mount_next_image_fs(new_image_squashfs_path, new_image_mount)
 
-        next_sonic_env_template_file = os.path.join(new_image_mount, SONIC_ENV_TEMPLATE_FILE)
-        next_sonic_version_yml_file = os.path.join(new_image_mount, SONIC_VERSION_YML_FILE)
+            next_sonic_env_template_file = os.path.join(new_image_mount, SONIC_ENV_TEMPLATE_FILE)
+            next_sonic_version_yml_file = os.path.join(new_image_mount, SONIC_VERSION_YML_FILE)
 
-        sonic_env = run_command_or_raise([
-                "sonic-cfggen",
-                "-d",
-                "-y",
-                next_sonic_version_yml_file,
-                "-t",
-                next_sonic_env_template_file,
-        ])
-        os.mkdir(env_dir, 0o755)
-        with open(env_file, "w+") as ef:
-            print(sonic_env, file=ef)
-        os.chmod(env_file, 0o644)
-    except SonicRuntimeException as ex:
-        echo_and_log("Warning: SONiC environment variables are not supported for this image: {0}".format(str(ex)), LOG_ERR, fg="red")
-        if os.path.exists(env_file):
-            os.remove(env_file)
-            os.rmdir(env_dir)
-    finally:
-        umount_next_image_fs(new_image_mount)
+            sonic_env = run_command_or_raise([
+                    "sonic-cfggen",
+                    "-d",
+                    "-y",
+                    next_sonic_version_yml_file,
+                    "-t",
+                    next_sonic_env_template_file,
+            ])
+            os.mkdir(env_dir, 0o755)
+            with open(env_file, "w+") as ef:
+                print(sonic_env, file=ef)
+            os.chmod(env_file, 0o644)
+        except SonicRuntimeException as ex:
+            echo_and_log("Warning: SONiC environment variables are not supported for this image: {0}".format(str(ex)), LOG_ERR, fg="red")
+            if os.path.exists(env_file):
+                os.remove(env_file)
+                os.rmdir(env_dir)
+        finally:
+            umount_next_image_fs(new_image_mount)
 
 # Main entrypoint
 @click.group(cls=AliasedGroup)
@@ -332,7 +331,7 @@ def install(url, force, skip_migration=False):
         else:
             run_command('config-setup backup')
 
-        update_sonic_environment(click, binary_image_version)
+        update_sonic_environment(click, bootloader, binary_image_version)
 
     # Finally, sync filesystem
     run_command("sync;sync;sync")
