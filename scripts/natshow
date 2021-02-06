@@ -134,7 +134,7 @@ class NatShow(object):
             translated_dst = "---"
             translated_src = "---"
 
-            ent = self.asic_db.get_all('ASIC_DB', s, blocking=True)
+            ent = self.asic_db.get_all('ASIC_DB', nat_entry, blocking=True)
 
             nat_type = nat['nat_type']
 
