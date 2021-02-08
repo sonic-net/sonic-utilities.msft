@@ -444,6 +444,9 @@
         "xoff": "32768",
         "size": "51200"
     },
+    "BUFFER_MAX_PARAM_TABLE|global": {
+        "mmu_size": "13945824"
+    },
     "CHASSIS_MIDPLANE_TABLE|SUPERVISOR0": {
         "ip_address": "192.168.1.100",
         "access": "True"

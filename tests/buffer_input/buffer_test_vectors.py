@@ -1,4 +1,10 @@
 show_buffer_configuration="""\
+Lossless traffic pattern:
+--------------------  -
+default_dynamic_th    0
+over_subscribe_ratio  2
+--------------------  -
+
 Pool: egress_lossless_pool
 ----  --------
 mode  dynamic

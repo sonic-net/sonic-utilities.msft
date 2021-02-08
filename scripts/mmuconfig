@@ -21,6 +21,15 @@ import argparse
 import tabulate
 import traceback
 
+BUFFER_POOL_TABLE_NAME = "BUFFER_POOL"
+BUFFER_PROFILE_TABLE_NAME = "BUFFER_PROFILE"
+DEFAULT_LOSSLESS_BUFFER_PARAMETER_NAME = "DEFAULT_LOSSLESS_BUFFER_PARAMETER"
+
+DYNAMIC_THRESHOLD = "dynamic_th"
+BUFFER_PROFILE_FIELDS = {
+    "alpha": DYNAMIC_THRESHOLD
+}
+
 # mock the redis for unit test purposes #
 try:
     if os.environ["UTILITIES_UNIT_TESTING"] == "2":
@@ -72,6 +81,16 @@ class MmuConfig(object):
         return entries
 
     def list(self):
+        lossless_traffic_pattern = self.get_table(DEFAULT_LOSSLESS_BUFFER_PARAMETER_NAME)
+        if lossless_traffic_pattern:
+            for _, pattern in lossless_traffic_pattern.items():
+                config = []
+
+                print("Lossless traffic pattern:")
+                for field, value in pattern.items():
+                    config.append([field, value])
+                print(tabulate.tabulate(config) + "\n")
+
         buf_pools = self.get_table(BUFFER_POOL_TABLE_NAME)
         if buf_pools:
             for pool_name, pool_data in buf_pools.items():

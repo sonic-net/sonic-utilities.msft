@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import argparse
 import json
 import sys
@@ -10,6 +11,19 @@ from sonic_py_common import device_info, logger
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
+
+# mock the redis for unit test purposes #
+try:
+    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        tests_path = os.path.join(modules_path, "tests")
+        mocked_db_path = os.path.join(tests_path, "db_migrator_input")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, tests_path)
+        INIT_CFG_FILE = os.path.join(mocked_db_path, "init_cfg.json")
+except KeyError:
+    pass
+
 SYSLOG_IDENTIFIER = 'db_migrator'
 
 
@@ -160,18 +174,17 @@ class DBMigrator():
         for copp_key in keys:
             self.appDB.delete(self.appDB.APPL_DB, copp_key)
 
-    def migrate_config_db_buffer_tables_for_dynamic_calculation(self, speed_list, cable_len_list, default_dynamic_th, default_lossless_profiles, abandon_method, append_item_method):
+    def migrate_config_db_buffer_tables_for_dynamic_calculation(self, speed_list, cable_len_list, default_dynamic_th, abandon_method, append_item_method):
         '''
         Migrate buffer tables to dynamic calculation mode
         parameters
         @speed_list - list of speed supported
         @cable_len_list - list of cable length supported
         @default_dynamic_th - default dynamic th
-        @default_lossless_profiles - default lossless profiles from the previous image
         @abandon_method - a function which is called to abandon the migration and keep the current configuration
                           if the current one doesn't match the default one
         @append_item_method - a function which is called to append an item to the list of pending commit items
-                              any update to buffer configuration will be pended and won't be applied until 
+                              any update to buffer configuration will be pended and won't be applied until
                               all configuration is checked and aligns with the default one
 
         1. Buffer profiles for lossless PGs in BUFFER_PROFILE table will be removed
@@ -180,7 +193,7 @@ class DBMigrator():
            and the dynamic_th is equal to default_dynamic_th
         2. Insert tables required for dynamic buffer calculation
            - DEFAULT_LOSSLESS_BUFFER_PARAMETER|AZURE: {'default_dynamic_th': default_dynamic_th}
-           - LOSSLESS_TRAFFIC_PATTERN|AZURE: {'mtu': '1500', 'small_packet_percentage': '100'}
+           - LOSSLESS_TRAFFIC_PATTERN|AZURE: {'mtu': '1024', 'small_packet_percentage': '100'}
         3. For lossless dynamic PGs, remove the explicit referencing buffer profiles
            Before: BUFFER_PG|<port>|3-4: {'profile': 'BUFFER_PROFILE|pg_lossless_<speed>_<cable_length>_profile'}
            After:  BUFFER_PG|<port>|3-4: {'profile': 'NULL'}
@@ -195,16 +208,8 @@ class DBMigrator():
             speed = m.group(1)
             cable_length = m.group(2)
             if speed in speed_list and cable_length in cable_len_list:
-                log.log_info("current profile {} {}".format(name, info))
-                log.log_info("default profile {} {}".format(name, default_lossless_profiles.get(name)))
-                default_profile = default_lossless_profiles.get(name);
-                if info.get("xon") == default_profile.get("xon") and info.get("size") == default_profile.get("size") and info.get('dynamic_th') == default_dynamic_th:
-                    append_item_method(('BUFFER_PROFILE', name, None))
-                    log.log_info("Lossless profile {} has been removed".format(name))
-                else:
-                    log.log_notice("Lossless profile {} doesn't match the default configuration, keep using traditional buffer calculation mode")
-                    abandon_method()
-                    return True
+                append_item_method(('BUFFER_PROFILE', name, None))
+                log.log_info("Lossless profile {} has been removed".format(name))
 
         # Migrate BUFFER_PGs, removing the explicit designated profiles
         buffer_pgs = self.configDB.get_table('BUFFER_PG')
@@ -218,19 +223,28 @@ class DBMigrator():
         cable_lengths = all_cable_lengths[list(all_cable_lengths.keys())[0]]
         for name, profile in buffer_pgs.items():
             # do the db migration
-            port, pg = name
-            if pg != '3-4':
-                continue
             try:
+                port, pg = name
                 profile_name = profile['profile'][1:-1].split('|')[1]
+                if pg == '0':
+                    if profile_name != 'ingress_lossy_profile':
+                        log.log_notice("BUFFER_PG table entry {} has non default profile {} configured".format(name, profile_name))
+                        abandon_method()
+                        return True
+                    else:
+                        continue
+                elif pg != '3-4':
+                    log.log_notice("BUFFER_PG table entry {} isn't default PG(0 or 3-4)".format(name))
+                    abandon_method()
+                    return True
                 m = re.search(profile_pattern, profile_name)
-            except Exception:
-                continue
-            if not m:
-                continue
-            speed = m.group(1)
-            cable_length = m.group(2)
-            try:
+                if not m:
+                    log.log_notice("BUFFER_PG table entry {} has non-default profile name {}".format(name, profile_name))
+                    abandon_method()
+                    return True
+                speed = m.group(1)
+                cable_length = m.group(2)
+
                 if speed == ports[port]['speed'] and cable_length == cable_lengths[port]:
                     append_item_method(('BUFFER_PG', name, {'profile': 'NULL'}))
                 else:
@@ -239,18 +253,20 @@ class DBMigrator():
                     abandon_method()
                     return True
             except Exception:
-                continue
+                log.log_notice("Exception occured during parsing the profiles")
+                abandon_method()
+                return True
 
         # Insert other tables required for dynamic buffer calculation
         metadata = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
         metadata['buffer_model'] = 'dynamic'
         append_item_method(('DEVICE_METADATA', 'localhost', metadata))
         append_item_method(('DEFAULT_LOSSLESS_BUFFER_PARAMETER', 'AZURE', {'default_dynamic_th': default_dynamic_th}))
-        append_item_method(('LOSSLESS_TRAFFIC_PATTERN', 'AZURE', {'mtu': '1500', 'small_packet_percentage': '100'}))
+        append_item_method(('LOSSLESS_TRAFFIC_PATTERN', 'AZURE', {'mtu': '1024', 'small_packet_percentage': '100'}))
 
         return True
 
-    def prepare_dynamic_buffer_for_warm_reboot(self, buffer_pools = None, buffer_profiles = None, buffer_pgs = None):
+    def prepare_dynamic_buffer_for_warm_reboot(self, buffer_pools=None, buffer_profiles=None, buffer_pgs=None):
         '''
         This is the very first warm reboot of buffermgrd (dynamic) if the system reboot from old image by warm-reboot
         In this case steps need to be taken to get buffermgrd prepared (for warm reboot)
@@ -404,35 +420,41 @@ class DBMigrator():
 
     def version_1_0_4(self):
         """
-        Current latest version. Nothing to do here.
+        Version 1_0_4.
         """
         log.log_info('Handling version_1_0_4')
 
         # Check ASIC type, if Mellanox platform then need DB migration
+        if self.asic_type == "mellanox":
+            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_4', 'version_1_0_5') \
+               and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_4', 'version_1_0_5') \
+               and self.mellanox_buffer_migrator.mlnx_flush_new_buffer_configuration():
+                self.set_version('version_1_0_5')
+        else:
+            self.set_version('version_1_0_5')
+
+        return 'version_1_0_5'
+
+    def version_1_0_5(self):
+        """
+        Version 1_0_5.
+        """
+        log.log_info('Handling version_1_0_5')
         if self.asic_type == "mellanox":
             speed_list = self.mellanox_buffer_migrator.default_speed_list
             cable_len_list = self.mellanox_buffer_migrator.default_cable_len_list
             buffer_pools = self.configDB.get_table('BUFFER_POOL')
             buffer_profiles = self.configDB.get_table('BUFFER_PROFILE')
             buffer_pgs = self.configDB.get_table('BUFFER_PG')
-            default_lossless_profiles = self.mellanox_buffer_migrator.mlnx_get_default_lossless_profile('version_1_0_4')
             abandon_method = self.mellanox_buffer_migrator.mlnx_abandon_pending_buffer_configuration
             append_method = self.mellanox_buffer_migrator.mlnx_append_item_on_pending_configuration_list
 
-            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_4', 'version_2_0_0') \
-               and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_4', 'version_2_0_0') \
-               and self.migrate_config_db_buffer_tables_for_dynamic_calculation(speed_list, cable_len_list, '0', default_lossless_profiles,
-                                                                                abandon_method, append_method) \
+            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_5', 'version_2_0_0') \
+               and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_5', 'version_2_0_0') \
+               and (not self.mellanox_buffer_migrator.mlnx_is_buffer_model_dynamic() or \
+                    self.migrate_config_db_buffer_tables_for_dynamic_calculation(speed_list, cable_len_list, '0', abandon_method, append_method)) \
                and self.mellanox_buffer_migrator.mlnx_flush_new_buffer_configuration() \
                and self.prepare_dynamic_buffer_for_warm_reboot(buffer_pools, buffer_profiles, buffer_pgs):
-                metadata = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
-                if not metadata.get('buffer_model'):
-                    metadata['buffer_model'] = 'traditional'
-                    self.configDB.set_entry('DEVICE_METADATA', 'localhost', metadata)
-                    log.log_notice('Setting buffer_model to traditional')
-                else:
-                    log.log_notice('Got buffer_model {}'.format(metadata.get('buffer_model')))
-
                 self.set_version('version_2_0_0')
         else:
             self.prepare_dynamic_buffer_for_warm_reboot()
