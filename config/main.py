@@ -931,7 +931,11 @@ def config(ctx):
         platform.add_command(mlnx.mlnx)
 
     # Load the global config file database_global.json once.
-    SonicDBConfig.load_sonic_global_db_config()
+    num_asic = multi_asic.get_num_asics()
+    if num_asic > 1:
+        SonicDBConfig.load_sonic_global_db_config()
+    else:
+        SonicDBConfig.initialize()
 
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")
