@@ -711,12 +711,11 @@ collect_mellanox() {
     ${CMD_PREFIX}docker exec syncd tar Ccf $(dirname $sai_dump_filename) - $(basename $sai_dump_filename) | tar Cxf /tmp/ -
     save_file $sai_dump_filename sai_sdk_dump true
 
-    file_list_string=$(${CMD_PREFIX}docker exec -it syncd ls -l /tmp | grep sdkdump | awk '{print $9}' | tr -d '\r')
-    file_list_array=( $file_list_string )
-    for element in "${file_list_array[@]}"
-    do
-        docker cp syncd:/tmp/$element /tmp
-        save_file /tmp/$element sai_sdk_dump true
+    local mst_dump_filename="/tmp/mstdump"
+    local max_dump_count="3"
+    for i in $(seq 1 $max_dump_count); do
+        ${CMD_PREFIX}/usr/bin/mstdump /dev/mst/mt*conf0 > "${mst_dump_filename}${i}"
+        save_file "${mst_dump_filename}${i}" mstdump true
     done
 }
 
