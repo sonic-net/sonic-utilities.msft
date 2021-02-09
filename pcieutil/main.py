@@ -26,7 +26,7 @@ PLATFORM_SPECIFIC_MODULE_NAME = "pcieutil"
 
 # Global platform-specific psuutil class instance
 platform_pcieutil = None
-platform_plugins_path = None
+platform_path = None
 
 log = logger.Logger(SYSLOG_IDENTIFIER)
 
@@ -46,22 +46,16 @@ def print_result(name, result):
 
 def load_platform_pcieutil():
     global platform_pcieutil
-    global platform_plugins_path
+    global platform_path
 
     # Load platform module from source
     try:
         platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
-        platform_plugins_path = os.path.join(platform_path, "plugins")
-        sys.path.append(os.path.abspath(platform_plugins_path))
-        from pcieutil import PcieUtil
+        from sonic_platform_base.sonic_pcie.pcie_common import PcieUtil
+        platform_pcieutil = PcieUtil(platform_path)
     except ImportError as e:
-        log.log_warning("Failed to load platform-specific PcieUtil module. Falling back to the common implementation")
-        try:
-            from sonic_platform_base.sonic_pcie.pcie_common import PcieUtil
-            platform_pcieutil = PcieUtil(platform_plugins_path)
-        except ImportError as e:
-            log.log_error("Failed to load default PcieUtil module. Error : {}".format(str(e)), True)
-            raise e
+        log.log_error("Failed to load default PcieUtil module. Error : {}".format(str(e)), True)
+        raise e
 
 
 # ==================== CLI commands and groups ====================
@@ -298,7 +292,7 @@ def check():
 def generate():
     '''Generate config file with current pci device'''
     platform_pcieutil.dump_conf_yaml()
-    click.echo("Generate config file pcie.yaml under path %s" % platform_plugins_path)
+    click.echo("Generated config file '{}/pcie.yaml'".format(platform_path))
 
 
 if __name__ == '__main__':
