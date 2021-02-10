@@ -23,20 +23,16 @@ import show.main as show
 tabular_data_status_output_expected = """\
 PORT        STATUS    HEALTH
 ----------  --------  --------
-Ethernet32  active    HEALTHY
 Ethernet0   active    HEALTHY
 Ethernet4   standby   HEALTHY
 Ethernet8   standby   HEALTHY
 Ethernet12  unknown   HEALTHY
+Ethernet32  active    HEALTHY
 """
 
 json_data_status_output_expected = """\
 {
     "MUX_CABLE": {
-        "Ethernet32": {
-            "STATUS": "active",
-            "HEALTH": "HEALTHY"
-        },
         "Ethernet0": {
             "STATUS": "active",
             "HEALTH": "HEALTHY"
@@ -52,6 +48,10 @@ json_data_status_output_expected = """\
         "Ethernet12": {
             "STATUS": "unknown",
             "HEALTH": "HEALTHY"
+        },
+        "Ethernet32": {
+            "STATUS": "active",
+            "HEALTH": "HEALTHY"
         }
     }
 }
@@ -64,11 +64,11 @@ SWITCH_NAME    PEER_TOR
 sonic-switch   10.2.2.2
 port        state    ipv4      ipv6
 ----------  -------  --------  --------
-Ethernet32  auto     10.1.1.1  fc00::75
 Ethernet0   active   10.2.1.1  e800::46
 Ethernet4   auto     10.3.1.1  e801::46
 Ethernet8   active   10.4.1.1  e802::46
 Ethernet12  active   10.4.1.1  e802::46
+Ethernet32  auto     10.1.1.1  fc00::75
 """
 
 json_data_status_config_output_expected = """\
@@ -76,13 +76,6 @@ json_data_status_config_output_expected = """\
     "MUX_CABLE": {
         "PEER_TOR": "10.2.2.2",
         "PORTS": {
-            "Ethernet32": {
-                "STATE": "auto",
-                "SERVER": {
-                    "IPv4": "10.1.1.1",
-                    "IPv6": "fc00::75"
-                }
-            },
             "Ethernet0": {
                 "STATE": "active",
                 "SERVER": {
@@ -109,6 +102,13 @@ json_data_status_config_output_expected = """\
                 "SERVER": {
                     "IPv4": "10.4.1.1",
                     "IPv6": "e802::46"
+                }
+            },
+            "Ethernet32": {
+                "STATE": "auto",
+                "SERVER": {
+                    "IPv4": "10.1.1.1",
+                    "IPv6": "fc00::75"
                 }
             }
         }
