@@ -1,8 +1,10 @@
 import os
 import sys
 import textwrap
-import mock
+from unittest import mock
+
 from click.testing import CliRunner
+
 from .mock_tables import dbconnector
 
 test_path = os.path.dirname(os.path.abspath(__file__))

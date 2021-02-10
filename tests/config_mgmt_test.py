@@ -1,14 +1,13 @@
 import imp
 import os
 import sys
+from unittest import mock, TestCase
 
 # import file under test i.e. config_mgmt.py
 imp.load_source('config_mgmt', \
     os.path.join(os.path.dirname(__file__), '..', 'config', 'config_mgmt.py'))
 import config_mgmt
 
-from unittest import TestCase
-from mock import MagicMock, call
 from json import dump
 from copy import deepcopy
 
@@ -108,8 +107,8 @@ class TestConfigMgmt(TestCase):
         self.writeJson(curConfig, config_mgmt.CONFIG_DB_JSON_FILE)
         cmdpb = config_mgmt.ConfigMgmtDPB(source=config_mgmt.CONFIG_DB_JSON_FILE)
         # mock funcs
-        cmdpb.writeConfigDB = MagicMock(return_value=True)
-        cmdpb._verifyAsicDB = MagicMock(return_value=True)
+        cmdpb.writeConfigDB = mock.MagicMock(return_value=True)
+        cmdpb._verifyAsicDB = mock.MagicMock(return_value=True)
         from .mock_tables import dbconnector
         return cmdpb
 
@@ -218,7 +217,7 @@ class TestConfigMgmt(TestCase):
         Return:
             void
         '''
-        calls = [call(delConfig), call(addConfig)]
+        calls = [mock.call(delConfig), mock.call(addConfig)]
         assert cmdpb.writeConfigDB.call_count == 2
         cmdpb.writeConfigDB.assert_has_calls(calls, any_order=False)
         return
