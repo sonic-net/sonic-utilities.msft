@@ -465,6 +465,13 @@ def run_command_in_alias_mode(command):
                 if "Vlan" in output:
                     output = output.replace('Vlan', '  Vlan')
                 print_output_in_alias_mode(output, index)
+            elif command.startswith("sudo ipintutil"):
+                """show ip(v6) int"""
+                index = 0
+                if output.startswith("Interface"):
+                   output = output.replace("Interface", "Interface".rjust(
+                               iface_alias_converter.alias_max_length))
+                print_output_in_alias_mode(output, index)
 
             else:
                 """

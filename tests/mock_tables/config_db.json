@@ -1456,5 +1456,27 @@
         "wred_red_enable": "true",
         "yellow_drop_probability": "5",
         "red_drop_probability": "5"
+    },
+    "BGP_NEIGHBOR|20.1.1.5": {
+        "rrclient": "0",
+        "name": "T2-Peer",
+        "local_addr": "20.1.1.1",
+        "nhopself": "0",
+        "admin_status": "up", 
+        "holdtime": "10", 
+        "asn": "65200", 
+        "keepalive": "3"
+    },
+    "BGP_NEIGHBOR|30.1.1.5": {
+        "rrclient": "0",
+        "name": "T0-Peer",
+        "local_addr": "30.1.1.1",
+        "nhopself": "0",
+        "admin_status": "up", 
+        "holdtime": "10", 
+        "asn": "65200", 
+        "keepalive": "3"
     }
+
+ 
 }
