@@ -82,6 +82,8 @@ def main():
 
     if args.namespace is not None:
         SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
+    else:
+        SonicDBConfig.initialize()
 
     try:
         port = portconfig(args.verbose, args.port, args.namespace)

@@ -25,7 +25,7 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
-from sonic_py_common import device_info
+from sonic_py_common import device_info, multi_asic
 from swsscommon.swsscommon import ConfigDBConnector, SonicDBConfig
 from tabulate import tabulate
 
@@ -47,7 +47,11 @@ class Lldpshow(object):
         # So far only find Router and Bridge two capabilities in lldpctl, so any other capacility types will be read as Other
         # if further capability type is supported like WLAN, can just add the tag definition here
         self.ctags = {'Router': 'R', 'Bridge': 'B'}
-        SonicDBConfig.load_sonic_global_db_config()
+
+        if multi_asic.is_multi_asic():
+            SonicDBConfig.load_sonic_global_db_config()
+        else:
+            SonicDBConfig.initialize()
 
         # For multi-asic platforms we will get only front-panel interface to display
         namespaces = device_info.get_all_namespaces()

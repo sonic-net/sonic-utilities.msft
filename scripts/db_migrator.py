@@ -555,6 +555,8 @@ def main():
 
         if args.namespace is not None:
             SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
+        else:
+            SonicDBConfig.initialize()
 
         if socket_path:
             dbmgtr = DBMigrator(namespace, socket=socket_path)

@@ -9,7 +9,7 @@ import openconfig_acl
 import tabulate
 import pyangbind.lib.pybindJSON as pybindJSON
 from natsort import natsorted
-from sonic_py_common import device_info
+from sonic_py_common import device_info, multi_asic
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 
 
@@ -114,8 +114,13 @@ class AclLoader(object):
         self.tables_db_info = {}
         self.rules_db_info = {}
         self.rules_info = {}
-        # Load global db config. This call is no-op in single npu platforms
-        SonicDBConfig.load_sonic_global_db_config()
+
+        if multi_asic.is_multi_asic():
+            # Load global db config
+            SonicDBConfig.load_sonic_global_db_config()
+        else:
+            SonicDBConfig.initialize()
+
         self.sessions_db_info = {}
         self.configdb = ConfigDBConnector()
         self.configdb.connect()

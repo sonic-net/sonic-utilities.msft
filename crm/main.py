@@ -211,14 +211,19 @@ def cli(ctx):
     # Use the db object if given as input.
     db = None if ctx.obj is None else ctx.obj.cfgdb
 
+    # Note: SonicDBConfig may be already initialized in unit test, then skip
+    if not SonicDBConfig.isInit():
+        if multi_asic.is_multi_asic():
+            # Load the global config file database_global.json once.
+            SonicDBConfig.load_sonic_global_db_config()
+        else:
+            SonicDBConfig.initialize()
+
     context = {
         "crm": Crm(db)
     }
 
     ctx.obj = context
-
-    # Load the global config file database_global.json once.
-    SonicDBConfig.load_sonic_global_db_config()
 
 @cli.group()
 @click.pass_context
