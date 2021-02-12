@@ -36,8 +36,8 @@ class TestSkuCreate(object):
 
         #Loop if either fname1 or fname2 has not reached EOF
         while f1_line!='' or f2_line!='':
-            f1_line = re.sub('[\s+]','',f1_line)
-            f2_line = re.sub('[\s+]','',f2_line)
+            f1_line = re.sub(r'[\s+]', '', f1_line)
+            f2_line = re.sub(r'[\s+]', '', f2_line)
 
             if f1_line!=f2_line:
                 f1.close()

@@ -640,7 +640,7 @@ def _change_hostname(hostname):
     if current_hostname != hostname:
         clicommon.run_command('echo {} > /etc/hostname'.format(hostname), display_cmd=True)
         clicommon.run_command('hostname -F /etc/hostname', display_cmd=True)
-        clicommon.run_command('sed -i "/\s{}$/d" /etc/hosts'.format(current_hostname), display_cmd=True)
+        clicommon.run_command(r'sed -i "/\s{}$/d" /etc/hosts'.format(current_hostname), display_cmd=True)
         clicommon.run_command('echo "127.0.0.1 {}" >> /etc/hosts'.format(hostname), display_cmd=True)
 
 def _clear_qos():
@@ -1990,7 +1990,7 @@ def vrf_add_management_vrf(config_db):
         Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask            MTU     Window  IRTT
          eth0    00000000        01803B0A        0003    0       0       202     00000000        0       0       0
     """
-    cmd = "cat /proc/net/route | grep -E \"eth0\s+00000000\s+[0-9A-Z]+\s+[0-9]+\s+[0-9]+\s+[0-9]+\s+202\" | wc -l"
+    cmd = r"cat /proc/net/route | grep -E \"eth0\s+00000000\s+[0-9A-Z]+\s+[0-9]+\s+[0-9]+\s+[0-9]+\s+202\" | wc -l"
     proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     output = proc.communicate()
     if int(output[0]) >= 1:

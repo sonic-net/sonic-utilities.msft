@@ -582,8 +582,7 @@ class ConfigMgmtDPB(ConfigMgmt):
                 for skey in skeys:
                     # pattern is very specific to current primary keys in
                     # config DB, may need to be updated later.
-                    pattern = '^' + skey + '\|' + '|' + skey + '$' + \
-                        '|' + '^' + skey + '$'
+                    pattern = r'^{0}\||{0}$|^{0}$'.format(skey)
                     reg = re.compile(pattern)
                     if reg.search(key):
                         # In primary key, only 1 match can be found, so return
