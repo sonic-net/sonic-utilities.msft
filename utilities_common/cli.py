@@ -351,6 +351,8 @@ def print_output_in_alias_mode(output, index):
     if output.startswith("---"):
         word = output.split()
         dword = word[index]
+        if(len(dword) > iface_alias_converter.alias_max_length):
+            dword = dword[:len(dword) - iface_alias_converter.alias_max_length]
         underline = dword.rjust(iface_alias_converter.alias_max_length,
                                 '-')
         word[index] = underline
