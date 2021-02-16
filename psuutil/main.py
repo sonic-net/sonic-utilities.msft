@@ -5,26 +5,25 @@
 # Command-line utility for interacting with PSU in SONiC
 #
 
-try:
-    import imp
-    import os
-    import sys
+import os
+import sys
 
-    import click
-    from sonic_py_common import device_info, logger
-    from tabulate import tabulate
-except ImportError as e:
-    raise ImportError("%s - required module not found" % str(e))
+import click
+import sonic_platform
+from sonic_py_common import logger
+from tabulate import tabulate
 
-VERSION = '1.0'
+
+VERSION = '2.0'
 
 SYSLOG_IDENTIFIER = "psuutil"
-PLATFORM_SPECIFIC_MODULE_NAME = "psuutil"
-PLATFORM_SPECIFIC_CLASS_NAME = "PsuUtil"
 
-# Global platform-specific psuutil class instance
-platform_psuutil = None
+ERROR_PERMISSIONS = 1
+ERROR_CHASSIS_LOAD = 2
+ERROR_NOT_IMPLEMENTED = 3
 
+# Global platform-specific Chassis class instance
+platform_chassis = None
 
 # Global logger instance
 log = logger.Logger(SYSLOG_IDENTIFIER)
@@ -32,28 +31,20 @@ log = logger.Logger(SYSLOG_IDENTIFIER)
 
 # ==================== Methods for initialization ====================
 
-# Loads platform specific psuutil module from source
-def load_platform_psuutil():
-    global platform_psuutil
+# Instantiate platform-specific Chassis class
+def load_platform_chassis():
+    global platform_chassis
 
-    # Load platform module from source
-    platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
-
+    # Load new platform api class
     try:
-        module_file = os.path.join(platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py")
-        module = imp.load_source(PLATFORM_SPECIFIC_MODULE_NAME, module_file)
-    except IOError as e:
-        log.log_error("Failed to load platform module '%s': %s" % (PLATFORM_SPECIFIC_MODULE_NAME, str(e)), True)
-        return -1
+        platform_chassis = sonic_platform.platform.Platform().get_chassis()
+    except Exception as e:
+        log.log_error("Failed to instantiate Chassis due to {}".format(repr(e)))
 
-    try:
-        platform_psuutil_class = getattr(module, PLATFORM_SPECIFIC_CLASS_NAME)
-        platform_psuutil = platform_psuutil_class()
-    except AttributeError as e:
-        log.log_error("Failed to instantiate '%s' class: %s" % (PLATFORM_SPECIFIC_CLASS_NAME, str(e)), True)
-        return -2
+    if not platform_chassis:
+        return False
 
-    return 0
+    return True
 
 
 # ==================== CLI commands and groups ====================
@@ -66,63 +57,88 @@ def cli():
 
     if os.geteuid() != 0:
         click.echo("Root privileges are required for this operation")
-        sys.exit(1)
+        sys.exit(ERROR_PERMISSIONS)
 
-    # Load platform-specific psuutil class
-    err = load_platform_psuutil()
-    if err != 0:
-        sys.exit(2)
+    # Load platform-specific Chassis class
+    if not load_platform_chassis():
+        sys.exit(ERROR_CHASSIS_LOAD)
+
 
 # 'version' subcommand
-
-
 @cli.command()
 def version():
     """Display version info"""
     click.echo("psuutil version {0}".format(VERSION))
 
+
 # 'numpsus' subcommand
-
-
 @cli.command()
 def numpsus():
     """Display number of supported PSUs on device"""
-    click.echo(str(platform_psuutil.get_num_psus()))
+    num_psus = platform_chassis.get_num_psus()
+    click.echo(str(num_psus))
+
 
 # 'status' subcommand
-
-
 @cli.command()
-@click.option('-i', '--index', default=-1, type=int, help="the index of PSU")
+@click.option('-i', '--index', default=-1, type=int, help='Index of the PSU')
 def status(index):
     """Display PSU status"""
-    supported_psu = list(range(1, platform_psuutil.get_num_psus() + 1))
-    psu_ids = []
-    if (index < 0):
-        psu_ids = supported_psu
-    else:
-        psu_ids = [index]
-
-    header = ['PSU', 'Status']
+    header = ['PSU',  'Model', 'Serial', 'Voltage (V)', 'Current (A)', 'Power (W)', 'Status', 'LED']
     status_table = []
 
-    for psu in psu_ids:
-        msg = ""
-        psu_name = "PSU {}".format(psu)
-        if psu not in supported_psu:
-            click.echo("Error! The {} is not available on the platform.\n"
-                       "Number of supported PSU - {}.".format(psu_name, platform_psuutil.get_num_psus()))
-            continue
-        presence = platform_psuutil.get_psu_presence(psu)
-        if presence:
-            oper_status = platform_psuutil.get_psu_status(psu)
-            msg = 'OK' if oper_status else "NOT OK"
-        else:
-            msg = 'NOT PRESENT'
-        status_table.append([psu_name, msg])
+    psu_list = platform_chassis.get_all_psus()
+
+    for psu in psu_list:
+        psu_name = psu.get_name()
+        status = 'NOT PRESENT'
+        model = 'N/A'
+        serial = 'N/A'
+        voltage = 'N/A'
+        current = 'N/A'
+        power = 'N/A'
+        led_color = 'N/A'
+
+        if psu.get_presence():
+            try:
+                status = 'OK' if psu.get_powergood_status() else 'NOT OK'
+            except NotImplementedError:
+                status = 'UNKNOWN'
+
+            try:
+                model = psu.get_model()
+            except NotImplementedError:
+                pass
+
+            try:
+                serial = psu.get_serial()
+            except NotImplementedError:
+                pass
+
+            try:
+                voltage = psu.get_voltage()
+            except NotImplementedError:
+                pass
+
+            try:
+                current = psu.get_current()
+            except NotImplementedError:
+                pass
+
+            try:
+                power = psu.get_power()
+            except NotImplementedError:
+                pass
+
+            try:
+                led_color = psu.get_status_led()
+            except NotImplementedError:
+                pass
+
+        status_table.append([psu_name, model, serial, voltage, current, power, status, led_color])
 
     if status_table:
-        click.echo(tabulate(status_table, header, tablefmt="simple"))
+        click.echo(tabulate(status_table, header, tablefmt='simple', floatfmt='.2f'))
 
 
 if __name__ == '__main__':
