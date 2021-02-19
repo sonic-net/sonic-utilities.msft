@@ -226,6 +226,23 @@ def get_vlan_addr_prefix(vlan_intf_name, ip_ver):
     return vlan_addr, vlan_prefix
 
 
+def get_link_local_addr(vlan_interface):
+    try:
+        out = subprocess.check_output(['ip', '-6', 'addr', 'show', vlan_interface])
+        out = out.decode('UTF-8')
+        for line in out.splitlines():
+            keys = line.split()
+            if keys[0] == 'inet6':
+                ip = IPNetwork(keys[1])
+                if str(ip.ip).startswith("fe80"):
+                    # Link local ipv6 address
+                    return str(ip.ip)
+    except Exception:
+        log.log_error('failed to get %s addresses from o.s.' % vlan_interface)
+    
+    return None
+
+
 def get_vlan_addresses(vlan_interface):
     vlan_id = get_vlan_interface_vlan_id(vlan_interface)
     vxlan_id = get_vlan_interface_vxlan_id(vlan_interface)
@@ -235,19 +252,10 @@ def get_vlan_addresses(vlan_interface):
     ipv6_addr, ipv6_prefix = get_vlan_addr_prefix(vlan_interface, 6)
 
     if len(ipv6_addr):
-        try:
-            out = subprocess.check_output(['ip', '-6', 'addr', 'show', vlan_interface])
-            out = out.decode('UTF-8')
-            for line in out.splitlines():
-                keys = line.split()
-                if keys[0] == 'inet6':
-                    ip = IPNetwork(keys[1])
-                    if str(ip.ip).startswith("fe80") and str(ip.ip) not in ipv6_addr:
-                        # Link local ipv6 address
-                        ipv6_addr.append(str(ip.ip))
-                        ipv6_prefix.append('128')
-        except Exception:
-            log.log_error('failed to get %s addresses from o.s.' % vlan_interface)
+        link_local_addr = get_link_local_addr(vlan_interface)
+        if link_local_addr and link_local_addr not in ipv6_addr:
+            ipv6_addr.append(link_local_addr)
+            ipv6_prefix.append('128')
 
     metadata = config_db.get_table('DEVICE_METADATA')
     mac_addr = metadata['localhost']['mac']

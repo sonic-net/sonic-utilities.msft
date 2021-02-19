@@ -1,6 +1,7 @@
 import sys
 import os
 import pytest
+from unittest import mock
 import subprocess
 from swsscommon.swsscommon import ConfigDBConnector
 
@@ -20,16 +21,7 @@ class TestNeighborAdvertiser(object):
         neighbor_advertiser.connect_app_db()
 
     def test_neighbor_advertiser_slice(self, set_up):
-        cmd = "sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0"
-        subprocess.check_output(cmd.split())
-        cmd = "sudo ip link add Vlan1000 type dummy"
-        subprocess.check_output(cmd.split())
-        cmd = "sudo ip -6 address add dev Vlan1000 scope link fe80::1e34:daff:fe1e:2800/64"
-        subprocess.check_output(cmd.split())
-        cmd = "sudo ip link add Vlan2000 type dummy"
-        subprocess.check_output(cmd.split())
-        cmd = "sudo ip -6 address add dev Vlan2000 scope link fe80::1e43:dfaf:fe2e:1800/64"
-        subprocess.check_output(cmd.split())
+        neighbor_advertiser.get_link_local_addr = mock.MagicMock(return_value='fe80::1e34:daff:fe1e:2800')
         output = neighbor_advertiser.construct_neighbor_advertiser_slice()
         expected_output = dict(
             {
@@ -53,7 +45,7 @@ class TestNeighborAdvertiser(object):
                         ],
                         'ipv6AddrMappings': [
                             {'macAddr': '1d:34:db:16:a6:00', 'ipAddr': 'fc02:1011::1', 'ipPrefixLen': '64'},
-                            {'macAddr': '1d:34:db:16:a6:00', 'ipAddr': 'fe80::1e43:dfaf:fe2e:1800', 'ipPrefixLen': '128'}
+                            {'macAddr': '1d:34:db:16:a6:00', 'ipAddr': 'fe80::1e34:daff:fe1e:2800', 'ipPrefixLen': '128'}
                         ],
                         'vxlanId': '2000',
                         'vlanId': '2000',
