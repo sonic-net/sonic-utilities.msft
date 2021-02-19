@@ -11,7 +11,6 @@ pool:
 
 container:
   image: sonicdev-microsoft.azurecr.io:443/sonic-slave-buster:latest
-  options: --privileged
 
 steps:
 - task: DownloadPipelineArtifact@2
