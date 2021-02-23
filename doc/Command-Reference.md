@@ -1987,6 +1987,34 @@ Optionally, you can display configured console ports only by specifying the `-b`
 
 This sub-section explains the list of configuration options available for console management module.
 
+**config console enable**
+
+This command is used to enable SONiC console switch feature.
+
+- Usage:
+  ```
+  config console enable
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config console enable
+  ```
+
+**config console disable**
+
+This command is used to disable SONiC console switch feature.
+
+- Usage:
+  ```
+  config console disable
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config console disable
+  ```
+
 **config console add**
 
 This command is used to add a console port setting.
