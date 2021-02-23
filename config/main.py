@@ -110,10 +110,8 @@ def _get_breakout_options(ctx, args, incomplete):
     else:
         breakout_file_input = readJsonFile(breakout_cfg_file)
         if interface_name in breakout_file_input[INTF_KEY]:
-            breakout_mode_list = [v["breakout_modes"] for i, v in breakout_file_input[INTF_KEY].items() if i == interface_name][0]
-            breakout_mode_options = []
-            for i in breakout_mode_list.split(','):
-                    breakout_mode_options.append(i)
+            breakout_mode_options = [mode for i, v in breakout_file_input[INTF_KEY].items() if i == interface_name \
+                                          for mode in v["breakout_modes"].keys()]
             all_mode_options = [str(c) for c in breakout_mode_options if incomplete in c]
         return all_mode_options
 
@@ -152,7 +150,7 @@ def _validate_interface_mode(ctx, breakout_cfg_file, interface_name, target_brko
         return False
 
     # Check whether target breakout mode is available for the user-selected interface or not
-    if target_brkout_mode not in breakout_file_input[interface_name]["breakout_modes"]:
+    if target_brkout_mode not in breakout_file_input[interface_name]["breakout_modes"].keys():
         click.secho('[ERROR] Target mode {} is not available for the port {}'. format(target_brkout_mode, interface_name), fg='red')
         return False
 
