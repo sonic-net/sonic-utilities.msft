@@ -18,7 +18,7 @@ import sys
 import sonic_platform
 from sonic_platform_base.sonic_eeprom.eeprom_tlvinfo import TlvInfoDecoder
 from sonic_py_common import device_info
-from swsscommon import swsscommon
+from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
 
 
@@ -77,67 +77,49 @@ def print_eeprom_dict(tlv_dict):
 def read_eeprom_from_db():
     tlv_dict = {}
 
-    state_db = swsscommon.DBConnector('STATE_DB', 0)
-    tbl = swsscommon.Table(state_db, EEPROM_INFO_TABLE)
+    db = SonicV2Connector(host="127.0.0.1")
+    db.connect(db.STATE_DB)
 
-    status, fvs = tbl.get('State')
-    status = bool(status)
-    data = dict(fvs)
-    if not status or data.get('Initialized', '0') != '1':
+    initialized = db.get(db.STATE_DB, '{}|{}'.format(EEPROM_INFO_TABLE, 'State'), 'Initialized')
+    if initialized != '1':
         return None
 
-    status, fvs = tbl.get('TlvHeader')
-    status = bool(status)
-    if not status:
-        return None
-
-    data = dict(fvs)
+    tlv_header = db.get_all(db.STATE_DB, '{}|{}'.format(EEPROM_INFO_TABLE, 'TlvHeader'))
     tlv_dict['header'] = {}
-    tlv_dict['header']['id'] = data.get('Id String', 'N/A')
-    tlv_dict['header']['version'] = data.get('Version', 'N/A')
-    tlv_dict['header']['length'] = data.get('Total Length', 'N/A')
+    tlv_dict['header']['id'] = tlv_header.get('Id String', 'N/A')
+    tlv_dict['header']['version'] = tlv_header.get('Version', 'N/A')
+    tlv_dict['header']['length'] = tlv_header.get('Total Length', 'N/A')
 
     tlv_dict['tlv_list'] = []
     for tlv_code in range(TlvInfoDecoder._TLV_CODE_PRODUCT_NAME, TlvInfoDecoder._TLV_CODE_SERVICE_TAG + 1):
         tlv_code_string = '0x{:02x}'.format(tlv_code)
-        status, fvs = tbl.get(tlv_code_string)
-        status = bool(status)
-        if not status:
-            continue
+        tlv_data = db.get_all(db.STATE_DB, '{}|{}'.format(EEPROM_INFO_TABLE, tlv_code_string))
 
-        data = dict(fvs)
         tlv = {}
         tlv['code'] = tlv_code_string
-        tlv['name'] = data.get('Name', 'N/A')
-        tlv['length'] = data.get('Len', 'N/A')
-        tlv['value'] = data.get('Value', 'N/A')
+        tlv['name'] = tlv_data.get('Name', 'N/A')
+        tlv['length'] = tlv_data.get('Len', 'N/A')
+        tlv['value'] = tlv_data.get('Value', 'N/A')
         tlv_dict['tlv_list'].append(tlv)
 
-    status, fvs = tbl.get('Checksum')
-    tlv_dict['checksum_valid'] = dict(fvs).get('Valid', '0') == '1'
+    checksum_valid = db.get(db.STATE_DB, '{}|{}'.format(EEPROM_INFO_TABLE, 'Checksum'), 'Valid')
+    tlv_dict['checksum_valid'] = (checksum_valid == '1')
 
     return tlv_dict
 
 
 def get_tlv_value_from_db(tlv_code):
-    state_db = swsscommon.DBConnector('STATE_DB', 0)
-    tbl = swsscommon.Table(state_db, EEPROM_INFO_TABLE)
+    db = SonicV2Connector(host="127.0.0.1")
+    db.connect(db.STATE_DB)
 
-    status, fvs = tbl.get('State')
-    status = bool(status)
-    data = dict(fvs)
-    if not status or data.get('Initialized', '0') != '1':
+    initialized = db.get(db.STATE_DB, '{}|{}'.format(EEPROM_INFO_TABLE, 'State'), 'Initialized')
+    if initialized != '1':
         print('Failed to read system EEPROM info from DB')
         return None
 
     tlv_code_string = '0x{:02x}'.format(tlv_code)
-    status, fvs = tbl.get(tlv_code_string)
-    status = bool(status)
-    if not status:
-        print('Failed to read system EEPROM info from DB')
-        return None
 
-    return dict(fvs).get('Value')
+    return db.get(db.STATE_DB, '{}|{}'.format(EEPROM_INFO_TABLE, tlv_code_string), 'Value')
 
 
 def print_mgmt_mac(use_db=False):
