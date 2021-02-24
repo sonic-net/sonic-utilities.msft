@@ -337,6 +337,21 @@ class TestVlan(object):
         print(result.exit_code, result.output)
         assert result.exit_code != 0
 
+        # del vlan with IP
+        result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: VLAN ID 1000 can not be removed. First remove all members assigned to this VLAN." in result.output
+
+        vlan_member = db.cfgdb.get_table('VLAN_MEMBER')
+        keys = [ (k, v) for k, v in vlan_member if k == 'Vlan{}'.format(1000) ]
+        for k,v in keys:    
+            result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["1000", v], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
         print(result.exit_code)
         print(result.output)

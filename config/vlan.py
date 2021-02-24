@@ -53,8 +53,10 @@ def del_vlan(db, vid):
             ctx.fail("{} can not be removed. First remove IP addresses assigned to this VLAN".format(vlan))
 
     keys = [ (k, v) for k, v in db.cfgdb.get_table('VLAN_MEMBER') if k == 'Vlan{}'.format(vid) ]
-    for k in keys:
-        db.cfgdb.set_entry('VLAN_MEMBER', k, None)
+    
+    if keys:
+        ctx.fail("VLAN ID {} can not be removed. First remove all members assigned to this VLAN.".format(vid))
+        
     db.cfgdb.set_entry('VLAN', 'Vlan{}'.format(vid), None)
 
 def restart_ndppd():
