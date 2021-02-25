@@ -32,6 +32,7 @@ DUMPDIR=/var/dump
 TARDIR=$DUMPDIR/$BASE
 TARFILE=$DUMPDIR/$BASE.tar
 LOGDIR=$DUMPDIR/$BASE/dump
+PLUGINS_DIR=/usr/local/bin/debug-dump
 NUM_ASICS=1
 HOME=${HOME:-/root}
 USER=${USER:-root}
@@ -138,6 +139,7 @@ save_bcmcmd_all_ns() {
 #  cmd: The command to run. Make sure that arguments with spaces have quotes
 #  filename: the filename to save the output as in $BASE/dump
 #  do_gzip: (OPTIONAL) true or false. Should the output be gzipped
+#  save_stderr: (OPTIONAL) true or false. Should the stderr output be saved
 # Returns:
 #  None
 ###############################################################################
@@ -148,9 +150,16 @@ save_cmd() {
     local filename=$2
     local filepath="${LOGDIR}/$filename"
     local do_gzip=${3:-false}
+    local save_stderr=${4:-true}
     local tarpath="${BASE}/dump/$filename"
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
+    local redirect="&>"
     [ ! -d $LOGDIR ] && $MKDIR $V -p $LOGDIR
+
+    if ! $save_stderr
+    then
+        redirect=">"
+    fi
 
     # eval required here to re-evaluate the $cmd properly at runtime
     # This is required if $cmd has quoted strings that should be bunched
@@ -171,9 +180,9 @@ save_cmd() {
         fi
     else
         if $NOOP; then
-            echo "${timeout_cmd} $cmd &> '$filepath'"
+            echo "${timeout_cmd} $cmd $redirect '$filepath'"
         else
-            eval "${timeout_cmd} $cmd" &> "$filepath"
+            eval "${timeout_cmd} $cmd" "$redirect" "$filepath"
             if [ $? -ne 0 ]; then
                 echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
             fi
@@ -1075,6 +1084,12 @@ main() {
 
     save_cmd "docker ps -a" "docker.ps"
     save_cmd "docker top pmon" "docker.pmon"
+
+    local -r dump_plugins="$(find ${PLUGINS_DIR} -type f -executable)"
+    for plugin in $dump_plugins; do
+        # save stdout output of plugin and gzip it
+        save_cmd "$plugin" "$(basename $plugin)" true false
+    done
 
     save_saidump
 
