@@ -327,9 +327,6 @@ def filter_out_local_interfaces(keys):
 
     for k in keys:
         e = dict(tbl.get(k)[1])
-        if not e:
-            # Prefix might have been added. So try w/o it.
-            e = dict(tbl.get(k.split("/"))[1])
         if not e or all([not re.match(x, e['ifname']) for x in local_if_re]):
             rt.append(k)
 
