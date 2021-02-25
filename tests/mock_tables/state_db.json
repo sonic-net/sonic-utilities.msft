@@ -121,11 +121,31 @@
     "PSU_INFO|PSU 1": {
         "presence": "true",
         "status": "true",
+        "model": "0J6J4K",
+        "serial": "CN-0J6J4K-17972-5AF-0086-A00",
+        "temp": "None",
+        "temp_threshold": "None",
+        "voltage": "12.19",
+        "voltage_min_threshold": "None",
+        "voltage_max_threshold": "None",
+        "current": "8.37",
+        "power": "102.7",
+        "is_replaceable": "False",
         "led_status": "green"
     },
     "PSU_INFO|PSU 2": {
         "presence": "true",
         "status": "true",
+        "model": "0J6J4K",
+        "serial": "CN-0J6J4K-17972-5AF-008M-A00",
+        "temp": "None",
+        "temp_threshold": "None",
+        "voltage": "12.18",
+        "voltage_min_threshold": "None",
+        "voltage_max_threshold": "None",
+        "current": "10.07",
+        "power": "122.0",
+        "is_replaceable": "False",
         "led_status": "green"
     },
     "EEPROM_INFO|TlvHeader": {

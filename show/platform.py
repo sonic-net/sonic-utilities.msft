@@ -41,7 +41,7 @@ if (version_info and version_info.get('asic_type') == 'mellanox'):
 
 # 'summary' subcommand ("show platform summary")
 @platform.command()
-@click.option('--json', is_flag=True, help="JSON output")
+@click.option('--json', is_flag=True, help="Output in JSON format")
 def summary(json):
     """Show hardware platform information"""
 
@@ -69,13 +69,17 @@ def syseeprom(verbose):
 # 'psustatus' subcommand ("show platform psustatus")
 @platform.command()
 @click.option('-i', '--index', default=-1, type=int, help="the index of PSU")
+@click.option('--json', is_flag=True, help="Output in JSON format")
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def psustatus(index, verbose):
+def psustatus(index, json, verbose):
     """Show PSU status information"""
     cmd = "psushow -s"
 
     if index >= 0:
         cmd += " -i {}".format(index)
+
+    if json:
+        cmd += " -j"
 
     clicommon.run_command(cmd, display_cmd=verbose)
 

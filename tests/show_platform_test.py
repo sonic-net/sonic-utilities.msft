@@ -3,39 +3,29 @@ import sys
 import textwrap
 from unittest import mock
 
+import pytest
 from click.testing import CliRunner
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 sys.path.insert(0, modules_path)
-
 import show.main as show
 
 
-TEST_PLATFORM = "x86_64-mlnx_msn2700-r0"
-TEST_HWSKU = "Mellanox-SN2700"
-TEST_ASIC_TYPE = "mellanox"
+@pytest.fixture(scope='class')
+def config_env():
+    os.environ["UTILITIES_UNIT_TESTING"] = "1"
+
+    yield
+
+    os.environ["UTILITIES_UNIT_TESTING"] = "0"
 
 
-"""
-    Note: The following 'show platform' commands simply call other SONiC
-    CLI utilities, so the unit tests for the other utilities are expected
-    to cover testing their functionality:
-
-        show platform fan
-        show platform firmware
-        show platform mlnx
-        show platform psustatus
-        show platform ssdhealth
-        show platform syseeprom
-        show platform temperature
-"""
-
+@pytest.mark.usefixtures('config_env')
 class TestShowPlatform(object):
-    @classmethod
-    def setup_class(cls):
-        print("SETUP")
-        os.environ["UTILITIES_UNIT_TESTING"] = "1"
+    TEST_PLATFORM = "x86_64-mlnx_msn2700-r0"
+    TEST_HWSKU = "Mellanox-SN2700"
+    TEST_ASIC_TYPE = "mellanox"
 
     # Test 'show platform summary'
     def test_summary(self):
@@ -43,15 +33,47 @@ class TestShowPlatform(object):
             Platform: {}
             HwSKU: {}
             ASIC: {}
-            """.format(TEST_PLATFORM, TEST_HWSKU, TEST_ASIC_TYPE)
+            """.format(self.TEST_PLATFORM, self.TEST_HWSKU, self.TEST_ASIC_TYPE)
 
         with mock.patch("show.platform.get_hw_info_dict",
-                        return_value={"platform": TEST_PLATFORM, "hwsku": TEST_HWSKU, "asic_type": TEST_ASIC_TYPE}):
-            runner = CliRunner()
-            result = runner.invoke(show.cli.commands["platform"].commands["summary"], [])
+                        return_value={"platform": self.TEST_PLATFORM, "hwsku": self.TEST_HWSKU, "asic_type": self.TEST_ASIC_TYPE}):
+            result = CliRunner().invoke(show.cli.commands["platform"].commands["summary"], [])
             assert result.output == textwrap.dedent(expected_output)
 
-    @classmethod
-    def teardown_class(cls):
-        print("TEARDOWN")
-        os.environ["UTILITIES_UNIT_TESTING"] = "0"
+
+class TestShowPlatformPsu(object):
+    """
+        Note: `show platform psustatus` simply calls the `psushow` utility and
+        passes a variety of options. Here we test that the utility is called
+        with the appropriate option(s). The functionality of the underlying
+        `psushow` utility is expected to be tested by a separate suite of unit tests
+    """
+    def test_all_psus(self):
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            CliRunner().invoke(show.cli.commands['platform'].commands['psustatus'], [])
+        assert mock_run_command.call_count == 1
+        mock_run_command.assert_called_with('psushow -s', display_cmd=False)
+
+    def test_all_psus_json(self):
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            CliRunner().invoke(show.cli.commands['platform'].commands['psustatus'], ['--json'])
+        assert mock_run_command.call_count == 1
+        mock_run_command.assert_called_with('psushow -s -j', display_cmd=False)
+
+    def test_single_psu(self):
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            CliRunner().invoke(show.cli.commands['platform'].commands['psustatus'], ['--index=1'])
+        assert mock_run_command.call_count == 1
+        mock_run_command.assert_called_with('psushow -s -i 1', display_cmd=False)
+
+    def test_single_psu_json(self):
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            CliRunner().invoke(show.cli.commands['platform'].commands['psustatus'], ['--index=1', '--json'])
+        assert mock_run_command.call_count == 1
+        mock_run_command.assert_called_with('psushow -s -i 1 -j', display_cmd=False)
+
+    def test_verbose(self):
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            CliRunner().invoke(show.cli.commands['platform'].commands['psustatus'], ['--verbose'])
+        assert mock_run_command.call_count == 1
+        mock_run_command.assert_called_with('psushow -s', display_cmd=True)
