@@ -102,7 +102,7 @@ class MellanoxBufferMigrator():
 
         self.spc1_platforms = ["x86_64-mlnx_msn2010-r0", "x86_64-mlnx_msn2100-r0", "x86_64-mlnx_msn2410-r0", "x86_64-mlnx_msn2700-r0", "x86_64-mlnx_msn2740-r0"]
         self.spc2_platforms = ["x86_64-mlnx_msn3700-r0", "x86_64-mlnx_msn3700c-r0"]
-        self.spc3_platforms = ["x86_64-mlnx_msn4600c-r0", "x86_64-mlnx_msn4700-r0"]
+        self.spc3_platforms = ["x86_64-mlnx_msn4600-r0", "x86_64-mlnx_msn4600c-r0", "x86_64-mlnx_msn4700-r0"]
 
         msftskus = ["Mellanox-SN2700", "Mellanox-SN2700-C28D8", "Mellanox-SN2700-D48C8",
                     "Mellanox-SN3800-C64", "Mellanox-SN3800-D24C52", "Mellanox-SN3800-D112C8", "Mellanox-SN3800-D28C50"]
