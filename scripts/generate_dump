@@ -165,8 +165,7 @@ save_cmd() {
     # This is required if $cmd has quoted strings that should be bunched
     # as one argument, e.g. vtysh -c "COMMAND HERE" needs to have
     # "COMMAND HERE" bunched together as 1 arg to vtysh -c
-    if $do_gzip
-    then
+    if $do_gzip; then
         tarpath="${tarpath}.gz"
         filepath="${filepath}.gz"
         local cmds="$cmd 2>&1 | gzip -c > '${filepath}'"
@@ -224,6 +223,71 @@ save_cmd_all_ns() {
 }
 
 ###############################################################################
+# Copies a given file from a specified docker to the given target location
+# default (host) namespace in single ASIC platform
+# Globals:
+#  None
+# Arguments:
+#  docker: docker name
+#  filename: the filename to copy
+#  destination: destination filename
+# Returns:
+#  None
+###############################################################################
+copy_from_docker() {
+    local start_t=$(date +%s%3N)
+    local end_t=0
+    local docker=$1
+    local filename=$2
+    local dstpath=$3
+    local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
+
+    if $NOOP; then
+        echo "${timeout_cmd} sudo docker exec -i ${docker} touch ${filename}"
+        echo "${timeout_cmd} sudo docker cp ${docker}:${filename} ${dstpath}"
+    else
+        eval "${timeout_cmd} sudo docker exec -i ${docker} touch ${filename}"
+        if [ $? -ne 0 ]; then
+            echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
+        fi
+        eval "${timeout_cmd} sudo docker cp ${docker}:${filename} ${dstpath}"
+        if [ $? -ne 0 ]; then
+            echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
+        fi
+    fi
+    end_t=$(date +%s%3N)
+    echo "[ copy_from_docker:${docker}:${filename} ] : $(($end_t-$start_t)) msec" \
+        >> $TECHSUPPORT_TIME_INFO
+}
+
+###############################################################################
+# Copies a given file from a specified docker to the given target location
+# default (host) namespace in single ASIC platform
+# Globals:
+#  NUM_ASICS
+# Arguments:
+#  docker: docker name
+#  filename: the filename to copy
+#  destination: destination filename
+# Returns:
+#  None
+###############################################################################
+copy_from_masic_docker() {
+    local docker=$1
+    local filename=$2
+    local dstpath=$3
+
+    if [[ ("$NUM_ASICS" > 1) ]]; then
+        for (( i=0; i<$NUM_ASICS; i++ ))
+        do
+            copy_from_docker "$docker$i" "$filename" "$dstpath.$i"
+        done
+    else
+        copy_from_docker "$docker" "$filename" "$dstpath"
+    fi
+}
+
+###############################################################################
 # Returns namespace option to be used with vtysh commmand, based on the ASIC ID.
 # Returns empty string if no ASIC ID is provided
 # Globals:
@@ -241,6 +305,7 @@ get_vtysh_namespace() {
     else
         ns=" -n  ${asic_id}"
     fi
+    echo "$ns"
 }
 
 ###############################################################################
@@ -502,6 +567,7 @@ save_redis_info() {
 #  RM
 #  BASE
 #  TARFILE
+#  NOOP
 # Arguments:
 #  *procfiles: variable-length list of proc file paths to save
 # Returns:
@@ -509,10 +575,19 @@ save_redis_info() {
 ###############################################################################
 save_proc() {
     local procfiles="$@"
-    $MKDIR $V -p $TARDIR/proc \
-        && (for f in $procfiles; do ( [ -e $f ] && $CP $V -r $f $TARDIR/proc ) || echo "$f not found" > $TARDIR/$f; done) \
-        && $TAR $V -rhf $TARFILE -C $DUMPDIR --mode=+rw $BASE/proc \
-        && $RM $V -rf $TARDIR/proc
+    $MKDIR $V -p $TARDIR/proc
+    for f in $procfiles
+    do
+        if $NOOP; then
+            if [ -e $f ]; then
+                echo "$CP $V -r $f $TARDIR/proc"
+            fi
+        else
+            ( [ -e $f ] && $CP $V -r $f $TARDIR/proc ) || echo "$f not found" > $TARDIR/$f
+        fi
+    done
+    $TAR $V -rhf $TARFILE -C $DUMPDIR --mode=+rw $BASE/proc
+    $RM $V -rf $TARDIR/proc
 }
 
 ###############################################################################
@@ -554,41 +629,6 @@ save_saidump() {
 }
 
 ###############################################################################
-# Runs a 'show platform' command, append the output to 'filename' and add to the incrementally built tar.
-# Globals:
-#  LOGDIR
-#  BASE
-#  MKDIR
-#  TAR
-#  TARFILE
-#  DUMPDIR
-#  V
-#  RM
-# Arguments:
-#  type: the type of platform information
-#  filename: the filename to save the output as in $BASE/dump
-# Returns:
-#  None
-###############################################################################
-save_platform() {
-    local start_t=$(date +%s%3N)
-    local end_t=0
-    local type="$1"
-    local filename=$2
-    local filepath="${LOGDIR}/$filename"
-    local tarpath="${BASE}/dump/$filename"
-    [ ! -d $LOGDIR ] && $MKDIR $V -p $LOGDIR
-
-    eval "show platform $type" &>> "$filepath"
-    echo $'\r' >> "$filepath"
-
-    ($TAR $V -uhf $TARFILE -C $DUMPDIR "$tarpath" \
-        || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.")
-    end_t=$(date +%s%3N)
-    echo "[ save_platform:$type ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
-}
-
-###############################################################################
 # Save platform related info
 # Globals:
 #  None
@@ -598,11 +638,11 @@ save_platform() {
 #  None
 ###############################################################################
 save_platform_info() {
-    save_platform "syseeprom" "platform"
-    save_platform "psustatus" "platform"
-    save_platform "ssdhealth" "platform"
-    save_platform "temperature" "platform"
-    save_platform "fan" "platform"
+    save_cmd "show platform syseeprom" "syseeprom"
+    save_cmd "show platform psustatus" "psustatus"
+    save_cmd "show platform ssdhealth" "ssdhealth"
+    save_cmd "show platform temperature" "temperature"
+    save_cmd "show platform fan" "fan"
 }
 
 ###############################################################################
@@ -809,6 +849,9 @@ collect_broadcom() {
     save_bcmcmd_all_ns "\"mirror dest show\"" "mirror.dest.summary"
     save_bcmcmd_all_ns "\"port *\"" "port.summary"
     save_bcmcmd_all_ns "\"d chg my_station_tcam\"" "mystation.tcam.summary"
+
+    copy_from_masic_docker "syncd" "/var/log/diagrun.log" "/var/log/diagrun.log"
+    copy_from_masic_docker "syncd" "/var/log/bcm_diag_post" "/var/log/bcm_diag_post"
 }
 
 ###############################################################################
@@ -868,7 +911,7 @@ save_log_files() {
 ###############################################################################
 # Save warmboot files
 # Globals:
-#  TARDIR, TARFILE, TAR, DUMPDIR, TECHSUPPORT_TIME_INFO
+#  TARDIR, TARFILE, TAR, DUMPDIR, TECHSUPPORT_TIME_INFO, NOOP
 # Arguments:
 #  None
 # Returns:
@@ -876,14 +919,18 @@ save_log_files() {
 ###############################################################################
 save_warmboot_files() {
     # Copy the warmboot files
-    mkdir -p $TARDIR
-    $CP $V -rf /host/warmboot $TARDIR
-
     start_t=$(date +%s%3N)
-    ($TAR $V --warning=no-file-removed  -rhf $TARFILE -C $DUMPDIR --mode=+rw \
-        $BASE/warmboot \
-        || abort "${ERROR_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
-        && $RM $V -rf $TARDIR
+    if $NOOP; then
+        echo "$CP $V -rf /host/warmboot $TARDIR"
+    else
+        mkdir -p $TARDIR
+        $CP $V -rf /host/warmboot $TARDIR
+
+        ($TAR $V --warning=no-file-removed  -rhf $TARFILE -C $DUMPDIR --mode=+rw \
+            $BASE/warmboot \
+            || abort "${ERROR_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
+            && $RM $V -rf $TARDIR
+    fi
     end_t=$(date +%s%3N)
     echo "[ Warm-boot Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 }
@@ -1137,24 +1184,6 @@ main() {
     end_t=$(date +%s%3N)
     echo "[ TAR /etc Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 
-    if [ "$asic" = "broadcom" ]; then
-        if [[ ("$NUM_ASICS" > 1) ]]; then
-            for (( i=0; i<$NUM_ASICS; i++ ))
-            do
-                sudo docker exec -i syncd$i touch /var/log/diagrun.log
-                sudo docker exec -i syncd$i touch /var/log/bcm_diag_post
-
-                sudo docker cp syncd$i:/var/log/diagrun.log /var/log/diagrun.log.$i
-                sudo docker cp syncd$i:/var/log/bcm_diag_post /var/log/bcm_diag_post.$i
-            done
-        else
-           sudo docker exec -i syncd touch /var/log/diagrun.log
-           sudo docker exec -i syncd touch /var/log/bcm_diag_post
-
-           sudo docker cp syncd:/var/log/diagrun.log /var/log/diagrun.log
-           sudo docker cp syncd:/var/log/bcm_diag_post /var/log/bcm_diag_post
-        fi
-    fi
     save_log_files
     save_warmboot_files
     save_crash_files
