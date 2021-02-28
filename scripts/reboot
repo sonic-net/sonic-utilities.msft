@@ -1,6 +1,7 @@
 #!/bin/bash
 DEVPATH="/usr/share/sonic/device"
 PLAT_REBOOT="platform_reboot"
+PLATFORM_UPDATE_REBOOT_CAUSE="platform_update_reboot_cause"
 REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
 REBOOT_TIME=$(date)
 
@@ -165,6 +166,11 @@ fi
 if [ -x ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ]; then
     debug "updating ssd fw for${REBOOT_TYPE}"
     ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ${REBOOT_TYPE}
+fi
+
+if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_UPDATE_REBOOT_CAUSE} ]; then
+    debug "updating reboot cause for ${PLATFORM}"
+    ${DEVPATH}/${PLATFORM}/${PLATFORM_UPDATE_REBOOT_CAUSE}
 fi
 
 if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
