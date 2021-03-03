@@ -103,6 +103,7 @@ class AclLoader(object):
         "IP_RSVP": 46,
         "IP_GRE": 47,
         "IP_AUTH": 51,
+        "IP_ICMPV6": 58,
         "IP_L2TP": 115
     }
 
@@ -290,6 +291,14 @@ class AclLoader(object):
         """
         return self.tables_db_info[tname]['type'].upper().startswith(self.ACL_TABLE_TYPE_MIRROR)
 
+    def is_table_ipv6(self, tname):
+        """
+        Check if ACL table type is IPv6 (L3V6 or MIRRORV6)
+        :param tname: ACL table name
+        :return: True if table type is IPv6 else False
+        """
+        return self.tables_db_info[tname]["type"].upper() in ("L3V6", "MIRRORV6")
+
     def is_table_control_plane(self, tname):
         """
         Check if ACL table type is ACL_TABLE_TYPE_CTRLPLANE
@@ -409,9 +418,18 @@ class AclLoader(object):
             else:
                 try:
                     rule_props["ETHER_TYPE"] = int(rule.l2.config.ethertype)
-                except:
-                    raise AclLoaderException("Failed to convert ethertype %s table %s rule %s" % (
-                        rule.l2.config.ethertype, table_name, rule_idx))
+                except Exception as e:
+                    raise AclLoaderException(
+                        "Failed to convert ethertype %s; table %s rule %s; exception=%s" %
+                        (rule.l2.config.ethertype, table_name, rule_idx, str(e)))
+
+        if rule.l2.config.vlan_id != "" and rule.l2.config.vlan_id != "null":
+            vlan_id = rule.l2.config.vlan_id
+
+            if vlan_id <= 0 or vlan_id >= 4096:
+                raise AclLoaderException("VLAN ID %d is out of bounds (0, 4096)" % (vlan_id))
+
+            rule_props["VLAN_ID"] = vlan_id
 
         return rule_props
 
@@ -422,7 +440,12 @@ class AclLoader(object):
         # so there isn't currently a good way to check if the user defined proto=0 or not.
         if rule.ip.config.protocol:
             if rule.ip.config.protocol in self.ip_protocol_map:
-                rule_props["IP_PROTOCOL"] = self.ip_protocol_map[rule.ip.config.protocol]
+                # Special case: ICMP has different protocol numbers for IPv4 and IPv6, so if we receive
+                # "IP_ICMP" we need to pick the correct protocol number for the IP version
+                if rule.ip.config.protocol == "IP_ICMP" and self.is_table_ipv6(table_name):
+                    rule_props["IP_PROTOCOL"] = self.ip_protocol_map["IP_ICMPV6"]
+                else:
+                    rule_props["IP_PROTOCOL"] = self.ip_protocol_map[rule.ip.config.protocol]
             else:
                 try:
                     int(rule.ip.config.protocol)
@@ -450,6 +473,31 @@ class AclLoader(object):
         if self.is_table_mirror(table_name):
             if rule.ip.config.dscp:
                 rule_props["DSCP"] = rule.ip.config.dscp
+
+        return rule_props
+
+    def convert_icmp(self, table_name, rule_idx, rule):
+        rule_props = {}
+
+        is_table_v6 = self.is_table_ipv6(table_name)
+        type_key = "ICMPV6_TYPE" if is_table_v6 else "ICMP_TYPE"
+        code_key = "ICMPV6_CODE" if is_table_v6 else "ICMP_CODE"
+
+        if rule.icmp.config.type != "" and rule.icmp.config.type != "null":
+            icmp_type = rule.icmp.config.type
+
+            if icmp_type < 0 or icmp_type > 255:
+                raise AclLoaderException("ICMP type %d is out of bounds [0, 255]" % (icmp_type))
+
+            rule_props[type_key] = icmp_type
+
+        if rule.icmp.config.code != "" and rule.icmp.config.code != "null":
+            icmp_code = rule.icmp.config.code
+
+            if icmp_code < 0 or icmp_code > 255:
+                raise AclLoaderException("ICMP code %d is out of bounds [0, 255]" % (icmp_code))
+
+            rule_props[code_key] = icmp_code
 
         return rule_props
 
@@ -527,6 +575,7 @@ class AclLoader(object):
         deep_update(rule_props, self.convert_action(table_name, rule_idx, rule))
         deep_update(rule_props, self.convert_l2(table_name, rule_idx, rule))
         deep_update(rule_props, self.convert_ip(table_name, rule_idx, rule))
+        deep_update(rule_props, self.convert_icmp(table_name, rule_idx, rule))
         deep_update(rule_props, self.convert_transport(table_name, rule_idx, rule))
         deep_update(rule_props, self.convert_input_interface(table_name, rule_idx, rule))
 
