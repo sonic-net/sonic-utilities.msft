@@ -56,7 +56,7 @@ bko_dict_4 = {
     "1x1":   { "lanes":4, "speed":1000,   "step":4, "bko":0, "name": "etp" },
     "4x10":  { "lanes":4, "speed":10000,  "step":1, "bko":1, "name": "etp" },
     "4x25":  { "lanes":4, "speed":25000,  "step":1, "bko":1, "name": "etp" },
-    "2x50":  { "lanes":4, "speed":25000,  "step":2, "bko":1, "name": "etp" },
+    "2x50":  { "lanes":4, "speed":50000,  "step":2, "bko":1, "name": "etp" },
 }
 
 bko_dict_8 = {
@@ -218,7 +218,7 @@ class SkuCreate(object):
                     return entry
         return None
 
-    def write_json_lanes_to_ini_file(self, data, port_idx, port_split, f_out):
+    def write_json_lanes_to_pi_list(self, data, port_idx, port_split, pi_list):
         # Function to write line of port_config.ini corresponding to a port
         step = self.bko_dict[port_split]["step"]
         for i in range(0,self.base_lanes,step):
@@ -227,18 +227,14 @@ class SkuCreate(object):
             curr_speed = curr_port_dict.get("speed")
             curr_alias = curr_port_dict.get("alias")
             curr_lanes = curr_port_dict.get("lanes")
-            curr_index = port_idx/self.base_lanes
-            out_str = "{:15s} {:20s} {:11s} {:9s} {:10s}\n".format(curr_port_str,curr_lanes,curr_alias,str(curr_index),str(curr_speed))
-            if self.print_mode == True:
-                print(out_str)
-            else:
-                f_out.write(out_str)
-            if self.verbose and (self.print_mode == False):
-                print(out_str)
+            curr_index = int(port_idx/self.base_lanes) + 1
+            curr_port_info = [curr_port_str, curr_lanes, curr_alias, curr_index, curr_speed]
+            pi_list.append(curr_port_info)
         return
 
     def json_file_parser(self, json_file):
         # Function to generate SKU file from config_db.json file by extracting port related information from the config_db.json file
+        pi_list = []
         with open(json_file) as f:
             data = json.load(f,object_pairs_hook=OrderedDict)
         meta_dict = data['DEVICE_METADATA']['localhost']
@@ -254,6 +250,9 @@ class SkuCreate(object):
         f_out = open(new_file, 'w')
         header_str = "#name           lanes                alias       index     speed\n"
         f_out.write(header_str)
+      
+        # data['PORT'] is already an OrderedDict, we can not sort it, so we create
+        # pi_list - list of port info items and then sort it 
         for key, value in data['PORT'].items():
             pattern = '^Ethernet([0-9]{1,})'
             m = re.match(pattern,key)
@@ -265,9 +264,20 @@ class SkuCreate(object):
             if port_idx%self.base_lanes == 0:
                 result = self.check_json_lanes_with_bko(data, port_idx)
                 if result != None:
-                    self.write_json_lanes_to_ini_file(data,port_idx,result,f_out)
+                    self.write_json_lanes_to_pi_list(data, port_idx, result, pi_list)
             else:
                 continue
+        
+        pi_list.sort(key=lambda x: (int(re.search(('^Ethernet([0-9]{1,})'),x[0]).group(1)))) # sort the list with interface name
+    
+        for port_info in pi_list: 
+            out_str = "{:15s} {:20s} {:11s} {:9s} {:10s}\n".format(port_info[0],port_info[1],port_info[2],str(port_info[3]),str(port_info[4]))
+            if self.print_mode == True:
+                print(out_str)
+            else:
+                f_out.write(out_str)
+            if self.verbose and (self.print_mode == False):
+                print(out_str)
         f_out.close()
         self.port_config_split_analyze(self.ini_file)
         self.form_port_config_dict_from_ini(self.ini_file)
@@ -275,6 +285,19 @@ class SkuCreate(object):
         shutil.copy(new_file,self.ini_file)
         return
 
+    def parse_platform_from_config_db_file(self, config_file):
+        with open(config_file) as f:
+            data = json.load(f,object_pairs_hook=OrderedDict)
+        meta_dict = data['DEVICE_METADATA']['localhost']
+        platform = meta_dict.get("platform")
+        pattern = '^x86_64-mlnx_msn([0-9]{1,}[a-zA-Z]?)-r0'
+        m = re.match(pattern,platform)
+        if m is None:
+            print("Platform Name ", platform, " is not valid, Exiting...", file=sys.stderr) 
+            exit(1)
+        self.platform = platform
+
+       
     def port_config_split_analyze(self, ini_file):
         #Internal function to populate fpp_split tuple with from a port information
         new_file = ini_file + ".new"
@@ -398,16 +421,16 @@ class SkuCreate(object):
 
                 #find split partition
                 for i in range(0,base_lanes,step):
-                    port_str = "Ethernet{:d}".format(line_port_index + i/step)
-                    lanes_str = "{:d}".format(lane_index + i/step)
+                    port_str = "Ethernet{:d}".format(line_port_index + i)
+                    lanes_str = "{:d}".format(lane_index + i)
                     if step > 1:
                         for j in range(1,step):
-                            lanes_str += ",{:d}".format(lane_index + j)
+                            lanes_str += ",{:d}".format(lane_index + i + j)
                     if bko == 0:
                         alias_str = "etp{:d}".format(alias_index)
                     else:
-                        alias_str = "etp{:d}{:s}".format(alias_index,alias_arr[i/step])
-                    index_str = "{:d}".format(alias_index-1)
+                        alias_str = "etp{:d}{:s}".format(alias_index,alias_arr[int(i/step)])
+                    index_str = "{:d}".format(alias_index)
                     lanes_str_result = lanes_str_result + ":" + lanes_str
                     out_str = "{:15s} {:20s} {:11s} {:9s} {:10s}\n".format(port_str,lanes_str,alias_str,index_str,str(speed))
                     f_out.write(out_str)
@@ -446,7 +469,6 @@ class SkuCreate(object):
 
         for port_index in range (port_idx,port_idx+self.base_lanes):
             port_str = "Ethernet" + str(port_index)
-            print("Port String ",port_str)
                 
             if data['PORT'].get(port_str) != None:
                 port_instance = data['PORT'].get(port_str)
@@ -467,15 +489,14 @@ class SkuCreate(object):
         bko = self.bko_dict[port_split]["bko"]
 
         for i in range(0,self.base_lanes,step):
-            port_str = "Ethernet{:d}".format(port_idx + i/step)
+            port_str = "Ethernet{:d}".format(port_idx + i)
             lanes_str = lanes_arr[j]
             j += 1
                  
             if bko == 0:
-                alias_str = "etp{:d}".format((port_idx/self.base_lanes)+1)
+                alias_str = "etp{:d}".format(int(port_idx/self.base_lanes)+1)
             else:
-                alias_str = "etp{:d}{:s}".format((port_idx/self.base_lanes)+1,alias_arr[i/step])
-                print("i= ",i," alias_str= ",alias_str)
+                alias_str = "etp{:d}{:s}".format(int(port_idx/self.base_lanes)+1,alias_arr[int(i/step)])
             port_inst["lanes"] = lanes_str
             port_inst["alias"] = alias_str
             port_inst["speed"] = speed*1000
@@ -487,6 +508,7 @@ class SkuCreate(object):
 
         with open(new_file, 'w') as outfile:
             json.dump(data, outfile, indent=4, sort_keys=True)
+        shutil.copy(new_file,cfg_file)
 
         print("--------------------------------------------------------")
 
@@ -555,7 +577,7 @@ class SkuCreate(object):
             m = re.match(pattern,self.default_lanes_per_port[fp-1])
             if (splt == 1):
                 self.portconfig_dict[idx_arr[0]][lanes_index] = m.group(1)+","+m.group(2)+","+m.group(3)+","+m.group(4) 
-                self.portconfig_dict[idx_arr[0]][index_index] = str(fp-1)
+                self.portconfig_dict[idx_arr[0]][index_index] = str(fp)
                 self.portconfig_dict[idx_arr[0]][name_index] = "Ethernet"+str((fp-1)*4)
                 if (self.verbose):
                     print("set_lanes -> FP: ",fp, "Split: ",splt)
@@ -563,8 +585,8 @@ class SkuCreate(object):
             elif (splt == 2):
                 self.portconfig_dict[idx_arr[0]][lanes_index] = m.group(1)+","+m.group(2) 
                 self.portconfig_dict[idx_arr[1]][lanes_index] = m.group(3)+","+m.group(4)
-                self.portconfig_dict[idx_arr[0]][index_index] = str(fp-1) 
-                self.portconfig_dict[idx_arr[1]][index_index] = str(fp-1)
+                self.portconfig_dict[idx_arr[0]][index_index] = str(fp) 
+                self.portconfig_dict[idx_arr[1]][index_index] = str(fp)
                 self.portconfig_dict[idx_arr[0]][name_index] = "Ethernet"+str((fp-1)*4) 
                 self.portconfig_dict[idx_arr[1]][name_index] = "Ethernet"+str((fp-1)*4+2)
                 if (self.verbose):
@@ -576,10 +598,10 @@ class SkuCreate(object):
                 self.portconfig_dict[idx_arr[1]][lanes_index] = m.group(2) 
                 self.portconfig_dict[idx_arr[2]][lanes_index] = m.group(3) 
                 self.portconfig_dict[idx_arr[3]][lanes_index] = m.group(4)
-                self.portconfig_dict[idx_arr[0]][index_index] = str(fp-1) 
-                self.portconfig_dict[idx_arr[1]][index_index] = str(fp-1) 
-                self.portconfig_dict[idx_arr[2]][index_index] = str(fp-1) 
-                self.portconfig_dict[idx_arr[3]][index_index] = str(fp-1)
+                self.portconfig_dict[idx_arr[0]][index_index] = str(fp) 
+                self.portconfig_dict[idx_arr[1]][index_index] = str(fp) 
+                self.portconfig_dict[idx_arr[2]][index_index] = str(fp) 
+                self.portconfig_dict[idx_arr[3]][index_index] = str(fp)
                 self.portconfig_dict[idx_arr[0]][name_index] = "Ethernet"+str((fp-1)*4) 
                 self.portconfig_dict[idx_arr[1]][name_index] = "Ethernet"+str((fp-1)*4+1) 
                 self.portconfig_dict[idx_arr[2]][name_index] = "Ethernet"+str((fp-1)*4+2) 
@@ -700,6 +722,7 @@ def main(argv):
     parser.add_argument('-p', '--print', action='store_true', help='Print port_config.ini without creating a new SKU', default=False)
     parser.add_argument('--verbose', action='store_true', help='Verbose output', default=False)
     parser.add_argument('-d', '--default_sku_path', action='store',nargs=1, help='Specify Default SKU path', default=None)
+    parser.add_argument('-q', '--port_split_path', action='store',nargs=1, help='Specify Port split path', default=None)
     parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
 
     args = parser.parse_args()
@@ -736,6 +759,8 @@ def main(argv):
         elif args.minigraph_file:
             sku.minigraph_parser(args.minigraph_file)
         elif args.json_file:
+            if sku.platform is None:
+                sku.parse_platform_from_config_db_file(args.json_file[0])
             if sku.platform in platform_4:
                 sku.base_lanes = 4
                 sku.bko_dict = bko_dict_4
@@ -751,6 +776,25 @@ def main(argv):
             sku.json_file_parser(args.json_file[0])
             return
         elif args.port_split:
+            if args.port_split_path:
+                sku.ini_file = args.port_split_path[0] + "/port_config.ini"
+                sku.cfg_file = args.port_split_path[0] + "/config_db.json"
+                sku.parse_platform_from_config_db_file(sku.cfg_file)
+            else:
+                try:
+                    sku_name = subprocess.check_output("show platform summary | grep HwSKU ",shell=True).rstrip().split()[1] 
+                except KeyError:
+                    print("Couldn't find HwSku info in Platform summary", file=sys.stderr)
+                    exit(1)
+                sku.ini_file = sku.default_sku_path + "/" + sku_name + "/port_config.ini"
+                sku.cfg_file = "/etc/sonic/config_db.json"
+
+            if sku.platform in platform_4:
+                sku.base_lanes = 4
+                sku.bko_dict = bko_dict_4
+            else:
+                sku.base_lanes = 8
+                sku.bko_dict = bko_dict_8
             sku.break_a_port(args.port_split[0], args.port_split[1])
             return
 
