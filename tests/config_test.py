@@ -12,12 +12,14 @@ from sonic_py_common import device_info
 from utilities_common.db import Db
 
 load_minigraph_command_output="""\
+Disabling container monitoring ...
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -H -m --write-to-db
 Running command: pfcwd start_default
 Running command: config qos reload --no-dynamic-buffer
 Restarting SONiC target ...
 Reloading Monit configuration ...
+Enabling container monitoring ...
 Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
 """
 
@@ -49,7 +51,7 @@ class TestLoadMinigraph(object):
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
-            assert mock_run_command.call_count == 7
+            assert mock_run_command.call_count == 9
 
     @classmethod
     def teardown_class(cls):
