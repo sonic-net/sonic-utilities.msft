@@ -434,6 +434,9 @@
         "dhcp_servers@": "192.0.0.1,192.0.0.2,192.0.0.3,192.0.0.4",
         "vlanid": "2000"
     },
+    "VLAN|Vlan3000": {
+        "vlanid": "3000"
+    },
     "VLAN_INTERFACE|Vlan1000": {
         "NULL": "NULL"
     },
