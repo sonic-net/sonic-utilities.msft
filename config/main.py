@@ -793,6 +793,38 @@ def update_sonic_environment():
             display_cmd=True
         )
 
+def cache_arp_entries():
+    success = True
+    cache_dir = '/host/config-reload'
+    click.echo('Caching ARP table to {}'.format(cache_dir))
+
+    if not os.path.exists(cache_dir):
+        os.mkdir(cache_dir)
+
+    arp_cache_cmd = '/usr/local/bin/fast-reboot-dump.py -t {}'.format(cache_dir)
+    cache_proc = subprocess.Popen(arp_cache_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+    _, cache_err = cache_proc.communicate()
+    if cache_err:
+        click.echo("Could not cache ARP and FDB info prior to reloading")
+        success = False
+
+    if not cache_err:
+        fdb_cache_file = os.path.join(cache_dir, 'fdb.json')
+        arp_cache_file = os.path.join(cache_dir, 'arp.json')
+        fdb_filter_cmd = '/usr/local/bin/filter_fdb_entries -f {} -a {} -c /etc/sonic/configdb.json'.format(fdb_cache_file, arp_cache_file)
+        filter_proc = subprocess.Popen(fdb_filter_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+        _, filter_err = filter_proc.communicate()
+        if filter_err:
+            click.echo("Could not filter FDB entries prior to reloading")
+            success = False
+    
+    # If we are able to successfully cache ARP table info, signal SWSS to restore from our cache
+    # by creating /host/config-reload/needs-restore
+    if success:
+        restore_flag_file = os.path.join(cache_dir, 'needs-restore')
+        open(restore_flag_file, 'w').close()
+    return success
+
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
 @click.pass_context
@@ -953,9 +985,10 @@ def load(filename, yes):
 @click.option('-y', '--yes', is_flag=True)
 @click.option('-l', '--load-sysinfo', is_flag=True, help='load system default information (mac, portmap etc) first.')
 @click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
+@click.option('-d', '--disable_arp_cache', default=False, is_flag=True, help='Do not cache ARP table before reloading (applies to dual ToR systems only)')
 @click.argument('filename', required=False)
 @clicommon.pass_db
-def reload(db, filename, yes, load_sysinfo, no_service_restart):
+def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cache):
     """Clear current configuration and import a previous saved config DB dump file.
        <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
@@ -993,6 +1026,13 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart):
             sys.exit(1)
         else:
             cfg_hwsku = cfg_hwsku.strip()
+
+    # For dual ToR devices, cache ARP and FDB info
+    localhost_metadata = db.cfgdb.get_table('DEVICE_METADATA')['localhost']
+    cache_arp_table = not disable_arp_cache and 'subtype' in localhost_metadata and localhost_metadata['subtype'].lower() == 'dualtor'
+
+    if cache_arp_table:
+        cache_arp_entries()
 
     #Stop services before config push
     if not no_service_restart:
