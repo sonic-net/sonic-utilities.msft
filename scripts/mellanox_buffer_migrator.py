@@ -104,7 +104,7 @@ class MellanoxBufferMigrator():
         self.spc2_platforms = ["x86_64-mlnx_msn3700-r0", "x86_64-mlnx_msn3700c-r0"]
         self.spc3_platforms = ["x86_64-mlnx_msn4600-r0", "x86_64-mlnx_msn4600c-r0", "x86_64-mlnx_msn4700-r0"]
 
-        msftskus = ["Mellanox-SN2700", "Mellanox-SN2700-C28D8", "Mellanox-SN2700-D48C8",
+        msftskus = ["Mellanox-SN2700", "Mellanox-SN2700-C28D8", "Mellanox-SN2700-D48C8", "Mellanox-SN2700-D40C8S8",
                     "Mellanox-SN3800-C64", "Mellanox-SN3800-D24C52", "Mellanox-SN3800-D112C8", "Mellanox-SN3800-D28C50"]
 
         self.is_msft_sku = self.sku in msftskus
@@ -328,9 +328,11 @@ class MellanoxBufferMigrator():
             "pool_convert_map": {
                 "spc1_t0_pool_sku_map": {"Mellanox-SN2700-C28D8": "spc1_2700-d48c8_t0_pool_shp",
                                          "Mellanox-SN2700-D48C8": "spc1_2700-d48c8_t0_pool_shp",
+                                         "Mellanox-SN2700-D40C8S8": "spc1_2700-d48c8_t0_pool_shp",
                                          "Mellanox-SN2700": "spc1_2700_t0_pool_shp"},
                 "spc1_t1_pool_sku_map": {"Mellanox-SN2700-C28D8": "spc1_2700-d48c8_t1_pool_shp",
                                          "Mellanox-SN2700-D48C8": "spc1_2700-d48c8_t1_pool_shp",
+                                         "Mellanox-SN2700-D40C8S8": "spc1_2700-d48c8_t1_pool_shp",
                                          "Mellanox-SN2700": "spc1_2700_t1_pool_shp"}
             },
             "pool_mapped_from_old_version": {
@@ -379,7 +381,7 @@ class MellanoxBufferMigrator():
 
             "headrooms": {
                 "mapping": {
-                    "default": ("skumap", {"Mellanox-SN2700": "msft", "Mellanox-SN2700-C28D8": "msft", "Mellanox-SN2700-D48C8": "msft"})
+                    "default": ("skumap", {"Mellanox-SN2700": "msft", "Mellanox-SN2700-C28D8": "msft", "Mellanox-SN2700-D48C8": "msft", "Mellanox-SN2700-D40C8S8": "msft"})
                 },
                 "spc1_headroom": {
                     "default": ("version_1_0_4", "spc1_headroom"),
