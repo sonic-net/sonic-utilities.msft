@@ -193,7 +193,7 @@
 						}
 					}
 				},
-				"DATAACLV6": {
+				"DATAACL_2": {
 					"acl-entries": {
 						"acl-entry": {
 							"1": {

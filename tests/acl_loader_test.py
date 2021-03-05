@@ -100,7 +100,7 @@ class TestAclLoader(object):
         acl_loader.rules_info = {}
         acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl1.json'))
         print(acl_loader.rules_info)
-        assert acl_loader.rules_info[("DATAACLV6", "RULE_1")] == {
+        assert acl_loader.rules_info[("DATAACL_2", "RULE_1")] == {
             "ICMPV6_TYPE": 1,
             "ICMPV6_CODE": 0,
             "IP_PROTOCOL": 58,
@@ -109,7 +109,7 @@ class TestAclLoader(object):
             "PACKET_ACTION": "FORWARD",
             "PRIORITY": "9999"
         }
-        assert acl_loader.rules_info[("DATAACLV6", "RULE_100")] == {
+        assert acl_loader.rules_info[("DATAACL_2", "RULE_100")] == {
             "ICMPV6_TYPE": 128,
             "IP_PROTOCOL": 58,
             "SRC_IPV6": "::1/128",
@@ -147,3 +147,19 @@ class TestAclLoader(object):
         with pytest.raises(ValueError):
             acl_loader.rules_info = {}
             acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_icmp_code_nan.json'))
+
+    def test_icmp_fields_with_non_icmp_protocol(self, acl_loader):
+        acl_loader.rules_info = {}
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/icmp_bad_protocol_number.json'))
+        assert not acl_loader.rules_info.get("RULE_1")
+
+    def ttest_icmp_fields_with_non_icmpv6_protocol(self, acl_loader):
+        acl_loader.rules_info = {}
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/icmpv6_bad_protocol_number.json'))
+        assert not acl_loader.rules_info.get("RULE_1")
+
+
+    def test_icmp_fields_with_non_tcp_protocol(self, acl_loader):
+        acl_loader.rules_info = {}
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/tcp_bad_protocol_number.json'))
+        assert not acl_loader.rules_info.get("RULE_1")

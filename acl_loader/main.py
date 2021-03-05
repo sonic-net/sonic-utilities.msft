@@ -559,6 +559,19 @@ class AclLoader(object):
 
         return rule_props
 
+    def validate_rule_fields(self, rule_props):
+        protocol = rule_props.get("IP_PROTOCOL")
+
+        if protocol:
+            if "TCP_FLAGS" in rule_props and protocol != 6:
+                raise AclLoaderException("IP_PROTOCOL={} is not TCP, but TCP flags were provided".format(protocol))
+
+            if ("ICMP_TYPE" in rule_props or "ICMP_CODE" in rule_props) and protocol != 1:
+                raise AclLoaderException("IP_PROTOCOL={} is not ICMP, but ICMP fields were provided".format(protocol))
+
+            if ("ICMPV6_TYPE" in rule_props or "ICMPV6_CODE" in rule_props) and protocol != 58:
+                raise AclLoaderException("IP_PROTOCOL={} is not ICMPV6, but ICMPV6 fields were provided".format(protocol))
+
     def convert_rule_to_db_schema(self, table_name, rule):
         """
         Convert rules format from openconfig ACL to Config DB schema
@@ -579,6 +592,8 @@ class AclLoader(object):
         deep_update(rule_props, self.convert_transport(table_name, rule_idx, rule))
         deep_update(rule_props, self.convert_input_interface(table_name, rule_idx, rule))
 
+        self.validate_rule_fields(rule_props)
+
         return rule_data
 
     def deny_rule(self, table_name):
@@ -591,7 +606,7 @@ class AclLoader(object):
         rule_data = {(table_name, "DEFAULT_RULE"): rule_props}
         rule_props["PRIORITY"] = str(self.min_priority)
         rule_props["PACKET_ACTION"] = "DROP"
-        if 'v6' in table_name.lower():
+        if self.is_table_ipv6(table_name):
             rule_props["IP_TYPE"] = "IPV6ANY"  # ETHERTYPE is not supported for DATAACLV6
         else:
             rule_props["ETHER_TYPE"] = str(self.ethertype_map["ETHERTYPE_IPV4"])
