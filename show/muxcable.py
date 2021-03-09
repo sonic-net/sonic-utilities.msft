@@ -21,6 +21,10 @@ EXIT_SUCCESS = 0
 STATUS_FAIL = 1
 STATUS_SUCCESSFUL = 102
 
+VENDOR_NAME = "Credo"
+VENDOR_MODEL = "CAC125321P2PA0MS"
+
+
 #
 # 'muxcable' command ("show muxcable")
 #
@@ -74,24 +78,25 @@ def get_switch_name(config_db):
         sys.exit(STATUS_FAIL)
 
 
-def create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, asic_index, port):
+def create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, muxcable_health_dict, asic_index, port):
 
     status_value = get_value_for_key_in_dict(muxcable_info_dict[asic_index], port, "state", "MUX_CABLE_TABLE")
     port_status_dict["MUX_CABLE"][port] = {}
     port_status_dict["MUX_CABLE"][port]["STATUS"] = status_value
-    # TODO : Fix the health status of the port
-    port_status_dict["MUX_CABLE"][port]["HEALTH"] = "HEALTHY"
+    health_value = get_value_for_key_in_dict(muxcable_health_dict[asic_index], port, "state", "MUX_LINKMGR_TABLE")
+    port_status_dict["MUX_CABLE"][port]["HEALTH"] = health_value
 
 
-def create_table_dump_per_port_status(print_data, muxcable_info_dict, asic_index, port):
+def create_table_dump_per_port_status(print_data, muxcable_info_dict, muxcable_health_dict, asic_index, port):
 
     print_port_data = []
 
     status_value = get_value_for_key_in_dict(muxcable_info_dict[asic_index], port, "state", "MUX_CABLE_TABLE")
     #status_value = get_value_for_key_in_tbl(y_cable_asic_table, port, "status")
+    health_value = get_value_for_key_in_dict(muxcable_health_dict[asic_index], port, "state", "MUX_LINKMGR_TABLE")
     print_port_data.append(port)
     print_port_data.append(status_value)
-    print_port_data.append("HEALTHY")
+    print_port_data.append(health_value)
     print_data.append(print_port_data)
 
 
@@ -126,8 +131,10 @@ def status(port, json_output):
     """Show muxcable status information"""
 
     port_table_keys = {}
+    port_health_table_keys = {}
     per_npu_statedb = {}
     muxcable_info_dict = {}
+    muxcable_health_dict = {}
 
     # Getting all front asic namespace and correspding config and state DB connector
 
@@ -139,6 +146,8 @@ def status(port, json_output):
 
         port_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
             per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|*')
+        port_health_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
+            per_npu_statedb[asic_id].STATE_DB, 'MUX_LINKMGR_TABLE|*')
 
     if port is not None:
         asic_index = None
@@ -155,22 +164,27 @@ def status(port, json_output):
 
         muxcable_info_dict[asic_index] = per_npu_statedb[asic_index].get_all(
             per_npu_statedb[asic_index].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
+        muxcable_health_dict[asic_index] = per_npu_statedb[asic_index].get_all(
+            per_npu_statedb[asic_index].STATE_DB, 'MUX_LINKMGR_TABLE|{}'.format(port))
         if muxcable_info_dict[asic_index] is not None:
-            logical_key = "MUX_CABLE_TABLE"+"|"+port
-            if logical_key in port_table_keys[asic_index]:
+            logical_key = "MUX_CABLE_TABLE|{}".format(port)
+            logical_health_key = "MUX_LINKMGR_TABLE|{}".format(port)
+            if logical_key in port_table_keys[asic_index] and logical_health_key in port_health_table_keys[asic_index]:
 
                 if json_output:
                     port_status_dict = {}
                     port_status_dict["MUX_CABLE"] = {}
 
-                    create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, asic_index, port)
+                    create_json_dump_per_port_status(port_status_dict, muxcable_info_dict,
+                                                     muxcable_health_dict, asic_index, port)
 
                     click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
                     sys.exit(STATUS_SUCCESSFUL)
                 else:
                     print_data = []
 
-                    create_table_dump_per_port_status(print_data, muxcable_info_dict, asic_index, port)
+                    create_table_dump_per_port_status(print_data, muxcable_info_dict,
+                                                      muxcable_health_dict, asic_index, port)
 
                     headers = ['PORT', 'STATUS', 'HEALTH']
 
@@ -194,7 +208,10 @@ def status(port, json_output):
                     port = key.split("|")[1]
                     muxcable_info_dict[asic_id] = per_npu_statedb[asic_id].get_all(
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
-                    create_json_dump_per_port_status(port_status_dict, muxcable_info_dict, asic_id, port)
+                    muxcable_health_dict[asic_id] = per_npu_statedb[asic_id].get_all(
+                        per_npu_statedb[asic_id].STATE_DB, 'MUX_LINKMGR_TABLE|{}'.format(port))
+                    create_json_dump_per_port_status(port_status_dict, muxcable_info_dict,
+                                                     muxcable_health_dict, asic_id, port)
 
             click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
         else:
@@ -203,10 +220,13 @@ def status(port, json_output):
                 asic_id = multi_asic.get_asic_index_from_namespace(namespace)
                 for key in natsorted(port_table_keys[asic_id]):
                     port = key.split("|")[1]
+                    muxcable_health_dict[asic_id] = per_npu_statedb[asic_id].get_all(
+                        per_npu_statedb[asic_id].STATE_DB, 'MUX_LINKMGR_TABLE|{}'.format(port))
                     muxcable_info_dict[asic_id] = per_npu_statedb[asic_id].get_all(
                         per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
 
-                    create_table_dump_per_port_status(print_data, muxcable_info_dict, asic_id, port)
+                    create_table_dump_per_port_status(print_data, muxcable_info_dict,
+                                                      muxcable_health_dict, asic_id, port)
 
             headers = ['PORT', 'STATUS', 'HEALTH']
             click.echo(tabulate(print_data, headers=headers))
@@ -412,3 +432,214 @@ def cableinfo(port):
 
     body = [[vendor, part_num]]
     click.echo(tabulate(body, headers=headers))
+
+
+@muxcable.group(cls=clicommon.AbbreviationGroup)
+def hwmode():
+    """Shows the muxcable hardware information directly"""
+    pass
+
+
+@hwmode.command()
+@click.argument('port', metavar='<port_name>', required=False, default=None)
+def muxdirection(port):
+    """Shows the current direction of the muxcable {active/standy}"""
+
+    per_npu_statedb = {}
+    transceiver_table_keys = {}
+    transceiver_dict = {}
+
+    # Getting all front asic namespace and correspding config and state DB connector
+
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+        per_npu_statedb[asic_id] = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
+        per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
+
+        transceiver_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
+            per_npu_statedb[asic_id].STATE_DB, 'TRANSCEIVER_INFO|*')
+
+    if port is not None:
+
+        logical_port_list = platform_sfputil_helper.get_logical_list()
+        if port not in logical_port_list:
+            click.echo("ERR: This is not a valid port, valid ports ({})".format(", ".join(logical_port_list)))
+            sys.exit(EXIT_FAIL)
+
+        asic_index = None
+        if platform_sfputil is not None:
+            asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
+        if asic_index is None:
+            # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+            # is fully mocked
+            import sonic_platform_base.sonic_sfp.sfputilhelper
+            asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+            if asic_index is None:
+                click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
+                sys.exit(CONFIG_FAIL)
+
+        transceiver_dict[asic_index] = per_npu_statedb[asic_index].get_all(
+            per_npu_statedb[asic_index].STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port))
+
+        vendor_value = get_value_for_key_in_dict(transceiver_dict[asic_index], port, "manufacturer", "TRANSCEIVER_INFO")
+        model_value = get_value_for_key_in_dict(transceiver_dict[asic_index], port, "model", "TRANSCEIVER_INFO")
+
+        """ This check is required for checking whether or not this port is connected to a Y cable
+        or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
+        TODO: this should be removed once their is support for multiple vendors on Y cable"""
+
+        if vendor_value != VENDOR_NAME or model_value != VENDOR_MODEL:
+            click.echo("ERR: Got invalid vendor value and model for port {}".format(port))
+            sys.exit(EXIT_FAIL)
+
+        if platform_sfputil is not None:
+            physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
+
+        if not isinstance(physical_port_list, list):
+            click.echo(("ERR: Unable to locate physical port information for {}".format(port)))
+            sys.exit(EXIT_FAIL)
+        if len(physical_port_list) != 1:
+            click.echo("ERR: Found multiple physical ports ({}) associated with {}".format(
+                ", ".join(physical_port_list), port))
+            sys.exit(EXIT_FAIL)
+
+        physical_port = physical_port_list[0]
+
+        logical_port_list_for_physical_port = platform_sfputil_helper.get_physical_to_logical()
+
+        logical_port_list_per_port = logical_port_list_for_physical_port.get(physical_port, None)
+
+        """ This check is required for checking whether or not this logical port is the one which is 
+        actually mapped to physical port and by convention it is always the first port.
+        TODO: this should be removed with more logic to check which logical port maps to actual physical port
+        being used"""
+
+        if port != logical_port_list_per_port[0]:
+            click.echo("ERR: This logical Port {} is not on a muxcable".format(port))
+            sys.exit(EXIT_FAIL)
+
+        import sonic_y_cable.y_cable
+        read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
+        if read_side == False or read_side == -1:
+            click.echo(("ERR: Unable to get read_side for the cable port {}".format(port)))
+            sys.exit(EXIT_FAIL)
+
+        mux_direction = sonic_y_cable.y_cable.check_mux_direction(physical_port)
+        if mux_direction == False or mux_direction == -1:
+            click.echo(("ERR: Unable to get mux direction for the cable port {}".format(port)))
+            sys.exit(EXIT_FAIL)
+
+        if int(read_side) == 1:
+            if mux_direction == 1:
+                state = "active"
+            elif mux_direction == 2:
+                state = "standby"
+        elif int(read_side) == 2:
+            if mux_direction == 1:
+                state = "standby"
+            elif mux_direction == 2:
+                state = "active"
+        else:
+            click.echo(("ERR: Unable to get mux direction, port {}".format(port)))
+            state = "unknown"
+        headers = ['Port', 'Direction']
+
+        body = [[port, state]]
+        click.echo(tabulate(body, headers=headers))
+
+    else:
+
+        logical_port_list = platform_sfputil_helper.get_logical_list()
+
+        rc = True
+        body = []
+        for port in logical_port_list:
+
+            temp_list = []
+            if platform_sfputil is not None:
+                physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
+
+            if not isinstance(physical_port_list, list):
+                continue
+            if len(physical_port_list) != 1:
+                continue
+
+            asic_index = None
+            if platform_sfputil is not None:
+                asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
+            if asic_index is None:
+                # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+                # is fully mocked
+                import sonic_platform_base.sonic_sfp.sfputilhelper
+                asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+                if asic_index is None:
+                    continue
+
+            transceiver_dict[asic_index] = per_npu_statedb[asic_index].get_all(
+                per_npu_statedb[asic_index].STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port))
+            vendor_value = transceiver_dict[asic_index].get("manufacturer", None)
+            model_value = transceiver_dict[asic_index].get("model", None)
+
+            """ This check is required for checking whether or not this port is connected to a Y cable
+            or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
+            TODO: this should be removed once their is support for multiple vendors on Y cable"""
+
+            if vendor_value != VENDOR_NAME or model_value != VENDOR_MODEL:
+                continue
+
+            physical_port = physical_port_list[0]
+            logical_port_list_for_physical_port = platform_sfputil_helper.get_physical_to_logical()
+
+            logical_port_list_per_port = logical_port_list_for_physical_port.get(physical_port, None)
+
+            """ This check is required for checking whether or not this logical port is the one which is 
+            actually mapped to physical port and by convention it is always the first port.
+            TODO: this should be removed with more logic to check which logical port maps to actual physical port
+            being used"""
+
+            if port != logical_port_list_per_port[0]:
+                continue
+
+            import sonic_y_cable.y_cable
+            read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
+            if read_side == False or read_side == -1:
+                rc = False
+                temp_list.append(port)
+                temp_list.append("unknown")
+                body.append(temp_list)
+                continue
+
+            mux_direction = sonic_y_cable.y_cable.check_mux_direction(physical_port)
+            if mux_direction == False or mux_direction == -1:
+                rc = False
+                temp_list.append(port)
+                temp_list.append("unknown")
+                body.append(temp_list)
+                continue
+
+            if int(read_side) == 1:
+                if mux_direction == 1:
+                    state = "active"
+                elif mux_direction == 2:
+                    state = "standby"
+            elif int(read_side) == 2:
+                if mux_direction == 1:
+                    state = "standby"
+                elif mux_direction == 2:
+                    state = "active"
+            else:
+                rc = False
+                temp_list.append(port)
+                temp_list.append("unknown")
+                body.append(temp_list)
+                continue
+            temp_list.append(port)
+            temp_list.append(state)
+            body.append(temp_list)
+
+        headers = ['Port', 'Direction']
+
+        click.echo(tabulate(body, headers=headers))
+        if rc == False:
+            sys.exit(EXIT_FAIL)
