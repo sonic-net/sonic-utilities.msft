@@ -1,51 +1,49 @@
-try:
-    import imp
-    import os
 
-    from sonic_py_common import device_info
-except ImportError as e:
-    raise ImportError (str(e) + " - required module not found")
+import os
+import sonic_platform
 
-#
 # Constants ====================================================================
-#
-PDDF_FILE_PATH = '/usr/share/sonic/platform/pddf_support'
+PDDF_SUPPORT_FILE = '/usr/share/sonic/platform/pddf_support'
 
-EEPROM_MODULE_NAME = 'eeprom'
-EEPROM_CLASS_NAME = 'board'
+# Helper classs
 
 
 class UtilHelper(object):
     def __init__(self):
         pass
 
-    # Loads platform specific psuutil module from source
-    def load_platform_util(self, module_name, class_name):
-        platform_util = None
-
-        # Get path to platform and hwsku
-        (platform_path, hwsku_path) = device_info.get_paths_to_platform_and_hwsku_dirs()
-
+    # try get information from platform API and return a default value if caught NotImplementedError
+    def try_get(self, callback, default=None):
+        """
+        Handy function to invoke the callback and catch NotImplementedError
+        :param callback: Callback to be invoked
+        :param default: Default return value if exception occur
+        :return: Default return value if exception occur else return value of the callback
+        """
         try:
-            module_file = os.path.join(platform_path, "plugins", module_name + ".py")
-            module = imp.load_source(module_name, module_file)
-        except IOError as e:
-            raise IOError("Failed to load platform module '%s': %s" % (module_name, str(e)))
+            ret = callback()
+            if ret is None:
+                ret = default
+        except NotImplementedError:
+            ret = default
 
+        return ret
+
+    # Instantiate platform-specific Chassis class
+    def load_platform_chassis(self):
+        chassis = None
+
+        # Load 2.0 platform API chassis class
         try:
-            platform_util_class = getattr(module, class_name)
-            # board class of eeprom requires 4 paramerters, need special treatment here.
-            if module_name == EEPROM_MODULE_NAME and class_name == EEPROM_CLASS_NAME:
-                platform_util = platform_util_class('','','','')
-            else:
-                platform_util = platform_util_class()
-        except AttributeError as e:
-            raise AttributeError("Failed to instantiate '%s' class: %s" % (class_name, str(e)))
+            chassis = sonic_platform.platform.Platform().get_chassis()
+        except Exception as e:
+            raise Exception("Failed to load chassis due to {}".format(repr(e)))
 
-        return platform_util
+        return chassis
 
+    # Check for PDDF mode enabled
     def check_pddf_mode(self):
-        if os.path.exists(PDDF_FILE_PATH):
+        if os.path.exists(PDDF_SUPPORT_FILE):
             return True
         else:
             return False
