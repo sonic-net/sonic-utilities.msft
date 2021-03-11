@@ -170,26 +170,21 @@ function request_pre_shutdown()
     }
 }
 
-function recover_issu_bank_file_instruction()
+function recover_issu_bank_file()
 {
-    debug "To recover (${ISSU_BANK_FILE}) file, do the following:"
-    debug "$ docker exec -it syncd sx_api_dbg_generate_dump.py"
-    debug "$ docker exec -it syncd cat /tmp/sdkdump | grep 'ISSU Bank'"
-    debug "Command above will print the VALUE of ISSU BANK - 0 or 1, use this VALUE in the next command"
-    debug "$ printf VALUE > /host/warmboot/issu_bank.txt"
+    debug "Recovering the (${ISSU_BANK_FILE}) file"
+    docker exec -i syncd sx_api_dbg_generate_dump.py
+    issu_bank_value=`docker exec -i syncd cat /tmp/sdkdump | grep 'ISSU Bank' | grep -o -E '[0-9]+'`
+    printf $issu_bank_value > /host/warmboot/issu_bank.txt
 }
 
 function check_issu_bank_file()
 {
     ISSU_BANK_FILE=/host/warmboot/issu_bank.txt
-    MLNX_ISSU_BANK_BROKEN=102
 
     if [[ ! -s "$ISSU_BANK_FILE" ]]; then
         error "(${ISSU_BANK_FILE}) does NOT exist or empty ..."
-        recover_issu_bank_file_instruction
-        if [[ "$1" = true ]]; then
-            exit "${MLNX_ISSU_BANK_BROKEN}"
-        fi
+        recover_issu_bank_file
         return
     fi
 
@@ -199,10 +194,7 @@ function check_issu_bank_file()
     if [[ $issu_file_chars_count != 1 ]] ||
         [[ "$issu_file_content" != "0" && "$issu_file_content" != "1" ]]; then
         error "(${ISSU_BANK_FILE}) is broken ..."
-        recover_issu_bank_file_instruction
-        if [[ "$1" = true ]]; then
-            exit "${MLNX_ISSU_BANK_BROKEN}"
-        fi
+        recover_issu_bank_file
     fi
 }
 
@@ -599,10 +591,8 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
     # Pre-shutdown syncd
     initialize_pre_shutdown
 
-    BEFORE_PRE_SHUTDOWN=true
-
     if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
-        check_issu_bank_file "$BEFORE_PRE_SHUTDOWN"
+        check_issu_bank_file
     fi
 
     request_pre_shutdown
