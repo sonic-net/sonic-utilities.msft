@@ -3,6 +3,7 @@ import os
 import sys
 
 import click
+import re
 import utilities_common.cli as clicommon
 from sonic_py_common import multi_asic
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
@@ -13,11 +14,11 @@ platform_sfputil = None
 
 REDIS_TIMEOUT_MSECS = 0
 
-CONFIG_SUCCESSFUL = 100
+CONFIG_SUCCESSFUL = 0
 CONFIG_FAIL = 1
 
 VENDOR_NAME = "Credo"
-VENDOR_MODEL = "CAC125321P2PA0MS"
+VENDOR_MODEL_REGEX = re.compile(r"CAC\w{3}321P2P\w{2}MS")
 
 # Helper functions
 
@@ -333,7 +334,7 @@ def state(state, port):
         or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
         TODO: this should be removed once their is support for multiple vendors on Y cable"""
 
-        if vendor_value != VENDOR_NAME or model_value != VENDOR_MODEL:
+        if vendor_value != VENDOR_NAME or not re.match(VENDOR_MODEL_REGEX, model_value):
             click.echo("ERR: Got invalid vendor value and model for port {}".format(port))
             sys.exit(CONFIG_FAIL)
 
@@ -419,7 +420,7 @@ def state(state, port):
             or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
             TODO: this should be removed once their is support for multiple vendors on Y cable"""
 
-            if vendor_value != VENDOR_NAME or model_value != VENDOR_MODEL:
+            if vendor_value != VENDOR_NAME or not re.match(VENDOR_MODEL_REGEX, model_value):
                 continue
 
             physical_port = physical_port_list[0]
