@@ -855,21 +855,6 @@ collect_broadcom() {
 }
 
 ###############################################################################
-# Collect Arista specific information
-# Globals:
-#  None
-# Arguments:
-#  None
-# Returns:
-#  None
-###############################################################################
-collect_arista() {
-    save_cmd "cat /proc/scd" "scd"
-    save_cmd "arista syseeprom" "arista.syseeprom"
-    save_cmd "arista dump" "arista.dump"
-}
-
-###############################################################################
 # Save log file
 # Globals:
 #  TAR, TARFILE, DUMPDIR, BASE, TARDIR, TECHSUPPORT_TIME_INFO
@@ -1146,10 +1131,6 @@ main() {
 
     if [ "$asic" = "broadcom" ]; then
         collect_broadcom
-    fi
-
-    if $GREP -qi "aboot_platform=.*arista" /host/machine.conf; then
-        collect_arista
     fi
 
     # 2nd counter snapshot late. Need 2 snapshots to make sense of counters trend.
