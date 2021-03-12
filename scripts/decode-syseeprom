@@ -62,7 +62,7 @@ def print_eeprom_dict(tlv_dict):
     tlv_table_header = ['TLV Name', 'Code', 'Len', 'Value']
     tlv_table_body = []
     for tlv in tlv_dict['tlv_list']:
-        tlv_table_body.append([tlv['name'], tlv['code'].upper(), tlv['length'], tlv['value']])
+        tlv_table_body.append([tlv['name'], tlv['code'], tlv['length'], tlv['value']])
 
     print(tabulate(tlv_table_body, tlv_table_header, tablefmt='simple'))
 
@@ -91,16 +91,33 @@ def read_eeprom_from_db():
     tlv_dict['header']['length'] = tlv_header.get('Total Length', 'N/A')
 
     tlv_dict['tlv_list'] = []
-    for tlv_code in range(TlvInfoDecoder._TLV_CODE_PRODUCT_NAME, TlvInfoDecoder._TLV_CODE_SERVICE_TAG + 1):
-        tlv_code_string = '0x{:02x}'.format(tlv_code)
-        tlv_data = db.get_all(db.STATE_DB, '{}|{}'.format(EEPROM_INFO_TABLE, tlv_code_string))
+    concerned_tlvs = []
+    concerned_tlvs.extend(range(TlvInfoDecoder._TLV_CODE_PRODUCT_NAME, TlvInfoDecoder._TLV_CODE_SERVICE_TAG + 1))
+    concerned_tlvs.append(TlvInfoDecoder._TLV_CODE_VENDOR_EXT)
+    concerned_tlvs.append(TlvInfoDecoder._TLV_CODE_CRC_32)
+    for tlv_code in concerned_tlvs:
+        tlv_code_string = '0x{:02X}'.format(tlv_code)
 
-        tlv = {}
-        tlv['code'] = tlv_code_string
-        tlv['name'] = tlv_data.get('Name', 'N/A')
-        tlv['length'] = tlv_data.get('Len', 'N/A')
-        tlv['value'] = tlv_data.get('Value', 'N/A')
-        tlv_dict['tlv_list'].append(tlv)
+        tlv_data = db.get_all(db.STATE_DB, '{}|{}'.format(EEPROM_INFO_TABLE, tlv_code_string.lower()))
+        if not tlv_data:
+            continue
+
+        if tlv_code == TlvInfoDecoder._TLV_CODE_VENDOR_EXT:
+            num_vendor_ext = int(tlv_data.get('Num_vendor_ext', '0'))
+            for i in range(num_vendor_ext):
+                tlv = {}
+                tlv['code'] = tlv_code_string
+                tlv['name'] = tlv_data.get('Name_{}'.format(i), 'N/A')
+                tlv['length'] = tlv_data.get('Len_{}'.format(i), 'N/A')
+                tlv['value'] = tlv_data.get('Value_{}'.format(i), 'N/A')
+                tlv_dict['tlv_list'].append(tlv)
+        else:
+            tlv = {}
+            tlv['code'] = tlv_code_string
+            tlv['name'] = tlv_data.get('Name', 'N/A')
+            tlv['length'] = tlv_data.get('Len', 'N/A')
+            tlv['value'] = tlv_data.get('Value', 'N/A')
+            tlv_dict['tlv_list'].append(tlv)
 
     checksum_valid = db.get(db.STATE_DB, '{}|{}'.format(EEPROM_INFO_TABLE, 'Checksum'), 'Valid')
     tlv_dict['checksum_valid'] = (checksum_valid == '1')
