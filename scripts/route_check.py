@@ -43,6 +43,8 @@ import re
 import sys
 import syslog
 import time
+import signal
+import traceback
 
 from swsscommon import swsscommon
 
@@ -52,6 +54,9 @@ ASIC_TABLE_NAME = 'ASIC_STATE'
 ASIC_KEY_PREFIX = 'SAI_OBJECT_TYPE_ROUTE_ENTRY:'
 
 SUBSCRIBE_WAIT_SECS = 1
+
+# Max of 2 minutes
+TIMEOUT_SECONDS = 120
 
 UNIT_TESTING = 0
 
@@ -74,6 +79,14 @@ class Level(Enum):
 
 report_level = syslog.LOG_ERR
 write_to_syslog = False
+
+def handler(signum, frame):
+    print_message(syslog.LOG_ERR,
+            "Aborting routeCheck.py upon timeout signal after {} seconds".
+            format(TIMEOUT_SECONDS))
+    print_message(syslog.LOG_ERR, str(traceback.extract_stack()))
+    raise Exception("timeout occurred")
+
 
 def set_level(lvl, log_to_syslog):
     """
@@ -429,7 +442,7 @@ def main():
     parser=argparse.ArgumentParser(description="Verify routes between APPL-DB & ASIC-DB are in sync")
     parser.add_argument('-m', "--mode", type=Level, choices=list(Level), default='ERR')
     parser.add_argument("-i", "--interval", type=int, default=0, help="Scan interval in seconds")
-    parser.add_argument("-s", "--log_to_syslog", action="store_true", default=False, help="Write message to syslog")
+    parser.add_argument("-s", "--log_to_syslog", action="store_true", default=True, help="Write message to syslog")
     args = parser.parse_args()
 
     set_level(args.mode, args.log_to_syslog)
@@ -444,8 +457,12 @@ def main():
         if UNIT_TESTING:
             interval = 1
 
+    signal.signal(signal.SIGALRM, handler)
+
     while True:
+        signal.alarm(TIMEOUT_SECONDS)
         ret, res= check_routes()
+        signal.alarm(0)
 
         if interval:
             time.sleep(interval)

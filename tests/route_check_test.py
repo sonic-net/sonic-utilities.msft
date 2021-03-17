@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import sys
+import time
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -276,6 +277,7 @@ def table_side_effect(db, tbl):
 
 class mock_selector:
     TIMEOUT = 1
+    EMULATE_HANG = False
 
     def __init__(self):
         self.select_state = 0
@@ -294,6 +296,9 @@ class mock_selector:
         #
         state = self.select_state
         self.subs.update()
+
+        if mock_selector.EMULATE_HANG:
+            time.sleep(60)
 
         if self.select_state == 0:
             self.select_state = self.TIMEOUT
@@ -421,6 +426,21 @@ class TestRouteCheck(object):
                     print("expect_res={}".format(json.dumps(expect_res, indent=4)))
                 assert ret == expect_ret
                 assert res == expect_res
+
+
+        # Test timeout
+        route_check.TIMEOUT_SECONDS = 5
+        mock_selector.EMULATE_HANG = True
+        ex_raised = False
+
+        try:
+            ret, res = route_check.main()
+        except Exception as err:
+            ex_raised = True
+            expect = "timeout occurred"
+            ex_str = str(err)
+            assert ex_str == expect, "{} != {}".format(ex_str, expect)
+        assert ex_raised, "Exception expected"
 
 
 
