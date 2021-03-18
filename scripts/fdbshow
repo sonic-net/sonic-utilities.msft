@@ -29,6 +29,29 @@
 import argparse
 import json
 import sys
+import os
+
+# mock the redis for unit test purposes #
+try: # pragma: no cover
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1": 
+        modules_path = os.path.join(os.path.dirname(__file__), "..")
+        test_path = os.path.join(modules_path, "tests")
+        sys.path.insert(0, modules_path)
+        sys.path.insert(0, test_path)
+        import mock_tables.dbconnector
+        mock_variants = { "1": 'asic_db',
+                          "2": 'asic_db_def_vlan',
+                          "3": 'asic_db_no_fdb',
+                          "4": 'asic_db_no_bridge',
+                          "5": 'asic_db_fetch_except'}
+        mock_db_path = os.path.join(test_path, "fdbshow_input")
+        file_name = mock_variants[os.environ["FDBSHOW_MOCK"]]
+        jsonfile_asic = os.path.join(mock_db_path, file_name)
+        mock_tables.dbconnector.dedicated_dbs['ASIC_DB'] = jsonfile_asic
+        jsonfile_counters = os.path.join(mock_db_path, 'counters_db')
+        mock_tables.dbconnector.dedicated_dbs['COUNTERS_DB'] = jsonfile_counters
+except KeyError: # pragma: no cover
+    pass
 
 from natsort import natsorted
 from swsssdk import port_util
@@ -56,12 +79,12 @@ class FdbShow(object):
         """
         self.db.connect(self.db.ASIC_DB)
         self.bridge_mac_list = []
+
+        if not self.if_br_oid_map:
+            return
         
         fdb_str = self.db.keys('ASIC_DB', "ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:*")
         if not fdb_str:
-            return
-
-        if self.if_br_oid_map is None:
             return
 
         oid_pfx = len("oid:0x")
@@ -84,7 +107,10 @@ class FdbShow(object):
                 if_name = port_id
             if 'vlan' in fdb:
                 vlan_id = fdb["vlan"]
-            elif 'bvid' in fdb:
+            else:
+                if 'bvid' not in fdb:
+                    # no possibility to find the Vlan id. skip the FDB entry
+                    continue
                 try:
                     vlan_id = port_util.get_vlan_id_from_bvid(self.db, fdb["bvid"])
                     if vlan_id is None:
@@ -100,15 +126,12 @@ class FdbShow(object):
         return
     
     
-    def get_iter_index(self, key_value=0, pos=0):
+    def get_iter_index(self, key_value, pos=0):
         """
             Get the starting index of matched entry
         """
         if pos != 0:
             self.bridge_mac_list = natsorted(self.bridge_mac_list, key = lambda x: x[pos])
-
-        if key_value == 0:
-            return 0
 
         keys = [r[pos] for r in self.bridge_mac_list]
         return keys.index(key_value)
@@ -154,5 +177,5 @@ def main():
         print(str(e))
         sys.exit(1)
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     main()
