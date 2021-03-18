@@ -669,6 +669,13 @@ def _get_disabled_services_list(config_db):
 
 
 def _stop_services():
+    try:
+        subprocess.check_call("sudo monit status", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        click.echo("Disabling container monitoring ...")
+        clicommon.run_command("sudo monit unmonitor container_checker")
+    except subprocess.CalledProcessError as err:
+        pass
+
     click.echo("Stopping SONiC target ...")
     clicommon.run_command("sudo systemctl stop sonic.target")
 
@@ -691,6 +698,13 @@ def _restart_services():
     # Reload Monit configuration to pick up new hostname in case it changed
     click.echo("Reloading Monit configuration ...")
     clicommon.run_command("sudo monit reload")
+
+    try:
+        subprocess.check_call("sudo monit status", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        click.echo("Enabling container monitoring ...")
+        clicommon.run_command("sudo monit monitor container_checker")
+    except subprocess.CalledProcessError as err:
+        pass
 
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
