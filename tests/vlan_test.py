@@ -85,6 +85,7 @@ Vlan1000   1000  Ethernet12  untagged
 Vlan1000   1000  Ethernet16  untagged
 Vlan2000   2000  Ethernet24  untagged
 Vlan2000   2000  Ethernet28  untagged
+Vlan3000   3000
 """
 
 show_vlan_config_in_alias_mode_output="""\
@@ -96,6 +97,7 @@ Vlan1000   1000  etp4      untagged
 Vlan1000   1000  etp5      untagged
 Vlan2000   2000  etp7      untagged
 Vlan2000   2000  etp8      untagged
+Vlan3000   3000
 """
 
 config_vlan_add_dhcp_relay_output="""\

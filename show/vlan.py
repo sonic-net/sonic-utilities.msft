@@ -109,33 +109,32 @@ def config(db):
     data = db.cfgdb.get_table('VLAN')
     keys = list(data.keys())
     member_data = db.cfgdb.get_table('VLAN_MEMBER')
-
+    interface_naming_mode = clicommon.get_interface_naming_mode()
+    iface_alias_converter = clicommon.InterfaceAliasConverter(db)
+   
+    def get_iface_name_for_display(member):
+        name_for_display = member
+        if interface_naming_mode == "alias" and member:
+            name_for_display = iface_alias_converter.name_to_alias(member)
+        return name_for_display
+    
+    def get_tagging_mode(vlan, member):
+        if not member:
+            return ''
+        tagging_mode = db.cfgdb.get_entry('VLAN_MEMBER', (vlan, member)).get('tagging_mode')
+        return '?' if tagging_mode is None else tagging_mode
+        
     def tablelize(keys, data):
         table = []
 
         for k in natsorted(keys):
-            members = set(data[k].get('members', []))
-            for (vlan, interface_name) in member_data:
-                if vlan == k:
-                    members.add(interface_name)
-
-            for m in natsorted(list(members)):
-                r = []
-                r.append(k)
-                r.append(data[k]['vlanid'])
-                if clicommon.get_interface_naming_mode() == "alias":
-                    alias = clicommon.InterfaceAliasConverter(db).name_to_alias(m)
-                    r.append(alias)
-                else:
-                    r.append(m)
-
-                entry = db.cfgdb.get_entry('VLAN_MEMBER', (k, m))
-                mode = entry.get('tagging_mode')
-                if mode is None:
-                    r.append('?')
-                else:
-                    r.append(mode)
-
+            members = set([(vlan, member) for vlan, member in member_data if vlan == k] + [(k, member) for member in set(data[k].get('members', []))])
+            # vlan with no members
+            if not members:
+                members = [(k, '')]
+            
+            for vlan, member in natsorted(members):
+                r = [vlan, data[vlan]['vlanid'], get_iface_name_for_display(member), get_tagging_mode(vlan, member)]
                 table.append(r)
 
         return table
