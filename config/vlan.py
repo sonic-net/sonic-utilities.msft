@@ -145,6 +145,11 @@ def add_vlan_member(db, vid, port, untagged):
        (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)):
         ctx.fail("{} is a router interface!".format(port))
         
+    portchannel_member_table = db.cfgdb.get_table('PORTCHANNEL_MEMBER')
+
+    if (is_port and clicommon.interface_is_in_portchannel(portchannel_member_table, port)):
+        ctx.fail("{} is part of portchannel!".format(port))
+
     if (clicommon.interface_is_untagged_member(db.cfgdb, port) and untagged):
         ctx.fail("{} is already untagged member!".format(port))
 

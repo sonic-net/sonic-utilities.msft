@@ -674,6 +674,16 @@ class TestVlan(object):
         assert result.exit_code == 0
         assert 'Interface Ethernet4 is a member of vlan' in result.output
         
+    def test_config_vlan_add_member_of_portchannel(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], \
+				["1000", "Ethernet32", "--untagged"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Ethernet32 is part of portchannel!" in result.output
 
     @classmethod
     def teardown_class(cls):
