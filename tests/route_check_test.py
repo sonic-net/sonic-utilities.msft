@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import sys
+import syslog
 import time
 from unittest.mock import MagicMock, patch
 
@@ -442,8 +443,18 @@ class TestRouteCheck(object):
             assert ex_str == expect, "{} != {}".format(ex_str, expect)
         assert ex_raised, "Exception expected"
 
-
-
+        # Test print_msg
+        route_check.PRINT_MSG_LEN_MAX = 5
+        msg = route_check.print_message(syslog.LOG_ERR, "abcdefghi")
+        assert len(msg) == 5
+        msg = route_check.print_message(syslog.LOG_ERR, "ab")
+        assert len(msg) == 2
+        msg = route_check.print_message(syslog.LOG_ERR, "abcde")
+        assert len(msg) == 5
+        msg = route_check.print_message(syslog.LOG_ERR, "a", "b", "c", "d", "e", "f")
+        assert len(msg) == 5
+               
+        
 
 
 

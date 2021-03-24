@@ -68,6 +68,8 @@ IPV6_SEPARATOR = ':'
 MIN_SCAN_INTERVAL = 10      # Every 10 seconds
 MAX_SCAN_INTERVAL = 3600    # An hour
 
+PRINT_MSG_LEN_MAX = 1000
+
 class Level(Enum):
     ERR = 'ERR'
     INFO = 'INFO'
@@ -77,7 +79,7 @@ class Level(Enum):
         return self.value
 
 
-report_level = syslog.LOG_ERR
+report_level = syslog.LOG_WARNING
 write_to_syslog = False
 
 def handler(signum, frame):
@@ -113,13 +115,19 @@ def print_message(lvl, *args):
     :param args: message as list of strings or convertible to string
     :return None
     """
+    msg = ""
     if (lvl <= report_level):
-        msg = ""
         for arg in args:
-            msg += " " + str(arg)
+            rem_len = PRINT_MSG_LEN_MAX - len(msg)
+            if rem_len <= 0:
+                break
+            msg += str(arg)[0:rem_len]
+
         print(msg)
         if write_to_syslog:
             syslog.syslog(lvl, msg)
+
+    return msg
 
 
 def add_prefix(ip):
@@ -421,10 +429,10 @@ def check_routes():
         results["Unaccounted_ROUTE_ENTRY_TABLE_entries"] = rt_asic_miss
 
     if results:
-        print_message(syslog.LOG_ERR, "Failure results: {",  json.dumps(results, indent=4), "}")
-        print_message(syslog.LOG_ERR, "Failed. Look at reported mismatches above")
-        print_message(syslog.LOG_ERR, "add: {", json.dumps(adds, indent=4), "}")
-        print_message(syslog.LOG_ERR, "del: {", json.dumps(deletes, indent=4), "}")
+        print_message(syslog.LOG_WARNING, "Failure results: {",  json.dumps(results, indent=4), "}")
+        print_message(syslog.LOG_WARNING, "Failed. Look at reported mismatches above")
+        print_message(syslog.LOG_WARNING, "add: {", json.dumps(adds, indent=4), "}")
+        print_message(syslog.LOG_WARNING, "del: {", json.dumps(deletes, indent=4), "}")
         return -1, results
     else:
         print_message(syslog.LOG_INFO, "All good!")
