@@ -437,6 +437,9 @@
     "VLAN|Vlan3000": {
         "vlanid": "3000"
     },
+    "VLAN|Vlan4000": {
+        "vlanid": "4000"
+    },
     "VLAN_INTERFACE|Vlan1000": {
         "NULL": "NULL"
     },
@@ -472,6 +475,9 @@
     },
     "VLAN_MEMBER|Vlan2000|Ethernet28": {
         "tagging_mode": "untagged"
+    },
+    "VLAN_MEMBER|Vlan4000|PortChannel1001": {
+        "tagging_mode": "tagged"
     },
     "PORTCHANNEL|PortChannel1001": {
         "admin_status": "up",

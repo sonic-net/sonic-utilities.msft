@@ -176,5 +176,11 @@
         "state": "enabled",
         "auto_restart": "enabled",
         "high_mem_alert": "disabled"
+    },
+    "VLAN|Vlan1000": {
+        "vlanid": "1000"
+    },
+    "VLAN_MEMBER|Vlan1000|PortChannel1002": {
+        "tagging_mode": "tagged"
     }
 }
