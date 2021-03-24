@@ -131,6 +131,7 @@ class TestPfcwd(object):
         print(result.output)
         assert result.output == pfcwd_show_config_output
 
+        # always skip Ethernet8 because 'pfc_enable' not configured for this port
         mock_os.geteuid.return_value = 0
         result = runner.invoke(
             pfcwd.cli.commands["start"],
@@ -191,6 +192,53 @@ class TestPfcwd(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == pfcwd_show_start_action_drop_output
+
+        result = runner.invoke(
+        pfcwd.cli.commands["start_default"],
+            [],
+            obj=db
+        )
+
+        assert result.exit_code == 0
+
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == pfcwd_show_start_default
+
+
+    @patch('pfcwd.main.os')
+    def test_pfcwd_pfc_not_enabled(self, mock_os):
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        db = Db()
+
+        # get initial config
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+        print(result.output)
+        assert result.output == pfcwd_show_config_output
+
+        mock_os.geteuid.return_value = 0
+
+        result = runner.invoke(
+        pfcwd.cli.commands["start"],
+            [
+                "--action", "drop", "--restoration-time", "601",
+                "Ethernet8", "602"
+            ],
+            obj=db
+        )
+        print(result.output)
+        assert result.exit_code == 0
+        assert pfc_is_not_enabled == result.output
+
 
     def test_pfcwd_start_ports_invalid(self):
         # pfcwd start --action drop --restoration-time 200 Ethernet0 200
@@ -322,6 +370,7 @@ class TestMultiAsicPfcwdShow(object):
         print(result.output)
         assert result.output == show_pfc_config_all
 
+        # always skip Ethernet-BP260 because 'pfc_enable' not configured for this port
         mock_os.geteuid.return_value = 0
         result = runner.invoke(
             pfcwd.cli.commands["start"],
@@ -406,6 +455,35 @@ class TestMultiAsicPfcwdShow(object):
             pfcwd.cli.commands["show"].commands["config"],
             obj=db
         )
+        print(result.output)
+        assert result.exit_code == 0
+        # same as original config
+        assert result.output == show_pfc_config_all
+
+    @patch('pfcwd.main.os')
+    def test_pfcwd_pfc_not_enabled_masic(self, mock_os):
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        db = Db()
+
+        mock_os.geteuid.return_value = 0
+        result = runner.invoke(
+        pfcwd.cli.commands["start"],
+            [
+                "--action", "drop", "--restoration-time", "601",
+                "Ethernet-BP260", "602"
+            ],
+            obj=db
+        )
+
+        assert result.exit_code == 0
+        assert pfc_is_not_enabled_masic == result.output
+
+        result = runner.invoke(
+            pfcwd.cli.commands["show"].commands["config"],
+            obj=db
+        )
+
         print(result.output)
         assert result.exit_code == 0
         # same as original config

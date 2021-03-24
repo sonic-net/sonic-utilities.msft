@@ -77,6 +77,26 @@
         "BIG_RED_SWITCH": "enable",
         "POLL_INTERVAL": "199"
     },
+    "PORT_QOS_MAP|Ethernet0": {
+        "pfc_enable": "3,4"
+    },
+    "PORT_QOS_MAP|Ethernet4": {
+        "pfc_enable": "3,4"
+    },
+    "PORT_QOS_MAP|Ethernet8": {
+        "pfc_enable": "3,4"
+    },
+    "PORT_QOS_MAP|Ethernet-BP0": {
+        "pfc_enable": "3,4"
+    },
+    "PORT_QOS_MAP|Ethernet-BP4": {
+        "pfc_enable": "3,4"
+    },
+    "PORT_QOS_MAP|Ethernet-BP256": {
+        "pfc_enable": "3,4"
+    },
+    "PORT_QOS_MAP|Ethernet-BP260": {
+    },
     "CRM|Config": {
         "acl_table_threshold_type": "percentage",
         "nexthop_group_threshold_type": "percentage",

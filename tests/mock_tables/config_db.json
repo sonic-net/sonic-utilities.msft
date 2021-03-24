@@ -683,6 +683,10 @@
         "peer_switch": "sonic-switch",
         "type": "ToRRouter"
     },
+    "DEVICE_NEIGHBOR|Ethernet0": {
+        "name": "Servers",
+        "port": "eth0"
+    },
     "DEVICE_NEIGHBOR|Ethernet4": {
         "name": "Servers0",
         "port": "eth0"
@@ -1449,6 +1453,11 @@
     },
     "PORT_QOS_MAP|Ethernet0": {
         "pfc_enable": "3,4"
+    },
+    "PORT_QOS_MAP|Ethernet4": {
+        "pfc_enable": "3,4"
+    },
+    "PORT_QOS_MAP|Ethernet8": {
     },
     "DEFAULT_LOSSLESS_BUFFER_PARAMETER|AZURE": {
         "default_dynamic_th": "0",
