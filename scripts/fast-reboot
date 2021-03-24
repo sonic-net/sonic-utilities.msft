@@ -47,7 +47,7 @@ function error()
 function debug()
 {
     if [[ x"${VERBOSE}" == x"yes" ]]; then
-        echo `date` $@
+        echo $(date) $@
     fi
     logger "$@"
 }
@@ -128,10 +128,10 @@ function clear_warm_boot()
 {
     common_clear
 
-    result=`timeout 10s config warm_restart disable; if [[ $? == 124 ]]; then echo timeout; else echo "code ($?)"; fi` || /bin/true
+    result=$(timeout 10s config warm_restart disable; res=$?; if [[ $res == 124 ]]; then echo timeout; else echo "code ($res)"; fi) || /bin/true
     debug "Cancel warm-reboot: ${result}"
 
-    TIMESTAMP=`date +%Y%m%d-%H%M%S`
+    TIMESTAMP=$(date +%Y%m%d-%H%M%S)
     if [[ -f ${WARM_DIR}/${REDIS_FILE} ]]; then
         mv -f ${WARM_DIR}/${REDIS_FILE} ${WARM_DIR}/${REDIS_FILE}.${TIMESTAMP} || /bin/true
     fi
@@ -155,7 +155,7 @@ function initialize_pre_shutdown()
 {
     debug "Initialize pre-shutdown ..."
     TABLE="WARM_RESTART_TABLE|warm-shutdown"
-    RESTORE_COUNT=`sonic-db-cli STATE_DB hget "${TABLE}" restore_count`
+    RESTORE_COUNT=$(sonic-db-cli STATE_DB hget "${TABLE}" restore_count)
     if [[ -z "$RESTORE_COUNT" ]]; then
         sonic-db-cli STATE_DB hset "${TABLE}" "restore_count" "0" > /dev/null
     fi
@@ -165,9 +165,10 @@ function initialize_pre_shutdown()
 function request_pre_shutdown()
 {
     debug "Requesting pre-shutdown ..."
-    /usr/bin/docker exec -i syncd /usr/bin/syncd_request_shutdown --pre &> /dev/null || {
+    STATE=$(timeout 5s docker exec syncd /usr/bin/syncd_request_shutdown --pre &> /dev/null; if [[ $? == 124 ]]; then echo "timed out"; fi)
+    if [[ x"${STATE}" == x"timed out" ]]; then
         error "Failed to request pre-shutdown"
-    }
+    fi
 }
 
 function recover_issu_bank_file()
@@ -205,18 +206,18 @@ function wait_for_pre_shutdown_complete_or_fail()
     STATE="requesting"
     declare -i waitcount
     declare -i retrycount
-    waitcount=0
     retrycount=0
+    start_time=$SECONDS
+    elapsed_time=$(($SECONDS - $start_time))
     # Wait up to 60 seconds for pre-shutdown to complete
-    while [[ ${waitcount} -lt 600 ]]; do
+    while [[ ${elapsed_time} -lt 60 ]]; do
         # timeout doesn't work with -i option of "docker exec". Therefore we have
         # to invoke docker exec directly below.
-        STATE=`timeout 5s sonic-db-cli STATE_DB hget "${TABLE}" state; if [[ $? == 124 ]]; then echo "timed out"; fi`
+        STATE=$(timeout 5s sonic-db-cli STATE_DB hget "${TABLE}" state; if [[ $? == 124 ]]; then echo "timed out"; fi)
 
         if [[ x"${STATE}" == x"timed out" ]]; then
-            waitcount+=50
             retrycount+=1
-            debug "Timed out getting pre-shutdown state (${waitcount}) retry count ${retrycount} ..."
+            debug "Timed out getting pre-shutdown state, retry count ${retrycount} ..."
             if [[ retrycount -gt 2 ]]; then
                 break
             fi
@@ -224,14 +225,14 @@ function wait_for_pre_shutdown_complete_or_fail()
             break
         else
             sleep 0.1
-            waitcount+=1
         fi
+        elapsed_time=$(($SECONDS - $start_time))
     done
 
     if [[ x"${STATE}" != x"pre-shutdown-succeeded" ]]; then
-        debug "Syncd pre-shutdown failed: ${STATE} ..."
+        debug "Syncd pre-shutdown failed, state: ${STATE} ..."
     else
-        debug "Pre-shutdown succeeded ..."
+        debug "Pre-shutdown succeeded, state: ${STATE} ..."
     fi
 }
 
@@ -259,7 +260,10 @@ function backup_database()
 
     # Dump redis content to a file 'dump.rdb' in warmboot directory
     docker cp database:/var/lib/$target_db_inst/$REDIS_FILE $WARM_DIR
-    docker exec -i database rm /var/lib/$target_db_inst/$REDIS_FILE
+    STATE=$(timeout 5s docker exec database rm /var/lib/$target_db_inst/$REDIS_FILE; if [[ $? == 124 ]]; then echo "timed out"; fi)
+    if [[ x"${STATE}" == x"timed out" ]]; then
+        error "Timed out during attempting to remove Redis dump file from database container"
+    fi
 }
 
 function setup_control_plane_assistant()
@@ -309,10 +313,23 @@ function setup_reboot_variables()
     INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
 }
 
+function check_docker_exec()
+{
+    containers="radv bgp lldp swss database teamd syncd"
+    for container in $containers; do
+        STATE=$(timeout 1s docker exec $container echo "success"; if [[ $? == 124 ]]; then echo "timed out"; fi)
+        if [[ x"${STATE}" == x"timed out" ]]; then
+            error "Docker exec on $container timedout"
+            exit "${EXIT_FAILURE}"
+        fi
+    done
+}
+
 function reboot_pre_check()
 {
+    check_docker_exec
     # Make sure that the file system is normal: read-write able
-    filename="/host/test-`date +%Y%m%d-%H%M%S`"
+    filename="/host/test-$(date +%Y%m%d-%H%M%S)"
     if [[ ! -f ${filename} ]]; then
         touch ${filename}
     fi
@@ -540,6 +557,9 @@ fi
 # We are fully committed to reboot from this point on because critical
 # service will go down and we cannot recover from it.
 set +e
+
+# disable trap-handlers which were set before
+trap '' EXIT HUP INT QUIT TERM KILL ABRT ALRM
 
 if [ -x ${LOG_SSD_HEALTH} ]; then
     debug "Collecting logs to check ssd health before ${REBOOT_TYPE}..."
