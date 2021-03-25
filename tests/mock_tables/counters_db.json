@@ -394,6 +394,16 @@
         "Ethernet0:7": "oid:0x1500000000035e",
         "Ethernet0:8": "oid:0x1500000000035f",
         "Ethernet0:9": "oid:0x15000000000360",
+        "Ethernet0:20": "oid:0x1500000000036d",
+        "Ethernet0:21": "oid:0x1500000000036e",
+        "Ethernet0:22": "oid:0x1500000000036f",
+        "Ethernet0:23": "oid:0x15000000000370",
+        "Ethernet0:24": "oid:0x15000000000371",
+        "Ethernet0:25": "oid:0x15000000000372",
+        "Ethernet0:26": "oid:0x15000000000373",
+        "Ethernet0:27": "oid:0x15000000000374",
+        "Ethernet0:28": "oid:0x15000000000375",
+        "Ethernet0:29": "oid:0x15000000000376",
         "Ethernet4:0": "oid:0x1500000000037f",
         "Ethernet4:1": "oid:0x15000000000380",
         "Ethernet4:10": "oid:0x1500000000038b",
@@ -414,6 +424,16 @@
         "Ethernet4:7": "oid:0x15000000000386",
         "Ethernet4:8": "oid:0x15000000000387",
         "Ethernet4:9": "oid:0x15000000000388",
+        "Ethernet4:20": "oid:0x15000000000395",
+        "Ethernet4:21": "oid:0x15000000000396",
+        "Ethernet4:22": "oid:0x15000000000397",
+        "Ethernet4:23": "oid:0x15000000000398",
+        "Ethernet4:24": "oid:0x15000000000399",
+        "Ethernet4:25": "oid:0x1500000000039a",
+        "Ethernet4:26": "oid:0x1500000000039b",
+        "Ethernet4:27": "oid:0x1500000000039c",
+        "Ethernet4:28": "oid:0x1500000000039d",
+        "Ethernet4:29": "oid:0x1500000000039e",
         "Ethernet8:0": "oid:0x150000000003a7",
         "Ethernet8:1": "oid:0x150000000003a8",
         "Ethernet8:10": "oid:0x150000000003b3",
@@ -433,7 +453,17 @@
         "Ethernet8:6": "oid:0x150000000003ad",
         "Ethernet8:7": "oid:0x150000000003ae",
         "Ethernet8:8": "oid:0x150000000003af",
-        "Ethernet8:9": "oid:0x150000000003b0"
+        "Ethernet8:9": "oid:0x150000000003b0",
+        "Ethernet8:20": "oid:0x150000000003bd",
+        "Ethernet8:21": "oid:0x150000000003be",
+        "Ethernet8:22": "oid:0x150000000003bf",
+        "Ethernet8:23": "oid:0x150000000003c0",
+        "Ethernet8:24": "oid:0x150000000003c1",
+        "Ethernet8:25": "oid:0x150000000003c2",
+        "Ethernet8:26": "oid:0x150000000003c3",
+        "Ethernet8:27": "oid:0x150000000003c4",
+        "Ethernet8:28": "oid:0x150000000003c5",
+        "Ethernet8:29": "oid:0x150000000003c6"
     },
     "COUNTERS_LAG_NAME_MAP": {
         "PortChannel0001": "oid:0x60000000005a1",
@@ -519,6 +549,16 @@
         "oid:0x1500000000036a": "oid:0x1000000000012",
         "oid:0x1500000000036b": "oid:0x1000000000012",
         "oid:0x1500000000036c": "oid:0x1000000000012",
+        "oid:0x1500000000036d": "oid:0x1000000000012",
+        "oid:0x1500000000036e": "oid:0x1000000000012",
+        "oid:0x1500000000036f": "oid:0x1000000000012",
+        "oid:0x15000000000370": "oid:0x1000000000012",
+        "oid:0x15000000000371": "oid:0x1000000000012",
+        "oid:0x15000000000372": "oid:0x1000000000012",
+        "oid:0x15000000000373": "oid:0x1000000000012",
+        "oid:0x15000000000374": "oid:0x1000000000012",
+        "oid:0x15000000000375": "oid:0x1000000000012",
+        "oid:0x15000000000376": "oid:0x1000000000012",
         "oid:0x1500000000037f": "oid:0x1000000000013",
         "oid:0x15000000000380": "oid:0x1000000000013",
         "oid:0x15000000000381": "oid:0x1000000000013",
@@ -539,6 +579,16 @@
         "oid:0x15000000000392": "oid:0x1000000000013",
         "oid:0x15000000000393": "oid:0x1000000000013",
         "oid:0x15000000000394": "oid:0x1000000000013",
+        "oid:0x15000000000395": "oid:0x1000000000013",
+        "oid:0x15000000000396": "oid:0x1000000000013",
+        "oid:0x15000000000397": "oid:0x1000000000013",
+        "oid:0x15000000000398": "oid:0x1000000000013",
+        "oid:0x15000000000399": "oid:0x1000000000013",
+        "oid:0x1500000000039a": "oid:0x1000000000013",
+        "oid:0x1500000000039b": "oid:0x1000000000013",
+        "oid:0x1500000000039c": "oid:0x1000000000013",
+        "oid:0x1500000000039d": "oid:0x1000000000013",
+        "oid:0x1500000000039e": "oid:0x1000000000013",
         "oid:0x150000000003a7": "oid:0x1000000000014",
         "oid:0x150000000003a8": "oid:0x1000000000014",
         "oid:0x150000000003a9": "oid:0x1000000000014",
@@ -558,7 +608,17 @@
         "oid:0x150000000003b9": "oid:0x1000000000014",
         "oid:0x150000000003ba": "oid:0x1000000000014",
         "oid:0x150000000003bb": "oid:0x1000000000014",
-        "oid:0x150000000003bc": "oid:0x1000000000014"
+        "oid:0x150000000003bc": "oid:0x1000000000014",
+        "oid:0x150000000003bd": "oid:0x1000000000014",
+        "oid:0x150000000003be": "oid:0x1000000000014",
+        "oid:0x150000000003bf": "oid:0x1000000000014",
+        "oid:0x150000000003c0": "oid:0x1000000000014",
+        "oid:0x150000000003c1": "oid:0x1000000000014",
+        "oid:0x150000000003c2": "oid:0x1000000000014",
+        "oid:0x150000000003c3": "oid:0x1000000000014",
+        "oid:0x150000000003c4": "oid:0x1000000000014",
+        "oid:0x150000000003c5": "oid:0x1000000000014",
+        "oid:0x150000000003c6": "oid:0x1000000000014"
     },
     "COUNTERS_PG_INDEX_MAP": {
         "oid:0x1a00000000034f": "0",
@@ -607,6 +667,16 @@
         "oid:0x1500000000036a": "17",
         "oid:0x1500000000036b": "18",
         "oid:0x1500000000036c": "19",
+        "oid:0x1500000000036d": "20",
+        "oid:0x1500000000036e": "21",
+        "oid:0x1500000000036f": "22",
+        "oid:0x15000000000370": "23",
+        "oid:0x15000000000371": "24",
+        "oid:0x15000000000372": "25",
+        "oid:0x15000000000373": "26",
+        "oid:0x15000000000374": "27",
+        "oid:0x15000000000375": "28",
+        "oid:0x15000000000376": "29",
         "oid:0x1500000000037f": "0",
         "oid:0x15000000000380": "1",
         "oid:0x15000000000381": "2",
@@ -627,6 +697,16 @@
         "oid:0x15000000000392": "17",
         "oid:0x15000000000393": "18",
         "oid:0x15000000000394": "19",
+        "oid:0x15000000000395": "20",
+        "oid:0x15000000000396": "21",
+        "oid:0x15000000000397": "22",
+        "oid:0x15000000000398": "23",
+        "oid:0x15000000000399": "24",
+        "oid:0x1500000000039a": "25",
+        "oid:0x1500000000039b": "26",
+        "oid:0x1500000000039c": "27",
+        "oid:0x1500000000039d": "28",
+        "oid:0x1500000000039e": "29",
         "oid:0x150000000003a7": "0",
         "oid:0x150000000003a8": "1",
         "oid:0x150000000003a9": "2",
@@ -646,7 +726,17 @@
         "oid:0x150000000003b9": "16",
         "oid:0x150000000003ba": "17",
         "oid:0x150000000003bb": "18",
-        "oid:0x150000000003bc": "19"
+        "oid:0x150000000003bc": "19",
+        "oid:0x150000000003bd": "20",
+        "oid:0x150000000003be": "21",
+        "oid:0x150000000003bf": "22",
+        "oid:0x150000000003c0": "23",
+        "oid:0x150000000003c1": "24",
+        "oid:0x150000000003c2": "25",
+        "oid:0x150000000003c3": "26",
+        "oid:0x150000000003c4": "27",
+        "oid:0x150000000003c5": "28",
+        "oid:0x150000000003c6": "29"
     },
     "COUNTERS_QUEUE_TYPE_MAP": {
         "oid:0x15000000000357": "SAI_QUEUE_TYPE_UNICAST",
@@ -669,6 +759,16 @@
         "oid:0x1500000000036a": "SAI_QUEUE_TYPE_MULTICAST",
         "oid:0x1500000000036b": "SAI_QUEUE_TYPE_MULTICAST",
         "oid:0x1500000000036c": "SAI_QUEUE_TYPE_MULTICAST",
+        "oid:0x1500000000036d": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x1500000000036e": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x1500000000036f": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x15000000000370": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x15000000000371": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x15000000000372": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x15000000000373": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x15000000000374": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x15000000000375": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x15000000000376": "SAI_QUEUE_TYPE_ALL",
         "oid:0x1500000000037f": "SAI_QUEUE_TYPE_UNICAST",
         "oid:0x15000000000380": "SAI_QUEUE_TYPE_UNICAST",
         "oid:0x15000000000381": "SAI_QUEUE_TYPE_UNICAST",
@@ -689,6 +789,16 @@
         "oid:0x15000000000392": "SAI_QUEUE_TYPE_MULTICAST",
         "oid:0x15000000000393": "SAI_QUEUE_TYPE_MULTICAST",
         "oid:0x15000000000394": "SAI_QUEUE_TYPE_MULTICAST",
+        "oid:0x15000000000395": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x15000000000396": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x15000000000397": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x15000000000398": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x15000000000399": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x1500000000039a": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x1500000000039b": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x1500000000039c": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x1500000000039d": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x1500000000039e": "SAI_QUEUE_TYPE_ALL",
         "oid:0x150000000003a7": "SAI_QUEUE_TYPE_UNICAST",
         "oid:0x150000000003a8": "SAI_QUEUE_TYPE_UNICAST",
         "oid:0x150000000003a9": "SAI_QUEUE_TYPE_UNICAST",
@@ -708,7 +818,17 @@
         "oid:0x150000000003b9": "SAI_QUEUE_TYPE_MULTICAST",
         "oid:0x150000000003ba": "SAI_QUEUE_TYPE_MULTICAST",
         "oid:0x150000000003bb": "SAI_QUEUE_TYPE_MULTICAST",
-        "oid:0x150000000003bc": "SAI_QUEUE_TYPE_MULTICAST"
+        "oid:0x150000000003bc": "SAI_QUEUE_TYPE_MULTICAST",
+        "oid:0x150000000003bd": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x150000000003be": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x150000000003bf": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x150000000003c0": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x150000000003c1": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x150000000003c2": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x150000000003c3": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x150000000003c4": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x150000000003c5": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x150000000003c6": "SAI_QUEUE_TYPE_ALL"
     },
     "COUNTERS_DEBUG_NAME_PORT_STAT_MAP": {
         "DEBUG_0": "SAI_PORT_STAT_IN_DROP_REASON_RANGE_BASE",
@@ -994,6 +1114,36 @@
     "USER_WATERMARKS:oid:0x15000000000360": {
         "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "20"
     },
+    "USER_WATERMARKS:oid:0x1500000000036d": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "1234567"
+    },
+    "USER_WATERMARKS:oid:0x1500000000036e": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "7654321"
+    },
+    "USER_WATERMARKS:oid:0x1500000000036f": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
+    },
+    "USER_WATERMARKS:oid:0x15000000000370": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
+    },
+    "USER_WATERMARKS:oid:0x15000000000371": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
+    },
+    "USER_WATERMARKS:oid:0x15000000000372": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "20"
+    },
+    "USER_WATERMARKS:oid:0x15000000000373": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "500"
+    },
+    "USER_WATERMARKS:oid:0x15000000000374": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "200"
+    },
+    "USER_WATERMARKS:oid:0x15000000000375": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
+    },
+    "USER_WATERMARKS:oid:0x15000000000376": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "10"
+    },
     "USER_WATERMARKS:oid:0x1500000000037f": {
         "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
     },
@@ -1024,6 +1174,36 @@
     "USER_WATERMARKS:oid:0x15000000000388": {
         "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
     },
+    "USER_WATERMARKS:oid:0x15000000000395": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
+    },
+    "USER_WATERMARKS:oid:0x15000000000396": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
+    },
+    "USER_WATERMARKS:oid:0x15000000000397": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
+    },
+    "USER_WATERMARKS:oid:0x15000000000398": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "1986"
+    },
+    "USER_WATERMARKS:oid:0x15000000000399": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "2567"
+    },
+    "USER_WATERMARKS:oid:0x1500000000039a": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
+    },
+    "USER_WATERMARKS:oid:0x1500000000039b": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
+    },
+    "USER_WATERMARKS:oid:0x1500000000039c": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
+    },
+    "USER_WATERMARKS:oid:0x1500000000039d": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
+    },
+    "USER_WATERMARKS:oid:0x1500000000039e": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
+    },
     "USER_WATERMARKS:oid:0x150000000003a7": {
         "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
     },
@@ -1052,6 +1232,36 @@
         "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "8528"
     },
     "USER_WATERMARKS:oid:0x150000000003b0": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "7696"
+    },
+    "USER_WATERMARKS:oid:0x150000000003bd": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "20"
+    },
+    "USER_WATERMARKS:oid:0x150000000003be": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "5"
+    },
+    "USER_WATERMARKS:oid:0x150000000003bf": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "1998"
+    },
+    "USER_WATERMARKS:oid:0x150000000003c0": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
+    },
+    "USER_WATERMARKS:oid:0x150000000003c1": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
+    },
+    "USER_WATERMARKS:oid:0x150000000003c2": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
+    },
+    "USER_WATERMARKS:oid:0x150000000003c3": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
+    },
+    "USER_WATERMARKS:oid:0x150000000003c4": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "0"
+    },
+    "USER_WATERMARKS:oid:0x150000000003c5": {
+        "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "8528"
+    },
+    "USER_WATERMARKS:oid:0x150000000003c6": {
         "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "7696"
     },
     "PERSISTENT_WATERMARKS:oid:0x15000000000357": {

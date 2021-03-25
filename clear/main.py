@@ -272,6 +272,12 @@ def clear_wm_q_multi():
     command = 'watermarkstat -c -t q_shared_multi'
     run_command(command)
 
+@watermark.command('all')
+def clear_wm_q_all():
+    """Clear user WM for all queues"""
+    command = 'watermarkstat -c -t q_shared_all'
+    run_command(command)
+
 @queue.group(name='persistent-watermark')
 def persistent_watermark():
     """Clear queue persistent WM. One does not simply clear WM, root is required"""
@@ -290,6 +296,11 @@ def clear_pwm_q_multi():
     command = 'watermarkstat -c -p -t q_shared_multi'
     run_command(command)
 
+@persistent_watermark.command('all')
+def clear_pwm_q_all():
+    """Clear persistent WM for all queues"""
+    command = 'watermarkstat -c -p -t q_shared_all'
+    run_command(command)
 
 @cli.group(name='headroom-pool')
 def headroom_pool():

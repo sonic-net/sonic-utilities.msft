@@ -33,6 +33,9 @@ class TestWatermarkstat(object):
     def test_show_queue_multicast_wm(self):
         self.executor(testData['show_q_wm_multicast'])
 
+    def test_show_queue_all_wm(self):
+        self.executor(testData['show_q_wm_all'])
+
     def test_show_buffer_pool_wm(self):
         self.executor(testData['show_buffer_pool_wm'])
 
@@ -50,6 +53,9 @@ class TestWatermarkstat(object):
 
     def test_show_queue_multicast_persistent_wm(self):
         self.executor(testData['show_q_pwm_multicast'])
+
+    def test_show_queue_all_persistent_wm(self):
+        self.executor(testData['show_q_pwm_all'])
 
     def test_show_buffer_pool_persistent_wm(self):
         self.executor(testData['show_buffer_pool_pwm'])

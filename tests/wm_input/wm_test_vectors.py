@@ -61,6 +61,24 @@ Ethernet4     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/
 Ethernet8     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A
 """
 
+show_queue_wm_all_output="""\
+Egress shared pool occupancy per all queues:
+     Port    ALL20    ALL21    ALL22    ALL23    ALL24    ALL25    ALL26    ALL27    ALL28    ALL29
+---------  -------  -------  -------  -------  -------  -------  -------  -------  -------  -------
+Ethernet0  1234567  7654321        0        0        0       20      500      200        0       10
+Ethernet4        0        0        0     1986     2567        0        0        0        0        0
+Ethernet8       20        5     1998        0        0        0        0        0     8528     7696
+"""
+
+show_queue_pwm_all_output="""\
+Egress shared pool occupancy per all queues:
+     Port    ALL20    ALL21    ALL22    ALL23    ALL24    ALL25    ALL26    ALL27    ALL28    ALL29
+---------  -------  -------  -------  -------  -------  -------  -------  -------  -------  -------
+Ethernet0      N/A      N/A      N/A      N/A      N/A      N/A      N/A      N/A      N/A      N/A
+Ethernet4      N/A      N/A      N/A      N/A      N/A      N/A      N/A      N/A      N/A      N/A
+Ethernet8      N/A      N/A      N/A      N/A      N/A      N/A      N/A      N/A      N/A      N/A
+"""
+
 show_buffer_pool_wm_output="""\
 Shared pool maximum occupancy:
                  Pool    Bytes
@@ -126,6 +144,14 @@ testData = {
                                           'rc_output': show_queue_wm_multicast_output
                                          }
                                        ],
+             'show_q_wm_all' :  [ {'cmd' : ['queue', 'watermark', 'all'],
+                                   'rc_output': show_queue_wm_all_output
+                                  }
+                                ],
+             'show_q_pwm_all' :  [ {'cmd' : ['queue', 'persistent-watermark', 'all'],
+                                    'rc_output': show_queue_pwm_all_output
+                                   }
+                                 ],
              'show_buffer_pool_wm' :  [ {'cmd' : ['buffer_pool', 'watermark'],
                                          'rc_output': show_buffer_pool_wm_output
                                         }

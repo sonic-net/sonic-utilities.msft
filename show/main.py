@@ -556,6 +556,13 @@ def wm_q_multi():
     command = 'watermarkstat -t q_shared_multi'
     run_command(command)
 
+# 'all' subcommand ("show queue watermarks all")
+@watermark.command('all')
+def wm_q_all():
+    """Show user WM for all queues"""
+    command = 'watermarkstat -t q_shared_all'
+    run_command(command)
+
 #
 # 'persistent-watermarks' subgroup ("show queue persistent-watermarks ...")
 #
@@ -579,6 +586,12 @@ def pwm_q_multi():
     command = 'watermarkstat -p -t q_shared_multi'
     run_command(command)
 
+# 'all' subcommand ("show queue persistent-watermarks all")
+@persistent_watermark.command('all')
+def pwm_q_all():
+    """Show persistent WM for all queues"""
+    command = 'watermarkstat -p -t q_shared_all'
+    run_command(command)
 
 #
 # 'priority-group' group ("show priority-group ...")
