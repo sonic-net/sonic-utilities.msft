@@ -8,15 +8,21 @@ from swsscommon.swsscommon import SonicV2Connector
 import utilities_common.cli as clicommon
 
 
-PREVIOUS_REBOOT_CAUSE_FILE = "/host/reboot-cause/previous-reboot-cause.json"
-USER_ISSUED_REBOOT_CAUSE_REGEX ="User issued \'{}\' command [User: {}, Time: {}]"
+PREVIOUS_REBOOT_CAUSE_FILE_PATH = "/host/reboot-cause/previous-reboot-cause.json"
+
 
 def read_reboot_cause_file():
-    result = ""
-    if os.path.exists(PREVIOUS_REBOOT_CAUSE_FILE):
-        with open(PREVIOUS_REBOOT_CAUSE_FILE) as f:
-            result = json.load(f)
-    return result
+    reboot_cause_dict = {}
+
+    if os.path.exists(PREVIOUS_REBOOT_CAUSE_FILE_PATH):
+        with open(PREVIOUS_REBOOT_CAUSE_FILE_PATH) as prev_reboot_cause_file:
+            try:
+                reboot_cause_dict = json.load(prev_reboot_cause_file)
+            except json.JSONDecodeError as err:
+                click.echo("Failed to load JSON file '{}'!".format(PREVIOUS_REBOOT_CAUSE_FILE_PATH), err=True)
+
+    return reboot_cause_dict
+
 
 #
 # 'reboot-cause' group ("show reboot-cause")
@@ -26,15 +32,35 @@ def read_reboot_cause_file():
 def reboot_cause(ctx):
     """Show cause of most recent reboot"""
     if ctx.invoked_subcommand is None:
-        reboot_cause = ""
-        # Read the previous reboot cause
-        data = read_reboot_cause_file()
-        if data['user'] == "N/A":
-            reboot_cause = "{}".format(data['cause'])
-        else:
-            reboot_cause = USER_ISSUED_REBOOT_CAUSE_REGEX.format(data['cause'], data['user'], data['time'])
+        reboot_cause_str = ""
 
-        click.echo(reboot_cause)
+        # Read the previous reboot cause
+        reboot_cause_dict = read_reboot_cause_file()
+
+        reboot_cause = reboot_cause_dict.get("cause", "Unknown")
+        reboot_user = reboot_cause_dict.get("user", "N/A")
+        reboot_time = reboot_cause_dict.get("time", "N/A")
+
+        if reboot_user != "N/A":
+            reboot_cause_str = "User issued '{}' command".format(reboot_cause)
+        else:
+            reboot_cause_str = reboot_cause
+
+        if reboot_user != "N/A" or reboot_time != "N/A":
+            reboot_cause_str += " ["
+
+            if reboot_user != "N/A":
+                reboot_cause_str += "User: {}".format(reboot_user)
+                if reboot_time != "N/A":
+                    reboot_cause_str += ", "
+
+            if reboot_time != "N/A":
+                reboot_cause_str += "Time: {}".format(reboot_time)
+
+            reboot_cause_str += "]"
+
+        click.echo(reboot_cause_str)
+
 
 # 'history' subcommand ("show reboot-cause history")
 @reboot_cause.command()
@@ -54,7 +80,7 @@ def history():
         for tk in table_keys:
             entry = db.get_all(db.STATE_DB, tk)
             r = []
-            r.append(tk.replace(prefix,""))
+            r.append(tk.replace(prefix, ""))
             r.append(entry['cause'] if 'cause' in entry else "")
             r.append(entry['time'] if 'time' in entry else "")
             r.append(entry['user'] if 'user' in entry else "")
