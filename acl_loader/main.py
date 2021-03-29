@@ -132,27 +132,27 @@ class AclLoader(object):
         # Global namespace will be used for Control plane ACL which are via IPTables.
         # Per ASIC namespace will be used for Data and Everflow ACL's.
         # Global Configdb will have all ACL information for both Ctrl and Data/Evereflow ACL's
-        # and will be used as souurce of truth for ACL modification to config DB which will be done to both Global DB and 
+        # and will be used as souurce of truth for ACL modification to config DB which will be done to both Global DB and
         # front asic namespace
-        
+
         self.per_npu_configdb = {}
 
         # State DB are used for to get mirror Session monitor port.
         # For multi-npu platforms each asic namespace can have different monitor port
         # dependinding on which route to session destination ip. So for multi-npu
-        # platforms we get state db for all front asic namespace in addition to 
-        
+        # platforms we get state db for all front asic namespace in addition to
+
         self.per_npu_statedb = {}
 
         # Getting all front asic namespace and correspding config and state DB connector
-        
+
         namespaces = device_info.get_all_namespaces()
         for front_asic_namespaces in namespaces['front_ns']:
             self.per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
             self.per_npu_configdb[front_asic_namespaces].connect()
             self.per_npu_statedb[front_asic_namespaces] = SonicV2Connector(use_unix_socket_path=True, namespace=front_asic_namespaces)
             self.per_npu_statedb[front_asic_namespaces].connect(self.per_npu_statedb[front_asic_namespaces].STATE_DB)
-        
+
         self.read_tables_info()
         self.read_rules_info()
         self.read_sessions_info()
@@ -183,8 +183,8 @@ class AclLoader(object):
         Read POLICER table from configuration database
         :return:
         """
-        
-        # For multi-npu platforms we will read from any one of front asic namespace 
+
+        # For multi-npu platforms we will read from any one of front asic namespace
         # config db as the information should be same across all config db
         if self.per_npu_configdb:
             namespace_configdb = list(self.per_npu_configdb.values())[0]
@@ -201,7 +201,7 @@ class AclLoader(object):
         :return:
         """
 
-        # For multi-npu platforms we will read from any one of front asic namespace 
+        # For multi-npu platforms we will read from any one of front asic namespace
         # config db as the information should be same across all config db
         if self.per_npu_configdb:
             namespace_configdb = list(self.per_npu_configdb.values())[0]
@@ -210,8 +210,8 @@ class AclLoader(object):
             self.sessions_db_info = self.configdb.get_table(self.CFG_MIRROR_SESSION_TABLE)
         for key in self.sessions_db_info:
             if self.per_npu_statedb:
-                # For multi-npu platforms we will read from all front asic name space 
-                # statedb as the monitor port will be differnt for each asic 
+                # For multi-npu platforms we will read from all front asic name space
+                # statedb as the monitor port will be differnt for each asic
                 # and it's status also might be different (ideally should not happen)
                 # We will store them as dict of 'asic' : value
                 self.sessions_db_info[key]["status"] = {}
@@ -282,6 +282,14 @@ class AclLoader(object):
 
     def is_table_valid(self, tname):
         return self.tables_db_info.get(tname)
+
+    def is_table_egress(self, tname):
+        """
+        Check if ACL table stage is egress
+        :param tname: ACL table name
+        :return: True if table type is Egress
+        """
+        return self.tables_db_info[tname].get("stage", Stage.INGRESS).upper() == Stage.EGRESS
 
     def is_table_mirror(self, tname):
         """
@@ -377,12 +385,12 @@ class AclLoader(object):
         # check if per npu state db is there then read using first state db
         # else read from global statedb
         if self.per_npu_statedb:
-            # For multi-npu we will read using anyone statedb connector for front asic namespace. 
-            # Same information should be there in all state DB's 
+            # For multi-npu we will read using anyone statedb connector for front asic namespace.
+            # Same information should be there in all state DB's
             # as it is static information about switch capability
             namespace_statedb = list(self.per_npu_statedb.values())[0]
             capability = namespace_statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
-        else: 
+        else:
             capability = self.statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
         for action_key in dict(action_props):
             key = "{}|{}".format(self.ACL_ACTIONS_CAPABILITY_FIELD, stage.upper())
@@ -636,7 +644,7 @@ class AclLoader(object):
                 except AclLoaderException as ex:
                     error("Error processing rule %s: %s. Skipped." % (acl_entry_name, ex))
 
-            if not self.is_table_mirror(table_name):
+            if not self.is_table_mirror(table_name) and not self.is_table_egress(table_name):
                 deep_update(self.rules_info, self.deny_rule(table_name))
 
     def full_update(self):
@@ -705,7 +713,7 @@ class AclLoader(object):
         # Add all new dataplane rules
         for key in new_dataplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
-            # Program for per-asic namespace corresponding to front asic also if present. 
+            # Program for per-asic namespace corresponding to front asic also if present.
             for namespace_configdb in self.per_npu_configdb.values():
                 namespace_configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
 
@@ -715,14 +723,14 @@ class AclLoader(object):
 
         for key in added_controlplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
-            # Program for per-asic namespace corresponding to front asic also if present. 
+            # Program for per-asic namespace corresponding to front asic also if present.
             # For control plane ACL it's not needed but to keep all db in sync program everywhere
             for namespace_configdb in self.per_npu_configdb.values():
                 namespace_configdb.mod_entry(self.ACL_RULE, key, self.rules_info[key])
 
         for key in removed_controlplane_rules:
             self.configdb.mod_entry(self.ACL_RULE, key, None)
-            # Program for per-asic namespace corresponding to front asic also if present. 
+            # Program for per-asic namespace corresponding to front asic also if present.
             # For control plane ACL it's not needed but to keep all db in sync program everywhere
             for namespace_configdb in self.per_npu_configdb.values():
                 namespace_configdb.mod_entry(self.ACL_RULE, key, None)
@@ -730,7 +738,7 @@ class AclLoader(object):
         for key in existing_controlplane_rules:
             if cmp(self.rules_info[key], self.rules_db_info[key]) != 0:
                 self.configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
-                # Program for per-asic namespace corresponding to front asic also if present. 
+                # Program for per-asic namespace corresponding to front asic also if present.
                 # For control plane ACL it's not needed but to keep all db in sync program everywhere
                 for namespace_configdb in self.per_npu_configdb.values():
                     namespace_configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
@@ -745,10 +753,10 @@ class AclLoader(object):
             if not table or table == key[0]:
                 if not rule or rule == key[1]:
                     self.configdb.set_entry(self.ACL_RULE, key, None)
-                    # Program for per-asic namespace corresponding to front asic also if present. 
+                    # Program for per-asic namespace corresponding to front asic also if present.
                     for namespace_configdb in self.per_npu_configdb.values():
                         namespace_configdb.set_entry(self.ACL_RULE, key, None)
-    
+
     def show_table(self, table_name):
         """
         Show ACL table configuration.
