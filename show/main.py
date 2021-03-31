@@ -11,6 +11,7 @@ from natsort import natsorted
 from sonic_py_common import device_info, multi_asic
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
+from utilities_common import util_base
 from utilities_common.db import Db
 
 from . import acl
@@ -23,7 +24,6 @@ from . import gearbox
 from . import interfaces
 from . import kdump
 from . import kube
-from . import mlnx
 from . import muxcable
 from . import nat
 from . import platform
@@ -35,6 +35,7 @@ from . import vnet
 from . import vxlan
 from . import system_health
 from . import warm_restart
+from . import plugins
 
 
 # Global Variables
@@ -1412,6 +1413,13 @@ def ztp(status, verbose):
     if verbose:
        cmd = cmd + " --verbose"
     run_command(cmd, display_cmd=verbose)
+
+
+# Load plugins and register them
+helper = util_base.UtilHelper()
+for plugin in helper.load_plugins(plugins):
+    helper.register_plugin(plugin, cli)
+
 
 if __name__ == '__main__':
     cli()

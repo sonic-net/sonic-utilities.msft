@@ -22,7 +22,9 @@ setup(
     packages=[
         'acl_loader',
         'clear',
+        'clear.plugins',
         'config',
+        'config.plugins',
         'connect',
         'consutil',
         'counterpoll',
@@ -42,6 +44,7 @@ setup(
         'pddf_ledutil',
         'show',
         'show.interfaces',
+        'show.plugins',
         'sonic_installer',
         'sonic_installer.bootloader',
         'tests',

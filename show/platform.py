@@ -33,12 +33,6 @@ def platform():
     pass
 
 
-version_info = device_info.get_sonic_version_info()
-if (version_info and version_info.get('asic_type') == 'mellanox'):
-    from . import mlnx
-    platform.add_command(mlnx.mlnx)
-
-
 # 'summary' subcommand ("show platform summary")
 @platform.command()
 @click.option('--json', is_flag=True, help="Output in JSON format")

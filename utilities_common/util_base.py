@@ -1,16 +1,50 @@
-
 import os
-import sonic_platform
+import pkgutil
+import importlib
+
+from sonic_py_common import logger
 
 # Constants ====================================================================
 PDDF_SUPPORT_FILE = '/usr/share/sonic/platform/pddf_support'
 
 # Helper classs
 
+log = logger.Logger()
+
 
 class UtilHelper(object):
     def __init__(self):
         pass
+
+    def load_plugins(self, plugins_namespace):
+        """ Discover and load CLI plugins. Yield a plugin module. """
+
+        def iter_namespace(ns_pkg):
+            return pkgutil.iter_modules(ns_pkg.__path__, ns_pkg.__name__ + ".")
+
+        for _, module_name, ispkg in iter_namespace(plugins_namespace):
+            if ispkg:
+                continue
+            log.log_debug('importing plugin: {}'.format(module_name))
+            try:
+                module = importlib.import_module(module_name)
+            except Exception as err:
+                log.log_error('failed to import plugin {}: {}'.format(module_name, err),
+                              also_print_to_console=True)
+                continue
+
+            yield module
+
+    def register_plugin(self, plugin, root_command):
+        """ Register plugin in top-level command root_command. """
+
+        name = plugin.__name__
+        log.log_debug('registering plugin: {}'.format(name))
+        try:
+            plugin.register(root_command)
+        except Exception as err:
+            log.log_error('failed to import plugin {}: {}'.format(name, err),
+                          also_print_to_console=True)
 
     # try get information from platform API and return a default value if caught NotImplementedError
     def try_get(self, callback, default=None):
@@ -35,6 +69,7 @@ class UtilHelper(object):
 
         # Load 2.0 platform API chassis class
         try:
+            import sonic_platform
             chassis = sonic_platform.platform.Platform().get_chassis()
         except Exception as e:
             raise Exception("Failed to load chassis due to {}".format(repr(e)))
@@ -47,3 +82,4 @@ class UtilHelper(object):
             return True
         else:
             return False
+
