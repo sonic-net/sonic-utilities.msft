@@ -189,6 +189,22 @@
 										"destination-ip-address": "30.0.0.3/32"
 									}
 								}
+							},
+							"3": {
+								"config": {
+									"sequence-id": 3
+								},
+								"actions": {
+									"config": {
+										"forwarding-action": "ACCEPT"
+									}
+								},
+								"l2": {
+									"config": {
+										"vlan-id": "369",
+										"ethertype": "ETHERTYPE_LLDP"
+									}
+								}
 							}
 						}
 					}

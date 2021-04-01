@@ -299,6 +299,22 @@ class AclLoader(object):
         """
         return self.tables_db_info[tname]['type'].upper().startswith(self.ACL_TABLE_TYPE_MIRROR)
 
+    def is_table_l3v6(self, tname):
+        """
+        Check if ACL table type is L3V6
+        :param tname: ACL table name
+        :return: True if table type is L3V6 else False
+        """
+        return self.tables_db_info[tname]["type"].upper() == "L3V6"
+
+    def is_table_l3(self, tname):
+        """
+        Check if ACL table type is L3
+        :param tname: ACL table name
+        :return: True if table type is L3 else False
+        """
+        return self.tables_db_info[tname]["type"].upper() == "L3"
+
     def is_table_ipv6(self, tname):
         """
         Check if ACL table type is IPv6 (L3V6 or MIRRORV6)
@@ -592,6 +608,12 @@ class AclLoader(object):
         rule_data = {(table_name, "RULE_" + str(rule_idx)): rule_props}
 
         rule_props["PRIORITY"] = str(self.max_priority - rule_idx)
+
+        # setup default ip type match to dataplane acl (could be overriden by rule later)
+        if self.is_table_l3v6(table_name):
+            rule_props["IP_TYPE"] = "IPV6ANY"  # ETHERTYPE is not supported for DATAACLV6
+        elif self.is_table_l3(table_name):
+            rule_props["ETHER_TYPE"] = str(self.ethertype_map["ETHERTYPE_IPV4"])
 
         deep_update(rule_props, self.convert_action(table_name, rule_idx, rule))
         deep_update(rule_props, self.convert_l2(table_name, rule_idx, rule))
