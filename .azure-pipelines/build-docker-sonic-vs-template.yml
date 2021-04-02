@@ -18,24 +18,32 @@ jobs:
   - task: DownloadPipelineArtifact@2
     inputs:
       artifact: wheels
-    displayName: "Download sonic swss artifact"
+    displayName: "Download sonic utilities artifact"
 
   - task: DownloadPipelineArtifact@2
     inputs:
       source: specific
       project: build
-      pipeline: 1
-      artifact: sonic-buildimage.vs
+      pipeline: 15
+      artifact: ${{ parameters.artifact_name }}
       runVersion: 'latestFromBranch'
       runBranch: 'refs/heads/master'
-    displayName: "Download sonic buildimage"
+    displayName: "Download docker-sonic-vs artifact"
 
   - script: |
       set -ex
 
       echo $(Build.DefinitionName).$(Build.BuildNumber)
 
-      docker load < ../target/docker-sonic-vs.gz
+      docker load < ../docker-sonic-vs.gz
+
+      docker images "docker-sonic-vs"
+
+      image_id=$(docker images "docker-sonic-vs:Azure.sonic-swss*" -q)
+
+      docker tag ${image_id} docker-sonic-vs:latest
+
+      docker images "docker-sonic-vs"
 
       mkdir -p .azure-pipelines/docker-sonic-vs/wheels
 

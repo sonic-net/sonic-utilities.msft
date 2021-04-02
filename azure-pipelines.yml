@@ -43,13 +43,28 @@ stages:
         sudo dpkg -i libnl-route-3-200_*.deb
         sudo dpkg -i libnl-nf-3-200_*.deb
         sudo dpkg -i libhiredis0.14_*.deb
-        sudo dpkg -i libswsscommon_1.0.0_amd64.deb
-        sudo dpkg -i python3-swsscommon_1.0.0_amd64.deb
         sudo dpkg -i libyang_1.0.73_amd64.deb
         sudo dpkg -i libyang-cpp_1.0.73_amd64.deb
         sudo dpkg -i python3-yang_1.0.73_amd64.deb
       workingDirectory: $(Pipeline.Workspace)/target/debs/buster/
       displayName: 'Install Debian dependencies'
+
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        source: specific
+        project: build
+        pipeline: 9
+        artifact: sonic-swss-common
+        runVersion: 'latestFromBranch'
+        runBranch: 'refs/heads/master'
+      displayName: "Download sonic swss common deb packages"
+
+    - script: |
+        set -xe
+        sudo dpkg -i libswsscommon_1.0.0_amd64.deb
+        sudo dpkg -i python3-swsscommon_1.0.0_amd64.deb
+      workingDirectory: $(Pipeline.Workspace)/
+      displayName: 'Install swss-common dependencies'
 
     - script: |
         set -xe
