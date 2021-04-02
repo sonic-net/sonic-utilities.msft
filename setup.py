@@ -170,6 +170,7 @@ setup(
         'swsssdk>=2.0.1',
         'tabulate==0.8.2',
         'xmltodict==0.12.0',
+        'deepdiff==5.2.3',
     ],
     setup_requires= [
         'pytest-runner',

@@ -39,10 +39,7 @@ def generate_neighbor_entries(filename, all_available_macs):
         }
         arp_output.append(obj)
 
-        ip_addr = key.split(':')[2]
-        if ipaddress.ip_interface(str(ip_addr)).ip.version != 4:
-            #This is ipv6 address
-            ip_addr = key.replace(key.split(':')[0] + ':' + key.split(':')[1] + ':', '')
+        ip_addr = key.split(':', 2)[2]
         neighbor_entries.append((vlan_name, mac, ip_addr))
         syslog.syslog(syslog.LOG_INFO, "Neighbor entry: [Vlan: %s, Mac: %s, Ip: %s]" % (vlan_name, mac, ip_addr))
 
@@ -80,23 +77,58 @@ def get_bridge_port_id_2_port_id(db):
 
     return bridge_port_id_2_port_id
 
-def get_map_port_id_2_iface_name(db):
-    port_id_2_iface = {}
-    keys = db.keys(db.ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_HOSTIF:oid:*')
+def get_lag_by_member(member_name, app_db):
+    keys = app_db.keys(app_db.APPL_DB, 'LAG_MEMBER_TABLE:*')
     keys = [] if keys is None else keys
     for key in keys:
-        value = db.get_all(db.ASIC_DB, key)
+        _, lag_name, lag_member_name = key.split(":")
+        if lag_member_name == member_name:
+            return lag_name
+    return None
+
+def get_map_host_port_id_2_iface_name(asic_db):
+    host_port_id_2_iface = {}
+    keys = asic_db.keys(asic_db.ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_HOSTIF:oid:*')
+    keys = [] if keys is None else keys
+    for key in keys:
+        value = asic_db.get_all(asic_db.ASIC_DB, key)
         if value['SAI_HOSTIF_ATTR_TYPE'] != 'SAI_HOSTIF_TYPE_NETDEV':
             continue
         port_id = value['SAI_HOSTIF_ATTR_OBJ_ID']
         iface_name = value['SAI_HOSTIF_ATTR_NAME']
-        port_id_2_iface[port_id] = iface_name
+        host_port_id_2_iface[port_id] = iface_name
+    
+    return host_port_id_2_iface
+
+def get_map_lag_port_id_2_portchannel_name(asic_db, app_db, host_port_id_2_iface):
+    lag_port_id_2_iface = {}
+    keys = asic_db.keys(asic_db.ASIC_DB, 'ASIC_STATE:SAI_OBJECT_TYPE_LAG_MEMBER:oid:*')
+    keys = [] if keys is None else keys
+    for key in keys:
+        value = asic_db.get_all(asic_db.ASIC_DB, key)
+        lag_id = value['SAI_LAG_MEMBER_ATTR_LAG_ID']
+        if lag_id in lag_port_id_2_iface:
+            continue
+        member_id = value['SAI_LAG_MEMBER_ATTR_PORT_ID']
+        member_name = host_port_id_2_iface[member_id]
+        lag_name = get_lag_by_member(member_name, app_db)
+        if lag_name is not None:
+            lag_port_id_2_iface[lag_id] = lag_name
+
+    return lag_port_id_2_iface
+
+def get_map_port_id_2_iface_name(asic_db, app_db):
+    port_id_2_iface = {}
+    host_port_id_2_iface = get_map_host_port_id_2_iface_name(asic_db)
+    port_id_2_iface.update(host_port_id_2_iface)
+    lag_port_id_2_iface = get_map_lag_port_id_2_portchannel_name(asic_db, app_db, host_port_id_2_iface)
+    port_id_2_iface.update(lag_port_id_2_iface)
 
     return port_id_2_iface
 
-def get_map_bridge_port_id_2_iface_name(db):
-    bridge_port_id_2_port_id = get_bridge_port_id_2_port_id(db)
-    port_id_2_iface = get_map_port_id_2_iface_name(db)
+def get_map_bridge_port_id_2_iface_name(asic_db, app_db):
+    bridge_port_id_2_port_id = get_bridge_port_id_2_port_id(asic_db)
+    port_id_2_iface = get_map_port_id_2_iface_name(asic_db, app_db)
 
     bridge_port_id_2_iface_name = {}
 
@@ -158,29 +190,37 @@ def get_fdb(db, vlan_name, vlan_id, bridge_id_2_iface):
     return fdb_entries, available_macs, map_mac_ip
 
 def generate_fdb_entries(filename):
-    fdb_entries = []
-
-    db = SonicV2Connector(use_unix_socket_path=False)
-    db.connect(db.ASIC_DB, False)   # Make one attempt only
-
-    bridge_id_2_iface = get_map_bridge_port_id_2_iface_name(db)
+    asic_db = swsssdk.SonicV2Connector(host='127.0.0.1')
+    app_db = swsssdk.SonicV2Connector(host='127.0.0.1')
+    asic_db.connect(asic_db.ASIC_DB, False)   # Make one attempt only
+    app_db.connect(app_db.APPL_DB, False)   # Make one attempt only
 
     vlan_ifaces = get_vlan_ifaces()
 
-    all_available_macs = set()
-    map_mac_ip_per_vlan = {}
-    for vlan in vlan_ifaces:
-        vlan_id = int(vlan.replace('Vlan', ''))
-        fdb_entry, available_macs, map_mac_ip_per_vlan[vlan] = get_fdb(db, vlan, vlan_id, bridge_id_2_iface)
-        all_available_macs |= available_macs
-        fdb_entries.extend(fdb_entry)
+    fdb_entries, all_available_macs, map_mac_ip_per_vlan = generate_fdb_entries_logic(asic_db, app_db, vlan_ifaces)
 
-    db.close(db.ASIC_DB)
+    asic_db.close(asic_db.ASIC_DB)
+    app_db.close(app_db.APPL_DB)
 
     with open(filename, 'w') as fp:
         json.dump(fdb_entries, fp, indent=2, separators=(',', ': '))
 
     return all_available_macs, map_mac_ip_per_vlan
+
+def generate_fdb_entries_logic(asic_db, app_db, vlan_ifaces):
+    fdb_entries = []
+    all_available_macs = set()
+    map_mac_ip_per_vlan = {}
+
+    bridge_id_2_iface = get_map_bridge_port_id_2_iface_name(asic_db, app_db)
+
+    for vlan in vlan_ifaces:
+        vlan_id = int(vlan.replace('Vlan', ''))
+        fdb_entry, available_macs, map_mac_ip_per_vlan[vlan] = get_fdb(asic_db, vlan, vlan_id, bridge_id_2_iface)
+        all_available_macs |= available_macs
+        fdb_entries.extend(fdb_entry)
+
+    return fdb_entries, all_available_macs, map_mac_ip_per_vlan
 
 def get_if(iff, cmd):
     s = socket.socket()
