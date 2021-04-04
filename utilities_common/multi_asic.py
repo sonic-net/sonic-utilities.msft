@@ -30,11 +30,11 @@ class MultiAsic(object):
         For single asic, this function is not applicable
         '''
         if object_type == constants.PORT_OBJ:
-            return multi_asic.is_port_internal(cli_object)
+            return multi_asic.is_port_internal(cli_object, self.current_namespace)
         elif object_type == constants.PORT_CHANNEL_OBJ:
-            return multi_asic.is_port_channel_internal(cli_object)
+            return multi_asic.is_port_channel_internal(cli_object, self.current_namespace)
         elif object_type == constants.BGP_NEIGH_OBJ:
-            return multi_asic.is_bgp_session_internal(cli_object)
+            return multi_asic.is_bgp_session_internal(cli_object, self.current_namespace)
 
     def skip_display(self, object_type, cli_object):
         '''
