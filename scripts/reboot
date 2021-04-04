@@ -17,7 +17,6 @@ if [ -e $VMCORE_FILE -a -s $VMCORE_FILE ]; then
         fi
         # If no platform-specific reboot tool, just run /sbin/reboot
         /sbin/reboot
-        echo 1 > /proc/sys/kernel/sysrq
         echo b > /proc/sysrq-trigger
 fi
 
