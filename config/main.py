@@ -696,16 +696,16 @@ def _restart_services():
     click.echo("Restarting SONiC target ...")
     clicommon.run_command("sudo systemctl restart sonic.target")
 
-    # Reload Monit configuration to pick up new hostname in case it changed
-    click.echo("Reloading Monit configuration ...")
-    clicommon.run_command("sudo monit reload")
-
     try:
         subprocess.check_call("sudo monit status", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         click.echo("Enabling container monitoring ...")
         clicommon.run_command("sudo monit monitor container_checker")
     except subprocess.CalledProcessError as err:
         pass
+
+    # Reload Monit configuration to pick up new hostname in case it changed
+    click.echo("Reloading Monit configuration ...")
+    clicommon.run_command("sudo monit reload")
 
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
