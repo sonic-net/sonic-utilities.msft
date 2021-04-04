@@ -169,8 +169,7 @@ setup(
         'sonic-yang-mgmt',
         'swsssdk>=2.0.1',
         'tabulate==0.8.2',
-        'xmltodict==0.12.0',
-        'deepdiff==5.2.3',
+        'xmltodict==0.12.0'
     ],
     setup_requires= [
         'pytest-runner',
@@ -179,7 +178,8 @@ setup(
     tests_require = [
         'pytest',
         'mockredispy>=2.9.3',
-        'sonic-config-engine'
+        'sonic-config-engine',
+        'deepdiff==5.2.3'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
