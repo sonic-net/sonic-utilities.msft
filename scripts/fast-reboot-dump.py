@@ -190,8 +190,8 @@ def get_fdb(db, vlan_name, vlan_id, bridge_id_2_iface):
     return fdb_entries, available_macs, map_mac_ip
 
 def generate_fdb_entries(filename):
-    asic_db = swsssdk.SonicV2Connector(host='127.0.0.1')
-    app_db = swsssdk.SonicV2Connector(host='127.0.0.1')
+    asic_db = SonicV2Connector(use_unix_socket_path=False)
+    app_db = SonicV2Connector(use_unix_socket_path=False)
     asic_db.connect(asic_db.ASIC_DB, False)   # Make one attempt only
     app_db.connect(app_db.APPL_DB, False)   # Make one attempt only
 
