@@ -210,7 +210,10 @@ class SquashFs(object):
     OVERLAY_MOUNTPOINT_TEMPLATE = "/tmp/image-{}-overlay"
 
     def __init__(self):
-        image_stem = self.next_image.lstrip(self.OS_PREFIX)
+        image_stem = self.next_image
+
+        if image_stem.startswith(self.OS_PREFIX):
+            image_stem = image_stem[len(self.OS_PREFIX):]
 
         self.fs_path = self.FS_PATH_TEMPLATE.format(image_stem)
         self.fs_rw = self.FS_RW_TEMPLATE.format(image_stem)
@@ -244,6 +247,9 @@ class SquashFs(object):
             self.fs_mountpoint
         )
         subprocess.check_call(cmd, shell=True)
+
+        if not (os.path.exists(self.fs_rw) and os.path.exists(self.fs_work)):
+            return self.fs_mountpoint
 
         os.mkdir(self.overlay_mountpoint)
         cmd = "mount -n -r -t overlay -o lowerdir={},upperdir={},workdir={} overlay {}".format(
