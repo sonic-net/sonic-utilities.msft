@@ -1993,13 +1993,13 @@ This command displays serial port or a virtual network connection status.
 - Example:
   ```
   admin@sonic:~$ show line
-  Line    Baud    PID    Start Time    Device
-  ------  ------  -----  ------------  --------
-      0       -      -             -
-      1    9600      -             -   switch1
-      2       -      -             -
-      3       -      -             -
-      4       -      -             -
+    Line    Baud    Flow Control    PID    Start Time    Device
+  ------  ------  --------------  -----  ------------  --------
+       1    9600         Enabled      -             -   switch1
+       2       -        Disabled      -             -
+       3       -        Disabled      -             -
+       4       -        Disabled      -             -
+       5       -        Disabled      -             -
   ```
 
 Optionally, you can display configured console ports only by specifying the `-b` or `--breif` flag.
@@ -2007,9 +2007,9 @@ Optionally, you can display configured console ports only by specifying the `-b`
 - Example:
   ```
   admin@sonic:~$ show line -b
-    Line    Baud    PID    Start Time    Device
-  ------  ------  -----  ------------  --------
-       1    9600      -             -   switch1
+    Line    Baud    Flow Control    PID    Start Time    Device
+  ------  ------  --------------  -----  ------------  --------
+       1    9600         Enabled      -             -   switch1
   ```
 
 ## Console config commands

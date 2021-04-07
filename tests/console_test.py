@@ -531,11 +531,11 @@ class TestConsutilShow(object):
         print("SETUP")
 
     expect_show_output = ''+ \
-        """  Line    Baud    PID                Start Time    Device
-------  ------  -----  ------------------------  --------
-     1    9600      -                         -   switch1
-    *2    9600    223  Wed Mar  6 08:31:35 2019   switch2
-     3    9600      -                         -
+        """  Line    Baud    Flow Control    PID                Start Time    Device
+------  ------  --------------  -----  ------------------------  --------
+     1    9600        Disabled      -                         -   switch1
+    *2    9600        Disabled    223  Wed Mar  6 08:31:35 2019   switch2
+     3    9600         Enabled      -                         -
 """
     @mock.patch('consutil.lib.SysInfoProvider.init_device_prefix', mock.MagicMock(return_value=None))
     def test_show(self):
@@ -543,7 +543,7 @@ class TestConsutilShow(object):
         db = Db()
         db.cfgdb.set_entry("CONSOLE_PORT", 1, { "remote_device" : "switch1", "baud_rate" : "9600" })
         db.cfgdb.set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch2", "baud_rate" : "9600" })
-        db.cfgdb.set_entry("CONSOLE_PORT", 3, { "baud_rate" : "9600" })
+        db.cfgdb.set_entry("CONSOLE_PORT", 3, { "baud_rate" : "9600", "flow_control" : "1" })
 
         db.db.set(db.db.STATE_DB, "CONSOLE_PORT|2", "state", "busy")
         db.db.set(db.db.STATE_DB, "CONSOLE_PORT|2", "pid", "223")
