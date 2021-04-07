@@ -390,6 +390,8 @@ def check_routes():
     rt_asic_miss = []
 
     results = {}
+    adds = []
+    deletes = []
 
     selector, subs, rt_asic = get_route_entries()
 
@@ -431,8 +433,8 @@ def check_routes():
     if results:
         print_message(syslog.LOG_WARNING, "Failure results: {",  json.dumps(results, indent=4), "}")
         print_message(syslog.LOG_WARNING, "Failed. Look at reported mismatches above")
-        print_message(syslog.LOG_WARNING, "add: {", json.dumps(adds, indent=4), "}")
-        print_message(syslog.LOG_WARNING, "del: {", json.dumps(deletes, indent=4), "}")
+        print_message(syslog.LOG_WARNING, "add: ", json.dumps(adds, indent=4))
+        print_message(syslog.LOG_WARNING, "del: ", json.dumps(deletes, indent=4))
         return -1, results
     else:
         print_message(syslog.LOG_INFO, "All good!")
