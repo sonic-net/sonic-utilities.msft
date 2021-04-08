@@ -1,4 +1,4 @@
-from importlib import reload
+import importlib
 
 from click.testing import CliRunner
 
@@ -395,7 +395,7 @@ class TestFeatureMultiAsic(object):
     def test_config_bgp_feature_inconsistent_state(self, get_cmd_module):
         from .mock_tables import dbconnector
         from .mock_tables import mock_multi_asic_3_asics
-        reload(mock_multi_asic_3_asics)
+        importlib.reload(mock_multi_asic_3_asics)
         dbconnector.load_namespace_config()
         (config, show) = get_cmd_module
         db = Db()
@@ -414,7 +414,7 @@ class TestFeatureMultiAsic(object):
     def test_config_bgp_feature_inconsistent_autorestart(self, get_cmd_module):
         from .mock_tables import dbconnector
         from .mock_tables import mock_multi_asic_3_asics
-        reload(mock_multi_asic_3_asics)
+        importlib.reload(mock_multi_asic_3_asics)
         dbconnector.load_namespace_config()
         (config, show) = get_cmd_module
         db = Db()
@@ -433,7 +433,7 @@ class TestFeatureMultiAsic(object):
     def test_config_bgp_feature_consistent_state(self, get_cmd_module):
         from .mock_tables import dbconnector
         from .mock_tables import mock_multi_asic
-        reload(mock_multi_asic)
+        importlib.reload(mock_multi_asic)
         dbconnector.load_namespace_config()
         (config, show) = get_cmd_module
         db = Db()
@@ -457,7 +457,7 @@ class TestFeatureMultiAsic(object):
     def test_config_bgp_feature_consistent_autorestart(self, get_cmd_module):
         from .mock_tables import dbconnector
         from .mock_tables import mock_multi_asic
-        reload(mock_multi_asic)
+        importlib.reload(mock_multi_asic)
         dbconnector.load_namespace_config()
         (config, show) = get_cmd_module
         db = Db()
@@ -484,4 +484,4 @@ class TestFeatureMultiAsic(object):
     def teardown_class(cls):
         print("TEARDOWN")
         from .mock_tables import mock_single_asic
-        reload(mock_single_asic)
+        importlib.reload(mock_single_asic)

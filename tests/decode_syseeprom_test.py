@@ -1,10 +1,10 @@
-import importlib
 import os
 import sys
 from unittest import mock
 
 import pytest
 from click.testing import CliRunner
+from utilities_common.general import load_module_from_source
 
 from .mock_tables import dbconnector
 
@@ -17,10 +17,7 @@ sys.modules['sonic_platform'] = mock.MagicMock()
 
 
 decode_syseeprom_path = os.path.join(scripts_path, 'decode-syseeprom')
-loader = importlib.machinery.SourceFileLoader('decode-syseeprom', decode_syseeprom_path)
-spec = importlib.util.spec_from_loader(loader.name, loader)
-decode_syseeprom = importlib.util.module_from_spec(spec)
-loader.exec_module(decode_syseeprom)
+decode_syseeprom = load_module_from_source('decode-syseeprom', decode_syseeprom_path)
 
 # Replace swsscommon objects with mocked objects
 decode_syseeprom.SonicV2Connector = dbconnector.SonicV2Connector

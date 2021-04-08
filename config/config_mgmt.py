@@ -2,28 +2,21 @@
 config_mgmt.py provides classes for configuration validation and for Dynamic
 Port Breakout.
 '''
-try:
-    import re
-    import syslog
+import re
+import syslog
+from json import load
+from sys import flags
+from time import sleep as tsleep
 
-    from json import load
-    from time import sleep as tsleep
-    from imp import load_source
-    from jsondiff import diff
-    from sys import flags
+import sonic_yang
+from jsondiff import diff
+from swsssdk import port_util
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+from utilities_common.general import load_module_from_source
 
-    # SONiC specific imports
-    import sonic_yang
-    from swsssdk import port_util
-    from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 
-    # Using load_source to 'import /usr/local/bin/sonic-cfggen as sonic_cfggen'
-    # since /usr/local/bin/sonic-cfggen does not have .py extension.
-    load_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
-    from sonic_cfggen import deep_update, FormatConverter
-
-except ImportError as e:
-    raise ImportError("%s - required module not found" % str(e))
+# Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
+sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
 
 # Globals
 YANG_DIR = "/usr/local/yang-models"
@@ -193,8 +186,8 @@ class ConfigMgmt():
         data = dict()
         configdb = ConfigDBConnector()
         configdb.connect()
-        deep_update(data, FormatConverter.db_to_output(configdb.get_config()))
-        self.configdbJsonIn =  FormatConverter.to_serialized(data)
+        sonic_cfggen.deep_update(data, sonic_cfggen.FormatConverter.db_to_output(configdb.get_config()))
+        self.configdbJsonIn = sonic_cfggen.FormatConverter.to_serialized(data)
         self.sysLog(syslog.LOG_DEBUG, 'Reading Input from ConfigDB {}'.\
             format(self.configdbJsonIn))
 
@@ -214,9 +207,9 @@ class ConfigMgmt():
         data = dict()
         configdb = ConfigDBConnector()
         configdb.connect(False)
-        deep_update(data, FormatConverter.to_deserialized(jDiff))
+        sonic_cfggen.deep_update(data, sonic_cfggen.FormatConverter.to_deserialized(jDiff))
         self.sysLog(msg="Write in DB: {}".format(data))
-        configdb.mod_config(FormatConverter.output_to_db(data))
+        configdb.mod_config(sonic_cfggen.FormatConverter.output_to_db(data))
 
         return
 

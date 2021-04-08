@@ -1,10 +1,10 @@
-import importlib
 import os
 import sys
 from unittest import mock
 
 import pytest
 from click.testing import CliRunner
+from utilities_common.general import load_module_from_source
 
 from .mock_tables import dbconnector
 
@@ -17,10 +17,7 @@ sys.modules['sonic_platform'] = mock.MagicMock()
 
 # Load the file under test
 psushow_path = os.path.join(scripts_path, 'psushow')
-loader = importlib.machinery.SourceFileLoader('psushow', psushow_path)
-spec = importlib.util.spec_from_loader(loader.name, loader)
-psushow = importlib.util.module_from_spec(spec)
-loader.exec_module(psushow)
+psushow = load_module_from_source('psushow', psushow_path)
 
 # Replace swsscommon objects with mocked objects
 psushow.SonicV2Connector = dbconnector.SonicV2Connector

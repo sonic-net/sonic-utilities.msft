@@ -1,11 +1,9 @@
+import importlib
 import os
-import imp
 import sys
 
 import click
-
 import utilities_common.cli as clicommon
-
 from natsort import natsorted
 from sonic_py_common.multi_asic import get_external_ports
 from tabulate import tabulate
@@ -27,7 +25,7 @@ try:
         import mock_tables.dbconnector
     if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
         import mock_tables.mock_multi_asic
-        imp.reload(mock_tables.mock_multi_asic)
+        importlib.reload(mock_tables.mock_multi_asic)
         mock_tables.dbconnector.load_namespace_config()
 
 except KeyError:

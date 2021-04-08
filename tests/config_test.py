@@ -1,5 +1,5 @@
 import filecmp
-import imp
+import importlib
 import os
 import traceback
 import json
@@ -37,7 +37,7 @@ class TestLoadMinigraph(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         print("SETUP")
         import config.main
-        imp.reload(config.main)
+        importlib.reload(config.main)
 
     def test_load_minigraph(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
@@ -63,7 +63,7 @@ class TestConfigQos(object):
         print("SETUP")
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
         import config.main
-        imp.reload(config.main)
+        importlib.reload(config.main)
 
     def test_qos_reload_single(
             self, get_cmd_module, setup_qos_mock_apis,
@@ -105,7 +105,7 @@ class TestConfigQosMasic(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
         import config.main
-        imp.reload(config.main)
+        importlib.reload(config.main)
 
     def test_qos_reload_masic(
             self, get_cmd_module, setup_qos_mock_apis,
@@ -148,5 +148,5 @@ class TestConfigQosMasic(object):
         # change back to single asic config
         from .mock_tables import dbconnector
         from .mock_tables import mock_single_asic
-        imp.reload(mock_single_asic)
+        importlib.reload(mock_single_asic)
         dbconnector.load_namespace_config()

@@ -1,4 +1,4 @@
-import imp
+import importlib
 import os
 import sys
 from unittest.mock import patch
@@ -273,7 +273,7 @@ class TestMultiAsicPfcwdShow(object):
         os.environ["UTILITIES_UNIT_TESTING"] = "2"
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
         import pfcwd.main
-        imp.reload(pfcwd.main)
+        importlib.reload(pfcwd.main)
 
     def test_pfcwd_stats_all(self):
         import pfcwd.main as pfcwd

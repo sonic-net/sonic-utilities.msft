@@ -49,7 +49,7 @@ class UtilHelper(object):
     # try get information from platform API and return a default value if caught NotImplementedError
     def try_get(self, callback, default=None):
         """
-        Handy function to invoke the callback and catch NotImplementedError
+        Handy function to invoke the callback, catch NotImplementedError and return a default value
         :param callback: Callback to be invoked
         :param default: Default return value if exception occur
         :return: Default return value if exception occur else return value of the callback
@@ -82,4 +82,3 @@ class UtilHelper(object):
             return True
         else:
             return False
-
