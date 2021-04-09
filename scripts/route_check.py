@@ -354,6 +354,36 @@ def filter_out_local_interfaces(keys):
     return rt
 
 
+def filter_out_voq_neigh_routes(keys):
+    """
+    helper to filter out voq neigh routes. These are the
+    routes statically added for the voq neighbors. We skip
+    writing route entries in asic db for these. We filter
+    out reporting error on all the host routes written on
+    inband interface prefixed with "Ethernte-IB"
+    :param keys: APPL-DB:ROUTE_TABLE Routes to check.
+    :return keys filtered out for voq neigh routes
+    """
+    rt = []
+    local_if_re = [r'Ethernet-IB\d+']
+
+    db = swsscommon.DBConnector(APPL_DB_NAME, 0)
+    tbl = swsscommon.Table(db, 'ROUTE_TABLE')
+
+    for k in keys:
+        prefix = k.split("/")
+        e = dict(tbl.get(k)[1])
+        if not e:
+            # Prefix might have been added. So try w/o it.
+            e = dict(tbl.get(prefix[0])[1])
+        if not e or all([not (re.match(x, e['ifname']) and
+            ((prefix[1] == "32" and e['nexthop'] == "0.0.0.0") or
+                (prefix[1] == "128" and e['nexthop'] == "::"))) for x in local_if_re]):
+            rt.append(k)
+
+    return rt
+
+
 def filter_out_default_routes(lst):
     """
     helper to filter out default routes
@@ -410,6 +440,9 @@ def check_routes():
 
     if rt_appl_miss:
         rt_appl_miss = filter_out_local_interfaces(rt_appl_miss)
+
+    if rt_appl_miss:
+        rt_appl_miss = filter_out_voq_neigh_routes(rt_appl_miss)
 
     if rt_appl_miss or rt_asic_miss:
         # Look for subscribe updates for a second

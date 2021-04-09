@@ -108,6 +108,18 @@
         "pfc_asym": "off",
         "admin_status": "up"
     },
+    "PORT_TABLE:Ethernet-IB0": {
+        "admin_status": "up",
+        "alias": "Ethernet-IB0",
+        "asic_port_name": "Rcy-ASIC0",
+        "description": "",
+        "index": "148",
+        "lanes": "109,0,0,0,0,0,0,0",
+        "mtu": "9100",
+        "oper_status": "up",
+        "role": "Int",
+        "speed": "100000"
+    },
     "INTF_TABLE:Ethernet0.10": {
         "admin_status": "up"
     },

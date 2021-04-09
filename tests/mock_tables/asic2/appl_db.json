@@ -47,6 +47,18 @@
         "speed": "40000",
         "asic_port_name": "Eth17-ASIC2"
     },
+    "PORT_TABLE:Ethernet-IB2": {
+        "admin_status": "up",
+        "alias": "Ethernet-IB2",
+        "asic_port_name": "Rcy-ASIC2",
+        "description": "",
+        "index": "156",
+        "lanes": "109,0,0,0,0,0,0,0",
+        "mtu": "9100",
+        "oper_status": "up",
+        "role": "Int",
+        "speed": "100000"
+    },
     "LAG_MEMBER_TABLE:PortChannel1015:Ethernet20": {
         "status": "enabled"
     },
