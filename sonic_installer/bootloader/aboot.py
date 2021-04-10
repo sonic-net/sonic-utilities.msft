@@ -156,7 +156,7 @@ class AbootBootloader(Bootloader):
                 return None
             with swi.open(sigInfo, 'r') as sigFile:
                 for line in sigFile:
-                    data = line.split(':')
+                    data = line.decode('utf8').split(':')
                     if len(data) == 2:
                         if data[0] == ISSUERCERT:
                             try:
@@ -197,7 +197,7 @@ class AbootBootloader(Bootloader):
 
         swipath = os.path.join(image_path, DEFAULT_SWI_IMAGE)
         offset = self._get_swi_file_offset(swipath, ROOTFS_NAME)
-        loopdev = subprocess.check_output(['losetup', '-f']).rstrip()
+        loopdev = subprocess.check_output(['losetup', '-f']).decode('utf8').rstrip()
 
         try:
             run_command_or_raise(['losetup', '-o', str(offset), loopdev, swipath])
