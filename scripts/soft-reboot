@@ -59,6 +59,17 @@ function tag_images()
     fi
 }
 
+function stop_pmon_service()
+{
+     CONTAINER_STOP_RC=0
+     debug "Stopping pmon docker"
+     docker kill pmon &> /dev/null || CONTAINER_STOP_RC=$?
+     systemctl stop pmon || debug "Ignore stopping pmon error $?"
+     if [[ CONTAINER_STOP_RC -ne 0 ]]; then
+        debug "Failed killing container pmon RC $CONTAINER_STOP_RC ."
+     fi
+}
+
 function stop_sonic_services()
 {
     if [[ x"$ASIC_TYPE" != x"mellanox" ]]; then
@@ -66,6 +77,7 @@ function stop_sonic_services()
         docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
         sleep 3
     fi
+    stop_pmon_service
 }
 
 function clear_lingering_reboot_config()
