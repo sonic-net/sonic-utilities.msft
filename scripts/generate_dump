@@ -242,17 +242,20 @@ copy_from_docker() {
     local dstpath=$3
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
 
+    local touch_cmd="sudo docker exec -i ${docker} touch ${filename}"
+    local cp_cmd="sudo docker cp ${docker}:${filename} ${dstpath}"
+
     if $NOOP; then
-        echo "${timeout_cmd} sudo docker exec -i ${docker} touch ${filename}"
-        echo "${timeout_cmd} sudo docker cp ${docker}:${filename} ${dstpath}"
+        echo "${timeout_cmd} ${touch_cmd}"
+        echo "${timeout_cmd} ${cp_cmd}"
     else
-        eval "${timeout_cmd} sudo docker exec -i ${docker} touch ${filename}"
+        eval "${timeout_cmd} ${touch_cmd}"
         if [ $? -ne 0 ]; then
-            echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
+            echo "Command: $touch_cmd timedout after ${TIMEOUT_MIN} minutes."
         fi
-        eval "${timeout_cmd} sudo docker cp ${docker}:${filename} ${dstpath}"
+        eval "${timeout_cmd} ${cp_cmd}"
         if [ $? -ne 0 ]; then
-            echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
+            echo "Command: $cp_cmd timedout after ${TIMEOUT_MIN} minutes."
         fi
     fi
     end_t=$(date +%s%3N)
@@ -1084,7 +1087,7 @@ main() {
     save_cmd "show interface status -d all" "interface.status"
     save_cmd "show interface transceiver presence" "interface.xcvrs.presence"
     save_cmd "show interface transceiver eeprom --dom" "interface.xcvrs.eeprom"
-    save_cmd_all_ns "show ip interface" "ip.interface"
+    save_cmd "show ip interface -d all" "ip.interface"
 
     save_cmd "lldpctl" "lldpctl"
     if [[ ( "$NUM_ASICS" > 1 ) ]]; then
