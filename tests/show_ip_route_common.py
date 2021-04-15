@@ -93,6 +93,17 @@ Routing entry for 192.168.0.1/32
 
 """
 
+show_specific_recursive_route_expected_output = """\
+Routing entry for 193.11.208.0/25
+  Known via "bgp", distance 20, metric 0, best
+  Last update 00:14:32 ago
+  * 10.0.0.1, via PortChannel0002
+  * 10.0.0.5, via PortChannel0005
+  * 10.0.0.9 (recursive)
+  * 10.0.0.1 (recursive)
+
+"""
+
 show_special_ip_route_expected_output = """\
 Codes: K - kernel route, C - connected, S - static, R - RIP,
        O - OSPF, I - IS-IS, B - BGP, E - EIGRP, N - NHRP,

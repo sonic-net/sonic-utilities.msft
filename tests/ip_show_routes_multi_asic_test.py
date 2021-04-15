@@ -78,6 +78,20 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
         assert result.output == show_ip_route_common.show_specific_ip_route_expected_output
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             ['ip_specific_recursive_route'], indirect=['setup_multi_asic_bgp_instance'])
+    def test_show_multi_asic_ip_route_specific_recursive_route(
+            self,
+            setup_ip_route_commands,
+            setup_multi_asic_bgp_instance):
+        show = setup_ip_route_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ip"].commands["route"], ["193.11.208.0/25"])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_ip_route_common.show_specific_recursive_route_expected_output
+
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ipv6_specific_route'], indirect=['setup_multi_asic_bgp_instance'])
     def test_show_multi_asic_ipv6_route_specific(
             self,

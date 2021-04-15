@@ -170,6 +170,8 @@ def setup_multi_asic_bgp_instance(request):
         m_asic_json_file = 'ip_empty_route.json'
     elif request.param == 'ip_specific_route_on_1_asic':
         m_asic_json_file = 'ip_special_route_asic0_only.json'
+    elif request.param == 'ip_specific_recursive_route':
+        m_asic_json_file = 'ip_special_recursive_route.json'
     elif request.param == 'ip_route_summary':
         m_asic_json_file = 'ip_route_summary.txt'
     else:

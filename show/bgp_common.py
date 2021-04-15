@@ -52,12 +52,18 @@ def get_mpls_label_strgs(label_list):
             label_str_2_return += "/" + label_string
     return label_str_2_return
 
-def get_nexthop_info_str(nxhp_info):
+def get_nexthop_info_str(nxhp_info, filterByIp):
     str_2_return = ""
     if "ip" in nxhp_info:
-        str_2_return = " via {},".format(nxhp_info['ip'])
+        if filterByIp:
+            str_2_return = "  * {}".format(nxhp_info['ip'])
+        else:
+            str_2_return = " via {},".format(nxhp_info['ip'])
         if "interfaceName" in nxhp_info:
-            str_2_return += " {},".format(nxhp_info['interfaceName'])
+            if filterByIp:
+                str_2_return += ", via {}".format(nxhp_info['interfaceName'])
+            else:
+                str_2_return += " {},".format(nxhp_info['interfaceName'])
     elif "directlyConnected" in nxhp_info:
         str_2_return = " is directly connected,"
         if "interfaceName" in nxhp_info:
@@ -152,13 +158,7 @@ def print_ip_routes(route_info, filter_by_ip):
                     if "directlyConnected" in info[i]['nexthops'][j]:
                         print("  * directly connected, {}\n".format(info[i]['nexthops'][j]['interfaceName']))
                     else:
-                        if "ip" in info[i]['nexthops'][j]:
-                            str_2_print = "  * {}".format(info[i]['nexthops'][j]['ip'])
-
-                        if "active" in info[i]['nexthops'][j]:
-                            str_2_print += ", via {}".format(info[i]['nexthops'][j]['interfaceName'])
-                        else:
-                            str_2_print += " inactive"
+                        str_2_print = get_nexthop_info_str(info[i]['nexthops'][j], True)
                         print(str_2_print)
                 print("")
             else:
@@ -183,7 +183,7 @@ def print_ip_routes(route_info, filter_by_ip):
                         # For all subsequent nexthops skip the spacing to not repeat the prefix section
                         str_2_print += " "*(str_length - 3)
                     # Get the nexhop info portion of the string
-                    str_2_print += get_nexthop_info_str(info[i]['nexthops'][j])
+                    str_2_print += get_nexthop_info_str(info[i]['nexthops'][j], False)
                     # add uptime at the end of the string
                     str_2_print += " {}".format(info[i]['uptime'])
                     # print out this string
