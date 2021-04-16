@@ -218,6 +218,40 @@ test_data = {
                 }
             }
         }
+    },
+    "5": {
+        DESCR: "local route with nexthop - fail",
+        ARGS: "route_check -m INFO -i 1000",
+        RET: -1,
+        PRE: {
+            APPL_DB: {
+                ROUTE_TABLE: {
+                    "0.0.0.0/0" : { "ifname": "portchannel0" },
+                    "10.10.196.12/31" : { "ifname": "portchannel0" },
+                    "10.10.196.20/31" : { "ifname": "portchannel0" },
+                    "10.10.196.30/31" : { "ifname": "lo", "nexthop": "100.0.0.2" }
+                },
+                INTF_TABLE: {
+                    "PortChannel1013:10.10.196.24/31": {},
+                    "PortChannel1023:2603:10b0:503:df4::5d/126": {},
+                    "PortChannel1024": {}
+                }
+            },
+            ASIC_DB: {
+                RT_ENTRY_TABLE: {
+                    RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "10.10.196.20/31" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
+                }
+            }
+        },
+        RESULT: {
+            "missed_ROUTE_TABLE_routes": [
+                "10.10.196.30/31"
+            ]
+        }
     }
 }
 

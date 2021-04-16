@@ -264,6 +264,10 @@ def get_subscribe_updates(selector, subs):
     return (sorted(adds), sorted(deletes))
 
 
+def is_vrf(k):
+    return k.startswith("Vrf")
+
+
 def get_routes():
     """
     helper to read route table from APPL-DB.
@@ -276,7 +280,7 @@ def get_routes():
 
     valid_rt = []
     for k in keys:
-        if not is_local(k):
+        if not is_vrf(k) and not is_local(k):
             valid_rt.append(add_prefix_ifnot(k.lower()))
 
     print_message(syslog.LOG_DEBUG, json.dumps({"ROUTE_TABLE": sorted(valid_rt)}, indent=4))
@@ -341,15 +345,25 @@ def filter_out_local_interfaces(keys):
     :return keys filtered out of local
     """
     rt = []
-    local_if_re = [r'eth0', r'lo', r'docker0', r'tun0', r'Loopback\d+']
+    local_if_lst = {'eth0', 'docker0'}
+    local_if_lo = [r'tun0', r'lo', r'Loopback\d+']
 
     db = swsscommon.DBConnector(APPL_DB_NAME, 0)
     tbl = swsscommon.Table(db, 'ROUTE_TABLE')
 
     for k in keys:
         e = dict(tbl.get(k)[1])
-        if not e or all([not re.match(x, e['ifname']) for x in local_if_re]):
-            rt.append(k)
+
+        ifname = e.get('ifname', '')
+        if ifname in local_if_lst:
+            continue
+
+        if any([re.match(x, ifname) for x in local_if_lo]):
+            nh = e.get('nexthop')
+            if not nh or ipaddress.ip_address(nh).is_unspecified:
+                continue
+
+        rt.append(k)
 
     return rt
 
