@@ -520,7 +520,8 @@ def queue():
 @queue.command()
 @click.argument('interfacename', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def counters(interfacename, verbose):
+@click.option('--json', is_flag=True, help="JSON output")
+def counters(interfacename, verbose, json):
     """Show queue counters"""
 
     cmd = "queuestat"
@@ -531,6 +532,9 @@ def counters(interfacename, verbose):
 
     if interfacename is not None:
         cmd += " -p {}".format(interfacename)
+
+    if json:
+        cmd += " -j"
 
     run_command(cmd, display_cmd=verbose)
 

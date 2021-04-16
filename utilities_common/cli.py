@@ -1,4 +1,5 @@
 import configparser
+import datetime
 import os
 import re
 import subprocess
@@ -546,13 +547,22 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
         sys.exit(rc)
 
 
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default"""
+
+    if isinstance(obj, (datetime.datetime, datetime.date)):
+        return obj.isoformat()
+    raise TypeError("Type %s not serializable" % type(obj))
+
+
 def json_dump(data):
     """
     Dump data in JSON format
     """
     return json.dumps(
-        data, sort_keys=True, indent=2, ensure_ascii=False
+        data, sort_keys=True, indent=2, ensure_ascii=False, default=json_serial
     )
+
     
 def interface_is_untagged_member(db, interface_name):
     """ Check if interface is already untagged member"""    
