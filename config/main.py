@@ -3339,7 +3339,7 @@ def parse_acl_table_info(table_name, table_type, description, ports, stage):
     if ports:
         for port in ports.split(","):
             port_list += expand_vlan_ports(port)
-        port_list = set(port_list)
+        port_list = list(set(port_list))  # convert to set first to remove duplicate ifaces
     else:
         port_list = valid_acl_ports
 
@@ -3347,7 +3347,7 @@ def parse_acl_table_info(table_name, table_type, description, ports, stage):
         if port not in valid_acl_ports:
             raise ValueError("Cannot bind ACL to specified port {}".format(port))
 
-    table_info["ports@"] = ",".join(port_list)
+    table_info["ports"] = port_list
 
     table_info["stage"] = stage
 
