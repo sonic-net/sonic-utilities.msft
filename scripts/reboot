@@ -3,6 +3,7 @@ DEVPATH="/usr/share/sonic/device"
 PLAT_REBOOT="platform_reboot"
 PLATFORM_UPDATE_REBOOT_CAUSE="platform_update_reboot_cause"
 REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
+PLATFORM_REBOOT_PRE_CHECK="platform_reboot_pre_check"
 REBOOT_TIME=$(date)
 
 # Reboot immediately if we run the kdump capture kernel
@@ -121,6 +122,11 @@ function reboot_pre_check()
     fi
     rm ${filename}
 
+    if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_REBOOT_PRE_CHECK} ]; then
+        ${DEVPATH}/${PLATFORM}/${PLATFORM_REBOOT_PRE_CHECK}
+        [[ $? -ne 0 ]] && exit $?
+    fi
+    
     # Verify the next image by sonic-installer
     local message=$(sonic-installer verify-next-image 2>&1)
     if [ $? -ne 0 ]; then
