@@ -698,4 +698,4 @@ class TestConsutilClear(object):
         print(result.exit_code)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
-        assert result.output == ""
+        assert "Cleared line" in result.output

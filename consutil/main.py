@@ -74,6 +74,8 @@ def clear(db, target, devicename):
 
     if not target_port.clear_session():
         click.echo("No process is connected to line " + target_port.line_num)
+    else:
+        click.echo("Cleared line")
 
 # 'connect' subcommand
 @consutil.command()
