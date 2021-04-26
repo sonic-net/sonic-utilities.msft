@@ -81,6 +81,7 @@ setup(
         'scripts/db_migrator.py',
         'scripts/decode-syseeprom',
         'scripts/dropcheck',
+        'scripts/disk_check.py',
         'scripts/dropconfig',
         'scripts/dropstat',
         'scripts/dump_nat_entries.py',
