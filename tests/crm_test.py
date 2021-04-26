@@ -1216,6 +1216,7 @@ class TestCrmMultiAsic(object):
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
         from .mock_tables import dbconnector
         from .mock_tables import mock_multi_asic
+        importlib.reload(mock_multi_asic)
         dbconnector.load_namespace_config()
 
     def test_crm_show_summary(self):

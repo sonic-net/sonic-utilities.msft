@@ -7,6 +7,7 @@ from click.testing import CliRunner
 import config.main as config
 import show.main as show
 from utilities_common.db import Db
+from importlib import reload
 
 show_vlan_brief_output="""\
 +-----------+-----------------+-----------------+----------------+-----------------------+-------------+
@@ -188,6 +189,11 @@ class TestVlan(object):
     @classmethod
     def setup_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        # ensure that we are working with single asic config
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_single_asic
+        reload(mock_single_asic)
+        dbconnector.load_namespace_config()
         print("SETUP")
 
     def test_show_vlan(self):

@@ -22,6 +22,7 @@ from utilities_common import util_base
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
+from utilities_common import bgp_util
 import utilities_common.cli as clicommon
 from .utils import log
 
@@ -2787,6 +2788,25 @@ def remove(ctx, interface_name, ip_addr):
         table_name = get_interface_table_name(interface_name)
         if table_name == "":
             ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+        interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
+        # If we deleting the last IP entry of the interface, check whether a static route present for the RIF
+        # before deleting the entry and also the RIF.
+        if len(interface_dependent) == 1 and interface_dependent[0][1] == ip_addr:
+            # Check both IPv4 and IPv6 routes.
+            ip_versions = [ "ip", "ipv6"]
+            for ip_ver in ip_versions:
+                # Compete the command and ask Zebra to return the routes.
+                # Scopes of all VRFs will be checked.
+                cmd = "show {} route vrf all static".format(ip_ver)
+                if multi_asic.is_multi_asic():
+                    output = bgp_util.run_bgp_command(cmd, ctx.obj['namespace'])
+                else:
+                    output = bgp_util.run_bgp_command(cmd)
+                # If there is output data, check is there a static route,
+                # bound to the interface.
+                if output != "":
+                    if any(interface_name in output_line for output_line in output.splitlines()):
+                        ctx.fail("Cannot remove the last IP entry of interface {}. A static {} route is still bound to the RIF.".format(interface_name, ip_ver))
         config_db.set_entry(table_name, (interface_name, ip_addr), None)
         interface_dependent = interface_ipaddr_dependent_on_interface(config_db, interface_name)
         if len(interface_dependent) == 0 and is_interface_bind_to_vrf(config_db, interface_name) is False:
