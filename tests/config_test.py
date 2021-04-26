@@ -3,6 +3,9 @@ import importlib
 import os
 import traceback
 import json
+import jsonpatch
+import sys
+import unittest
 from unittest import mock
 
 import click
@@ -10,6 +13,10 @@ from click.testing import CliRunner
 
 from sonic_py_common import device_info
 from utilities_common.db import Db
+
+from generic_config_updater.generic_updater import ConfigFormat
+
+import config.main as config
 
 load_minigraph_command_output="""\
 Stopping SONiC target ...
@@ -150,3 +157,615 @@ class TestConfigQosMasic(object):
         from .mock_tables import mock_single_asic
         importlib.reload(mock_single_asic)
         dbconnector.load_namespace_config()
+
+class TestGenericUpdateCommands(unittest.TestCase):
+    def setUp(self):
+        os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        self.runner = CliRunner()
+        self.any_patch_as_json = [{"op":"remove", "path":"/PORT"}]
+        self.any_patch = jsonpatch.JsonPatch(self.any_patch_as_json)
+        self.any_patch_as_text = json.dumps(self.any_patch_as_json)
+        self.any_path = '/usr/admin/patch.json-patch'
+        self.any_target_config = {"PORT": {}}
+        self.any_target_config_as_text = json.dumps(self.any_target_config)
+        self.any_checkpoint_name = "any_checkpoint_name"
+        self.any_checkpoints_list = ["checkpoint1", "checkpoint2", "checkpoint3"]
+        self.any_checkpoints_list_as_text = json.dumps(self.any_checkpoints_list, indent=4)
+
+    def test_apply_patch__no_params__get_required_params_error_msg(self):
+        # Arrange
+        unexpected_exit_code = 0
+        expected_output = "Error: Missing argument \"PATCH_FILE_PATH\""
+
+        # Act
+        result = self.runner.invoke(config.config.commands["apply-patch"])
+
+        # Assert
+        self.assertNotEqual(unexpected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+
+    def test_apply_patch__help__gets_help_msg(self):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Options:" # this indicates the options are listed
+
+        # Act
+        result = self.runner.invoke(config.config.commands["apply-patch"], ['--help'])
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+
+    def test_apply_patch__only_required_params__default_values_used_for_optional_params(self):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Patch applied successfully"
+        expected_call_with_default_values = mock.call(self.any_patch, ConfigFormat.CONFIGDB, False, False)
+        mock_generic_updater = mock.Mock()
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+            with mock.patch('builtins.open', mock.mock_open(read_data=self.any_patch_as_text)):
+
+                # Act
+                result = self.runner.invoke(config.config.commands["apply-patch"], [self.any_path], catch_exceptions=False)
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+        mock_generic_updater.apply_patch.assert_called_once()
+        mock_generic_updater.apply_patch.assert_has_calls([expected_call_with_default_values])
+
+    def test_apply_patch__all_optional_params_non_default__non_default_values_used(self):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Patch applied successfully"
+        expected_call_with_non_default_values = mock.call(self.any_patch, ConfigFormat.SONICYANG, True, True)
+        mock_generic_updater = mock.Mock()
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+            with mock.patch('builtins.open', mock.mock_open(read_data=self.any_patch_as_text)):
+
+                # Act
+                result = self.runner.invoke(config.config.commands["apply-patch"],
+                                            [self.any_path,
+                                             "--format", ConfigFormat.SONICYANG.name,
+                                             "--dry-run",
+                                             "--verbose"],
+                                            catch_exceptions=False)
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+        mock_generic_updater.apply_patch.assert_called_once()
+        mock_generic_updater.apply_patch.assert_has_calls([expected_call_with_non_default_values])
+
+    def test_apply_patch__exception_thrown__error_displayed_error_code_returned(self):
+        # Arrange
+        unexpected_exit_code = 0
+        any_error_message = "any_error_message"
+        mock_generic_updater = mock.Mock()
+        mock_generic_updater.apply_patch.side_effect = Exception(any_error_message)
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+            with mock.patch('builtins.open', mock.mock_open(read_data=self.any_patch_as_text)):
+
+                # Act
+                result = self.runner.invoke(config.config.commands["apply-patch"],
+                                            [self.any_path],
+                                            catch_exceptions=False)
+
+        # Assert
+        self.assertNotEqual(unexpected_exit_code, result.exit_code)
+        self.assertTrue(any_error_message in result.output)
+
+    def test_apply_patch__optional_parameters_passed_correctly(self):
+        self.validate_apply_patch_optional_parameter(
+            ["--format", ConfigFormat.SONICYANG.name],
+            mock.call(self.any_patch, ConfigFormat.SONICYANG, False, False))
+        self.validate_apply_patch_optional_parameter(
+            ["--verbose"],
+            mock.call(self.any_patch, ConfigFormat.CONFIGDB, True, False))
+        self.validate_apply_patch_optional_parameter(
+            ["--dry-run"],
+            mock.call(self.any_patch, ConfigFormat.CONFIGDB, False, True))
+
+    def validate_apply_patch_optional_parameter(self, param_args, expected_call):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Patch applied successfully"
+        mock_generic_updater = mock.Mock()
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+            with mock.patch('builtins.open', mock.mock_open(read_data=self.any_patch_as_text)):
+
+                # Act
+                result = self.runner.invoke(config.config.commands["apply-patch"],
+                                            [self.any_path] + param_args,
+                                            catch_exceptions=False)
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+        mock_generic_updater.apply_patch.assert_called_once()
+        mock_generic_updater.apply_patch.assert_has_calls([expected_call])
+
+    def test_replace__no_params__get_required_params_error_msg(self):
+        # Arrange
+        unexpected_exit_code = 0
+        expected_output = "Error: Missing argument \"TARGET_FILE_PATH\""
+
+        # Act
+        result = self.runner.invoke(config.config.commands["replace"])
+
+        # Assert
+        self.assertNotEqual(unexpected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+
+    def test_replace__help__gets_help_msg(self):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Options:" # this indicates the options are listed
+
+        # Act
+        result = self.runner.invoke(config.config.commands["replace"], ['--help'])
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+
+    def test_replace__only_required_params__default_values_used_for_optional_params(self):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Config replaced successfully"
+        expected_call_with_default_values = mock.call(self.any_target_config, ConfigFormat.CONFIGDB, False, False)
+        mock_generic_updater = mock.Mock()
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+            with mock.patch('builtins.open', mock.mock_open(read_data=self.any_target_config_as_text)):
+
+                # Act
+                result = self.runner.invoke(config.config.commands["replace"], [self.any_path], catch_exceptions=False)
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+        mock_generic_updater.replace.assert_called_once()
+        mock_generic_updater.replace.assert_has_calls([expected_call_with_default_values])
+
+    def test_replace__all_optional_params_non_default__non_default_values_used(self):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Config replaced successfully"
+        expected_call_with_non_default_values = mock.call(self.any_target_config, ConfigFormat.SONICYANG, True, True)
+        mock_generic_updater = mock.Mock()
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+            with mock.patch('builtins.open', mock.mock_open(read_data=self.any_target_config_as_text)):
+
+                # Act
+                result = self.runner.invoke(config.config.commands["replace"],
+                                            [self.any_path,
+                                             "--format", ConfigFormat.SONICYANG.name,
+                                             "--dry-run",
+                                             "--verbose"],
+                                            catch_exceptions=False)
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+        mock_generic_updater.replace.assert_called_once()
+        mock_generic_updater.replace.assert_has_calls([expected_call_with_non_default_values])
+
+    def test_replace__exception_thrown__error_displayed_error_code_returned(self):
+        # Arrange
+        unexpected_exit_code = 0
+        any_error_message = "any_error_message"
+        mock_generic_updater = mock.Mock()
+        mock_generic_updater.replace.side_effect = Exception(any_error_message)
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+            with mock.patch('builtins.open', mock.mock_open(read_data=self.any_target_config_as_text)):
+
+                # Act
+                result = self.runner.invoke(config.config.commands["replace"],
+                                            [self.any_path],
+                                            catch_exceptions=False)
+
+        # Assert
+        self.assertNotEqual(unexpected_exit_code, result.exit_code)
+        self.assertTrue(any_error_message in result.output)
+
+    def test_replace__optional_parameters_passed_correctly(self):
+        self.validate_replace_optional_parameter(
+            ["--format", ConfigFormat.SONICYANG.name],
+            mock.call(self.any_target_config, ConfigFormat.SONICYANG, False, False))
+        self.validate_replace_optional_parameter(
+            ["--verbose"],
+            mock.call(self.any_target_config, ConfigFormat.CONFIGDB, True, False))
+        self.validate_replace_optional_parameter(
+            ["--dry-run"],
+            mock.call(self.any_target_config, ConfigFormat.CONFIGDB, False, True))
+
+    def validate_replace_optional_parameter(self, param_args, expected_call):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Config replaced successfully"
+        mock_generic_updater = mock.Mock()
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+            with mock.patch('builtins.open', mock.mock_open(read_data=self.any_target_config_as_text)):
+
+                # Act
+                result = self.runner.invoke(config.config.commands["replace"],
+                                            [self.any_path] + param_args,
+                                            catch_exceptions=False)
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+        mock_generic_updater.replace.assert_called_once()
+        mock_generic_updater.replace.assert_has_calls([expected_call])
+
+    def test_rollback__no_params__get_required_params_error_msg(self):
+        # Arrange
+        unexpected_exit_code = 0
+        expected_output = "Error: Missing argument \"CHECKPOINT_NAME\""
+
+        # Act
+        result = self.runner.invoke(config.config.commands["rollback"])
+
+        # Assert
+        self.assertNotEqual(unexpected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+
+    def test_rollback__help__gets_help_msg(self):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Options:" # this indicates the options are listed
+
+        # Act
+        result = self.runner.invoke(config.config.commands["rollback"], ['--help'])
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+
+    def test_rollback__only_required_params__default_values_used_for_optional_params(self):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Config rolled back successfully"
+        expected_call_with_default_values = mock.call(self.any_checkpoint_name, False, False)
+        mock_generic_updater = mock.Mock()
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+            # Act
+            result = self.runner.invoke(config.config.commands["rollback"], [self.any_checkpoint_name], catch_exceptions=False)
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+        mock_generic_updater.rollback.assert_called_once()
+        mock_generic_updater.rollback.assert_has_calls([expected_call_with_default_values])
+
+    def test_rollback__all_optional_params_non_default__non_default_values_used(self):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Config rolled back successfully"
+        expected_call_with_non_default_values = mock.call(self.any_checkpoint_name, True, True)
+        mock_generic_updater = mock.Mock()
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+
+            # Act
+            result = self.runner.invoke(config.config.commands["rollback"],
+                                        [self.any_checkpoint_name,
+                                            "--dry-run",
+                                            "--verbose"],
+                                        catch_exceptions=False)
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+        mock_generic_updater.rollback.assert_called_once()
+        mock_generic_updater.rollback.assert_has_calls([expected_call_with_non_default_values])
+
+    def test_rollback__exception_thrown__error_displayed_error_code_returned(self):
+        # Arrange
+        unexpected_exit_code = 0
+        any_error_message = "any_error_message"
+        mock_generic_updater = mock.Mock()
+        mock_generic_updater.rollback.side_effect = Exception(any_error_message)
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+
+            # Act
+            result = self.runner.invoke(config.config.commands["rollback"],
+                                        [self.any_checkpoint_name],
+                                        catch_exceptions=False)
+
+        # Assert
+        self.assertNotEqual(unexpected_exit_code, result.exit_code)
+        self.assertTrue(any_error_message in result.output)
+
+    def test_rollback__optional_parameters_passed_correctly(self):
+        self.validate_rollback_optional_parameter(
+            ["--verbose"],
+            mock.call(self.any_checkpoint_name, True, False))
+        self.validate_rollback_optional_parameter(
+            ["--dry-run"],
+            mock.call(self.any_checkpoint_name, False, True))
+
+    def validate_rollback_optional_parameter(self, param_args, expected_call):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Config rolled back successfully"
+        mock_generic_updater = mock.Mock()
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+            # Act
+            result = self.runner.invoke(config.config.commands["rollback"],
+                                        [self.any_checkpoint_name] + param_args,
+                                        catch_exceptions=False)
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+        mock_generic_updater.rollback.assert_called_once()
+        mock_generic_updater.rollback.assert_has_calls([expected_call])
+
+    def test_checkpoint__no_params__get_required_params_error_msg(self):
+        # Arrange
+        unexpected_exit_code = 0
+        expected_output = "Error: Missing argument \"CHECKPOINT_NAME\""
+
+        # Act
+        result = self.runner.invoke(config.config.commands["checkpoint"])
+
+        # Assert
+        self.assertNotEqual(unexpected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+
+    def test_checkpoint__help__gets_help_msg(self):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Options:" # this indicates the options are listed
+
+        # Act
+        result = self.runner.invoke(config.config.commands["checkpoint"], ['--help'])
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+
+    def test_checkpoint__only_required_params__default_values_used_for_optional_params(self):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Checkpoint created successfully"
+        expected_call_with_default_values = mock.call(self.any_checkpoint_name, False)
+        mock_generic_updater = mock.Mock()
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+            # Act
+            result = self.runner.invoke(config.config.commands["checkpoint"], [self.any_checkpoint_name], catch_exceptions=False)
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+        mock_generic_updater.checkpoint.assert_called_once()
+        mock_generic_updater.checkpoint.assert_has_calls([expected_call_with_default_values])
+
+    def test_checkpoint__all_optional_params_non_default__non_default_values_used(self):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Checkpoint created successfully"
+        expected_call_with_non_default_values = mock.call(self.any_checkpoint_name, True)
+        mock_generic_updater = mock.Mock()
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+
+            # Act
+            result = self.runner.invoke(config.config.commands["checkpoint"],
+                                        [self.any_checkpoint_name,
+                                            "--verbose"],
+                                        catch_exceptions=False)
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+        mock_generic_updater.checkpoint.assert_called_once()
+        mock_generic_updater.checkpoint.assert_has_calls([expected_call_with_non_default_values])
+
+    def test_checkpoint__exception_thrown__error_displayed_error_code_returned(self):
+        # Arrange
+        unexpected_exit_code = 0
+        any_error_message = "any_error_message"
+        mock_generic_updater = mock.Mock()
+        mock_generic_updater.checkpoint.side_effect = Exception(any_error_message)
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+
+            # Act
+            result = self.runner.invoke(config.config.commands["checkpoint"],
+                                        [self.any_checkpoint_name],
+                                        catch_exceptions=False)
+
+        # Assert
+        self.assertNotEqual(unexpected_exit_code, result.exit_code)
+        self.assertTrue(any_error_message in result.output)
+
+    def test_checkpoint__optional_parameters_passed_correctly(self):
+        self.validate_checkpoint_optional_parameter(
+            ["--verbose"],
+            mock.call(self.any_checkpoint_name, True))
+
+    def validate_checkpoint_optional_parameter(self, param_args, expected_call):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Checkpoint created successfully"
+        mock_generic_updater = mock.Mock()
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+            # Act
+            result = self.runner.invoke(config.config.commands["checkpoint"],
+                                        [self.any_checkpoint_name] + param_args,
+                                        catch_exceptions=False)
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+        mock_generic_updater.checkpoint.assert_called_once()
+        mock_generic_updater.checkpoint.assert_has_calls([expected_call])
+
+    def test_delete_checkpoint__no_params__get_required_params_error_msg(self):
+        # Arrange
+        unexpected_exit_code = 0
+        expected_output = "Error: Missing argument \"CHECKPOINT_NAME\""
+
+        # Act
+        result = self.runner.invoke(config.config.commands["delete-checkpoint"])
+
+        # Assert
+        self.assertNotEqual(unexpected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+
+    def test_delete_checkpoint__help__gets_help_msg(self):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Options:" # this indicates the options are listed
+
+        # Act
+        result = self.runner.invoke(config.config.commands["delete-checkpoint"], ['--help'])
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+
+    def test_delete_checkpoint__only_required_params__default_values_used_for_optional_params(self):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Checkpoint deleted successfully"
+        expected_call_with_default_values = mock.call(self.any_checkpoint_name, False)
+        mock_generic_updater = mock.Mock()
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+            # Act
+            result = self.runner.invoke(config.config.commands["delete-checkpoint"], [self.any_checkpoint_name], catch_exceptions=False)
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+        mock_generic_updater.delete_checkpoint.assert_called_once()
+        mock_generic_updater.delete_checkpoint.assert_has_calls([expected_call_with_default_values])
+
+    def test_delete_checkpoint__all_optional_params_non_default__non_default_values_used(self):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Checkpoint deleted successfully"
+        expected_call_with_non_default_values = mock.call(self.any_checkpoint_name, True)
+        mock_generic_updater = mock.Mock()
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+
+            # Act
+            result = self.runner.invoke(config.config.commands["delete-checkpoint"],
+                                        [self.any_checkpoint_name,
+                                            "--verbose"],
+                                        catch_exceptions=False)
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+        mock_generic_updater.delete_checkpoint.assert_called_once()
+        mock_generic_updater.delete_checkpoint.assert_has_calls([expected_call_with_non_default_values])
+
+    def test_delete_checkpoint__exception_thrown__error_displayed_error_code_returned(self):
+        # Arrange
+        unexpected_exit_code = 0
+        any_error_message = "any_error_message"
+        mock_generic_updater = mock.Mock()
+        mock_generic_updater.delete_checkpoint.side_effect = Exception(any_error_message)
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+
+            # Act
+            result = self.runner.invoke(config.config.commands["delete-checkpoint"],
+                                        [self.any_checkpoint_name],
+                                        catch_exceptions=False)
+
+        # Assert
+        self.assertNotEqual(unexpected_exit_code, result.exit_code)
+        self.assertTrue(any_error_message in result.output)
+
+    def test_delete_checkpoint__optional_parameters_passed_correctly(self):
+        self.validate_delete_checkpoint_optional_parameter(
+            ["--verbose"],
+            mock.call(self.any_checkpoint_name, True))
+
+    def validate_delete_checkpoint_optional_parameter(self, param_args, expected_call):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Checkpoint deleted successfully"
+        mock_generic_updater = mock.Mock()
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+            # Act
+            result = self.runner.invoke(config.config.commands["delete-checkpoint"],
+                                        [self.any_checkpoint_name] + param_args,
+                                        catch_exceptions=False)
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+        mock_generic_updater.delete_checkpoint.assert_called_once()
+        mock_generic_updater.delete_checkpoint.assert_has_calls([expected_call])
+
+    def test_list_checkpoints__help__gets_help_msg(self):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = "Options:" # this indicates the options are listed
+
+        # Act
+        result = self.runner.invoke(config.config.commands["list-checkpoints"], ['--help'])
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+
+    def test_list_checkpoints__all_optional_params_non_default__non_default_values_used(self):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = self.any_checkpoints_list_as_text
+        expected_call_with_non_default_values = mock.call(True)
+        mock_generic_updater = mock.Mock()
+        mock_generic_updater.list_checkpoints.return_value = self.any_checkpoints_list
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+
+            # Act
+            result = self.runner.invoke(config.config.commands["list-checkpoints"],
+                                        ["--verbose"],
+                                        catch_exceptions=False)
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+        mock_generic_updater.list_checkpoints.assert_called_once()
+        mock_generic_updater.list_checkpoints.assert_has_calls([expected_call_with_non_default_values])
+
+    def test_list_checkpoints__exception_thrown__error_displayed_error_code_returned(self):
+        # Arrange
+        unexpected_exit_code = 0
+        any_error_message = "any_error_message"
+        mock_generic_updater = mock.Mock()
+        mock_generic_updater.list_checkpoints.side_effect = Exception(any_error_message)
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+
+            # Act
+            result = self.runner.invoke(config.config.commands["list-checkpoints"],
+                                        catch_exceptions=False)
+
+        # Assert
+        self.assertNotEqual(unexpected_exit_code, result.exit_code)
+        self.assertTrue(any_error_message in result.output)
+
+    def test_list_checkpoints__optional_parameters_passed_correctly(self):
+        self.validate_list_checkpoints_optional_parameter(
+            ["--verbose"],
+            mock.call(True))
+
+    def validate_list_checkpoints_optional_parameter(self, param_args, expected_call):
+        # Arrange
+        expected_exit_code = 0
+        expected_output = self.any_checkpoints_list_as_text
+        mock_generic_updater = mock.Mock()
+        mock_generic_updater.list_checkpoints.return_value = self.any_checkpoints_list
+        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
+            # Act
+            result = self.runner.invoke(config.config.commands["list-checkpoints"],
+                                        param_args,
+                                        catch_exceptions=False)
+
+        # Assert
+        self.assertEqual(expected_exit_code, result.exit_code)
+        self.assertTrue(expected_output in result.output)
+        mock_generic_updater.list_checkpoints.assert_called_once()
+        mock_generic_updater.list_checkpoints.assert_has_calls([expected_call])

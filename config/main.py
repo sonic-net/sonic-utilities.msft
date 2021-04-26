@@ -3,6 +3,7 @@
 import click
 import ipaddress
 import json
+import jsonpatch
 import netaddr
 import netifaces
 import os
@@ -11,6 +12,7 @@ import subprocess
 import sys
 import time
 
+from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
 from socket import AF_INET, AF_INET6
 from minigraph import parse_device_desc_xml
 from portconfig import get_child_ports
@@ -826,7 +828,7 @@ def cache_arp_entries():
         if filter_err:
             click.echo("Could not filter FDB entries prior to reloading")
             success = False
-    
+
     # If we are able to successfully cache ARP table info, signal SWSS to restore from our cache
     # by creating /host/config-reload/needs-restore
     if success:
@@ -987,6 +989,129 @@ def load(filename, yes):
         log.log_info("'load' executing...")
         clicommon.run_command(command, display_cmd=True)
 
+@config.command('apply-patch')
+@click.argument('patch-file-path', type=str, required=True)
+@click.option('-f', '--format', type=click.Choice([e.name for e in ConfigFormat]),
+               default=ConfigFormat.CONFIGDB.name,
+               help='format of config of the patch is either ConfigDb(ABNF) or SonicYang')
+@click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def apply_patch(ctx, patch_file_path, format, dry_run, verbose):
+    """Apply given patch of updates to Config. A patch is a JsonPatch which follows rfc6902.
+       This command can be used do partial updates to the config with minimum disruption to running processes.
+       It allows addition as well as deletion of configs. The patch file represents a diff of ConfigDb(ABNF)
+       format or SonicYang format.
+
+       <patch-file-path>: Path to the patch file on the file-system."""
+    try:
+        with open(patch_file_path, 'r') as fh:
+            text = fh.read()
+            patch_as_json = json.loads(text)
+            patch = jsonpatch.JsonPatch(patch_as_json)
+
+        config_format = ConfigFormat[format.upper()]
+
+        GenericUpdater().apply_patch(patch, config_format, verbose, dry_run)
+
+        click.secho("Patch applied successfully.", fg="cyan", underline=True)
+    except Exception as ex:
+        click.secho("Failed to apply patch", fg="red", underline=True, err=True)
+        ctx.fail(ex)
+
+@config.command()
+@click.argument('target-file-path', type=str, required=True)
+@click.option('-f', '--format', type=click.Choice([e.name for e in ConfigFormat]),
+               default=ConfigFormat.CONFIGDB.name,
+               help='format of target config is either ConfigDb(ABNF) or SonicYang')
+@click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def replace(ctx, target_file_path, format, dry_run, verbose):
+    """Replace the whole config with the specified config. The config is replaced with minimum disruption e.g.
+       if ACL config is different between current and target config only ACL config is updated, and other config/services
+       such as DHCP will not be affected.
+
+       **WARNING** The target config file should be the whole config, not just the part intended to be updated.
+
+       <target-file-path>: Path to the target file on the file-system."""
+    try:
+        with open(target_file_path, 'r') as fh:
+            target_config_as_text = fh.read()
+            target_config = json.loads(target_config_as_text)
+
+        config_format = ConfigFormat[format.upper()]
+
+        GenericUpdater().replace(target_config, config_format, verbose, dry_run)
+
+        click.secho("Config replaced successfully.", fg="cyan", underline=True)
+    except Exception as ex:
+        click.secho("Failed to replace config", fg="red", underline=True, err=True)
+        ctx.fail(ex)
+
+@config.command()
+@click.argument('checkpoint-name', type=str, required=True)
+@click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def rollback(ctx, checkpoint_name, dry_run, verbose):
+    """Rollback the whole config to the specified checkpoint. The config is rolled back with minimum disruption e.g.
+       if ACL config is different between current and checkpoint config only ACL config is updated, and other config/services
+       such as DHCP will not be affected.
+
+       <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
+    try:
+        GenericUpdater().rollback(checkpoint_name, verbose, dry_run)
+
+        click.secho("Config rolled back successfully.", fg="cyan", underline=True)
+    except Exception as ex:
+        click.secho("Failed to rollback config", fg="red", underline=True, err=True)
+        ctx.fail(ex)
+
+@config.command()
+@click.argument('checkpoint-name', type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def checkpoint(ctx, checkpoint_name, verbose):
+    """Take a checkpoint of the whole current config with the specified checkpoint name.
+
+       <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
+    try:
+        GenericUpdater().checkpoint(checkpoint_name, verbose)
+
+        click.secho("Checkpoint created successfully.", fg="cyan", underline=True)
+    except Exception as ex:
+        click.secho("Failed to create a config checkpoint", fg="red", underline=True, err=True)
+        ctx.fail(ex)
+
+@config.command('delete-checkpoint')
+@click.argument('checkpoint-name', type=str, required=True)
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def delete_checkpoint(ctx, checkpoint_name, verbose):
+    """Delete a checkpoint with the specified checkpoint name.
+
+       <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
+    try:
+        GenericUpdater().delete_checkpoint(checkpoint_name, verbose)
+
+        click.secho("Checkpoint deleted successfully.", fg="cyan", underline=True)
+    except Exception as ex:
+        click.secho("Failed to delete config checkpoint", fg="red", underline=True, err=True)
+        ctx.fail(ex)
+
+@config.command('list-checkpoints')
+@click.option('-v', '--verbose', is_flag=True, default=False, help='print additional details of what the operation is doing')
+@click.pass_context
+def list_checkpoints(ctx, verbose):
+    """List the config checkpoints available."""
+    try:
+        checkpoints_list = GenericUpdater().list_checkpoints(verbose)
+        formatted_output = json.dumps(checkpoints_list, indent=4)
+        click.echo(formatted_output)
+    except Exception as ex:
+        click.secho("Failed to list config checkpoints", fg="red", underline=True, err=True)
+        ctx.fail(ex)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
@@ -2581,8 +2706,8 @@ def add(ctx, interface_name, ip_addr, gw):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    # Add a validation to check this interface is not a member in vlan before 
-    # changing it to a router port 
+    # Add a validation to check this interface is not a member in vlan before
+    # changing it to a router port
     vlan_member_table = config_db.get_table('VLAN_MEMBER')
     if (interface_is_in_vlan(vlan_member_table, interface_name)):
             click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
