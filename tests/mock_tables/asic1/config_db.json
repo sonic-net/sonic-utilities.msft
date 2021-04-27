@@ -165,5 +165,25 @@
         "state": "enabled",
         "auto_restart": "enabled",
         "high_mem_alert": "disabled"
+    },
+    "BGP_INTERNAL_NEIGHBOR|10.1.0.1": {
+        "rrclient": "0",
+        "name": "ASIC0",
+        "local_addr": "10.1.0.0",
+        "nhopself": "0",
+        "admin_status": "up",
+        "holdtime": "0",
+        "asn": "65100",
+        "keepalive": "0"
+    },
+    "BGP_INTERNAL_NEIGHBOR|2603:10e2:400:1::2": {
+        "rrclient": "0",
+        "name": "ASIC0",
+        "local_addr": "2603:10e2:400:1::1",
+        "nhopself": "0",
+        "admin_status": "up",
+        "holdtime": "0",
+        "asn": "65100",
+        "keepalive": "0"
     }
 }

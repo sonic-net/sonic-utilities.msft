@@ -63,6 +63,8 @@ def mock_is_multi_asic():
 
 
 def mock_get_namespace_list(namespace=None):
+    if namespace:
+        return [namespace]
     return ['asic0', 'asic1']
 
 

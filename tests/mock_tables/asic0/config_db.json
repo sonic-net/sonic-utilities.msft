@@ -203,5 +203,25 @@
     },
     "VLAN_MEMBER|Vlan1000|PortChannel1002": {
         "tagging_mode": "tagged"
+    },
+    "BGP_NEIGHBOR|10.0.0.1": {
+        "rrclient": "0",
+        "name": "ARISTA01T2",
+        "local_addr": "10.0.0.0",
+        "nhopself": "0",
+        "admin_status": "up",
+        "holdtime": "10",
+        "asn": "65200",
+        "keepalive": "3"
+    },
+    "BGP_NEIGHBOR|fc00::2": {
+        "rrclient": "0",
+        "name": "ARISTA01T2",
+        "local_addr": "fc00::1",
+        "nhopself": "0",
+        "admin_status": "up",
+        "holdtime": "10",
+        "asn": "65200",
+        "keepalive": "3"
     }
 }
