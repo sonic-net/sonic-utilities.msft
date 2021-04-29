@@ -9,7 +9,6 @@ from ..common import (
    HOST_PATH,
    IMAGE_DIR_PREFIX,
    IMAGE_PREFIX,
-   ROOTFS_NAME,
 )
 
 class Bootloader(object):
@@ -71,6 +70,6 @@ class Bootloader(object):
         return image.replace(IMAGE_PREFIX, prefix)
 
     @contextmanager
-    def get_rootfs_path(self, image_path):
+    def get_path_in_image(self, image_path, path_in_image):
         """returns the path to the squashfs"""
-        yield path.join(image_path, ROOTFS_NAME)
+        yield path.join(image_path, path_in_image)

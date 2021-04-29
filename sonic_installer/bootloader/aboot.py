@@ -19,7 +19,6 @@ from ..common import (
    HOST_PATH,
    IMAGE_DIR_PREFIX,
    IMAGE_PREFIX,
-   ROOTFS_NAME,
    run_command,
    run_command_or_raise,
 )
@@ -189,14 +188,14 @@ class AbootBootloader(Bootloader):
                 return f._fileobj.tell() # pylint: disable=protected-access
 
     @contextmanager
-    def get_rootfs_path(self, image_path):
-        rootfs_path = os.path.join(image_path, ROOTFS_NAME)
-        if os.path.exists(rootfs_path) and not isSecureboot():
-            yield rootfs_path
+    def get_path_in_image(self, image_path, path):
+        path_in_image = os.path.join(image_path, path)
+        if os.path.exists(path_in_image) and not isSecureboot():
+            yield path_in_image
             return
 
         swipath = os.path.join(image_path, DEFAULT_SWI_IMAGE)
-        offset = self._get_swi_file_offset(swipath, ROOTFS_NAME)
+        offset = self._get_swi_file_offset(swipath, path)
         loopdev = subprocess.check_output(['losetup', '-f']).decode('utf8').rstrip()
 
         try:

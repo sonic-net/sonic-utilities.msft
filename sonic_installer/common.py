@@ -14,6 +14,9 @@ HOST_PATH = '/host'
 IMAGE_PREFIX = 'SONiC-OS-'
 IMAGE_DIR_PREFIX = 'image-'
 ROOTFS_NAME = 'fs.squashfs'
+UPPERDIR_NAME = 'rw'
+WORKDIR_NAME = 'work'
+DOCKERDIR_NAME = 'docker'
 
 # Run bash command and print output to stdout
 def run_command(command):

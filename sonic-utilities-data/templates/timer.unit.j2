@@ -1,0 +1,15 @@
+#
+# =============== Managed by SONiC Package Manager. DO NOT EDIT! ===============
+#             auto-generated from {{ source }} by sonic-package-manager
+#
+[Unit]
+Description=Delays {{ manifest.service.name }} until SONiC has started
+PartOf={{ manifest.service.name }}{% if multi_instance %}@%i{% endif %}.service
+
+[Timer]
+OnUnitActiveSec=0 sec
+OnBootSec=3min 30 sec
+Unit={{ manifest.service.name }}{% if multi_instance %}@%i{% endif %}.service
+
+[Install]
+WantedBy=timers.target sonic.target
