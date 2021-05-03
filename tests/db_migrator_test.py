@@ -76,6 +76,16 @@ class TestMellanoxBufferMigrator(object):
             for key in keys:
                 assert expected.get_all(expected.APPL_DB, key) == result.get_all(result.APPL_DB, key)
 
+    def advance_version_for_expected_database(self, migrated_db, expected_db):
+        # In case there are new db versions greater than the latest one that mellanox buffer migrator is interested,
+        # we just advance the database version in the expected database to make the test pass
+        expected_dbversion = expected_db.get_entry('VERSIONS', 'DATABASE')
+        dbmgtr_dbversion = migrated_db.get_entry('VERSIONS', 'DATABASE')
+        if expected_dbversion and dbmgtr_dbversion:
+            if expected_dbversion['VERSION'] == self.version_list[-1] and dbmgtr_dbversion['VERSION'] > expected_dbversion['VERSION']:
+                expected_dbversion['VERSION'] = dbmgtr_dbversion['VERSION']
+                expected_db.set_entry('VERSIONS', 'DATABASE', expected_dbversion)
+
     @pytest.mark.parametrize('scenario',
                              ['empty-config',
                               'non-default-config',
@@ -93,6 +103,7 @@ class TestMellanoxBufferMigrator(object):
         dbmgtr = db_migrator.DBMigrator(None)
         dbmgtr.migrate()
         expected_db = self.mock_dedicated_config_db(db_after_migrate)
+        self.advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb)
         self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
         assert not dbmgtr.mellanox_buffer_migrator.is_buffer_config_default
 
@@ -119,8 +130,6 @@ class TestMellanoxBufferMigrator(object):
         sku, start_version = sku_version
         version = start_version
         start_index = self.version_list.index(start_version)
-        # Eventually, the config db should be migrated to the latest version
-        expected_db = self.mock_dedicated_config_db(self.make_db_name_by_sku_topo_version(sku, topo, self.version_list[-1]))
 
         # start_version represents the database version from which the SKU is supported
         # For each SKU,
@@ -130,6 +139,9 @@ class TestMellanoxBufferMigrator(object):
             import db_migrator
             dbmgtr = db_migrator.DBMigrator(None)
             dbmgtr.migrate()
+            # Eventually, the config db should be migrated to the latest version
+            expected_db = self.mock_dedicated_config_db(self.make_db_name_by_sku_topo_version(sku, topo, self.version_list[-1]))
+            self.advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb)
             self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
             assert dbmgtr.mellanox_buffer_migrator.is_buffer_config_default
 
@@ -145,6 +157,7 @@ class TestMellanoxBufferMigrator(object):
         import db_migrator
         dbmgtr = db_migrator.DBMigrator(None)
         dbmgtr.migrate()
+        self.advance_version_for_expected_database(dbmgtr.configDB, expected_config_db.cfgdb)
         assert dbmgtr.mellanox_buffer_migrator.is_buffer_config_default == is_buffer_config_default_expected
         self.check_config_db(dbmgtr.configDB, expected_config_db.cfgdb)
         self.check_appl_db(dbmgtr.appDB, expected_appl_db)
@@ -173,6 +186,7 @@ class TestMellanoxBufferMigrator(object):
         self.mellanox_buffer_migrator_warm_reboot_runner(input_db_name, input_db_name, expected_db_name, expected_db_name, True)
 
     def test_mellanox_buffer_migrator_negative_nondefault_for_warm_reboot(self):
+        device_info.get_sonic_version_info = get_sonic_version_info_mlnx
         expected_config_db = 'non-default-config-expected'
         expected_appl_db = 'non-default-expected'
         input_config_db = 'non-default-config-input'
