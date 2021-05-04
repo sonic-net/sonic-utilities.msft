@@ -129,7 +129,7 @@ def disable():
 @click.pass_context
 def pg_drop(ctx):
     """  Ingress PG drop counter commands """
-    ctx.obj = swsssdk.ConfigDBConnector()
+    ctx.obj = ConfigDBConnector()
     ctx.obj.connect()
 
 @pg_drop.command()
