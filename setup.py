@@ -108,6 +108,7 @@ setup(
         'scripts/nbrshow',
         'scripts/neighbor_advertiser',
         'scripts/pcmping',
+        'scripts/pg-drop',
         'scripts/port2alias',
         'scripts/portconfig',
         'scripts/portstat',
