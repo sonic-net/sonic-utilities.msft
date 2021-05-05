@@ -960,8 +960,15 @@ def version(verbose):
     asic_type = version_info['asic_type']
     asic_count = multi_asic.get_num_asics()
 
-    serial_number_cmd = "sudo decode-syseeprom -s"
-    serial_number = subprocess.Popen(serial_number_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+    serial_number = None
+    db = SonicV2Connector()
+    db.connect(db.STATE_DB)
+    eeprom_table = db.get_all(db.STATE_DB, 'EEPROM_INFO|0x23')
+    if "Name" in eeprom_table and eeprom_table["Name"] == "Serial Number" and "Value" in eeprom_table:
+        serial_number = eeprom_table["Value"]
+    else:
+        serial_number_cmd = "sudo decode-syseeprom -s"
+        serial_number = subprocess.Popen(serial_number_cmd, shell=True, text=True, stdout=subprocess.PIPE).stdout.read()
 
     sys_uptime_cmd = "uptime"
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
@@ -976,7 +983,7 @@ def version(verbose):
     click.echo("HwSKU: {}".format(hwsku))
     click.echo("ASIC: {}".format(asic_type))
     click.echo("ASIC Count: {}".format(asic_count))
-    click.echo("Serial Number: {}".format(serial_number.stdout.read().strip()))
+    click.echo("Serial Number: {}".format(serial_number.strip()))
     click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
