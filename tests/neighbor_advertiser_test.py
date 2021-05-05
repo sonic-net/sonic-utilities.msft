@@ -57,3 +57,12 @@ class TestNeighborAdvertiser(object):
             }
         )
         assert output == expected_output
+
+    def test_set_vxlan(self, set_up):
+        assert(neighbor_advertiser.check_existing_tunnel())
+        neighbor_advertiser.add_vxlan_tunnel_map()
+        tunnel_mapping = neighbor_advertiser.config_db.get_table('VXLAN_TUNNEL_MAP')
+        expected_mapping = {("vtep1", "map_1"): {"vni": "1000", "vlan": "Vlan1000"}, ("vtep1", "map_2"): {"vni": "2000", "vlan": "Vlan2000"}}
+        for key in expected_mapping.keys():
+            assert(key in tunnel_mapping.keys())
+            assert(expected_mapping[key] == tunnel_mapping[key])
