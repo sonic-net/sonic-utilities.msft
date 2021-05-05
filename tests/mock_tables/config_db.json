@@ -695,6 +695,172 @@
         "peer_switch": "sonic-switch",
         "type": "ToRRouter"
     },
+    "SNMP_COMMUNITY|msft": {
+        "TYPE": "RO"
+    },
+    "SNMP_COMMUNITY|Rainer": {
+        "TYPE": "RW"
+    },
+    "SNMP_USER|test_authpriv_RO_2": {
+        "SNMP_USER_TYPE": "AuthNoPriv",
+        "SNMP_USER_PERMISSION": "RO",
+        "SNMP_USER_AUTH_TYPE": "SHA",
+        "SNMP_USER_AUTH_PASSWORD": "test_authpriv_RO_2_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "",
+        "SNMP_USER_ENCRYPTION_PASSWORD": ""
+    },
+    "SNMP_USER|test_authpriv_RO_3": {
+        "SNMP_USER_TYPE": "AuthNoPriv",
+        "SNMP_USER_PERMISSION": "RO",
+        "SNMP_USER_AUTH_TYPE": "HMAC-SHA-2",
+        "SNMP_USER_AUTH_PASSWORD": "test_authpriv_RO_3_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "",
+        "SNMP_USER_ENCRYPTION_PASSWORD": ""
+    },
+    "SNMP_USER|test_priv_RW_4": {
+        "SNMP_USER_TYPE": "Priv",
+        "SNMP_USER_PERMISSION": "RW",
+        "SNMP_USER_AUTH_TYPE": "SHA",
+        "SNMP_USER_AUTH_PASSWORD": "test_priv_RW_4_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "AES",
+        "SNMP_USER_ENCRYPTION_PASSWORD": "test_priv_RW_4_encrpytpass"
+    },
+    "SNMP_USER|test_priv_RW_3": {
+        "SNMP_USER_TYPE": "Priv",
+        "SNMP_USER_PERMISSION": "RW",
+        "SNMP_USER_AUTH_TYPE": "SHA",
+        "SNMP_USER_AUTH_PASSWORD": "test_priv_RW_3_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "DES",
+        "SNMP_USER_ENCRYPTION_PASSWORD": "test_priv_RW_3_encrpytpass"
+    },
+    "SNMP_USER|test_priv_RO_2": {
+        "SNMP_USER_TYPE": "Priv",
+        "SNMP_USER_PERMISSION": "RO",
+        "SNMP_USER_AUTH_TYPE": "MD5",
+        "SNMP_USER_AUTH_PASSWORD": "test_priv_RO_2_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "AES",
+        "SNMP_USER_ENCRYPTION_PASSWORD": "test_priv_RO_2_encrpytpass"
+    },
+    "SNMP_USER|test_nopriv_RO_1": {
+        "SNMP_USER_TYPE": "noAuthNoPriv",
+        "SNMP_USER_PERMISSION": "RO",
+        "SNMP_USER_AUTH_TYPE": "",
+        "SNMP_USER_AUTH_PASSWORD": "",
+        "SNMP_USER_ENCRYPTION_TYPE": "",
+        "SNMP_USER_ENCRYPTION_PASSWORD": ""
+    },
+    "SNMP_USER|test_priv_RW_1": {
+        "SNMP_USER_TYPE": "Priv",
+        "SNMP_USER_PERMISSION": "RW",
+        "SNMP_USER_AUTH_TYPE": "MD5",
+        "SNMP_USER_AUTH_PASSWORD": "test_priv_RO_1_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "DES",
+        "SNMP_USER_ENCRYPTION_PASSWORD": "test_priv_RW_1_encrpytpass"
+    },
+    "SNMP_USER|test_authpriv_RW_1": {
+        "SNMP_USER_TYPE": "AuthNoPriv",
+        "SNMP_USER_PERMISSION": "RW",
+        "SNMP_USER_AUTH_TYPE": "MD5",
+        "SNMP_USER_AUTH_PASSWORD": "test_authpriv_RW_1_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "",
+        "SNMP_USER_ENCRYPTION_PASSWORD": ""
+    },
+    "SNMP_USER|test_priv_RO_6": {
+        "SNMP_USER_TYPE": "Priv",
+        "SNMP_USER_PERMISSION": "RO",
+        "SNMP_USER_AUTH_TYPE": "HMAC-SHA-2",
+        "SNMP_USER_AUTH_PASSWORD": "test_priv_RO_6_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "AES",
+        "SNMP_USER_ENCRYPTION_PASSWORD": "test_priv_RO_6_encrpytpass"
+    },
+    "SNMP_USER|test_priv_RO_1": {
+        "SNMP_USER_TYPE": "Priv",
+        "SNMP_USER_PERMISSION": "RO",
+        "SNMP_USER_AUTH_TYPE": "MD5",
+        "SNMP_USER_AUTH_PASSWORD": "test_priv_RO_1_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "DES",
+        "SNMP_USER_ENCRYPTION_PASSWORD": "test_priv_RO_1_encrpytpass"
+    },
+    "SNMP_USER|test_priv_RO_5": {
+        "SNMP_USER_TYPE": "Priv",
+        "SNMP_USER_PERMISSION": "RO",
+        "SNMP_USER_AUTH_TYPE": "HMAC-SHA-2",
+        "SNMP_USER_AUTH_PASSWORD": "test_priv_RO_5_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "DES",
+        "SNMP_USER_ENCRYPTION_PASSWORD": "test_priv_RO_5_encrpytpass"
+    },
+    "SNMP_USER|test_nopriv_RW_1": {
+        "SNMP_USER_TYPE": "noAuthNoPriv",
+        "SNMP_USER_PERMISSION": "RW",
+        "SNMP_USER_AUTH_TYPE": "",
+        "SNMP_USER_AUTH_PASSWORD": "",
+        "SNMP_USER_ENCRYPTION_TYPE": "",
+        "SNMP_USER_ENCRYPTION_PASSWORD": ""
+    },
+    "SNMP_USER|test_priv_RO_3": {
+        "SNMP_USER_TYPE": "Priv",
+        "SNMP_USER_PERMISSION": "RO",
+        "SNMP_USER_AUTH_TYPE": "SHA",
+        "SNMP_USER_AUTH_PASSWORD": "test_priv_RO_3_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "DES",
+        "SNMP_USER_ENCRYPTION_PASSWORD": "test_priv_RO_3_encrpytpass"
+    },
+    "SNMP_USER|test_priv_RW_2": {
+        "SNMP_USER_TYPE": "Priv",
+        "SNMP_USER_PERMISSION": "RW",
+        "SNMP_USER_AUTH_TYPE": "MD5",
+        "SNMP_USER_AUTH_PASSWORD": "test_priv_RO_2_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "AES",
+        "SNMP_USER_ENCRYPTION_PASSWORD": "test_priv_RW_2_encrpytpass"
+    },
+    "SNMP_USER|test_authpriv_RW_3": {
+        "SNMP_USER_TYPE": "AuthNoPriv",
+        "SNMP_USER_PERMISSION": "RW",
+        "SNMP_USER_AUTH_TYPE": "HMAC-SHA-2",
+        "SNMP_USER_AUTH_PASSWORD": "test_authpriv_RW_3_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "",
+        "SNMP_USER_ENCRYPTION_PASSWORD": ""
+    },
+    "SNMP_USER|test_priv_RW_5": {
+        "SNMP_USER_TYPE": "Priv",
+        "SNMP_USER_PERMISSION": "RW",
+        "SNMP_USER_AUTH_TYPE": "HMAC-SHA-2",
+        "SNMP_USER_AUTH_PASSWORD": "test_priv_RW_5_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "DES",
+        "SNMP_USER_ENCRYPTION_PASSWORD": "test_priv_RW_5_encrpytpass"
+    },
+    "SNMP_USER|test_priv_RW_6": {
+        "SNMP_USER_TYPE": "Priv",
+        "SNMP_USER_PERMISSION": "RW",
+        "SNMP_USER_AUTH_TYPE": "HMAC-SHA-2",
+        "SNMP_USER_AUTH_PASSWORD": "test_priv_RW_6_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "AES",
+        "SNMP_USER_ENCRYPTION_PASSWORD": "test_priv_RW_6_encrpytpass"
+    },
+    "SNMP_USER|test_authpriv_RW_2": {
+        "SNMP_USER_TYPE": "AuthNoPriv",
+        "SNMP_USER_PERMISSION": "RW",
+        "SNMP_USER_AUTH_TYPE": "SHA",
+        "SNMP_USER_AUTH_PASSWORD": "test_authpriv_RW_2_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "",
+        "SNMP_USER_ENCRYPTION_PASSWORD": ""
+    },
+    "SNMP_USER|test_priv_RO_4": {
+        "SNMP_USER_TYPE": "Priv",
+        "SNMP_USER_PERMISSION": "RO",
+        "SNMP_USER_AUTH_TYPE": "SHA",
+        "SNMP_USER_AUTH_PASSWORD": "test_priv_RO_4_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "AES",
+        "SNMP_USER_ENCRYPTION_PASSWORD": "test_priv_RO_4_encrpytpass"
+    },
+    "SNMP_USER|test_authpriv_RO_1": {
+        "SNMP_USER_TYPE": "AuthNoPriv",
+        "SNMP_USER_PERMISSION": "RO",
+        "SNMP_USER_AUTH_TYPE": "MD5",
+        "SNMP_USER_AUTH_PASSWORD": "test_authpriv_RO_1_authpass",
+        "SNMP_USER_ENCRYPTION_TYPE": "",
+        "SNMP_USER_ENCRYPTION_PASSWORD": ""
+    },
     "DEVICE_NEIGHBOR|Ethernet0": {
         "name": "Servers",
         "port": "eth0"
