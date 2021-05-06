@@ -232,7 +232,7 @@ def mount_squash_fs(squashfs_path, mount_point):
     run_command_or_raise(["mount", "-t", "squashfs", squashfs_path, mount_point])
 
 
-def umount(mount_point, read_only=True, recursive=False, force=True, remove_dir=True):
+def umount(mount_point, read_only=True, recursive=False, force=True, remove_dir=True, raise_exception=True):
     flags = []
     if read_only:
         flags.append("-r")
@@ -240,9 +240,9 @@ def umount(mount_point, read_only=True, recursive=False, force=True, remove_dir=
         flags.append("-f")
     if recursive:
         flags.append("-R")
-    run_command_or_raise(["umount", *flags, mount_point])
+    run_command_or_raise(["umount", *flags, mount_point], raise_exception=raise_exception)
     if remove_dir:
-        run_command_or_raise(["rm", "-rf", mount_point])
+        run_command_or_raise(["rm", "-rf", mount_point], raise_exception=raise_exception)
 
 
 def mount_overlay_fs(lowerdir, upperdir, workdir, mount_point):
@@ -350,14 +350,18 @@ def migrate_sonic_packages(bootloader, binary_image_version):
             run_command_or_raise(["mount", "--bind",
                                 os.path.join(VAR_RUN_PATH, DOCKERD_SOCK),
                                 os.path.join(new_image_mount, "tmp", DOCKERD_SOCK)])
+            run_command_or_raise(["chroot", new_image_mount, "sh", "-c", "command -v {}".format(SONIC_PACKAGE_MANAGER)])
+        except SonicRuntimeException as err:
+            echo_and_log("Warning: SONiC Application Extension is not supported in this image: {}".format(err), LOG_ERR, fg="red")
+        else:
             run_command_or_raise(["chroot", new_image_mount, SONIC_PACKAGE_MANAGER, "migrate",
                                 os.path.join("/", tmp_dir, packages_file),
                                 "--dockerd-socket", os.path.join("/", tmp_dir, DOCKERD_SOCK),
                                 "-y"])
         finally:
-            run_command("chroot {} {} stop".format(new_image_mount, DOCKER_CTL_SCRIPT))
-            umount(new_image_mount, recursive=True, read_only=False, remove_dir=False)
-            umount(new_image_mount)
+            run_command_or_raise(["chroot", new_image_mount, DOCKER_CTL_SCRIPT, "stop"], raise_exception=False)
+            umount(new_image_mount, recursive=True, read_only=False, remove_dir=False, raise_exception=False)
+            umount(new_image_mount, raise_exception=False)
 
 
 # Main entrypoint
