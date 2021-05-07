@@ -41,6 +41,10 @@ PORT_FEC = "fec"
 PORT_DESCRIPTION = "description"
 PORT_OPTICS_TYPE = "type"
 PORT_PFC_ASYM_STATUS = "pfc_asym"
+PORT_AUTONEG = 'autoneg'
+PORT_ADV_SPEEDS = 'adv_speeds'
+PORT_INTERFACE_TYPE = 'interface_type'
+PORT_ADV_INTERFACE_TYPES = 'adv_interface_types'
 
 VLAN_SUB_INTERFACE_SEPARATOR = "."
 VLAN_SUB_INTERFACE_TYPE = "802.1q-encapsulation"
@@ -133,7 +137,13 @@ def appl_db_port_status_get(appl_db, intf_name, status_type):
     if status is None:
         return "N/A"
     if status_type == PORT_SPEED and status != "N/A":
-       status = '{}G'.format(status[:-3])
+        status = '{}G'.format(status[:-3])
+    elif status_type == PORT_ADV_SPEEDS and status != "N/A" and status != "all":
+        speed_list = status.split(',')
+        new_speed_list = []
+        for s in natsorted(speed_list):
+            new_speed_list.append('{}G'.format(s[:-3]))
+        status = ','.join(new_speed_list)
     return status
 
 def state_db_port_optics_get(state_db, intf_name, type):
@@ -506,10 +516,77 @@ class IntfDescription(object):
         if self.appl_db_keys:
             self.table += self.generate_intf_description()
 
+
+# ========================== interface-autoneg logic ==========================
+header_autoneg = ['Interface', 'Auto-Neg Mode', 'Speed', 'Adv Speeds', 'Type', 'Adv Types', 'Oper', 'Admin']
+
+
+class IntfAutoNegStatus(object):
+
+    def __init__(self, intf_name, namespace_option, display_option):
+        self.db = None
+        self.config_db = None
+        self.table = []
+        self.multi_asic = multi_asic_util.MultiAsic(
+            display_option, namespace_option)
+
+        if intf_name is not None and intf_name == SUB_PORT:
+            self.intf_name = None
+        else:
+            self.intf_name = intf_name
+
+    def display_autoneg_status(self):
+        
+        self.get_intf_autoneg_status()
+
+        # Sorting and tabulating the result table.
+        sorted_table = natsorted(self.table)
+        print(tabulate(sorted_table, header_autoneg, tablefmt="simple", stralign='right'))
+
+    def generate_autoneg_status(self):
+        """
+            Generate interface-autoneg output
+        """
+
+        i = {}
+        table = []
+        key = []
+
+        #
+        # Iterate through all the keys and append port's associated state to
+        # the result table.
+        #
+        for i in self.appl_db_keys:
+            key = re.split(':', i, maxsplit=1)[-1].strip()
+            if key in self.front_panel_ports_list:
+                if self.multi_asic.skip_display(constants.PORT_OBJ, key):
+                    continue
+                autoneg_mode = appl_db_port_status_get(self.db, key, PORT_AUTONEG)
+                if autoneg_mode != 'N/A':
+                    autoneg_mode = 'enabled' if autoneg_mode == 'on' else 'disabled'
+                table.append((key,
+                              autoneg_mode,
+                              appl_db_port_status_get(self.db, key, PORT_SPEED),
+                              appl_db_port_status_get(self.db, key, PORT_ADV_SPEEDS),
+                              appl_db_port_status_get(self.db, key, PORT_INTERFACE_TYPE),
+                              appl_db_port_status_get(self.db, key, PORT_ADV_INTERFACE_TYPES),
+                              appl_db_port_status_get(self.db, key, PORT_OPER_STATUS),
+                              appl_db_port_status_get(self.db, key, PORT_ADMIN_STATUS),
+                              ))
+        return table
+
+    @multi_asic_util.run_on_multi_asic
+    def get_intf_autoneg_status(self):
+        self.front_panel_ports_list = get_frontpanel_port_list(self.config_db)
+        self.appl_db_keys = appl_db_keys_get(self.db, self.front_panel_ports_list, self.intf_name)
+        if self.appl_db_keys:
+            self.table += self.generate_autoneg_status()
+
+
 def main():
     parser = argparse.ArgumentParser(description='Display Interface information',
                                      formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-c', '--command', type=str, help='get interface status or description', default=None)
+    parser.add_argument('-c', '--command', type=str, help='get interface status or description or auto negotiation status', default=None)
     parser.add_argument('-i', '--interface', type=str, help='interface information for specific port: Ethernet0', default=None)
     parser = multi_asic_util.multi_asic_args(parser)
     args = parser.parse_args()
@@ -520,6 +597,9 @@ def main():
     elif args.command == "description":
         interface_desc = IntfDescription(args.interface, args.namespace, args.display)
         interface_desc.display_intf_description()
+    elif args.command == "autoneg":
+        interface_autoneg_status = IntfAutoNegStatus(args.interface, args.namespace, args.display)
+        interface_autoneg_status.display_autoneg_status()
 
     sys.exit(0)
 

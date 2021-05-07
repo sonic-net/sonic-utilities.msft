@@ -34,7 +34,11 @@
         "pfc_asym": "off",
         "mtu": "9100",
         "fec": "rs",
-        "admin_status": "up"
+        "admin_status": "up",
+        "adv_speeds": "50000,10000",
+        "interface_type": "CR4",
+        "adv_interface_types": "CR4,CR2",
+        "autoneg": "on"
     },
     "PORT_TABLE:Ethernet32": {
         "index": "8",
@@ -46,7 +50,10 @@
         "pfc_asym": "off",
         "mtu": "9100",
         "fec": "rs",
-        "admin_status": "up"
+        "admin_status": "up",
+        "autoneg": "off",
+        "adv_speeds": "all",
+        "adv_interface_types": "all"
     },
     "PORT_TABLE:Ethernet112": {
         "index": "28",

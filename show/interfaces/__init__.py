@@ -465,3 +465,38 @@ def detailed(interface, period, verbose):
         cmd += " -i {}".format(interface)
 
     clicommon.run_command(cmd, display_cmd=verbose)
+
+
+#
+# autoneg group (show interfaces autoneg ...)
+#
+@interfaces.group(name='autoneg', cls=clicommon.AliasedGroup)
+def autoneg():
+    """Show interface autoneg information"""
+    pass
+
+
+# 'autoneg status' subcommand ("show interfaces autoneg status")
+@autoneg.command(name='status')
+@click.argument('interfacename', required=False)
+@multi_asic_util.multi_asic_click_options
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def autoneg_status(interfacename, namespace, display, verbose):
+    """Show interface autoneg status"""
+
+    ctx = click.get_current_context()
+
+    cmd = "intfutil -c autoneg"
+
+    #ignore the display option when interface name is passed
+    if interfacename is not None:
+        interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+
+        cmd += " -i {}".format(interfacename)
+    else:
+        cmd += " -d {}".format(display)
+
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
+
+    clicommon.run_command(cmd, display_cmd=verbose)

@@ -608,6 +608,9 @@
         "ip_address": "192.168.1.2",
         "access": "False"
     },
+    "PORT_TABLE|Ethernet0": {
+        "supported_speeds": "10000,25000,40000,100000"
+    },
     "PCIE_DEVICE|00:01.0": {
         "correctable|BadDLLP": "0",
         "correctable|BadTLP": "0",

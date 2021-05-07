@@ -3015,6 +3015,126 @@ def speed(ctx, interface_name, interface_speed, verbose):
     clicommon.run_command(command, display_cmd=verbose)
 
 #
+# 'autoneg' subcommand
+#
+
+@interface.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('mode', metavar='<mode>', required=True, type=click.Choice(["enabled", "disabled"]))
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def autoneg(ctx, interface_name, mode, verbose):
+    """Set interface auto negotiation mode"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    log.log_info("'interface autoneg {} {}' executing...".format(interface_name, mode))
+
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -an {}".format(interface_name, mode)
+    else:
+        command = "portconfig -p {} -an {} -n {}".format(interface_name, mode, ctx.obj['namespace'])
+
+    if verbose:
+        command += " -vv"
+    clicommon.run_command(command, display_cmd=verbose)
+
+#
+# 'adv-speeds' subcommand
+#
+
+@interface.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('speed_list', metavar='<speed_list>', required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def advertised_speeds(ctx, interface_name, speed_list, verbose):
+    """Set interface advertised speeds"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    log.log_info("'interface advertised_speeds {} {}' executing...".format(interface_name, speed_list))
+
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -S {}".format(interface_name, speed_list)
+    else:
+        command = "portconfig -p {} -S {} -n {}".format(interface_name, speed_list, ctx.obj['namespace'])
+
+    if verbose:
+        command += " -vv"
+    clicommon.run_command(command, display_cmd=verbose)
+
+#
+# 'interface-type' subcommand
+#
+
+@interface.command(name='type')
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('interface_type_value', metavar='<interface_type_value>', required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def interface_type(ctx, interface_name, interface_type_value, verbose):
+    """Set interface type"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    log.log_info("'interface interface_type {} {}' executing...".format(interface_name, interface_type_value))
+
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -t {}".format(interface_name, interface_type_value)
+    else:
+        command = "portconfig -p {} -t {} -n {}".format(interface_name, interface_type_value, ctx.obj['namespace'])
+
+    if verbose:
+        command += " -vv"
+    clicommon.run_command(command, display_cmd=verbose)
+
+#
+# 'advertised-interface-types' subcommand
+#
+
+@interface.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('interface_type_list', metavar='<interface_type_list>', required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def advertised_types(ctx, interface_name, interface_type_list, verbose):
+    """Set interface advertised types"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    log.log_info("'interface advertised_interface_types {} {}' executing...".format(interface_name, interface_type_list))
+
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -T {}".format(interface_name, interface_type_list)
+    else:
+        command = "portconfig -p {} -T {} -n {}".format(interface_name, interface_type_list, ctx.obj['namespace'])
+
+    if verbose:
+        command += " -vv"
+    clicommon.run_command(command, display_cmd=verbose)
+
+#
 # 'breakout' subcommand
 #
 
