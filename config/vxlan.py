@@ -47,7 +47,7 @@ def del_vxlan(db, vxlan_name):
     if(vxlan_count > 0):
         ctx.fail("Please delete the EVPN NVO configuration.")  
 
-    vxlan_keys = db.cfgdb.get_keys('CONFIG_DB', "VXLAN_TUNNEL_MAP|*")
+    vxlan_keys = db.cfgdb.get_keys("VXLAN_TUNNEL_MAP|*")
     if not vxlan_keys:
       vxlan_count = 0
     else:
@@ -69,7 +69,7 @@ def vxlan_evpn_nvo():
 def add_vxlan_evpn_nvo(db, nvo_name, vxlan_name):
     """Add NVO"""
     ctx = click.get_current_context()
-    vxlan_keys = db.cfgdb.get_keys('CONFIG_DB', "VXLAN_EVPN_NVO|*")
+    vxlan_keys = db.cfgdb.get_keys("VXLAN_EVPN_NVO|*")
     if not vxlan_keys:
       vxlan_count = 0
     else:

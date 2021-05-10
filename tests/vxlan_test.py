@@ -215,6 +215,11 @@ class TestVxlan(object):
         print(result.output)
         assert result.exit_code == 0
 
+        result = runner.invoke(config.config.commands["vxlan"].commands["evpn_nvo"].commands["add"], ["nvo1", "vtep1"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
         result = runner.invoke(show.cli.commands["vxlan"].commands["interface"], [])
         print(result.exit_code)
         print(result.output)
