@@ -92,7 +92,7 @@ def config_proxy_arp(db, vid, mode):
     if not clicommon.is_valid_vlan_interface(db.cfgdb, vlan):
         ctx.fail("Interface {} does not exist".format(vlan))
 
-    db.cfgdb.set_entry('VLAN_INTERFACE', vlan, {"proxy_arp": mode})
+    db.cfgdb.mod_entry('VLAN_INTERFACE', vlan, {"proxy_arp": mode})
     click.echo('Proxy ARP setting saved to ConfigDB')
     restart_ndppd()
 #
