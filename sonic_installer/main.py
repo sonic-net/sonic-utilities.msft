@@ -12,6 +12,7 @@ from sonic_py_common import logger
 from swsscommon.swsscommon import SonicV2Connector
 
 from .bootloader import get_bootloader
+from .bootloader.aboot import AbootBootloader
 from .common import (
     run_command, run_command_or_raise,
     IMAGE_PREFIX,
@@ -23,7 +24,7 @@ from .common import (
 from .exception import SonicRuntimeException
 
 SYSLOG_IDENTIFIER = "sonic-installer"
-LOG_ERR = logger.Logger.LOG_PRIORITY_ERROR 
+LOG_ERR = logger.Logger.LOG_PRIORITY_ERROR
 LOG_NOTICE = logger.Logger.LOG_PRIORITY_NOTICE
 
 # Global Config object
@@ -140,7 +141,7 @@ def echo_and_log(msg, priority=LOG_NOTICE, fg=None):
     else:
         click.secho(msg, fg=fg)
     log.log(priority, msg, False)
-        
+
 
 # Function which validates whether a given URL specifies an existent file
 # on a reachable remote machine. Will abort the current operation if not
@@ -323,7 +324,7 @@ def migrate_sonic_packages(bootloader, binary_image_version):
 
     with contextlib.ExitStack() as stack:
         def get_path(path):
-            """ Closure to get path by entering 
+            """ Closure to get path by entering
             a context manager of bootloader.get_path_in_image """
 
             return stack.enter_context(bootloader.get_path_in_image(new_image_dir, path))
@@ -432,6 +433,10 @@ def install(url, force, skip_migration=False, skip_package_migration=False):
             run_command('config-setup backup')
 
         update_sonic_environment(bootloader, binary_image_version)
+
+        if isinstance(bootloader, AbootBootloader) and not skip_package_migration:
+            echo_and_log("Warning: SONiC package migration is not supported currenty on aboot platform due to https://github.com/Azure/sonic-buildimage/issues/7566.", LOG_ERR, fg="red")
+            skip_package_migration = True
 
         if not skip_package_migration:
             migrate_sonic_packages(bootloader, binary_image_version)
