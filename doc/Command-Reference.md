@@ -115,6 +115,9 @@
 * [sFlow](#sflow)
   * [sFlow Show commands](#sflow-show-commands)
   * [sFlow Config commands](#sflow-config-commands)
+* [SNMP](#snmp)
+  * [SNMP Show commands](#snmp-show-commands)
+  * [SNMP Config commands](#snmp-config-commands)
 * [Startup & Running Configuration](#startup--running-configuration)
   * [Startup Configuration](#startup-configuration)
   * [Running Configuration](#running-configuration)
@@ -156,6 +159,7 @@
 
 | Version | Modification Date | Details |
 | --- | --- | --- |
+| v6 | May-06-2021 | Add SNMP show and config commands |
 | v5 | Nov-05-2020 | Add document for console commands |
 | v4 | Oct-17-2019 | Unify usage statements and other formatting; Replace tabs with spaces; Modify heading sizes; Fix spelling, grammar and other errors; Fix organization of new commands |
 | v3 | Jun-26-2019 | Update based on 201904 (build#19) release, "config interface" command changes related to interfacename order, FRR/Quagga show command changes, platform specific changes, ACL show changes and few formatting changes |
@@ -3198,7 +3202,7 @@ The "errors" subcommand is used to display the interface errors.
 
 The "rates" subcommand is used to disply only the interface rates. 
 
-- Exmaple: 
+- Example: 
   ```
   admin@str-s6000-acs-11:/usr/bin$ show int counters rates
       IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    TX_OK    TX_BPS    TX_PPS    TX_UTIL
@@ -6690,6 +6694,312 @@ This command is used to set the counter polling interval. Default is 20 seconds.
 
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#sflow)
+
+## SNMP
+
+### SNMP Show commands
+
+**show runningconfiguration snmp**
+
+This command displays the global SNMP configuration that includes the location, contact, community, and user settings.
+
+- Usage:
+  ```
+  show runningconfiguration snmp
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp 
+  Location
+  ------------
+  Emerald City
+
+
+  SNMP_CONTACT    SNMP_CONTACT_EMAIL
+  --------------  --------------------
+  joe             joe@contoso.com
+
+
+  Community String    Community Type
+  ------------------  ----------------
+  Jack                RW
+
+
+  User    Permission Type    Type    Auth Type    Auth Password    Encryption Type    Encryption Password
+  ------  -----------------  ------  -----------  ---------------  -----------------  ---------------------
+  Travis  RO                 Priv    SHA          TravisAuthPass   AES                TravisEncryptPass
+  ```
+
+**show runningconfiguration snmp location**
+
+This command displays the SNMP location setting.
+
+- Usage:
+  ```
+  show runningconfiguration snmp location
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp location
+  Location
+  ------------
+  Emerald City
+  ```
+
+- Usage:
+  ```
+  show runningconfiguration snmp location --json
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp location --json
+  {'Location': 'Emerald City'}
+  ```
+
+**show runningconfiguration snmp contact**
+
+This command displays the SNMP contact setting.
+
+- Usage:
+  ```
+  show runningconfiguration snmp contact
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp contact
+  Contact    Contact Email
+  ---------  ---------------
+  joe        joe@contoso.com
+  ```
+
+- Usage:
+  ```
+  show runningconfiguration snmp contact --json
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp contact --json
+  {'joe': 'joe@contoso.com'}
+  ```
+
+**show runningconfiguration snmp community**
+
+This command display the SNMP community settings.
+
+- Usage:
+  ```
+  show runningconfiguration snmp community
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp community
+  Community String    Community Type
+  ------------------  ----------------
+  Jack                RW
+  ```
+
+- Usage:
+  ```
+  show runningconfiguration snmp community --json
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp community --json
+  {'Jack': {'TYPE': 'RW'}}
+  ```
+
+**show runningconfiguration snmp user**
+
+This command display the SNMP user settings.
+
+- Usage:
+  ```
+  show runningconfiguration snmp user
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp user
+  User    Permission Type    Type    Auth Type    Auth Password    Encryption Type    Encryption Password
+  ------  -----------------  ------  -----------  ---------------  -----------------  ---------------------
+  Travis  RO                 Priv    SHA          TravisAuthPass   AES                TravisEncryptPass
+  ```
+
+- Usage:
+  ```
+  show runningconfiguration snmp user --json
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show runningconfiguration snmp user --json
+  {'Travis': {'SNMP_USER_TYPE': 'Priv', 'SNMP_USER_PERMISSION': 'RO', 'SNMP_USER_AUTH_TYPE': 'SHA', 'SNMP_USER_AUTH_PASSWORD': 'TravisAuthPass', 'SNMP_USER_ENCRYPTION_TYPE': 'AES', 'SNMP_USER_ENCRYPTION_PASSWORD': 'TravisEncryptPass'}}
+  ```
+
+
+### SNMP Config commands
+
+This sub-section explains how to configure SNMP.
+
+**config snmp location add/del/modify**
+
+This command is used to add, delete, or modify the SNMP location.
+
+- Usage:
+  ```
+  config snmp location (add | del | modify) <location>
+  ```
+
+- Example (Add new SNMP location "Emerald City" if it does not already exist):
+  ```
+  admin@sonic:~$ sudo config snmp location add Emerald City
+  SNMP Location Emerald City has been added to configuration
+  Restarting SNMP service...
+  ```
+
+- Example (Delete SNMP location "Emerald City" if it already exists):
+  ```
+  admin@sonic:~$ sudo config snmp location del Emerald City
+  SNMP Location Emerald City removed from configuration
+  Restarting SNMP service...
+  ```
+
+- Example (Modify SNMP location "Emerald City" to "Redmond"):
+  ```
+  admin@sonic:~$ sudo config snmp location modify Redmond
+  SNMP location Redmond modified in configuration
+  Restarting SNMP service...
+  ```
+
+**config snmp contact add/del/modify**
+
+This command is used to add, delete, or modify the SNMP contact.
+
+- Usage:
+  ```
+  config snmp contact add <contact> <contact_email>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp contact add joe joe@contoso.com
+  Contact name joe and contact email joe@contoso.com have been added to configuration
+  Restarting SNMP service...
+  ```
+
+- Usage:
+  ```
+  config snmp contact del <contact>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp contact del joe
+  SNMP contact joe removed from configuration
+  Restarting SNMP service...
+  ```
+
+- Usage:
+  ```
+  config snmp contact modify <contact> <contact_email>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp contact modify test test@contoso.com
+  SNMP contact test and contact email test@contoso.com updated
+  Restarting SNMP service...
+  ```
+
+**config snmp community add/del/replace**
+
+This command is used to add, delete, or replace the SNMP community.
+
+- Usage:
+  ```
+  config snmp community add <community> (RO | RW)
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp community add testcomm ro
+  SNMP community testcomm added to configuration
+  Restarting SNMP service...
+  ```
+
+- Usage:
+  ```
+  config snmp community del <community>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp community del testcomm 
+  SNMP community testcomm removed from configuration
+  Restarting SNMP service...
+  ```
+
+- Usage:
+  ```
+  config snmp community replace <community> <new_community>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp community replace testcomm newtestcomm
+  SNMP community newtestcomm added to configuration
+  SNMP community newtestcomm replace community testcomm
+  Restarting SNMP service...
+  ```
+
+**config snmp user add/del**
+
+This command is used to add or delete the SNMP user for SNMPv3.
+
+- Usage:
+  ```
+  config snmp user add <user> (noAuthNoPriv | AuthNoPriv | Priv) (RO | RW) [[(MD5 | SHA | MMAC-SHA-2) <auth_password>] [(DES |AES) <encrypt_password>]]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp user add testuser1 noauthnopriv ro
+  SNMP user testuser1 added to configuration
+  Restarting SNMP service...
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp user add testuser2 authnopriv ro sha testuser2_auth_pass
+  SNMP user testuser2 added to configuration
+  Restarting SNMP service...
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp user add testuser3 priv rw md5 testuser3_auth_pass aes testuser3_encrypt_pass
+  SNMP user testuser3 added to configuration
+  Restarting SNMP service...
+  ```
+
+- Usage:
+  ```
+  config snmp user del <user>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config snmp user del testuser1
+  SNMP user testuser1 removed from configuration
+  Restarting SNMP service...
+  ```
 
 ## Startup & Running Configuration
 
