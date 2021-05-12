@@ -114,32 +114,6 @@ def _get_breakout_options(ctx, args, incomplete):
             all_mode_options = [str(c) for c in breakout_mode_options if incomplete in c]
         return all_mode_options
 
-def shutdown_interfaces(ctx, del_intf_dict):
-    """ shut down all the interfaces before deletion """
-    for intf in del_intf_dict:
-        config_db = ctx.obj['config_db']
-        if clicommon.get_interface_naming_mode() == "alias":
-            interface_name = interface_alias_to_name(config_db, intf)
-            if interface_name is None:
-                click.echo("[ERROR] interface name is None!")
-                return False
-
-        if interface_name_is_valid(config_db, intf) is False:
-            click.echo("[ERROR] Interface name is invalid. Please enter a valid interface name!!")
-            return False
-
-        port_dict = config_db.get_table('PORT')
-        if not port_dict:
-            click.echo("port_dict is None!")
-            return False
-
-        if intf in port_dict:
-            config_db.mod_entry("PORT", intf, {"admin_status": "down"})
-        else:
-            click.secho("[ERROR] Could not get the correct interface name, exiting", fg='red')
-            return False
-    return True
-
 def _validate_interface_mode(ctx, breakout_cfg_file, interface_name, target_brkout_mode, cur_brkout_mode):
     """ Validate Parent interface and user selected mode before starting deletion or addition process """
     breakout_file_input = readJsonFile(breakout_cfg_file)["interfaces"]
@@ -3181,12 +3155,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
     del_intf_dict = {intf: del_ports[intf]["speed"] for intf in del_ports}
 
     if del_intf_dict:
-        """ shut down all the interface before deletion """
-        ret = shutdown_interfaces(ctx, del_intf_dict)
-        if not ret:
-            raise click.Abort()
         click.echo("\nPorts to be deleted : \n {}".format(json.dumps(del_intf_dict, indent=4)))
-
     else:
         click.secho("[ERROR] del_intf_dict is None! No interfaces are there to be deleted", fg='red')
         raise click.Abort()
@@ -3212,6 +3181,12 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
     for item in matched_items:
         del_intf_dict.pop(item)
         add_intf_dict.pop(item)
+
+    # validate all del_ports before calling breakOutPort
+    for intf in del_intf_dict.keys():
+        if not interface_name_is_valid(config_db, intf):
+            click.secho("[ERROR] Interface name {} is invalid".format(intf))
+            raise click.Abort()
 
     click.secho("\nFinal list of ports to be deleted : \n {} \nFinal list of ports to be added :  \n {}".format(json.dumps(del_intf_dict, indent=4), json.dumps(add_intf_dict, indent=4), fg='green', blink=True))
     if not add_intf_dict:

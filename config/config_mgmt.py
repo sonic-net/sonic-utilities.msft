@@ -369,9 +369,12 @@ class ConfigMgmtDPB(ConfigMgmt):
             if_name_map, if_oid_map = port_util.get_interface_oid_map(dataBase)
             self.sysLog(syslog.LOG_DEBUG, 'if_name_map {}'.format(if_name_map))
 
-            # If we are here, then get ready to update the Config DB, Update
-            # deletion of Config first, then verify in Asic DB for port deletion,
-            # then update addition of ports in config DB.
+            # If we are here, then get ready to update the Config DB as below:
+            # -- shutdown the ports,
+            # -- Update deletion of ports in Config DB,
+            # -- verify Asic DB for port deletion,
+            # -- then update addition of ports in config DB.
+            self._shutdownIntf(delPorts)
             self.writeConfigDB(delConfigToLoad)
             # Verify in Asic DB,
             self._verifyAsicDB(db=dataBase, ports=delPorts, portMap=if_name_map, \
@@ -506,6 +509,27 @@ class ConfigMgmtDPB(ConfigMgmt):
             return configToLoad, False
 
         return configToLoad, True
+
+    def _shutdownIntf(self, ports):
+        """
+        Based on the list of Ports, create a dict to shutdown port, update Config DB.
+        Shut down all the interfaces before deletion.
+
+        Parameters:
+            ports(list): list of ports, which are getting deleted due to DPB.
+
+        Returns:
+            void
+        """
+        shutDownConf = dict(); shutDownConf["PORT"] = dict()
+        for intf in ports:
+            shutDownConf["PORT"][intf] = {"admin_status": "down"}
+        self.sysLog(msg='shutdown Interfaces: {}'.format(shutDownConf))
+
+        if len(shutDownConf["PORT"]):
+            self.writeConfigDB(shutDownConf)
+
+        return
 
     def _mergeConfigs(self, D1, D2, uniqueKeys=True):
         '''
