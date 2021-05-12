@@ -5012,7 +5012,7 @@ def polling_int(ctx, interval):
     config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
 
 def is_valid_sample_rate(rate):
-    return rate in range(256, 8388608 + 1)
+    return rate.isdigit() and int(rate) in range(256, 8388608 + 1)
 
 
 #
@@ -5070,24 +5070,31 @@ def disable(ctx, ifname):
 #
 @interface.command('sample-rate')
 @click.argument('ifname', metavar='<interface_name>', required=True, type=str)
-@click.argument('rate', metavar='<sample_rate>', required=True, type=int)
+@click.argument('rate', metavar='<sample_rate>', required=True, type=str)
 @click.pass_context
 def sample_rate(ctx, ifname, rate):
     config_db = ctx.obj['db']
     if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
         click.echo('Invalid interface name')
         return
-    if not is_valid_sample_rate(rate):
-        click.echo('Error: Sample rate must be between 256 and 8388608')
+    if not is_valid_sample_rate(rate) and rate != 'default':
+        click.echo('Error: Sample rate must be between 256 and 8388608 or default')
         return
 
     sess_dict = config_db.get_table('SFLOW_SESSION')
 
-    if sess_dict and ifname in sess_dict:
+    if sess_dict and ifname in sess_dict.keys():
+        if rate == 'default':
+            if 'sample_rate' not in sess_dict[ifname]:
+                return
+            del sess_dict[ifname]['sample_rate']
+            config_db.set_entry('SFLOW_SESSION', ifname, sess_dict[ifname])
+            return
         sess_dict[ifname]['sample_rate'] = rate
         config_db.mod_entry('SFLOW_SESSION', ifname, sess_dict[ifname])
     else:
-        config_db.mod_entry('SFLOW_SESSION', ifname, {'sample_rate': rate})
+        if rate != 'default':
+            config_db.mod_entry('SFLOW_SESSION', ifname, {'sample_rate': rate})
 
 
 #

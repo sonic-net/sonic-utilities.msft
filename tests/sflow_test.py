@@ -290,6 +290,45 @@ class TestShowSflow(object):
         sflowSession = db.cfgdb.get_table('SFLOW_SESSION')
         assert sflowSession["all"]["admin_state"] == "up"
 
+    def test_config_sflow_intf_sample_rate_default(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'db':db.cfgdb}
+
+        # mock interface_name_is_valid
+        config.interface_name_is_valid = mock.MagicMock(return_value = True)
+
+        result_out1 = runner.invoke(show.cli.commands["sflow"].commands["interface"], [], obj=Db())
+        print(result_out1.exit_code, result_out1.output)
+        assert result_out1.exit_code == 0
+        
+        # set sample-rate to 2500
+        result = runner.invoke(config.config.commands["sflow"].
+            commands["interface"].commands["sample-rate"],
+            ["Ethernet2", "2500"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+
+        # we can not use 'show sflow interface', becasue 'show sflow interface'
+        # gets data from appDB, we need to fetch data from configDB for verification
+        sflowSession = db.cfgdb.get_table('SFLOW_SESSION')
+        assert sflowSession["Ethernet2"]["sample_rate"] == "2500"
+
+        # set sample-rate to default
+        result = runner.invoke(config.config.commands["sflow"].
+            commands["interface"].commands["sample-rate"],
+            ["Ethernet2", "default"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+
+        result_out2 = runner.invoke(show.cli.commands["sflow"].commands["interface"], [], obj=Db())
+        print(result_out2.exit_code, result_out2.output)
+        assert result_out2.exit_code == 0
+        assert result_out1.output == result_out2.output
+
+        return
+
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
