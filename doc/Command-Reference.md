@@ -121,6 +121,7 @@
 * [Startup & Running Configuration](#startup--running-configuration)
   * [Startup Configuration](#startup-configuration)
   * [Running Configuration](#running-configuration)
+* [Static routing](#static-routing)
 * [Syslog](#syslog)
   * [Syslog config commands](#syslog-config-commands)
 * [System State](#system-state)
@@ -7182,6 +7183,83 @@ This command displays the running configuration of the snmp module.
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#Startup--Running-Configuration)
+
+
+## Static routing
+
+### Static routing Config Commands
+
+This sub-section explains of commands is used to add or remove the static route.
+
+**config route add**
+
+This command is used to add a static route. Note that prefix /nexthop vrf`s and interface name are optional. 
+
+- Usage:
+
+  ```
+  config route add prefix [vrf <vrf>] <A.B.C.D/M> nexthop [vrf <vrf>] <A.B.C.D> dev <interface name>
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ config route add prefix 2.2.3.4/32 nexthop 30.0.0.9
+  ```
+
+It also supports ECMP, and adding a new nexthop to the existing prefix will complement it and not overwrite them.
+
+- Example:
+
+  ```
+  admin@sonic:~$ sudo config route add prefix 2.2.3.4/32 nexthop vrf Vrf-RED 30.0.0.9
+  admin@sonic:~$ sudo config route add prefix 2.2.3.4/32 nexthop vrf Vrf-BLUE 30.0.0.10
+  ```
+
+**config route del**
+
+This command is used to remove a static route. Note that prefix /nexthop vrf`s and interface name are optional.
+
+- Usage:
+
+  ```
+  config route del prefix [vrf <vrf>] <A.B.C.D/M> nexthop [vrf <vrf>] <A.B.C.D> dev <interface name>
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ sudo config route del prefix 2.2.3.4/32 nexthop vrf Vrf-RED 30.0.0.9
+  admin@sonic:~$ sudo config route del prefix 2.2.3.4/32 nexthop vrf Vrf-BLUE 30.0.0.10
+  ```
+
+This sub-section explains of command is used to show current routes.
+
+**show ip route**
+
+- Usage:
+
+  ```
+  show ip route
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show ip route
+  Codes: K - kernel route, C - connected, S - static, R - RIP,
+         O - OSPF, I - IS-IS, B - BGP, E - EIGRP, N - NHRP,
+         T - Table, v - VNC, V - VNC-Direct, A - Babel, D - SHARP,
+         F - PBR, f - OpenFabric,
+         > - selected route, * - FIB route, q - queued, r - rejected, b - backup
+  
+  S>* 0.0.0.0/0 [200/0] via 192.168.111.3, eth0, weight 1, 3d03h58m
+  S>  1.2.3.4/32 [1/0] via 30.0.0.7, weight 1, 00:00:06
+  C>* 10.0.0.18/31 is directly connected, Ethernet36, 3d03h57m
+  C>* 10.0.0.20/31 is directly connected, Ethernet40, 3d03h57m
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#static-routing)
 
 
 ## Syslog
