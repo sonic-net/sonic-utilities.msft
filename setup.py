@@ -179,7 +179,7 @@ setup(
         'pexpect>=4.8.0',
         'poetry-semver>=0.1.0',
         'prettyprinter>=0.18.0',
-        'pyroute2>=0.5.14',
+        'pyroute2>=0.5.14, <0.6.1',
         'requests>=2.25.0',
         'sonic-config-engine',
         'sonic-platform-common',
