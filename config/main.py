@@ -13,10 +13,12 @@ import sys
 import time
 import itertools
 
+from collections import OrderedDict
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
-from socket import AF_INET, AF_INET6
 from minigraph import parse_device_desc_xml
+from natsort import natsorted
 from portconfig import get_child_ports
+from socket import AF_INET, AF_INET6
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name
 from utilities_common import util_base
@@ -86,11 +88,24 @@ PORT_SPEED = "speed"
 asic_type = None
 
 #
-# Breakout Mode Helper functions
+# Helper functions
 #
 
+# Sort nested dict
+def sort_dict(data):
+    """ Sort of 1st level and 2nd level dict of data naturally by its key
+        data: data to be sorted
+    """
+    if type(data) is not dict:
+        return data
+
+    for table in data:
+        if type(data[table]) is dict:
+            data[table] = OrderedDict(natsorted(data[table].items()))
+    return OrderedDict(natsorted(data.items()))
+
 # Read given JSON file
-def readJsonFile(fileName):
+def read_json_file(fileName):
     try:
         with open(fileName) as f:
             result = json.load(f)
@@ -108,7 +123,7 @@ def _get_breakout_options(ctx, args, incomplete):
     if not os.path.isfile(breakout_cfg_file) or not breakout_cfg_file.endswith('.json'):
         return []
     else:
-        breakout_file_input = readJsonFile(breakout_cfg_file)
+        breakout_file_input = read_json_file(breakout_cfg_file)
         if interface_name in breakout_file_input[INTF_KEY]:
             breakout_mode_options = [mode for i, v in breakout_file_input[INTF_KEY].items() if i == interface_name \
                                           for mode in v["breakout_modes"].keys()]
@@ -117,7 +132,7 @@ def _get_breakout_options(ctx, args, incomplete):
 
 def _validate_interface_mode(ctx, breakout_cfg_file, interface_name, target_brkout_mode, cur_brkout_mode):
     """ Validate Parent interface and user selected mode before starting deletion or addition process """
-    breakout_file_input = readJsonFile(breakout_cfg_file)["interfaces"]
+    breakout_file_input = read_json_file(breakout_cfg_file)["interfaces"]
 
     if interface_name not in breakout_file_input:
         click.secho("[ERROR] {} is not a Parent port. So, Breakout Mode is not available on this port".format(interface_name), fg='red')
@@ -963,6 +978,10 @@ def save(filename):
 
         log.log_info("'save' executing...")
         clicommon.run_command(command, display_cmd=True)
+
+        config_db = sort_dict(read_json_file(file))
+        with open(file, 'w') as config_db_file:
+            json.dump(config_db, config_db_file, indent=4)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True)
