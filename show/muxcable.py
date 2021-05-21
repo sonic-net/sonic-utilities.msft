@@ -925,3 +925,63 @@ def version(port):
                 sys.exit(CONFIG_FAIL)
         else:
             click.echo("there is not a valid asic table for this asic_index".format(asic_index))
+
+@muxcable.command()
+@click.argument('port', metavar='<port_name>', required=True, default=None)
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
+def metrics(port, json_output):
+    """Show muxcable metrics <port>"""
+
+    metrics_table_keys = {}
+    per_npu_statedb = {}
+    metrics_dict = {}
+
+    # Getting all front asic namespace and correspding config and state DB connector
+
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+        # replace these with correct macros
+        per_npu_statedb[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
+        per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
+
+        metrics_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
+            per_npu_statedb[asic_id].STATE_DB, 'MUX_METRICS_TABLE|*')
+
+    if port is not None:
+
+        logical_port_list = platform_sfputil_helper.get_logical_list()
+
+        if port not in logical_port_list:
+            click.echo(("ERR: Not a valid logical port for muxcable firmware {}".format(port)))
+            sys.exit(CONFIG_FAIL)
+
+        asic_index = None
+        if platform_sfputil is not None:
+            asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
+            if asic_index is None:
+                # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+                # is fully mocked
+                import sonic_platform_base.sonic_sfp.sfputilhelper
+                asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+                if asic_index is None:
+                    click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
+
+
+        metrics_dict[asic_index] = per_npu_statedb[asic_index].get_all(
+            per_npu_statedb[asic_index].STATE_DB, 'MUX_METRICS_TABLE|{}'.format(port))
+
+        if json_output:
+            click.echo("{}".format(json.dumps(metrics_dict[asic_index], indent=4)))
+        else:
+            print_data = []
+            for key, val in metrics_dict[asic_index].items():
+                print_port_data = []
+                print_port_data.append(port)
+                print_port_data.append(key)
+                print_port_data.append(val)
+                print_data.append(print_port_data)
+
+            headers = ['PORT', 'EVENT', 'TIME']
+
+            click.echo(tabulate(print_data, headers=headers))

@@ -708,5 +708,11 @@
         "non_fatal|Undefined": "0",
         "non_fatal|UnsupReq": "0",
         "non_fatal|UnxCmplt": "0"
+    },
+    "MUX_METRICS_TABLE|Ethernet0": {
+        "linkmgrd_switch_active_start": "2021-May-13 10:00:21.420898",
+        "linkmgrd_switch_standby_end": "2021-May-13 10:01:15.696728",
+        "xcvrd_switch_standby_end": "2021-May-13 10:01:15.696051",
+        "xcvrd_switch_standby_start": "2021-May-13 10:01:15.690835"
     }
 }
