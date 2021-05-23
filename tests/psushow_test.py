@@ -34,6 +34,7 @@ class TestPsushow(object):
                 'led_status': 'green',
                 'model': '0J6J4K',
                 'serial': 'CN-0J6J4K-17972-5AF-0086-A00',
+                'revision': '1',
                 'voltage': '12.19',
                 'current': '8.37',
                 'power': '102.7'
@@ -46,6 +47,7 @@ class TestPsushow(object):
                 'led_status': 'green',
                 'model': '0J6J4K',
                 'serial': 'CN-0J6J4K-17972-5AF-008M-A00',
+                'revision': 'A',
                 'voltage': '12.18',
                 'current': '10.07',
                 'power': '122.0'
@@ -57,10 +59,10 @@ class TestPsushow(object):
 
     def test_status_table(self, capsys):
         expected_output = '''\
-PSU    Model    Serial                          Voltage (V)    Current (A)    Power (W)  Status    LED
------  -------  ----------------------------  -------------  -------------  -----------  --------  -----
-PSU 1  0J6J4K   CN-0J6J4K-17972-5AF-0086-A00          12.19           8.37       102.70  OK        green
-PSU 2  0J6J4K   CN-0J6J4K-17972-5AF-008M-A00          12.18          10.07       122.00  OK        green
+PSU    Model    Serial                        HW Rev      Voltage (V)    Current (A)    Power (W)  Status    LED
+-----  -------  ----------------------------  --------  -------------  -------------  -----------  --------  -----
+PSU 1  0J6J4K   CN-0J6J4K-17972-5AF-0086-A00  1                 12.19           8.37       102.70  OK        green
+PSU 2  0J6J4K   CN-0J6J4K-17972-5AF-008M-A00  A                 12.18          10.07       122.00  OK        green
 '''
         for arg in ['-s', '--status']:
             with mock.patch('sys.argv', ['psushow', arg]):
@@ -70,9 +72,9 @@ PSU 2  0J6J4K   CN-0J6J4K-17972-5AF-008M-A00          12.18          10.07      
             assert captured.out == expected_output
 
         expected_output = '''\
-PSU    Model    Serial                          Voltage (V)    Current (A)    Power (W)  Status    LED
------  -------  ----------------------------  -------------  -------------  -----------  --------  -----
-PSU 1  0J6J4K   CN-0J6J4K-17972-5AF-0086-A00          12.19           8.37       102.70  OK        green
+PSU    Model    Serial                          HW Rev    Voltage (V)    Current (A)    Power (W)  Status    LED
+-----  -------  ----------------------------  --------  -------------  -------------  -----------  --------  -----
+PSU 1  0J6J4K   CN-0J6J4K-17972-5AF-0086-A00         1          12.19           8.37       102.70  OK        green
 '''
         for arg in ['-s', '--status']:
             with mock.patch('sys.argv', ['psushow', arg, '-i', '1']):
@@ -82,9 +84,9 @@ PSU 1  0J6J4K   CN-0J6J4K-17972-5AF-0086-A00          12.19           8.37      
             assert captured.out == expected_output
 
         expected_output = '''\
-PSU    Model    Serial                          Voltage (V)    Current (A)    Power (W)  Status    LED
------  -------  ----------------------------  -------------  -------------  -----------  --------  -----
-PSU 2  0J6J4K   CN-0J6J4K-17972-5AF-008M-A00          12.18          10.07       122.00  OK        green
+PSU    Model    Serial                        HW Rev      Voltage (V)    Current (A)    Power (W)  Status    LED
+-----  -------  ----------------------------  --------  -------------  -------------  -----------  --------  -----
+PSU 2  0J6J4K   CN-0J6J4K-17972-5AF-008M-A00  A                 12.18          10.07       122.00  OK        green
 '''
         for arg in ['-s', '--status']:
             with mock.patch('sys.argv', ['psushow', arg, '-i', '2']):
@@ -116,6 +118,7 @@ Error: failed to get PSU status from state DB
         "led_status": "green",
         "model": "0J6J4K",
         "serial": "CN-0J6J4K-17972-5AF-0086-A00",
+        "revision": "1",
         "voltage": "12.19",
         "current": "8.37",
         "power": "102.7"
@@ -128,6 +131,7 @@ Error: failed to get PSU status from state DB
         "led_status": "green",
         "model": "0J6J4K",
         "serial": "CN-0J6J4K-17972-5AF-008M-A00",
+        "revision": "A",
         "voltage": "12.18",
         "current": "10.07",
         "power": "122.0"
@@ -151,6 +155,7 @@ Error: failed to get PSU status from state DB
         "led_status": "green",
         "model": "0J6J4K",
         "serial": "CN-0J6J4K-17972-5AF-0086-A00",
+        "revision": "1",
         "voltage": "12.19",
         "current": "8.37",
         "power": "102.7"
@@ -174,6 +179,7 @@ Error: failed to get PSU status from state DB
         "led_status": "green",
         "model": "0J6J4K",
         "serial": "CN-0J6J4K-17972-5AF-008M-A00",
+        "revision": "A",
         "voltage": "12.18",
         "current": "10.07",
         "power": "122.0"

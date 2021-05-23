@@ -47,6 +47,7 @@ def get_psu_status_list():
 
         psu_status['model'] = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'model') if presence else 'N/A'
         psu_status['serial'] = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'serial') if presence else 'N/A'
+        psu_status['revision'] = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'revision') if presence else 'N/A'
         psu_status['voltage'] = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'voltage') if presence else 'N/A'
         psu_status['current'] = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'current') if presence else 'N/A'
         psu_status['power'] = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'power') if presence else 'N/A'
@@ -63,7 +64,7 @@ def psu_status_show_table(index):
         print('Error: Failed to get PSU status')
         return None
 
-    header = ['PSU',  'Model', 'Serial', 'Voltage (V)', 'Current (A)', 'Power (W)', 'Status', 'LED']
+    header = ['PSU',  'Model', 'Serial', 'HW Rev', 'Voltage (V)', 'Current (A)', 'Power (W)', 'Status', 'LED']
     status_table = []
 
     if index > 0:
@@ -78,6 +79,7 @@ def psu_status_show_table(index):
         status_table.append([psu_status['name'],
                              psu_status['model'],
                              psu_status['serial'],
+                             psu_status['revision'],
                              psu_status['voltage'],
                              psu_status['current'],
                              psu_status['power'],
