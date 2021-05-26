@@ -33,6 +33,7 @@
         "oper_status": "down",
         "pfc_asym": "off",
         "mtu": "9100",
+        "tpid": "0x9200",
         "fec": "rs",
         "admin_status": "up",
         "adv_speeds": "50000,10000",
@@ -49,6 +50,7 @@
         "oper_status": "up",
         "pfc_asym": "off",
         "mtu": "9100",
+        "tpid": "0x8100",
         "fec": "rs",
         "admin_status": "up",
         "autoneg": "off",
@@ -64,6 +66,7 @@
         "oper_status": "up",
         "pfc_asym": "off",
         "mtu": "9100",
+        "tpid": "0x8100",
         "fec": "rs",
         "admin_status": "up"
     },
@@ -76,6 +79,7 @@
         "oper_status": "up",
         "pfc_asym": "off",
         "mtu": "9100",
+        "tpid": "0x8100",
         "fec": "rs",
         "admin_status": "up"
     },
@@ -88,6 +92,7 @@
         "oper_status": "up",
         "pfc_asym": "off",
         "mtu": "9100",
+        "tpid": "0x8100",
         "fec": "rs",
         "admin_status": "up"
     },
@@ -100,6 +105,7 @@
         "oper_status": "up",
         "pfc_asym": "off",
         "mtu": "9100",
+        "tpid": "0x8100",
         "fec": "rs",
         "admin_status": "up"
     },
@@ -112,6 +118,7 @@
         "oper_status": "down",
         "fec": "rs",
         "mtu": "9100",
+        "tpid": "0x8100",
         "pfc_asym": "off",
         "admin_status": "up"
     },
@@ -123,6 +130,7 @@
         "index": "148",
         "lanes": "109,0,0,0,0,0,0,0",
         "mtu": "9100",
+        "tpid": "0x8100",
         "oper_status": "up",
         "role": "Int",
         "speed": "100000"
@@ -169,21 +177,25 @@
     "LAG_TABLE:PortChannel0001": {
         "admin_status": "up",
         "mtu": "9100",
+        "tpid": "0x8100",
         "oper_status": "down"
     },
     "LAG_TABLE:PortChannel0002": {
         "admin_status": "up",
         "mtu": "9100",
+        "tpid": "0x8100",
         "oper_status": "up"
     },
     "LAG_TABLE:PortChannel0003": {
         "admin_status": "up",
         "mtu": "9100",
+        "tpid": "0x8100",
         "oper_status": "up"
     },
     "LAG_TABLE:PortChannel0004": {
         "admin_status": "up",
         "mtu": "9100",
+        "tpid": "0x88A8",
         "oper_status": "up"
     },
     "SWITCH_TABLE:switch": {

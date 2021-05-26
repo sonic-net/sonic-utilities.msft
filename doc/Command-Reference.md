@@ -406,6 +406,7 @@ The same syntax applies to all subgroups of `show` which themselves contain subc
     neighbor     Show neighbor related information
     portchannel  Show PortChannel information
     status       Show Interface status information
+    tpid         Show Interface tpid information
     transceiver  Show SFP Transceiver information
   ```
 
@@ -3076,6 +3077,7 @@ Subsequent pages explain each of these commands in detail.
   neighbor     Show neighbor related information
   portchannel  Show PortChannel information
   status       Show Interface status information
+  tpid         Show Interface tpid information
   transceiver  Show SFP Transceiver information
   ```
 
@@ -3308,6 +3310,48 @@ This command displays the key fields of the interfaces such as Operational Statu
   Interface    Oper    Admin           Alias           Description
   -----------  ------  -------  --------------  --------------------
   Ethernet4    down       up  hundredGigE1/2  T0-2:hundredGigE1/30
+  ```
+
+**show interfaces tpid**
+
+This command displays the key fields of the interfaces such as Operational Status, Administrative Status, Alias and TPID.
+
+- Usage:
+  ```
+  show interfaces tpid [<interface_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show interfaces tpid
+        Interface            Alias    Oper    Admin    TPID
+  ---------------  ---------------  ------  -------  ------
+        Ethernet0   fortyGigE1/1/1      up       up  0x8100
+        Ethernet1   fortyGigE1/1/2      up       up  0x8100
+        Ethernet2   fortyGigE1/1/3    down     down  0x8100
+        Ethernet3   fortyGigE1/1/4    down     down  0x8100
+        Ethernet4   fortyGigE1/1/5      up       up  0x8100
+        Ethernet5   fortyGigE1/1/6      up       up  0x8100
+        Ethernet6   fortyGigE1/1/7      up       up  0x9200
+        Ethernet7   fortyGigE1/1/8      up       up  0x88A8
+        Ethernet8   fortyGigE1/1/9      up       up  0x8100
+        ...
+       Ethernet63  fortyGigE1/4/16    down     down  0x8100
+  PortChannel0001              N/A      up       up  0x8100
+  PortChannel0002              N/A      up       up  0x8100
+  PortChannel0003              N/A      up       up  0x8100
+  PortChannel0004              N/A      up       up  0x8100
+  admin@sonic:~$
+  ```
+
+- Example (to only display the TPID for interface Ethernet6):
+
+  ```
+  admin@sonic:~$ show interfaces tpid Ethernet6
+    Interface           Alias    Oper    Admin    TPID
+  -----------  --------------  ------  -------  ------
+    Ethernet6  fortyGigE1/1/7      up       up  0x9200
+  admin@sonic:~$
   ```
 
 **show interfaces naming_mode**
@@ -3713,6 +3757,22 @@ This command is used to configure the mtu for the Physical interface. Use the va
 - Example (Versions >= 201904):
   ```
   admin@sonic:~$ sudo config interface mtu Ethernet64 1500
+  ```
+
+**config interface tpid <interface_name> (Versions >= 202106)**
+
+This command is used to configure the TPID for the Physical/PortChannel interface. default is 0x8100. Other allowed values if supported by HW SKU (0x9100, 0x9200, 0x88A8).
+
+- Usage:
+
+  *Versions >= 202106*
+  ```
+  config interface tpid <interface_name> <tpid_value>
+  ```
+
+- Example (Versions >= 202106):
+  ```
+  admin@sonic:~$ sudo config interface tpid Ethernet64 0x9200
   ```
 
 **config interface breakout**

@@ -147,6 +147,29 @@ def status(interfacename, namespace, display, verbose):
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
+@interfaces.command()
+@click.argument('interfacename', required=False)
+@multi_asic_util.multi_asic_click_options
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def tpid(interfacename, namespace, display, verbose):
+    """Show Interface tpid information"""
+
+    ctx = click.get_current_context()
+
+    cmd = "intfutil -c tpid"
+
+    if interfacename is not None:
+        interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+
+        cmd += " -i {}".format(interfacename)
+    else:
+        cmd += " -d {}".format(display)
+
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
+
+    clicommon.run_command(cmd, display_cmd=verbose)
+
 #
 # 'breakout' group ###
 #

@@ -84,6 +84,8 @@ CFG_PORTCHANNEL_NO="<0-9999>"
 
 PORT_MTU = "mtu"
 PORT_SPEED = "speed"
+PORT_TPID = "tpid"
+DEFAULT_TPID = "0x8100"
 
 asic_type = None
 
@@ -1582,6 +1584,15 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
             if portchannel_mtu != port_mtu:
                 ctx.fail("Port MTU of {} is different than the {} MTU size"
                          .format(port_name, portchannel_name))
+
+    # Dont allow a port to be member of port channel if its TPID is not at default 0x8100
+    # If TPID is supported at LAG level, when member is added, the LAG's TPID is applied to the
+    # new member by SAI.
+    port_entry = db.get_entry('PORT', port_name)
+    if port_entry and port_entry.get(PORT_TPID) is not None:
+       port_tpid = port_entry.get(PORT_TPID)
+       if port_tpid != DEFAULT_TPID:
+           ctx.fail("Port TPID of {}: {} is not at default 0x8100".format(port_name, port_tpid))
 
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})
@@ -3366,6 +3377,34 @@ def mtu(ctx, interface_name, interface_mtu, verbose):
     if verbose:
         command += " -vv"
     clicommon.run_command(command, display_cmd=verbose)
+
+#
+# 'tpid' subcommand
+#
+
+@interface.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('interface_tpid', metavar='<interface_tpid>', required=True)
+@click.option('-v', '--verbose', is_flag=True, help="Enable verbose output")
+def tpid(ctx, interface_name, interface_tpid, verbose):
+    """Set interface tpid"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -tp {}".format(interface_name, interface_tpid)
+    else:
+        command = "portconfig -p {} -tp {} -n {}".format(interface_name, interface_tpid, ctx.obj['namespace'])
+
+    if verbose:
+        command += " -vv"
+    clicommon.run_command(command, display_cmd=verbose)
+
 
 @interface.command()
 @click.pass_context

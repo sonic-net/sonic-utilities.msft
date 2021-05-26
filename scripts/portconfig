@@ -3,7 +3,7 @@
 """
 portconfig is the utility to show and change ECN configuration
 
-usage: portconfig [-h] [-v] [-s] [-f] [-m] [-p PROFILE] [-gmin GREEN_MIN]
+usage: portconfig [-h] [-v] [-s] [-f] [-m] [-tp] [-p PROFILE] [-gmin GREEN_MIN]
                  [-gmax GREEN_MAX] [-ymin YELLOW_MIN] [-ymax YELLOW_MAX]
                  [-rmin RED_MIN] [-rmax RED_MAX] [-vv] [-n namespace]
 
@@ -15,6 +15,7 @@ optional arguments:
   -s     --speed               port speed in Mbits
   -f     --fec                 port fec mode
   -m     --mtu                 port mtu in bytes
+  -tp    --tpid                interface tpid (0x8100, 9100, 9200, 88A8)
   -n     --namesapce           Namespace name
   -an    --autoneg             port auto negotiation mode
   -S     --adv-speeds          port advertised speeds
@@ -27,7 +28,7 @@ import argparse
 
 # mock the redis for unit test purposes #
 try:
-    if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1" or os.environ["UTILITIES_UNIT_TESTING"] == "2":
         modules_path = os.path.join(os.path.dirname(__file__), "..")
         test_path = os.path.join(modules_path, "tests")
         sys.path.insert(0, modules_path)
@@ -47,6 +48,11 @@ PORT_AUTONEG_CONFIG_FIELD_NAME = "autoneg"
 PORT_ADV_SPEEDS_CONFIG_FIELD_NAME = "adv_speeds"
 PORT_INTERFACE_TYPE_CONFIG_FIELD_NAME = "interface_type"
 PORT_ADV_INTERFACE_TYPES_CONFIG_FIELD_NAME = "adv_interface_types"
+PORT_CHANNEL_TABLE_NAME = "PORTCHANNEL"
+PORT_CHANNEL_MBR_TABLE_NAME = "PORTCHANNEL_MEMBER"
+TPID_CONFIG_FIELD_NAME = "tpid"
+SWITCH_CAPABILITY = "SWITCH_CAPABILITY|switch"
+
 
 # STATE_DB constants
 PORT_STATE_TABLE_NAME = "PORT_TABLE"
@@ -65,17 +71,33 @@ class portconfig(object):
     def __init__(self, verbose, port, namespace):
         self.verbose = verbose
         self.namespace = namespace
+        self.is_lag = False
+        self.is_lag_mbr = False
+        self.parent = port
         # Set up db connections
         if namespace is None:
             self.db = ConfigDBConnector()
+            self.state_db = SonicV2Connector(host='127.0.0.1')
         else:
             self.db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+            self.state_db = SonicV2Connector(use_unix_socket_path=True, namespace=front_asic_namespaces)
         self.db.connect()
+        self.state_db.connect(self.state_db.STATE_DB, False)
 
         # check whether table for this port exists
         port_tables = self.db.get_table(PORT_TABLE_NAME)
-        if port not in port_tables:
-            raise Exception("Invalid port specified")
+        lag_tables = self.db.get_table(PORT_CHANNEL_TABLE_NAME)
+        lag_mbr_tables = self.db.get_table(PORT_CHANNEL_MBR_TABLE_NAME)
+        if port in port_tables:
+            for key in lag_mbr_tables:
+                if port == key[1]:
+                    self.parent = key[0]
+                    self.is_lag_mbr = True
+                    break;
+        elif port in lag_tables:
+            self.is_lag = True
+        else:
+            raise Exception("Invalid port %s" % (port))
 
     def list_params(self, port):
         # chack whether table for this port exists
@@ -157,6 +179,49 @@ class portconfig(object):
         state_db.connect(state_db.STATE_DB)
         return state_db.get(state_db.STATE_DB, '{}|{}'.format(PORT_STATE_TABLE_NAME, port), PORT_STATE_SUPPORTED_SPEEDS)
 
+    def set_tpid(self, port, tpid):
+        if self.verbose:
+            print("Setting tpid %s on port %s" % (tpid, port))
+
+        tpid_config_ready = False
+        tpid_port_capable = False
+        tpid_lag_capable = False
+        # check TPID Config capability
+        port_tpid_capable = self.state_db.get(self.state_db.STATE_DB, SWITCH_CAPABILITY, "PORT_TPID_CAPABLE")
+        lag_tpid_capable = self.state_db.get(self.state_db.STATE_DB, SWITCH_CAPABILITY, "LAG_TPID_CAPABLE")
+        if port_tpid_capable:
+            tpid_config_ready = True
+            if port_tpid_capable == "true":
+                tpid_port_capable = True
+        if lag_tpid_capable:
+            tpid_config_ready = True
+            if lag_tpid_capable == "true":
+                tpid_lag_capable = True
+
+        if tpid_config_ready:
+            # TPID allowed are : 8100, 9100, 9200 and 88A8. Reject all other values.
+            if tpid == '0x8100' or tpid == '0x9100' or tpid == '0x9200' or tpid == '0x88A8' or tpid == '0x88a8':
+                if tpid == '0x88a8':
+                    tpid = '0x88A8'
+
+                if self.is_lag:
+                    if tpid_lag_capable:
+                        self.db.mod_entry(PORT_CHANNEL_TABLE_NAME, port, {TPID_CONFIG_FIELD_NAME: tpid})
+                    else:
+                       raise Exception("HW is not capable to support PortChannel TPID config.")
+                else:
+                   if self.is_lag_mbr:
+                       raise Exception("%s is already member of %s. Set TPID NOT allowed." % (port, self.parent))
+                   else:
+                       if tpid_port_capable:
+                           self.db.mod_entry(PORT_TABLE_NAME, port, {TPID_CONFIG_FIELD_NAME: tpid})
+                       else:
+                           raise Exception("HW is not capable to support Port TPID config.")
+            else:
+                raise Exception("TPID %s is not allowed. Allowed: 0x8100, 9100, 9200, or 88A8." % (tpid))
+        else:
+            raise Exception("System not ready to accept TPID config. Please try again later.")
+
 
 def main():
     parser = argparse.ArgumentParser(description='Set SONiC port parameters',
@@ -166,6 +231,7 @@ def main():
     parser.add_argument('-s', '--speed', type=int, help='port speed value in Mbit', default=None)
     parser.add_argument('-f', '--fec', type=str, help='port fec mode value in (none, rs, fc)', default=None)
     parser.add_argument('-m', '--mtu', type=int, help='port mtu value in bytes', default=None)
+    parser.add_argument('-tp', '--tpid', type=str, help='port TPID value in hex (e.g. 0x8100)', default=None)
     parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     parser.add_argument('-vv', '--verbose', action='store_true', help='Verbose output', default=False)
     parser.add_argument('-n', '--namespace', metavar='namespace details', type = str, required = False,
@@ -189,7 +255,7 @@ def main():
         port = portconfig(args.verbose, args.port, args.namespace)
         if args.list:
             port.list_params(args.port)
-        elif args.speed or args.fec or args.mtu or args.autoneg or args.adv_speeds or args.interface_type or args.adv_interface_types:
+        elif args.speed or args.fec or args.mtu or args.autoneg or args.adv_speeds or args.interface_type or args.adv_interface_types or args.tpid:
             if args.speed:
                 port.set_speed(args.port, args.speed)
             if args.fec:
@@ -204,12 +270,19 @@ def main():
                 port.set_interface_type(args.port, args.interface_type)
             if args.adv_interface_types:
                 port.set_adv_interface_types(args.port, args.adv_interface_types)
+            if args.tpid:
+                port.set_tpid(args.port, args.tpid)
         else:
             parser.print_help()
             sys.exit(1)
 
     except Exception as e:
-        print(str(e), file=sys.stderr)
+        try:
+            if os.environ["UTILITIES_UNIT_TESTING"] == "1" or os.environ["UTILITIES_UNIT_TESTING"] == "2":
+                print(str(e), file=sys.stdout)
+        except KeyError:
+            print(str(e), file=sys.stderr)
+
         sys.exit(1)
 
 if __name__ == "__main__":
