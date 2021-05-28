@@ -1,5 +1,4 @@
 import configparser
-import contextlib
 import os
 import re
 import subprocess
@@ -12,11 +11,9 @@ from sonic_py_common import logger
 from swsscommon.swsscommon import SonicV2Connector
 
 from .bootloader import get_bootloader
-from .bootloader.aboot import AbootBootloader
 from .common import (
     run_command, run_command_or_raise,
     IMAGE_PREFIX,
-    ROOTFS_NAME,
     UPPERDIR_NAME,
     WORKDIR_NAME,
     DOCKERDIR_NAME,
@@ -279,7 +276,7 @@ def update_sonic_environment(bootloader, binary_image_version):
     env_dir = os.path.join(new_image_dir, "sonic-config")
     env_file = os.path.join(env_dir, "sonic-environment")
 
-    with bootloader.get_path_in_image(new_image_dir, ROOTFS_NAME) as new_image_squashfs_path:
+    with bootloader.get_rootfs_path(new_image_dir) as new_image_squashfs_path:
         try:
             mount_squash_fs(new_image_squashfs_path, new_image_mount)
 
@@ -321,21 +318,21 @@ def migrate_sonic_packages(bootloader, binary_image_version):
     packages_path = os.path.join(PACKAGE_MANAGER_DIR, packages_file)
     sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version)
     new_image_dir = bootloader.get_image_path(binary_image_version)
+    new_image_upper_dir = os.path.join(new_image_dir, UPPERDIR_NAME)
+    new_image_work_dir = os.path.join(new_image_dir, WORKDIR_NAME)
+    new_image_docker_dir = os.path.join(new_image_dir, DOCKERDIR_NAME)
+    new_image_mount = os.path.join("/", tmp_dir, "image-{0}-fs".format(sonic_version))
+    new_image_docker_mount = os.path.join(new_image_mount, "var", "lib", "docker")
 
-    with contextlib.ExitStack() as stack:
-        def get_path(path):
-            """ Closure to get path by entering
-            a context manager of bootloader.get_path_in_image """
+    if not os.path.isdir(new_image_docker_dir):
+        # NOTE: This codepath can be reached if the installation process did not
+        #       extract the default dockerfs. This can happen with docker_inram
+        #       though the bootloader class should have disabled the package
+        #       migration which is why this message is a non fatal error message.
+        echo_and_log("Error: SONiC package migration cannot proceed due to missing docker folder", LOG_ERR, fg="red")
+        return
 
-            return stack.enter_context(bootloader.get_path_in_image(new_image_dir, path))
-
-        new_image_squashfs_path = get_path(ROOTFS_NAME)
-        new_image_upper_dir = get_path(UPPERDIR_NAME)
-        new_image_work_dir = get_path(WORKDIR_NAME)
-        new_image_docker_dir = get_path(DOCKERDIR_NAME)
-        new_image_mount = os.path.join("/", tmp_dir, "image-{0}-fs".format(sonic_version))
-        new_image_docker_mount = os.path.join(new_image_mount, "var", "lib", "docker")
-
+    with bootloader.get_rootfs_path(new_image_dir) as new_image_squashfs_path:
         try:
             mount_squash_fs(new_image_squashfs_path, new_image_mount)
             # make sure upper dir and work dir exist
@@ -434,8 +431,8 @@ def install(url, force, skip_migration=False, skip_package_migration=False):
 
         update_sonic_environment(bootloader, binary_image_version)
 
-        if isinstance(bootloader, AbootBootloader) and not skip_package_migration:
-            echo_and_log("Warning: SONiC package migration is not supported currenty on aboot platform due to https://github.com/Azure/sonic-buildimage/issues/7566.", LOG_ERR, fg="red")
+        if not bootloader.supports_package_migration(binary_image_version) and not skip_package_migration:
+            echo_and_log("Warning: SONiC package migration is not supported for this bootloader/image", fg="yellow")
             skip_package_migration = True
 
         if not skip_package_migration:

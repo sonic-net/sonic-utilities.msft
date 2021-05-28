@@ -9,6 +9,7 @@ from ..common import (
    HOST_PATH,
    IMAGE_DIR_PREFIX,
    IMAGE_PREFIX,
+   ROOTFS_NAME,
 )
 
 class Bootloader(object):
@@ -58,6 +59,10 @@ class Bootloader(object):
         image_path = self.get_image_path(image)
         return path.exists(image_path)
 
+    def supports_package_migration(self, image):
+        """tells if the image supports package migration"""
+        return True
+
     @classmethod
     def detect(cls):
         """returns True if the bootloader is in use"""
@@ -70,6 +75,6 @@ class Bootloader(object):
         return image.replace(IMAGE_PREFIX, prefix)
 
     @contextmanager
-    def get_path_in_image(self, image_path, path_in_image):
+    def get_rootfs_path(self, image_path):
         """returns the path to the squashfs"""
-        yield path.join(image_path, path_in_image)
+        yield path.join(image_path, ROOTFS_NAME)
