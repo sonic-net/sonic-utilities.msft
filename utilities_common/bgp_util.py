@@ -173,16 +173,15 @@ def get_neighbor_dict_from_table(db, table_name):
         return neighbor_dict
 
 
-def run_bgp_command(vtysh_cmd,
-                    bgp_namespace=multi_asic.DEFAULT_NAMESPACE):
+def run_bgp_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE, vtysh_shell_cmd=constants.VTYSH_COMMAND):
     bgp_instance_id = ' '
     output = None
     if bgp_namespace is not multi_asic.DEFAULT_NAMESPACE:
         bgp_instance_id = " -n {} ".format(
             multi_asic.get_asic_id_from_name(bgp_namespace))
 
-    cmd = 'sudo vtysh {} -c "{}"'.format(
-        bgp_instance_id, vtysh_cmd)
+    cmd = 'sudo {} {} -c "{}"'.format(
+        vtysh_shell_cmd, bgp_instance_id, vtysh_cmd)
     try:
         output = clicommon.run_command(cmd, return_cmd=True)
     except Exception:
@@ -190,6 +189,9 @@ def run_bgp_command(vtysh_cmd,
         ctx.fail("Unable to get summary from bgp {}".format(bgp_instance_id))
 
     return output
+
+def run_bgp_show_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE):
+    return run_bgp_command(vtysh_cmd, bgp_namespace, constants.RVTYSH_COMMAND)
 
 def get_bgp_summary_from_all_bgp_instances(af, namespace, display):
 
@@ -205,7 +207,7 @@ def get_bgp_summary_from_all_bgp_instances(af, namespace, display):
     bgp_summary = {}
     cmd_output_json = {}
     for ns in device.get_ns_list_based_on_options():
-        cmd_output = run_bgp_command(vtysh_cmd, ns)
+        cmd_output = run_bgp_show_command(vtysh_cmd, ns)
         try:
             cmd_output_json = json.loads(cmd_output)
         except ValueError:

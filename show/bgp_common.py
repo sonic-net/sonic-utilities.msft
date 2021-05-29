@@ -377,9 +377,9 @@ def show_routes(args, namespace, display, verbose, ipver):
         # If not MultiASIC, skip namespace argument
         cmd = "show {} route {}".format(ipver, arg_strg)
         if multi_asic.is_multi_asic():
-            output = bgp_util.run_bgp_command(cmd, ns)
+            output = bgp_util.run_bgp_show_command(cmd, ns)
         else:
-            output = bgp_util.run_bgp_command(cmd)
+            output = bgp_util.run_bgp_show_command(cmd)
             print("{}".format(output))
             return
 
