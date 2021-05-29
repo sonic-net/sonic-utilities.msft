@@ -10,7 +10,7 @@ from natsort import natsorted
 from tabulate import tabulate
 
 from sonic_py_common import multi_asic
-from swsssdk import ConfigDBConnector, SonicDBConfig
+from swsscommon import swsscommon
 from utilities_common import constants
 from utilities_common import multi_asic as multi_asic_util
 
@@ -41,7 +41,7 @@ def get_bgp_peer():
     }
     """
     bgp_peer = {}
-    config_db = ConfigDBConnector()
+    config_db = swsscommon.ConfigDBConnector()
     config_db.connect()
     data = config_db.get_table('BGP_NEIGHBOR')
 
@@ -262,7 +262,7 @@ def main():
     else:
         sys.exit("Invalid argument -a {}".format(args.address_family))
 
-    SonicDBConfig.load_sonic_global_db_config()
+    swsscommon.SonicDBConfig.load_sonic_global_db_config()
     ip_intfs = get_ip_intfs(af, namespace, display)
     display_ip_intfs(ip_intfs)
 
