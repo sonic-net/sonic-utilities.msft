@@ -638,6 +638,7 @@ class PackageManager:
                 with tempfile.NamedTemporaryFile('wb') as file:
                     for chunk in image.save(named=True):
                         file.write(chunk)
+                    file.flush()
 
                     self.install(tarball=file.name)
             else:
