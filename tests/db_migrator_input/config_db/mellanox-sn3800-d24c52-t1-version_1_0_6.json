@@ -133,13 +133,13 @@
     "BUFFER_POOL|egress_lossy_pool": {
         "type": "egress",
         "mode": "dynamic",
-        "size": "24219648"
+        "size": "22597632"
     },
     "BUFFER_POOL|ingress_lossless_pool": {
-        "xoff": "4169728",
+        "xoff": "4734976",
         "type": "ingress",
         "mode": "dynamic",
-        "size": "24219648"
+        "size": "22597632"
     },
     "BUFFER_PORT_EGRESS_PROFILE_LIST|Ethernet0": {
         "profile_list": "[BUFFER_PROFILE|egress_lossless_profile],[BUFFER_PROFILE|egress_lossy_profile]"
@@ -815,7 +815,7 @@
         "Ethernet252": "5m"
     },
     "DEVICE_METADATA|localhost": {
-        "hwsku": "Mellanox-SN3800-C64",
+        "hwsku": "Mellanox-SN3800-D24C52",
         "default_bgp_status": "up",
         "docker_routing_config_mode": "separated",
         "region": "None",
@@ -824,7 +824,6 @@
         "mac": "00:01:02:03:04:00",
         "default_pfcwd_status": "disable",
         "bgp_asn": "65100",
-        "buffer_model": "traditional",
         "cloudtype": "None",
         "type": "LeafRouter",
         "deployment_id": "1"
@@ -1822,6 +1821,6 @@
         "fec": "none"
     },
     "VERSIONS|DATABASE": {
-        "VERSION": "version_2_0_0"
+        "VERSION": "version_1_0_5"
     }
 }

@@ -187,13 +187,18 @@
     "BUFFER_POOL|egress_lossy_pool": {
         "type": "egress",
         "mode": "dynamic",
-        "size": "7719936"
+        "size": "3859968"
     },
     "BUFFER_POOL|ingress_lossless_pool": {
         "xoff": "1032192",
         "type": "ingress",
         "mode": "dynamic",
-        "size": "7719936"
+        "size": "3859968"
+    },
+    "BUFFER_POOL|ingress_lossy_pool": {
+        "type": "ingress",
+        "mode": "dynamic",
+        "size": "3859968"
     },
     "BUFFER_PORT_EGRESS_PROFILE_LIST|Ethernet4": {
         "profile_list": "[BUFFER_PROFILE|egress_lossless_profile],[BUFFER_PROFILE|egress_lossy_profile]"
@@ -280,88 +285,88 @@
         "profile_list": "[BUFFER_PROFILE|egress_lossless_profile],[BUFFER_PROFILE|egress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet4": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet8": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet12": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet16": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet20": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet24": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet28": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet32": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet36": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet40": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet44": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet48": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet52": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet56": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet60": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet64": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet68": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet72": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet76": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet80": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet84": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet88": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet92": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet96": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet112": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet116": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet120": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PORT_INGRESS_PROFILE_LIST|Ethernet124": {
-        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile]"
+        "profile_list": "[BUFFER_PROFILE|ingress_lossless_profile],[BUFFER_PROFILE|ingress_lossy_profile]"
     },
     "BUFFER_PROFILE|egress_lossless_profile": {
         "dynamic_th": "7",
@@ -380,7 +385,7 @@
     },
     "BUFFER_PROFILE|ingress_lossy_profile": {
         "dynamic_th": "3",
-        "pool": "[BUFFER_POOL|ingress_lossless_pool]",
+        "pool": "[BUFFER_POOL|ingress_lossy_pool]",
         "size": "0"
     },
     "BUFFER_PROFILE|pg_lossless_10000_5m_profile": {
@@ -724,7 +729,7 @@
         "Ethernet24": "5m"
     },
     "DEVICE_METADATA|localhost": {
-        "hwsku": "Mellanox-SN2700-D40C8S8",
+        "hwsku": "Mellanox-SN2700-D48C8",
         "default_bgp_status": "up",
         "type": "ToRRouter",
         "hostname": "sonic",
@@ -1050,6 +1055,6 @@
         "speed": "50000"
     },
     "VERSIONS|DATABASE": {
-        "VERSION": "version_1_0_5"
+        "VERSION": "version_1_0_6"
     }
 }

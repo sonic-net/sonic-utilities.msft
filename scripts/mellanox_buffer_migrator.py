@@ -6,6 +6,7 @@ Mellanox buffer migrator:
     Current version: 2.0.0 for shared headroom pool and dynamic buffer calculation support.
     Historical version:
      - 201911:
+       - 1.0.6 for 2km cable support
        - 1.0.5 for shared headroom pool support
        - 1.0.4 for optimized headroom calculation:
           - For Microsoft SKUs, calculate headroom with small packet percentage as 50%
@@ -119,7 +120,7 @@ class MellanoxBufferMigrator():
             # This is the buffer configuration from the very beginning
             # Buffer pool configuration info
             "buffer_pool_list" : ['ingress_lossless_pool', 'egress_lossless_pool', 'ingress_lossy_pool', 'egress_lossy_pool'],
-            # default buffer pools
+            # Default buffer pools
             "buffer_pools": {
                 "spc1_t0_pool": {"ingress_lossless_pool": { "size": "4194304", "type": "ingress", "mode": "dynamic" },
                                  "ingress_lossy_pool": { "size": "7340032", "type": "ingress", "mode": "dynamic" },
@@ -209,7 +210,7 @@ class MellanoxBufferMigrator():
             }
         },
         "version_1_0_4": {
-            # version 1.0.4 is introduced for updating the buffer settings
+            # Version 1.0.4 is introduced for updating the buffer settings
             # Buffer pool info for normal mode
             "buffer_pool_list" : ['ingress_lossless_pool', 'ingress_lossy_pool', 'egress_lossless_pool', 'egress_lossy_pool'],
             "buffer_pools": {
@@ -247,7 +248,7 @@ class MellanoxBufferMigrator():
                                 "pg_lossless_40000_300m_profile": {"size": "78848", "xon":"19456"},
                                 "pg_lossless_50000_300m_profile": {"size": "86016", "xon":"19456"},
                                 "pg_lossless_100000_300m_profile": {"size": "123904", "xon":"19456"}},
-                    # lossless headroom info for MSFT SKUs.
+                    # Lossless headroom info for MSFT SKUs.
                     "msft": {"pg_lossless_10000_5m_profile": {"size": "41984", "xon":"19456"},
                              "pg_lossless_25000_5m_profile": {"size": "41984", "xon":"19456"},
                              "pg_lossless_40000_5m_profile": {"size": "41984", "xon":"19456"},
@@ -324,15 +325,15 @@ class MellanoxBufferMigrator():
             }
         },
         "version_1_0_5": {
-            # version 1.0.5 is introduced for shared headroom pools
+            # Version 1.0.5 is introduced for shared headroom pools
             "pool_convert_map": {
                 "spc1_t0_pool_sku_map": {"Mellanox-SN2700-C28D8": "spc1_2700-d48c8_t0_pool_shp",
                                          "Mellanox-SN2700-D48C8": "spc1_2700-d48c8_t0_pool_shp",
-                                         "Mellanox-SN2700-D40C8S8": "spc1_2700-d48c8_t0_pool_shp",
+                                         "Mellanox-SN2700-D40C8S8": "spc1_2700-d48c8_t0_single_pool_shp",
                                          "Mellanox-SN2700": "spc1_2700_t0_pool_shp"},
                 "spc1_t1_pool_sku_map": {"Mellanox-SN2700-C28D8": "spc1_2700-d48c8_t1_pool_shp",
                                          "Mellanox-SN2700-D48C8": "spc1_2700-d48c8_t1_pool_shp",
-                                         "Mellanox-SN2700-D40C8S8": "spc1_2700-d48c8_t1_pool_shp",
+                                         "Mellanox-SN2700-D40C8S8": "spc1_2700-d48c8_t1_single_pool_shp",
                                          "Mellanox-SN2700": "spc1_2700_t1_pool_shp"}
             },
             "pool_mapped_from_old_version": {
@@ -441,8 +442,43 @@ class MellanoxBufferMigrator():
                 }
             }
         },
+        "version_1_0_6": {
+            # Version 1.0.6 is introduced for 2km cable support
+            #
+            # pool_mapped_from_old_version is not required because no pool flavor mapping changed
+
+            # Buffer pool info for normal mode
+            "buffer_pool_list" : ['ingress_lossless_pool', 'ingress_lossy_pool', 'egress_lossless_pool', 'egress_lossy_pool'],
+
+            "buffer_pools": {
+                "spc1_2700_t1_pool_shp": {"doublepool": { "size": "4439552", "xoff": "2146304" }, "egress_lossless_pool": { "size": "13945824"}},
+
+                # Buffer pool for single pool
+                "spc1_2700_t1_single_pool_shp": {"singlepool": { "size": "8719360", "xoff": "2146304" }, "egress_lossless_pool": { "size": "13945824"}},
+
+                # The following pools are used for upgrading from 1.0.5 to the newer version
+                "spc2_3800-c64_t1_pool_shp": {"singlepool": {"size": "24219648", "xoff": "4169728"}, "egress_lossless_pool": {"size": "34287552"}}
+            },
+            "buffer_pools_inherited": {
+                "version_1_0_4": ["spc1_t0_pool", "spc1_t1_pool", "spc2_t0_pool", "spc2_t1_pool", "spc3_t0_pool", "spc3_t1_pool"],
+                "version_1_0_5": [# Generic SKUs for 3800
+                                  "spc2_3800_t0_pool",
+                                  "spc2_3800_t1_pool",
+                                  # Non generic SKUs
+                                  "spc1_2700_t0_pool_shp",
+                                  "spc1_2700_t0_single_pool_shp",
+                                  "spc1_2700-d48c8_t0_pool_shp",
+                                  "spc1_2700-d48c8_t0_single_pool_shp",
+                                  "spc2_3800-c64_t0_pool_shp", "spc2_3800-d112c8_t0_pool_shp",
+                                  "spc2_3800-d24c52_t0_pool_shp", "spc2_3800-d28c50_t0_pool_shp",
+                                  "spc1_2700-d48c8_t1_pool_shp",
+                                  "spc1_2700-d48c8_t1_single_pool_shp",
+                                  "spc2_3800-d112c8_t1_pool_shp",
+                                  "spc2_3800-d24c52_t1_pool_shp", "spc2_3800-d28c50_t1_pool_shp"],
+            }
+        },
         "version_2_0_0": {
-            # version 2.0.0 is introduced for dynamic buffer calculation
+            # Version 2.0.0 is introduced for dynamic buffer calculation
             #
             "pool_mapped_from_old_version": {
                 "spc1_t0_pool": "spc1_pool",
@@ -463,13 +499,19 @@ class MellanoxBufferMigrator():
                 "spc3_pool": {"doublepool": {"size": "dynamic"}, "egress_lossless_pool": { "size": "60817392" }}
             },
             "buffer_pools_inherited": {
-                "version_1_0_5": ["spc1_2700_t0_pool", "spc1_2700_t1_pool",
-                                  "spc1_2700_t0_pool_shp", "spc1_2700_t1_pool_shp",
-                                  "spc1_2700_t0_single_pool_shp", "spc1_2700_t1_single_pool_shp",
-                                  "spc1_2700-d48c8_t0_pool_shp", "spc1_2700-d48c8_t1_pool_shp",
-                                  "spc1_2700-d48c8_t0_single_pool_shp", "spc1_2700-d48c8_t1_single_pool_shp",
-                                  "spc2_3800-c64_t0_pool_shp", "spc2_3800-c64_t1_pool_shp", "spc2_3800-d112c8_t0_pool_shp", "spc2_3800-d112c8_t1_pool_shp",
-                                  "spc2_3800-d24c52_t0_pool_shp", "spc2_3800-d24c52_t1_pool_shp", "spc2_3800-d28c50_t0_pool_shp", "spc2_3800-d28c50_t1_pool_shp"]
+                "version_1_0_5": ["spc1_2700_t0_pool_shp",
+                                  "spc1_2700_t0_single_pool_shp",
+                                  "spc1_2700-d48c8_t0_pool_shp",
+                                  "spc1_2700-d48c8_t0_single_pool_shp",
+                                  "spc2_3800-c64_t0_pool_shp", "spc2_3800-d112c8_t0_pool_shp",
+                                  "spc2_3800-d24c52_t0_pool_shp", "spc2_3800-d28c50_t0_pool_shp",
+                                  "spc1_2700-d48c8_t1_pool_shp",
+                                  "spc1_2700-d48c8_t1_single_pool_shp",
+                                  "spc2_3800-d112c8_t1_pool_shp",
+                                  "spc2_3800-d24c52_t1_pool_shp", "spc2_3800-d28c50_t1_pool_shp"],
+                "version_1_0_6": ["spc1_2700_t1_pool_shp",
+                                  "spc1_2700_t1_single_pool_shp",
+                                  "spc2_3800-c64_t1_pool_shp"]
             }
         }
     }

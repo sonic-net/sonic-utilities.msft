@@ -724,7 +724,7 @@
         "Ethernet24": "5m"
     },
     "DEVICE_METADATA|localhost": {
-        "hwsku": "Mellanox-SN2700-D40C8S8",
+        "hwsku": "Mellanox-SN2700-D48C8",
         "default_bgp_status": "up",
         "type": "ToRRouter",
         "hostname": "sonic",
@@ -1050,6 +1050,6 @@
         "speed": "50000"
     },
     "VERSIONS|DATABASE": {
-        "VERSION": "version_1_0_5"
+        "VERSION": "version_1_0_6"
     }
 }

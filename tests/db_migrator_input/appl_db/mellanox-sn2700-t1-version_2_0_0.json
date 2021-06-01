@@ -199,18 +199,18 @@
     "BUFFER_POOL_TABLE:egress_lossy_pool": {
         "type": "egress",
         "mode": "dynamic",
-        "size": "4646400"
+        "size": "4439552"
     },
     "BUFFER_POOL_TABLE:ingress_lossless_pool": {
-        "xoff": "1572864",
+        "xoff": "2146304",
         "type": "ingress",
         "mode": "dynamic",
-        "size": "4646400"
+        "size": "4439552"
     },
     "BUFFER_POOL_TABLE:ingress_lossy_pool": {
         "type": "ingress",
         "mode": "dynamic",
-        "size": "4646400"
+        "size": "4439552"
     },
     "BUFFER_PORT_EGRESS_PROFILE_LIST_TABLE:Ethernet0": {
         "profile_list": "[BUFFER_PROFILE_TABLE:egress_lossless_profile],[BUFFER_PROFILE_TABLE:egress_lossy_profile]"

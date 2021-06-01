@@ -824,7 +824,6 @@
         "mac": "00:01:02:03:04:00",
         "default_pfcwd_status": "disable",
         "bgp_asn": "65100",
-        "buffer_model": "traditional",
         "cloudtype": "None",
         "type": "LeafRouter",
         "deployment_id": "1"
@@ -1822,6 +1821,6 @@
         "fec": "none"
     },
     "VERSIONS|DATABASE": {
-        "VERSION": "version_2_0_0"
+        "VERSION": "version_1_0_6"
     }
 }

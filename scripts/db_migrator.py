@@ -452,6 +452,23 @@ class DBMigrator():
         Version 1_0_5.
         """
         log.log_info('Handling version_1_0_5')
+
+        # Check ASIC type, if Mellanox platform then need DB migration
+        if self.asic_type == "mellanox":
+            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_5', 'version_1_0_6') \
+               and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_5', 'version_1_0_6') \
+               and self.mellanox_buffer_migrator.mlnx_flush_new_buffer_configuration():
+                self.set_version('version_1_0_6')
+        else:
+            self.set_version('version_1_0_6')
+
+        return 'version_1_0_6'
+
+    def version_1_0_6(self):
+        """
+        Version 1_0_6.
+        """
+        log.log_info('Handling version_1_0_6')
         if self.asic_type == "mellanox":
             speed_list = self.mellanox_buffer_migrator.default_speed_list
             cable_len_list = self.mellanox_buffer_migrator.default_cable_len_list
@@ -461,8 +478,8 @@ class DBMigrator():
             abandon_method = self.mellanox_buffer_migrator.mlnx_abandon_pending_buffer_configuration
             append_method = self.mellanox_buffer_migrator.mlnx_append_item_on_pending_configuration_list
 
-            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_5', 'version_2_0_0') \
-               and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_5', 'version_2_0_0') \
+            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_6', 'version_2_0_0') \
+               and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_6', 'version_2_0_0') \
                and (not self.mellanox_buffer_migrator.mlnx_is_buffer_model_dynamic() or \
                     self.migrate_config_db_buffer_tables_for_dynamic_calculation(speed_list, cable_len_list, '0', abandon_method, append_method)) \
                and self.mellanox_buffer_migrator.mlnx_flush_new_buffer_configuration() \
