@@ -174,6 +174,21 @@ class DBMigrator():
         for copp_key in keys:
             self.appDB.delete(self.appDB.APPL_DB, copp_key)
 
+    def migrate_feature_table(self):
+        '''
+        Combine CONTAINER_FEATURE and FEATURE tables into FEATURE table.
+        '''
+        feature_table = self.configDB.get_table('FEATURE')
+        for feature, config in feature_table.items():
+            state = config.pop('status', 'disabled')
+            config['state'] = state
+            self.configDB.set_entry('FEATURE', feature, config)
+
+        container_feature_table = self.configDB.get_table('CONTAINER_FEATURE')
+        for feature, config in container_feature_table.items():
+            self.configDB.mod_entry('FEATURE', feature, config)
+            self.configDB.set_entry('CONTAINER_FEATURE', feature, None)
+
     def migrate_config_db_buffer_tables_for_dynamic_calculation(self, speed_list, cable_len_list, default_dynamic_th, abandon_method, append_item_method):
         '''
         Migrate buffer tables to dynamic calculation mode
@@ -419,6 +434,8 @@ class DBMigrator():
         """
         log.log_info('Handling version_1_0_3')
 
+        self.migrate_feature_table()
+
         # Check ASIC type, if Mellanox platform then need DB migration
         if self.asic_type == "mellanox":
             if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_3', 'version_1_0_4') \
@@ -520,14 +537,12 @@ class DBMigrator():
 
         return 'version_unknown'
 
-
     def set_version(self, version=None):
         if not version:
             version = self.CURRENT_VERSION
         log.log_info('Setting version to ' + version)
         entry = { self.TABLE_FIELD : version }
         self.configDB.set_entry(self.TABLE_NAME, self.TABLE_KEY, entry)
-
 
     def common_migration_ops(self):
         try:
@@ -537,14 +552,16 @@ class DBMigrator():
             raise Exception(str(e))
 
         for init_cfg_table, table_val in init_db.items():
-            data = self.configDB.get_table(init_cfg_table)
-            if data:
-                # Ignore overriding the values that pre-exist in configDB
-                continue
             log.log_info("Migrating table {} from INIT_CFG to config_db".format(init_cfg_table))
-            # Update all tables that do not exist in configDB but are present in INIT_CFG
-            for init_table_key, init_table_val in table_val.items():
-                self.configDB.set_entry(init_cfg_table, init_table_key, init_table_val)
+            for key in table_val:
+                curr_cfg = self.configDB.get_entry(init_cfg_table, key)
+                init_cfg = table_val[key]
+
+                # Override init config with current config.
+                # This will leave new fields from init_config
+                # in new_config, but not override existing configuration.
+                new_cfg = {**init_cfg, **curr_cfg}
+                self.configDB.set_entry(init_cfg_table, key, new_cfg)
 
         self.migrate_copp_table()
 

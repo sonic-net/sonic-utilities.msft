@@ -2,6 +2,8 @@ import os
 import pytest
 import sys
 
+from deepdiff import DeepDiff
+
 from swsssdk import SonicV2Connector
 from sonic_py_common import device_info
 
@@ -218,3 +220,30 @@ class TestAutoNegMigrator(object):
 
         assert dbmgtr.configDB.get_table('PORT') == expected_db.cfgdb.get_table('PORT')
         assert dbmgtr.configDB.get_table('VERSIONS') == expected_db.cfgdb.get_table('VERSIONS')
+
+
+class TestInitConfigMigrator(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_init_config_feature_migration(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'feature-input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'feature-expected')
+        expected_db = Db()
+
+        resulting_table = dbmgtr.configDB.get_table('FEATURE')
+        expected_table = expected_db.cfgdb.get_table('FEATURE')
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
+
+        assert not expected_db.cfgdb.get_table('CONTAINER_FEATURE')
