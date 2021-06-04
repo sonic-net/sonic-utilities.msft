@@ -4,24 +4,33 @@ import sys
 
 import click
 import utilities_common.cli as clicommon
-from sonic_py_common import device_info, multi_asic
+from sonic_py_common import device_info
 
+#
+# Helper functions
+#
 
-def get_hw_info_dict():
+def get_chassis_info():
     """
-    This function is used to get the HW info helper function
+    Attempts to get the chassis info via STATE_DB and falls back to direct Platform API calls.
     """
-    hw_info_dict = {}
 
-    version_info = device_info.get_sonic_version_info()
+    chassis_info = device_info.get_chassis_info()
+    required_keys = ['serial', 'model', 'revision']
+    failed_vals = ['', 'N/A']
+    platform_chassis = None
 
-    hw_info_dict['platform'] = device_info.get_platform()
-    hw_info_dict['hwsku'] = device_info.get_hwsku()
-    hw_info_dict['asic_type'] = version_info['asic_type']
-    hw_info_dict['asic_count'] = multi_asic.get_num_asics()
+    for k in required_keys:
+        if chassis_info.get(k, '') in failed_vals:
+            if platform_chassis is None:
+                import platform
+                platform_chassis = sonic_platform.platform.Platform().get_chassis()
+            try:
+                chassis_info[k] = getattr(platform_chassis, "get_".format(k))()
+            except AttributeError:
+                chassis_info[k] = 'N/A'
 
-    return hw_info_dict
-
+    return chassis_info
 
 #
 # 'platform' group ("show platform ...")
@@ -38,17 +47,19 @@ def platform():
 @click.option('--json', is_flag=True, help="Output in JSON format")
 def summary(json):
     """Show hardware platform information"""
-
-    hw_info_dict = {}
-    hw_info_dict = get_hw_info_dict()
+    platform_info = device_info.get_platform_info()
+    chassis_info = get_chassis_info()
 
     if json:
-        click.echo(clicommon.json_dump(hw_info_dict))
+        click.echo(clicommon.json_dump({**platform_info, **chassis_info}))
     else:
-        click.echo("Platform: {}".format(hw_info_dict['platform']))
-        click.echo("HwSKU: {}".format(hw_info_dict['hwsku']))
-        click.echo("ASIC: {}".format(hw_info_dict['asic_type']))
-        click.echo("ASIC Count: {}".format(hw_info_dict['asic_count']))
+        click.echo("Platform: {}".format(platform_info['platform']))
+        click.echo("HwSKU: {}".format(platform_info['hwsku']))
+        click.echo("ASIC: {}".format(platform_info['asic_type']))
+        click.echo("ASIC Count: {}".format(platform_info['asic_count']))
+        click.echo("Serial Number: {}".format(chassis_info['serial']))
+        click.echo("Model Number: {}".format(chassis_info['model']))
+        click.echo("Hardware Revision: {}".format(chassis_info['revision']))
 
 
 # 'syseeprom' subcommand ("show platform syseeprom")

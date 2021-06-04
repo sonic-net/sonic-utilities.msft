@@ -441,6 +441,15 @@ This command displays relevant information as the SONiC and Linux kernel version
   Build date: Fri Mar 22 01:55:48 UTC 2019
   Built by: johnar@jenkins-worker-4
 
+  Platform: x86_64-mlnx_msn2700-r0
+  HwSKU: Mellanox-SN2700
+  ASIC: mellanox
+  ASIC Count: 1
+  Serial Number: MT1822K07815
+  Model Number: MSN2700-CS2FO
+  Hardware Rev: A1
+  Uptime: 14:40:15 up 3 min,  1 user,  load average: 1.26, 1.45, 0.66
+
   Docker images:
   REPOSITORY                 TAG                 IMAGE ID            SIZE
   docker-syncd-brcm          HEAD.32-21ea29a     434240daff6e        362MB
@@ -686,9 +695,13 @@ This command displays a summary of the device's hardware platform
 - Example:
   ```
   admin@sonic:~$ show platform summary
-  Platform: x86_64-dell_s6000_s1220-r0
-  HwSKU: Force10-S6000
-  ASIC: broadcom
+  Platform: x86_64-mlnx_msn2700-r0
+  HwSKU: Mellanox-SN2700
+  ASIC: mellanox
+  ASIC Count: 1
+  Serial Number: MT1822K07815
+  Model Number: MSN2700-CS2FO
+  Hardware Rev: A1
   ```
 
 **show platform syseeprom**
