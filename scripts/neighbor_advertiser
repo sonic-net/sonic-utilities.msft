@@ -546,8 +546,12 @@ def remove_vxlan_tunnel():
 
 
 def remove_vxlan_tunnel_map():
+    vxlan_tunnel_name = VXLAN_TUNNEL_NAME
+    vxlan_tunnel = config_db.get_table('VXLAN_TUNNEL')
+    if len(vxlan_tunnel):
+        vxlan_tunnel_name = list(vxlan_tunnel.keys())[0]
     for (index, _) in enumerate(get_vlan_interfaces(), 1):
-        config_db.set_entry('VXLAN_TUNNEL_MAP', (VXLAN_TUNNEL_NAME, VXLAN_TUNNEL_MAP_PREFIX + str(index)), None)
+        config_db.set_entry('VXLAN_TUNNEL_MAP', (vxlan_tunnel_name, VXLAN_TUNNEL_MAP_PREFIX + str(index)), None)
 
 
 def reset_vxlan_tunnel():
