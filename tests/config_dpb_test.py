@@ -467,6 +467,7 @@ class TestConfigDPB(object):
         return
 
     @pytest.mark.usefixtures('mock_func')
+    @pytest.mark.skip(reason="not stable")
     def test_config_breakout_various_modes(self, sonic_db):
         '''
         Test different combination of breakout port.
