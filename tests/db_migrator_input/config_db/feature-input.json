@@ -9,5 +9,8 @@
 	},
 	"FEATURE|telemetry": {
 		"status": "enabled"
+	},
+	"FEATURE|syncd": {
+		"state": "enabled"
 	}
 }
