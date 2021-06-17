@@ -1310,6 +1310,9 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
                 command = "{} -o migrate -n {}".format(db_migrator, namespace)
             clicommon.run_command(command, display_cmd=True)
 
+    # Re-generate the environment variable in case config_db.json was edited
+    update_sonic_environment()
+
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
