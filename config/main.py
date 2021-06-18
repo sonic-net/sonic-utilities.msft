@@ -683,7 +683,6 @@ def _get_sonic_services():
 
 def _reset_failed_services():
     for service in _get_sonic_services():
-        click.echo("Resetting failed status on {}".format(service))
         clicommon.run_command("systemctl reset-failed {}".format(service))
 
 
