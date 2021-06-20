@@ -758,10 +758,20 @@ enable_logrotate() {
 #  None
 ###############################################################################
 collect_mellanox() {
-    local sai_dump_filename="/tmp/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
+    local sai_dump_folder="/tmp/saisdkdump"
+    local sai_dump_filename="${sai_dump_folder}/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
+
+    ${CMD_PREFIX}docker exec -it syncd mkdir -p $sai_dump_folder
     ${CMD_PREFIX}docker exec -it syncd saisdkdump -f $sai_dump_filename
-    ${CMD_PREFIX}docker exec syncd tar Ccf $(dirname $sai_dump_filename) - $(basename $sai_dump_filename) | tar Cxf /tmp/ -
-    save_file $sai_dump_filename sai_sdk_dump true
+
+    copy_from_docker syncd $sai_dump_folder $sai_dump_folder
+    echo "$sai_dump_folder"
+    for file in `ls $sai_dump_folder`; do
+        save_file ${sai_dump_folder}/${file} sai_sdk_dump true 
+    done
+
+    ${CMD_PREFIX}rm -rf $sai_dump_folder
+    ${CMD_PREFIX}docker exec -it syncd rm -rf $sai_dump_folder
 
     local mst_dump_filename="/tmp/mstdump"
     local max_dump_count="3"
