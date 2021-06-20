@@ -43,6 +43,8 @@ log = logger.Logger(SNIFFER_SYSLOG_IDENTIFIER)
 
 # generate sniffer target file name include a time stamp.
 def sniffer_filename_generate(path, filename_prefix, filename_ext):
+    if not os.path.exists(path):
+        os.makedirs(path)
     time_stamp = time.strftime("%Y%m%d%H%M%S")
     filename = path + filename_prefix + time_stamp + filename_ext
     return filename
