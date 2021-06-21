@@ -1487,7 +1487,7 @@ def portchannel(ctx, namespace):
 
 @portchannel.command('add')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
-@click.option('--min-links', default=0, type=int)
+@click.option('--min-links', default=1, type=click.IntRange(1,1024))
 @click.option('--fallback', default='false')
 @click.pass_context
 def add_portchannel(ctx, portchannel_name, min_links, fallback):
