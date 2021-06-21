@@ -266,9 +266,8 @@ def get_vnet_routes_from_asic_db():
         ip_addr = route_attrs[3]
 
         if vrf_oid in vnet_vrfs_oids:
+            vnet_name = vrf_oid_to_vnet_map[vrf_oid]
             if vrf_oid_to_vnet_map[vrf_oid] not in vnet_routes:
-                vnet_name = vrf_oid_to_vnet_map[vrf_oid]
-
                 vnet_routes[vnet_name] = {}
                 vnet_routes[vnet_name]['routes'] = []
                 vnet_routes[vnet_name]['vrf_oid'] = vrf_oid
