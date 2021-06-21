@@ -23,7 +23,7 @@ def get_chassis_info():
     for k in required_keys:
         if chassis_info.get(k, '') in failed_vals:
             if platform_chassis is None:
-                import platform
+                import sonic_platform
                 platform_chassis = sonic_platform.platform.Platform().get_chassis()
             try:
                 chassis_info[k] = getattr(platform_chassis, "get_".format(k))()
