@@ -1502,7 +1502,8 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
         ctx.fail("{} already exists!".format(portchannel_name))
 
     fvs = {'admin_status': 'up',
-           'mtu': '9100'}
+           'mtu': '9100',
+           'lacp_key': 'auto'}
     if min_links != 0:
         fvs['min_links'] = str(min_links)
     if fallback != 'false':

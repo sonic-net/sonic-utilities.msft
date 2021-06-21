@@ -44,7 +44,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_2_0_0'
+        self.CURRENT_VERSION = 'version_2_0_2'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -527,9 +527,24 @@ class DBMigrator():
 
     def version_2_0_1(self):
         """
-        Current latest version. Nothing to do here.
+        Version 2_0_1.
         """
         log.log_info('Handling version_2_0_1')
+        warmreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'WARM_RESTART_ENABLE_TABLE|system', 'enable')
+
+        if warmreboot_state != 'true':
+            portchannel_table = self.configDB.get_table('PORTCHANNEL')
+            for name, data in portchannel_table.items():
+                data['lacp_key'] = 'auto'
+                self.configDB.set_entry('PORTCHANNEL', name, data)
+        self.set_version('version_2_0_2')
+        return 'version_2_0_2'
+
+    def version_2_0_2(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log.log_info('Handling version_2_0_2')
         return None
 
     def get_version(self):
