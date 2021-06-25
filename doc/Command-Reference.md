@@ -883,7 +883,7 @@ This command displays information for all the interfaces for the transceiver req
 
 - Usage:
   ```
-  show interfaces transceiver (eeprom [-d|--dom] | lpmode | presence) [<interface_name>]
+  show interfaces transceiver (eeprom [-d|--dom] | lpmode | presence | error-status [-hw|--fetch-from-hardware]) [<interface_name>]
   ```
 
 - Example (Decode and display information stored on the EEPROM of SFP transceiver connected to Ethernet0):
@@ -937,6 +937,15 @@ This command displays information for all the interfaces for the transceiver req
   -----------  ----------
   Ethernet100  Present
   ```
+
+- Example (Display error status of SFP transceiver connected to Ethernet100):
+  ```
+  admin@sonic:~$ show interfaces transceiver error-status Ethernet100
+  Port         Error Status
+  -----------  --------------
+  Ethernet100  OK
+  ```
+
 Go Back To [Beginning of the document](#) or [Beginning of this section](#basic-show-commands)
 
 ## AAA & TACACS+

@@ -2,8 +2,11 @@ import sys
 import os
 from unittest import mock
 
+from .mock_tables import dbconnector
+
 import pytest
 from click.testing import CliRunner
+from utilities_common.db import Db
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -173,3 +176,16 @@ class TestSfputil(object):
         runner = CliRunner()
         result = runner.invoke(sfputil.cli.commands['version'], [])
         assert result.output.rstrip() == 'sfputil version {}'.format(sfputil.VERSION)
+
+    def test_error_status_from_db(self):
+        db = Db()
+        expected_output = [['Ethernet0', 'Blocking Error|High temperature'],
+                           ['Ethernet4', 'OK'],
+                           ['Ethernet8', 'Unplugged'],
+                           ['Ethernet12', 'Unknown state: 255']]
+        output = sfputil.fetch_error_status_from_state_db(None, db.db)
+        assert output == expected_output
+
+        expected_output_ethernet0 = expected_output[:1]
+        output = sfputil.fetch_error_status_from_state_db('Ethernet0', db.db)
+        assert output == expected_output_ethernet0

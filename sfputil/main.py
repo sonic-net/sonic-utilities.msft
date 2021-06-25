@@ -7,10 +7,14 @@
 
 import os
 import sys
+import natsort
+import ast
 
+import subprocess
 import click
 import sonic_platform
 import sonic_platform_base.sonic_sfp.sfputilhelper
+from swsscommon.swsscommon import SonicV2Connector
 from natsort import natsorted
 from sonic_py_common import device_info, logger, multi_asic
 from tabulate import tabulate
@@ -613,6 +617,136 @@ def presence(port):
             i += 1
 
     click.echo(tabulate(output_table, table_header, tablefmt="simple"))
+
+
+# 'error-status' subcommand
+def fetch_error_status_from_platform_api(port):
+    """Fetch the error status from platform API and return the output as a string
+    Args:
+        port: the port whose error status will be fetched.
+              None represents for all ports.
+    Returns:
+        A string consisting of the error status of each port.
+    """
+    if port is None:
+        logical_port_list = natsort.natsorted(platform_sfputil.logical)
+        # Create a list containing the logical port names of all ports we're interested in
+        generate_sfp_list_code = \
+            "sfp_list = chassis.get_all_sfps()\n"
+    else:
+        physical_port_list = logical_port_name_to_physical_port_list(port)
+        logical_port_list = [port]
+        # Create a list containing the logical port names of all ports we're interested in
+        generate_sfp_list_code = \
+            "sfp_list = [chassis.get_sfp(x) for x in {}]\n".format(physical_port_list)
+
+    # Code to initialize chassis object
+    init_chassis_code = \
+        "import sonic_platform.platform\n" \
+        "platform = sonic_platform.platform.Platform()\n" \
+        "chassis = platform.get_chassis()\n"
+
+    # Code to fetch the error status
+    get_error_status_code = \
+        "try:\n"\
+        "    errors=['{}:{}'.format(sfp.index, sfp.get_error_description()) for sfp in sfp_list]\n" \
+        "except NotImplementedError as e:\n"\
+        "    errors=['{}:{}'.format(sfp.index, 'OK (Not implemented)') for sfp in sfp_list]\n" \
+        "print(errors)\n"
+
+    get_error_status_command = "docker exec pmon python3 -c \"{}{}{}\"".format(
+        init_chassis_code, generate_sfp_list_code, get_error_status_code)
+    # Fetch error status from pmon docker
+    try:
+        output = subprocess.check_output(get_error_status_command, shell=True, universal_newlines=True)
+    except subprocess.CalledProcessError as e:
+        click.Abort("Error! Unable to fetch error status for SPF modules. Error code = {}, error messages: {}".format(e.returncode, e.output))
+        return None
+
+    output_list = output.split('\n')
+    for output_str in output_list:
+        # The output of all SFP error status are a list consisting of element with convention of '<sfp no>:<error status>'
+        # Besides, there can be some logs captured during the platform API executing
+        # So, first of all, we need to skip all the logs until find the output list of SFP error status
+        if output_str[0] == '[' and output_str[-1] == ']':
+            output_list = ast.literal_eval(output_str)
+            break
+
+    output_dict = {}
+    for output in output_list:
+        sfp_index, error_status = output.split(':')
+        output_dict[int(sfp_index)] = error_status
+
+    output = []
+    for logical_port_name in logical_port_list:
+        physical_port_list = logical_port_name_to_physical_port_list(logical_port_name)
+        port_name = get_physical_port_name(logical_port_name, 1, False)
+
+        output.append([port_name, output_dict.get(physical_port_list[0])])
+
+    return output
+
+def fetch_error_status_from_state_db(port, state_db):
+    """Fetch the error status from STATE_DB and return them in a list.
+    Args:
+        port: the port whose error status will be fetched.
+              None represents for all ports.
+    Returns:
+        A list consisting of tuples (port, description) and sorted by port.
+    """
+    status = {}
+    if port:
+        status[port] = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_STATUS|{}'.format(port))
+    else:
+        ports = state_db.keys(state_db.STATE_DB, 'TRANSCEIVER_STATUS|*')
+        for key in ports:
+            status[key.split('|')[1]] = state_db.get_all(state_db.STATE_DB, key)
+
+    sorted_ports = natsort.natsorted(status)
+    output = []
+    for port in sorted_ports:
+        statestring = status[port].get('status')
+        description = status[port].get('error')
+        if statestring == '1':
+            description = 'OK'
+        elif statestring == '0':
+            description = 'Unplugged'
+        elif description == 'N/A':
+            log.log_error("Inconsistent state found for port {}: state is {} but error description is N/A".format(port, statestring))
+            description = 'Unknown state: {}'.format(statestring)
+
+        output.append([port, description])
+
+    return output
+
+@show.command()
+@click.option('-p', '--port', metavar='<port_name>', help="Display SFP error status for port <port_name> only")
+@click.option('-hw', '--fetch-from-hardware', 'fetch_from_hardware', is_flag=True, default=False, help="Fetch the error status from hardware directly")
+def error_status(port, fetch_from_hardware):
+    """Display error status of SFP transceiver(s)"""
+    output_table = []
+    table_header = ["Port", "Error Status"]
+
+    # Create a list containing the logical port names of all ports we're interested in
+    if port and platform_sfputil.is_logical_port(port) == 0:
+        click.echo("Error: invalid port '{}'\n".format(port))
+        click.echo("Valid values for port: {}\n".format(str(platform_sfputil.logical)))
+        sys.exit(ERROR_INVALID_PORT)
+
+    if fetch_from_hardware:
+        output_table = fetch_error_status_from_platform_api(port)
+    else:
+        # Connect to STATE_DB
+        state_db = SonicV2Connector(host='127.0.0.1')
+        if state_db is not None:
+            state_db.connect(state_db.STATE_DB)
+        else:
+            click.echo("Failed to connect to STATE_DB")
+            return
+
+        output_table = fetch_error_status_from_state_db(port, state_db)
+
+    click.echo(tabulate(output_table, table_header, tablefmt='simple'))
 
 
 # 'lpmode' subcommand

@@ -133,6 +133,22 @@
         "txpowerlowalarm": "-10.5012",
         "txpowerlowwarning": "-7.5007"
     },
+    "TRANSCEIVER_STATUS|Ethernet0": {
+        "status": "67",
+        "error": "Blocking Error|High temperature"
+    },
+    "TRANSCEIVER_STATUS|Ethernet4": {
+        "status": "1",
+        "error": "N/A"
+    },
+    "TRANSCEIVER_STATUS|Ethernet8": {
+        "status": "0",
+        "error": "N/A"
+    },
+    "TRANSCEIVER_STATUS|Ethernet12": {
+        "status": "255",
+        "error": "N/A"
+    },
     "CHASSIS_INFO|chassis 1": {
         "psu_num": "2"
     },
