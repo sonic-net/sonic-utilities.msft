@@ -242,7 +242,7 @@ class PfcwdCli(object):
             click.echo("Failed to run command, invalid options:")
             for opt in invalid_ports:
                 click.echo(opt)
-            exit()
+            exit(1)
         self.start_cmd(action, restoration_time, ports, detection_time)
 
 

@@ -255,7 +255,7 @@ class TestPfcwd(object):
             obj=db
         )
         print(result.output)
-        assert result.exit_code == 0
+        assert result.exit_code == 1
         assert result.output == pfcwd_show_start_config_output_fail
 
     @classmethod
@@ -447,7 +447,7 @@ class TestMultiAsicPfcwdShow(object):
             obj=db
         )
         print(result.output)
-        assert result.exit_code == 0
+        assert result.exit_code == 1
         assert result.output == show_pfc_config_start_fail
 
         # get config after the command, config shouldn't change
