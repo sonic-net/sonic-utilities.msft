@@ -779,6 +779,16 @@ collect_mellanox() {
         ${CMD_PREFIX}/usr/bin/mstdump /dev/mst/mt*conf0 > "${mst_dump_filename}${i}"
         save_file "${mst_dump_filename}${i}" mstdump true
     done
+    
+    # Save SDK error dumps
+    local sdk_dump_path=`${CMD_PREFIX}docker exec syncd cat /tmp/sai.profile|grep "SAI_DUMP_STORE_PATH"|cut -d = -f2`
+    if [[ $sdk_dump_path ]]; then
+        copy_from_docker syncd $sdk_dump_path  /tmp/sdk-dumps
+        for file in $(find /tmp/sdk-dumps); do
+            save_file ${file} sai_sdk_dump false
+        done
+        rm -rf /tmp/sdk-dumps
+    fi
 }
 
 ###############################################################################
