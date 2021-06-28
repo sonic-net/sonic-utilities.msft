@@ -49,13 +49,18 @@ def load_platform_pcieutil():
     global platform_path
 
     # Load platform module from source
+    platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
     try:
-        platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
-        from sonic_platform_base.sonic_pcie.pcie_common import PcieUtil
-        platform_pcieutil = PcieUtil(platform_path)
+        from sonic_platform.pcie import Pcie
+        platform_pcieutil = Pcie(platform_path)
     except ImportError as e:
-        log.log_error("Failed to load default PcieUtil module. Error : {}".format(str(e)), True)
-        raise e
+        log.log_warning("Failed to load platform Pcie module. Error : {}, fallback to load Pcie common utility.".format(str(e)), True)
+        try:
+            from sonic_platform_base.sonic_pcie.pcie_common import PcieUtil
+            platform_pcieutil = PcieUtil(platform_path)
+        except ImportError as e:
+            log.log_error("Failed to load default PcieUtil module. Error : {}".format(str(e)), True)
+            raise e
 
 
 # ==================== CLI commands and groups ====================
