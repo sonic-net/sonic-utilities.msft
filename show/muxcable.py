@@ -26,8 +26,6 @@ STATUS_SUCCESSFUL = 0
 VENDOR_NAME = "Credo"
 VENDOR_MODEL_REGEX = re.compile(r"CAC\w{3}321P2P\w{2}MS")
 
-
-#
 # 'muxcable' command ("show muxcable")
 #
 
@@ -129,8 +127,11 @@ def create_json_dump_per_port_config(port_status_dict, per_npu_configdb, asic_id
 @muxcable.command()
 @click.argument('port', required=False, default=None)
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
-def status(port, json_output):
+@clicommon.pass_db
+def status(db, port, json_output):
     """Show muxcable status information"""
+
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     port_table_keys = {}
     port_health_table_keys = {}
@@ -239,8 +240,11 @@ def status(port, json_output):
 @muxcable.command()
 @click.argument('port', required=False, default=None)
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
-def config(port, json_output):
+@clicommon.pass_db
+def config(db, port, json_output):
     """Show muxcable config information"""
+
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     port_mux_tbl_keys = {}
     asic_start_idx = None
@@ -407,8 +411,11 @@ def eyeinfo(port, target):
 
 @muxcable.command()
 @click.argument('port', required=True, default=None)
-def cableinfo(port):
+@clicommon.pass_db
+def cableinfo(db, port):
     """Show muxcable cable information"""
+
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     if platform_sfputil is not None:
         physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
@@ -444,8 +451,11 @@ def hwmode():
 
 @hwmode.command()
 @click.argument('port', metavar='<port_name>', required=False, default=None)
-def muxdirection(port):
+@clicommon.pass_db
+def muxdirection(db, port):
     """Shows the current direction of the muxcable {active/standy}"""
+
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     per_npu_statedb = {}
     transceiver_table_keys = {}
@@ -649,8 +659,10 @@ def muxdirection(port):
 
 @hwmode.command()
 @click.argument('port', metavar='<port_name>', required=False, default=None)
-def switchmode(port):
+def switchmode(db, port):
     """Shows the current switching mode of the muxcable {auto/manual}"""
+
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     per_npu_statedb = {}
     transceiver_dict = {}
@@ -848,8 +860,11 @@ def firmware():
 @firmware.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 @click.option('--active', 'active', required=False, is_flag=True, type=click.BOOL, help="display the firmware version of only active bank within MCU's")
-def version(port, active):
+@clicommon.pass_db
+def version(db, port, active):
     """Show muxcable firmware version"""
+
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     port_table_keys = {}
     y_cable_asic_table_keys = {}
@@ -940,11 +955,15 @@ def version(port, active):
         else:
             click.echo("there is not a valid asic table for this asic_index".format(asic_index))
 
+
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
-def metrics(port, json_output):
+@clicommon.pass_db
+def metrics(db, port, json_output):
     """Show muxcable metrics <port>"""
+
+    port = platform_sfputil_helper.get_interface_alias(port, db)
 
     metrics_table_keys = {}
     per_npu_statedb = {}
@@ -980,7 +999,6 @@ def metrics(port, json_output):
                 asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
                 if asic_index is None:
                     click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
-
 
         metrics_dict[asic_index] = per_npu_statedb[asic_index].get_all(
             per_npu_statedb[asic_index].STATE_DB, 'MUX_METRICS_TABLE|{}'.format(port))

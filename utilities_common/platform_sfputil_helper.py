@@ -1,6 +1,8 @@
 import sys
 
 import click
+
+from . import cli as clicommon
 from sonic_py_common import multi_asic, device_info
 
 platform_sfputil = None
@@ -64,3 +66,17 @@ def get_asic_id_for_logical_port(port):
 def get_physical_to_logical():
 
     return platform_sfputil.physical_to_logical
+
+
+def get_interface_alias(port, db):
+
+    if port is not "all" and port is not None:
+        alias = port
+        iface_alias_converter = clicommon.InterfaceAliasConverter(db)
+        port = iface_alias_converter.alias_to_name(alias)
+        if port is None:
+            click.echo("cannot find port name for alias {}".format(alias))
+            sys.exit(1)
+
+    return port
+
