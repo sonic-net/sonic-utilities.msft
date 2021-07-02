@@ -7,6 +7,7 @@ WARM_DIR=/host/warmboot
 REDIS_FILE=dump.rdb
 REBOOT_SCRIPT_NAME=$(basename $0)
 REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
+SHUTDOWN_ORDER_FILE="/etc/sonic/${REBOOT_TYPE}_order"
 VERBOSE=no
 FORCE=no
 IGNORE_ASIC=no
@@ -567,82 +568,72 @@ if [ -x ${LOG_SSD_HEALTH} ]; then
 fi
 
 
-# Kill nat docker after saving the conntrack table
-debug "Stopping nat ..."
-/usr/local/bin/dump_nat_entries.py
-docker kill nat > /dev/null || true
-systemctl stop nat
-debug "Stopped nat ..."
-
-# Kill radv before stopping BGP service to prevent announcing our departure.
-debug "Stopping radv service..."
-systemctl stop radv
-debug "Stopped radv service..."
-
-# Kill bgpd to start the bgp graceful restart procedure
-debug "Stopping bgp ..."
-systemctl stop bgp
-debug "Stopped  bgp ..."
-
-# Kill sflow docker	
-debug "Stopping sflow ..."	
-container kill sflow &> /dev/null || debug "Docker sflow is not running ($?) ..."
-systemctl stop sflow
-debug "Stopped sflow ..."
-
-# Kill lldp, otherwise it sends informotion about reboot.
-# We call `docker kill lldp` to ensure the container stops as quickly as possible,
-# then immediately call `systemctl stop lldp` to prevent the service from
-# restarting the container automatically.
-container kill lldp &> /dev/null || debug "Docker lldp is not running ($?) ..."
-systemctl stop lldp
-
-if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
-    debug "Stopping teamd ..."
-    systemctl stop teamd
-    debug "Stopped teamd ..."
+if [[ -f ${SHUTDOWN_ORDER_FILE} ]]; then
+    SERVICES_TO_STOP="$(cat ${SHUTDOWN_ORDER_FILE})"
+else
+    # TODO: to be removed once sonic-buildimage change is in
+    if [[ "${REBOOT_TYPE}" == "fast-reboot" ]]; then
+        SERVICES_TO_STOP="nat radv bgp sflow lldp swss teamd syncd"
+    elif [[ "${REBOOT_TYPE}" == "fastfast-reboot" || "${REBOOT_TYPE}" == "warm-reboot" ]]; then
+        SERVICES_TO_STOP="nat radv bgp sflow lldp teamd swss syncd"
+    else
+        error "Unexpected reboot type ${REBOOT_TYPE}"
+        exit $EXIT_FAILURE
+    fi
 fi
 
-debug "Stopping swss service ..."
-systemctl stop swss
-debug "Stopped swss service ..."
+for service in ${SERVICES_TO_STOP}; do
+    debug "Stopping ${service} ..."
 
-if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
-    # Pre-shutdown syncd
-    initialize_pre_shutdown
+    # TODO: These exceptions for nat, sflow, lldp
+    # have to be coded in corresponding service scripts
 
-    if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
-        check_issu_bank_file
+    if [[ "${service}" = "nat" ]]; then
+        /usr/local/bin/dump_nat_entries.py
     fi
 
-    request_pre_shutdown
-
-    wait_for_pre_shutdown_complete_or_fail
-
-    if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
-        check_issu_bank_file
+    if [[ "${service}" = "nat" || "${service}" = "sflow" || "${service}" = "lldp" ]]; then
+        container kill "${service}"  &> /dev/null || debug "Docker ${service} is not running ($?) ..."
     fi
 
-    # Warm reboot: dump state to host disk
-    if [[ "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
-        sonic-db-cli ASIC_DB FLUSHDB > /dev/null
-        sonic-db-cli COUNTERS_DB FLUSHDB > /dev/null
-        sonic-db-cli FLEX_COUNTER_DB FLUSHDB > /dev/null
+    if [[ "${service}" = "syncd" ]]; then
+        systemctl stop ${service} || debug "Ignore stopping ${service} service error $?"
+    else
+        systemctl stop ${service}
     fi
 
-    # TODO: backup_database preserves FDB_TABLE
-    # need to cleanup as well for fastfast boot case
-    backup_database
+    debug "Stopped ${service}"
 
-    # Stop teamd gracefully
-    debug "Stopping teamd ..."
-    systemctl stop teamd
-    debug "Stopped  teamd ..."
-fi
+    if [[ "${service}" = "swss" ]]; then
+        if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+            # Pre-shutdown syncd
+            initialize_pre_shutdown
 
-debug "Stopping syncd ..."
-systemctl stop syncd || debug "Ignore stopping syncd service error $?"
-debug "Stopped  syncd ..."
+            if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
+                check_issu_bank_file
+            fi
+
+            request_pre_shutdown
+
+            wait_for_pre_shutdown_complete_or_fail
+
+            if [[ "x$sonic_asic_type" == x"mellanox" ]]; then
+                check_issu_bank_file
+            fi
+
+            # Warm reboot: dump state to host disk
+            if [[ "$REBOOT_TYPE" = "fastfast-reboot" ]]; then
+                sonic-db-cli ASIC_DB FLUSHDB > /dev/null
+                sonic-db-cli COUNTERS_DB FLUSHDB > /dev/null
+                sonic-db-cli FLEX_COUNTER_DB FLUSHDB > /dev/null
+            fi
+
+            # TODO: backup_database preserves FDB_TABLE
+            # need to cleanup as well for fastfast boot case
+            backup_database
+        fi
+    fi
+done
 
 # Kill other containers to make the reboot faster
 # We call `docker kill ...` to ensure the container stops as quickly as possible,

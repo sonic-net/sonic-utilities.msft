@@ -28,26 +28,57 @@ def manifest():
             'dependent-of': ['swss'],
             'asic-service': False,
             'host-service': True,
+            'warm-shutdown': {
+                'before': ['syncd'],
+                'after': ['swss'],
+            },
+            'fast-shutdown': {
+                'before': ['swss'],
+            },
         },
         'container': {
             'privileged': True,
             'volumes': [
                 '/etc/sonic:/etc/sonic:ro'
             ]
-        }
+        },
+        'processes': [
+            {
+                'name': 'test-process',
+                'reconciles': True,
+            },
+            {
+                'name': 'test-process-2',
+                'reconciles': False,
+            },
+            {
+                'name': 'test-process-3',
+                'reconciles': True,
+            },
+        ]
     })
 
 
-def test_service_creator(sonic_fs, manifest, mock_feature_registry, mock_sonic_db):
+def test_service_creator(sonic_fs, manifest, package_manager, mock_feature_registry, mock_sonic_db):
     creator = ServiceCreator(mock_feature_registry, mock_sonic_db)
     entry = PackageEntry('test', 'azure/sonic-test')
     package = Package(entry, Metadata(manifest))
+    installed_packages = package_manager._get_installed_packages_and(package)
     creator.create(package)
+    creator.generate_shutdown_sequence_files(installed_packages)
 
     assert sonic_fs.exists(os.path.join(ETC_SONIC_PATH, 'swss_dependent'))
     assert sonic_fs.exists(os.path.join(DOCKER_CTL_SCRIPT_LOCATION, 'test.sh'))
     assert sonic_fs.exists(os.path.join(SERVICE_MGMT_SCRIPT_LOCATION, 'test.sh'))
     assert sonic_fs.exists(os.path.join(SYSTEMD_LOCATION, 'test.service'))
+
+    def read_file(name):
+        with open(os.path.join(ETC_SONIC_PATH, name)) as file:
+            return file.read()
+
+    assert read_file('warm-reboot_order') == 'swss teamd test syncd'
+    assert read_file('fast-reboot_order') == 'teamd test swss syncd'
+    assert read_file('test_reconcile') == 'test-process test-process-3'
 
 
 def test_service_creator_with_timer_unit(sonic_fs, manifest, mock_feature_registry, mock_sonic_db):

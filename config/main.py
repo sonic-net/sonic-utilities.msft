@@ -2087,20 +2087,28 @@ def warm_restart(ctx, redis_unix_socket_path):
     ctx.obj = {'db': config_db, 'state_db': state_db, 'prefix': prefix}
 
 @warm_restart.command('enable')
-@click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss", "bgp", "teamd"]))
+@click.argument('module', metavar='<module>', default='system', required=False)
 @click.pass_context
 def warm_restart_enable(ctx, module):
     state_db = ctx.obj['state_db']
+    config_db = ctx.obj['db']
+    feature_table = config_db.get_table('FEATURE')
+    if module != 'system' and module not in feature_table:
+        exit('Feature {} is unknown'.format(module))
     prefix = ctx.obj['prefix']
     _hash = '{}{}'.format(prefix, module)
     state_db.set(state_db.STATE_DB, _hash, 'enable', 'true')
     state_db.close(state_db.STATE_DB)
 
 @warm_restart.command('disable')
-@click.argument('module', metavar='<module>', default='system', required=False, type=click.Choice(["system", "swss", "bgp", "teamd"]))
+@click.argument('module', metavar='<module>', default='system', required=False)
 @click.pass_context
 def warm_restart_enable(ctx, module):
     state_db = ctx.obj['state_db']
+    config_db = ctx.obj['db']
+    feature_table = config_db.get_table('FEATURE')
+    if module != 'system' and module not in feature_table:
+        exit('Feature {} is unknown'.format(module))
     prefix = ctx.obj['prefix']
     _hash = '{}{}'.format(prefix, module)
     state_db.set(state_db.STATE_DB, _hash, 'enable', 'false')

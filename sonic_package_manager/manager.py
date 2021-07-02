@@ -6,7 +6,7 @@ import os
 import pkgutil
 import tempfile
 from inspect import signature
-from typing import Any, Iterable, Callable, Dict, Optional
+from typing import Any, Iterable, List, Callable, Dict, Optional
 
 import docker
 import filelock
@@ -375,6 +375,14 @@ class PackageManager:
                 self.service_creator.create(package, state=feature_state, owner=default_owner)
                 exits.callback(rollback(self.service_creator.remove, package))
 
+                self.service_creator.generate_shutdown_sequence_files(
+                    self._get_installed_packages_and(package)
+                )
+                exits.callback(rollback(
+                    self.service_creator.generate_shutdown_sequence_files,
+                    self.get_installed_packages())
+                )
+
                 if not skip_host_plugins:
                     self._install_cli_plugins(package)
                     exits.callback(rollback(self._uninstall_cli_plugins, package))
@@ -429,6 +437,9 @@ class PackageManager:
         try:
             self._uninstall_cli_plugins(package)
             self.service_creator.remove(package)
+            self.service_creator.generate_shutdown_sequence_files(
+                self._get_installed_packages_except(package)
+            )
 
             # Clean containers based on this image
             containers = self.docker.ps(filters={'ancestor': package.image_id},
@@ -525,8 +536,8 @@ class PackageManager:
                                             old_package, 'start'))
 
                 self.service_creator.remove(old_package, deregister_feature=False)
-                exits.callback(rollback(self.service_creator.create,
-                                        old_package, register_feature=False))
+                exits.callback(rollback(self.service_creator.create, old_package,
+                                        register_feature=False))
 
                 # Clean containers based on the old image
                 containers = self.docker.ps(filters={'ancestor': old_package.image_id},
@@ -537,6 +548,14 @@ class PackageManager:
                 self.service_creator.create(new_package, register_feature=False)
                 exits.callback(rollback(self.service_creator.remove, new_package,
                                         register_feature=False))
+
+                self.service_creator.generate_shutdown_sequence_files(
+                    self._get_installed_packages_and(new_package)
+                )
+                exits.callback(rollback(
+                    self.service_creator.generate_shutdown_sequence_files,
+                    self._get_installed_packages_and(old_package))
+                )
 
                 if self.feature_registry.is_feature_enabled(new_feature):
                     self._systemctl_action(new_package, 'start')
@@ -818,9 +837,18 @@ class PackageManager:
         """
 
         return {
-            entry.name: self.get_installed_package(entry.name)
-            for entry in self.database if entry.installed
+            entry.name: entry for entry in self.get_installed_packages_list()
         }
+
+    def get_installed_packages_list(self) -> List[Package]:
+        """ Returns a list of installed packages.
+
+        Returns:
+            Installed packages dictionary.
+        """
+
+        return [self.get_installed_package(entry.name) 
+                for entry in self.database if entry.installed]
 
     def _migrate_package_database(self, old_package_database: PackageDatabase):
         """ Performs part of package migration process.

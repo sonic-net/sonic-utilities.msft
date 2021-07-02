@@ -92,8 +92,10 @@ class ManifestSchema:
 
         def marshal(self, value: Optional[dict]):
             result = {}
-            if value is None:
-                value = {}
+            value = value or {}
+
+            if not isinstance(value, dict):
+                raise ManifestError(f'"{self.key}" field has to be a dictionary')
 
             for item in self.items:
                 next_value = value.get(item.key)
@@ -115,7 +117,7 @@ class ManifestSchema:
             if value is None:
                 if self.default is not None:
                     return self.default
-                raise ManifestError(f'{self.key} is a required field but it is missing')
+                raise ManifestError(f'"{self.key}" is a required field but it is missing')
             try:
                 return_value = self.type.marshal(value)
             except Exception as err:
@@ -130,10 +132,12 @@ class ManifestSchema:
         type: Any
 
         def marshal(self, value):
-            if value is None:
-                return []
-
             return_value = []
+            value = value or []
+
+            if not isinstance(value, list):
+                raise ManifestError(f'"{self.key}" has to be of type list')
+
             try:
                 for item in value:
                     return_value.append(self.type.marshal(item))
@@ -173,6 +177,14 @@ class ManifestSchema:
             ManifestField('asic-service', DefaultMarshaller(bool), False),
             ManifestField('host-service', DefaultMarshaller(bool), True),
             ManifestField('delayed', DefaultMarshaller(bool), False),
+            ManifestRoot('warm-shutdown', [
+                ManifestArray('after', DefaultMarshaller(str)),
+                ManifestArray('before', DefaultMarshaller(str)),
+            ]),
+            ManifestRoot('fast-shutdown', [
+                ManifestArray('after', DefaultMarshaller(str)),
+                ManifestArray('before', DefaultMarshaller(str)),
+            ]),
         ]),
         ManifestRoot('container', [
             ManifestField('privileged', DefaultMarshaller(bool), False),
@@ -187,6 +199,7 @@ class ManifestSchema:
         ]),
         ManifestArray('processes', ManifestRoot('processes', [
             ManifestField('name', DefaultMarshaller(str)),
+            ManifestField('reconciles', DefaultMarshaller(bool), False),
         ])),
         ManifestRoot('cli', [
             ManifestField('mandatory', DefaultMarshaller(bool), False),
