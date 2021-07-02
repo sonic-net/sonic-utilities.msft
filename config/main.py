@@ -1253,6 +1253,11 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
     if multi_asic.is_multi_asic():
         num_cfg_file += num_asic
 
+    # Remove cached PG drop counters data
+    dropstat_dir_prefix = '/tmp/dropstat'
+    command = "rm -rf {}-*".format(dropstat_dir_prefix)
+    clicommon.run_command(command, display_cmd=True)
+
     # If the user give the filename[s], extract the file names.
     if filename is not None:
         cfg_files = filename.split(',')

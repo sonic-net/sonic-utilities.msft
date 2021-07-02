@@ -3,6 +3,7 @@ import sys
 
 import show.main as show
 import clear.main as clear
+import config.main as config
 
 from click.testing import CliRunner
 
@@ -61,6 +62,20 @@ class TestPgDropstat(object):
 
         assert result.exit_code == 0
         assert result.output == show_output
+
+    def test_show_pg_drop_config_reload(self):
+        runner = CliRunner()
+        self.test_show_pg_drop_clear()
+
+        # simulate 'config reload' to provoke counters recalculation (remove  backup from /tmp folder)
+        result = runner.invoke(config.config.commands["reload"], [ "--no_service_restart",  "-y"])
+
+        print(result.exit_code)
+        print(result.output)
+
+        assert result.exit_code == 0
+
+        self.test_show_pg_drop_show()
 
     @classmethod
     def teardown_class(cls):
