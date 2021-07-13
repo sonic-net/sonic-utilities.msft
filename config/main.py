@@ -3950,6 +3950,56 @@ def reset(ctx, interface_name):
     clicommon.run_command(cmd)
 
 #
+# 'mpls' subgroup ('config interface mpls ...')
+#
+
+@interface.group(cls=clicommon.AbbreviationGroup)
+@click.pass_context
+def mpls(ctx):
+    """Add or remove MPLS"""
+    pass
+
+#
+# 'add' subcommand
+#
+
+@mpls.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.pass_context
+def add(ctx, interface_name):
+    """Add MPLS operation on the interface"""
+    config_db = ctx.obj["config_db"]
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    table_name = get_interface_table_name(interface_name)
+    if table_name == "":
+        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan]")
+    config_db.set_entry(table_name, interface_name, {"mpls": "enable"})
+
+#
+# 'del' subcommand
+#
+
+@mpls.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.pass_context
+def remove(ctx, interface_name):
+    """Remove MPLS operation from the interface"""
+    config_db = ctx.obj["config_db"]
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    table_name = get_interface_table_name(interface_name)
+    if table_name == "":
+        ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan]")
+    config_db.set_entry(table_name, interface_name, {"mpls": "disable"})
+
+#
 # 'vrf' subgroup ('config interface vrf ...')
 #
 

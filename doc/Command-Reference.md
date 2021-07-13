@@ -3095,6 +3095,7 @@ Subsequent pages explain each of these commands in detail.
   breakout     Show Breakout Mode information by interfaces
   counters     Show interface counters
   description  Show interface status, protocol and...
+  mpls         Show Interface MPLS status
   naming_mode  Show interface naming_mode status
   neighbor     Show neighbor related information
   portchannel  Show PortChannel information
@@ -3334,6 +3335,36 @@ This command displays the key fields of the interfaces such as Operational Statu
   Ethernet4    down       up  hundredGigE1/2  T0-2:hundredGigE1/30
   ```
 
+**show interfaces mpls**
+
+This command is used to display the configured MPLS state for the list of configured interfaces.
+
+- Usage:
+  ```
+  show interfaces mpls [<interface_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show interfaces mpls
+  Interface    MPLS State
+  -----------  ------------
+  Ethernet0    disable
+  Ethernet4    enable
+  Ethernet8    enable
+  Ethernet12   disable
+  Ethernet16   disable
+  Ethernet20   disable
+  ```
+
+- Example (to only display the MPLS state for interface Ethernet4):
+  ```
+  admin@sonic:~$ show interfaces mpls Ethernet4
+  Interface    MPLS State
+  -----------  ------------
+  Ethernet4    enable
+  ```
+
 **show interfaces tpid**
 
 This command displays the key fields of the interfaces such as Operational Status, Administrative Status, Alias and TPID.
@@ -3479,6 +3510,7 @@ This sub-section explains the following list of configuration on the interfaces.
 8) advertised-speeds - to set interface advertised speeds
 9) advertised-types - to set interface advertised types
 10) type - to set interface type
+11) mpls - To add or remove MPLS operation for the interface
 
 From 201904 release onwards, the “config interface” command syntax is changed and the format is as follows:
 
@@ -3948,6 +3980,51 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#interf
 This command is used to configure a static buffer profile on a port's lossless priorities. There shouldn't be any `lossless_pg` configured on the port when configuring `headroom_override`. The port's headroom won't be updated after `headroom_override` has been configured on the port.
 
 For details please refer [dynamic buffer management](#dynamic-buffer-management)
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
+
+**config interface mpls add <interface_name> (Versions >= 202106)**
+
+This command is used for adding MPLS operation on the interface.
+MPLS operation for either physical, portchannel, or VLAN interface can be configured using this command.
+
+
+- Usage:
+  ```
+  sudo config interface mpls add --help
+  Usage: config interface mpls add [OPTIONS] <interface_name>
+
+    Add MPLS operation on the interface
+
+  Options:
+    -?, -h, --help  Show this message and exit.
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config interface mpls add Ethernet4
+  ```
+
+**config interface mpls remove <interface_name> (Versions >= 202106)**
+
+This command is used for removing MPLS operation on the interface.
+MPLS operation for either physical, portchannel, or VLAN interface can be configured using this command.
+
+- Usage:
+  ```
+  sudo config interface mpls remove --help
+  Usage: config interface mpls remove [OPTIONS] <interface_name>
+
+    Remove MPLS operation from the interface
+
+  Options:
+    -?, -h, --help  Show this message and exit.
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config interface mpls remove Ethernet4
+  ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 

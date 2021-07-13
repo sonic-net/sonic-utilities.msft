@@ -1567,7 +1567,13 @@
         "dnat_entry_low_threshold": "70",
         "ipmc_entry_threshold_type": "percentage",
         "ipmc_entry_high_threshold": "85",
-        "ipmc_entry_low_threshold": "70"
+        "ipmc_entry_low_threshold": "70",
+        "mpls_inseg_threshold_type": "percentage",
+        "mpls_inseg_high_threshold": "85",
+        "mpls_inseg_low_threshold": "70",
+        "mpls_nexthop_threshold_type": "percentage",
+        "mpls_nexthop_high_threshold": "85",
+        "mpls_nexthop_low_threshold": "70"
     },
     "CHASSIS_MODULE|LINE-CARD1": {
         "admin_status": "down"

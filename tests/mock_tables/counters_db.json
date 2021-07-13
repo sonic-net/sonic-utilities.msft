@@ -1828,7 +1828,11 @@
         "crm_stats_snat_entry_used":"0",
         "crm_stats_snat_entry_available":"1024",
         "crm_stats_dnat_entry_used":"0",
-        "crm_stats_dnat_entry_available":"1024"
+        "crm_stats_dnat_entry_available":"1024",
+        "crm_stats_mpls_inseg_used":"0",
+        "crm_stats_mpls_inseg_available":"1024",
+        "crm_stats_mpls_nexthop_used":"0",
+        "crm_stats_mpls_nexthop_available":"1024"
     },
     "CRM:ACL_STATS:EGRESS:PORT":{
         "crm_stats_acl_table_used":"0",

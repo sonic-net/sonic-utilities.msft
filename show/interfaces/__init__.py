@@ -9,7 +9,7 @@ from natsort import natsorted
 from tabulate import tabulate
 from sonic_py_common import multi_asic
 from sonic_py_common import device_info
-from swsscommon.swsscommon import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector, SonicV2Connector
 from portconfig import get_child_ports
 import sonic_platform_base.sonic_sfp.sfputilhelper
 
@@ -318,6 +318,50 @@ def expected(db, interfacename):
                              neighbor_metadata_dict[device]['type']])
             except KeyError:
                 pass
+
+    click.echo(tabulate(body, header))
+
+# 'mpls' subcommand ("show interfaces mpls")
+@interfaces.command()
+@click.argument('interfacename', required=False)
+@click.pass_context
+def mpls(ctx, interfacename):
+    """Show Interface MPLS status"""
+
+    appl_db = SonicV2Connector()
+    appl_db.connect(appl_db.APPL_DB)
+
+    if interfacename is not None:
+        interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+
+    # Fetching data from appl_db for intfs
+    keys = appl_db.keys(appl_db.APPL_DB, "INTF_TABLE:*")
+    intfs_data = {}
+    for key in keys if keys else []:
+        tokens = key.split(":")
+        # Skip INTF_TABLE entries with address information
+        if len(tokens) != 2:
+            continue
+
+        if (interfacename is not None) and (interfacename != tokens[1]):
+            continue
+
+        mpls = appl_db.get(appl_db.APPL_DB, key, 'mpls')
+        if mpls is None or mpls == '':
+            intfs_data.update({tokens[1]: 'disable'})
+        else:
+            intfs_data.update({tokens[1]: mpls})
+
+    header = ['Interface', 'MPLS State']
+    body = []
+
+    # Output name and alias for all interfaces
+    for intf_name in natsorted(list(intfs_data.keys())):
+        if clicommon.get_interface_naming_mode() == "alias":
+            alias = clicommon.InterfaceAliasConverter().name_to_alias(intf_name)
+            body.append([alias, intfs_data[intf_name]])
+        else:
+            body.append([intf_name, intfs_data[intf_name]])
 
     click.echo(tabulate(body, header))
 
