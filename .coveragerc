@@ -1,29 +1,6 @@
 [run]
 branch = True
-source =
-    acl_loader
-    clear
-    config
-    connect
-    consutil
-    counterpoll
-    crm
-    debug
-    fdbutil
-    fwutil
-    pcieutil
-    pddf_fanutil
-    pddf_ledutil
-    pddf_psuutil
-    pddf_thermalutil
-    pfc
-    pfcwd
-    psuutil
-    scripts
-    sfputil
-    show
-    sonic_installer
-    ssdutil
-    undebug
-    utilities_common
-    watchdogutil
+source = .
+omit =
+    .eggs/*
+    tests/*
