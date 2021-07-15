@@ -804,21 +804,26 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 
     return True
 
-def validate_ip_mask(ctx, ip_addr):
+def is_valid_ip_interface(ctx, ip_addr):
     split_ip_mask = ip_addr.split("/")
+    if len(split_ip_mask) < 2:
+        return False
+
     # Check if the IP address is correct or if there are leading zeros.
     ip_obj = ipaddress.ip_address(split_ip_mask[0])
 
+    if isinstance(ip_obj, ipaddress.IPv4Address):
+        # Since the IP address is used as a part of a key in Redis DB,
+        # do not tolerate extra zeros in IPv4.
+        if str(ip_obj) != split_ip_mask[0]:
+            return False
+
     # Check if the mask is correct
-    mask_range = 33 if isinstance(ip_obj, ipaddress.IPv4Address) else 129
-    # If mask is not specified
-    if len(split_ip_mask) < 2:
-        return 0
+    net = ipaddress.ip_network(ip_addr, strict=False)
+    if str(net.prefixlen) != split_ip_mask[1] or net.prefixlen == 0:
+        return False
 
-    if not int(split_ip_mask[1]) in range(1, mask_range):
-        return 0
-
-    return str(ip_obj) + '/' + str(int(split_ip_mask[1]))
+    return True
 
 def cli_sroute_to_config(ctx, command_str, strict_nh = True):
     if len(command_str) < 2 or len(command_str) > 9:
@@ -3587,10 +3592,9 @@ def add(ctx, interface_name, ip_addr, gw):
     try:
         net = ipaddress.ip_network(ip_addr, strict=False)
         if '/' not in ip_addr:
-            ip_addr = str(net)
+            ip_addr += '/' + str(net.prefixlen)
 
-        ip_addr = validate_ip_mask(ctx, ip_addr)
-        if not ip_addr:
+        if not is_valid_ip_interface(ctx, ip_addr):
             raise ValueError('')
 
         if interface_name == 'eth0':
@@ -3652,10 +3656,9 @@ def remove(ctx, interface_name, ip_addr):
     try:
         net = ipaddress.ip_network(ip_addr, strict=False)
         if '/' not in ip_addr:
-            ip_addr = str(net)
-        
-        ip_addr = validate_ip_mask(ctx, ip_addr)
-        if not ip_addr:
+            ip_addr += '/' + str(net.prefixlen)
+
+        if not is_valid_ip_interface(ctx, ip_addr):
             raise ValueError('')
 
         if interface_name == 'eth0':
