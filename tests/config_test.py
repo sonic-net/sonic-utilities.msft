@@ -37,7 +37,6 @@ def mock_run_command_side_effect(*args, **kwargs):
     if kwargs.get('return_cmd'):
         return ''
 
-
 class TestLoadMinigraph(object):
     @classmethod
     def setup_class(cls):
@@ -57,6 +56,58 @@ class TestLoadMinigraph(object):
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
             assert mock_run_command.call_count == 7
+
+    def test_load_minigraph_with_port_config_bad_format(self, setup_single_broadcom_asic):
+        with mock.patch(
+            "utilities_common.cli.run_command",
+            mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+
+            # Not in an array
+            port_config = {"PORT": {"Ethernet0": {"admin_status": "up"}}}
+            self.check_port_config(None, port_config, "Failed to load port_config.json, Error: Bad format: port_config is not an array")
+
+            # No PORT table
+            port_config = [{}]
+            self.check_port_config(None, port_config, "Failed to load port_config.json, Error: Bad format: PORT table not exists")
+
+    def test_load_minigraph_with_port_config_inconsistent_port(self, setup_single_broadcom_asic):
+        with mock.patch(
+            "utilities_common.cli.run_command",
+            mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            db = Db()
+            db.cfgdb.set_entry("PORT", "Ethernet1", {"admin_status": "up"})
+            port_config = [{"PORT": {"Eth1": {"admin_status": "up"}}}]
+            self.check_port_config(db, port_config, "Failed to load port_config.json, Error: Port Eth1 is not defined in current device")
+
+    def test_load_minigraph_with_port_config(self, setup_single_broadcom_asic):
+        with mock.patch(
+            "utilities_common.cli.run_command",
+            mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            db = Db()
+
+            # From up to down
+            db.cfgdb.set_entry("PORT", "Ethernet0", {"admin_status": "up"})
+            port_config = [{"PORT": {"Ethernet0": {"admin_status": "down"}}}]
+            self.check_port_config(db, port_config, "config interface shutdown Ethernet0")
+
+            # From down to up
+            db.cfgdb.set_entry("PORT", "Ethernet0", {"admin_status": "down"})
+            port_config = [{"PORT": {"Ethernet0": {"admin_status": "up"}}}]
+            self.check_port_config(db, port_config, "config interface startup Ethernet0")
+
+    def check_port_config(self, db, port_config, expected_output):
+        def read_json_file_side_effect(filename):
+            return port_config
+        with mock.patch('config.main.read_json_file', mock.MagicMock(side_effect=read_json_file_side_effect)):
+            def is_file_side_effect(filename):
+                return True
+            with mock.patch('os.path.isfile', mock.MagicMock(side_effect=is_file_side_effect)):
+                runner = CliRunner()
+                result = runner.invoke(config.config.commands["load_minigraph"], ["-y"], obj=db)
+                print(result.exit_code)
+                print(result.output)
+                assert result.exit_code == 0
+                assert expected_output in result.output
 
     @classmethod
     def teardown_class(cls):

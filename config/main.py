@@ -1441,6 +1441,12 @@ def load_minigraph(db, no_service_restart):
     if os.path.isfile('/etc/sonic/acl.json'):
         clicommon.run_command("acl-loader update full /etc/sonic/acl.json", display_cmd=True)
 
+    # Load port_config.json
+    try:
+        load_port_config(db.cfgdb, '/etc/sonic/port_config.json')
+    except Exception as e:
+        click.secho("Failed to load port_config.json, Error: {}".format(str(e)), fg='magenta')
+
     # generate QoS and Buffer configs
     clicommon.run_command("config qos reload --no-dynamic-buffer", display_cmd=True)
 
@@ -1463,6 +1469,44 @@ def load_minigraph(db, no_service_restart):
         _restart_services()
     click.echo("Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.")
 
+def load_port_config(config_db, port_config_path):
+    if not os.path.isfile(port_config_path):
+        return
+
+    try:
+        # Load port_config.json
+        port_config_input = read_json_file(port_config_path)
+    except Exception:
+        raise Exception("Bad format: json file broken")
+
+    # Validate if the input is an array
+    if not isinstance(port_config_input, list):
+        raise Exception("Bad format: port_config is not an array")
+    
+    if len(port_config_input) == 0 or 'PORT' not in port_config_input[0]:
+        raise Exception("Bad format: PORT table not exists")
+        
+    port_config = port_config_input[0]['PORT']
+
+    # Ensure all ports are exist
+    port_table = {}
+    for port_name in port_config.keys():
+        port_entry = config_db.get_entry('PORT', port_name)
+        if not port_entry:
+            raise Exception("Port {} is not defined in current device".format(port_name))
+        port_table[port_name] = port_entry
+
+    # Update port state
+    for port_name in port_config.keys():
+        if 'admin_status' not in port_config[port_name]:
+            continue
+        if 'admin_status' in port_table[port_name]:
+            if port_table[port_name]['admin_status'] == port_config[port_name]['admin_status']:
+                continue
+            clicommon.run_command('config interface {} {}'.format(
+                'startup' if port_config[port_name]['admin_status'] == 'up' else 'shutdown',
+                port_name), display_cmd=True)
+    return
 
 #
 # 'hostname' command
