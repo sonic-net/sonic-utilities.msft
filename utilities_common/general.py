@@ -2,6 +2,9 @@ import importlib.machinery
 import importlib.util
 import sys
 
+from sonic_py_common.multi_asic import is_multi_asic
+from swsscommon import swsscommon
+
 def load_module_from_source(module_name, file_path):
     """
     This function will load the Python source file specified by <file_path>
@@ -15,3 +18,16 @@ def load_module_from_source(module_name, file_path):
     sys.modules[module_name] = module
 
     return module
+
+def load_db_config():
+    '''
+    Load the correct database config file:
+     - database_global.json for multi asic
+     - database_config.json for single asic
+    '''
+    if is_multi_asic():
+        if not swsscommon.SonicDBConfig.isGlobalInit():
+            swsscommon.SonicDBConfig.load_sonic_global_db_config()
+    else:
+        if not swsscommon.SonicDBConfig.isInit():
+            swsscommon.SonicDBConfig.load_sonic_db_config()

@@ -11,6 +11,7 @@ import json
 from natsort import natsorted
 from sonic_py_common import multi_asic
 from utilities_common.db import Db
+from utilities_common.general import load_db_config
 
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
@@ -118,6 +119,8 @@ class InterfaceAliasConverter(object):
 
     def __init__(self, db=None):
 
+        # Load database config files
+        load_db_config()
         if db is None:
             self.port_dict = multi_asic.get_port_table()
         else:

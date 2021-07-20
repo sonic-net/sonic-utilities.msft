@@ -9,9 +9,9 @@ import openconfig_acl
 import tabulate
 import pyangbind.lib.pybindJSON as pybindJSON
 from natsort import natsorted
-from sonic_py_common import device_info, multi_asic
-from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
-
+from sonic_py_common import multi_asic
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+from utilities_common.general import load_db_config
 
 def info(msg):
     click.echo(click.style("Info: ", fg='cyan') + click.style(str(msg), fg='green'))
@@ -116,11 +116,8 @@ class AclLoader(object):
         self.rules_db_info = {}
         self.rules_info = {}
 
-        if multi_asic.is_multi_asic():
-            # Load global db config
-            SonicDBConfig.load_sonic_global_db_config()
-        else:
-            SonicDBConfig.initialize()
+        # Load database config files
+        load_db_config()
 
         self.sessions_db_info = {}
         self.configdb = ConfigDBConnector()
@@ -146,7 +143,7 @@ class AclLoader(object):
 
         # Getting all front asic namespace and correspding config and state DB connector
 
-        namespaces = device_info.get_all_namespaces()
+        namespaces = multi_asic.get_all_namespaces()
         for front_asic_namespaces in namespaces['front_ns']:
             self.per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
             self.per_npu_configdb[front_asic_namespaces].connect()

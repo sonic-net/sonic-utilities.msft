@@ -25,8 +25,9 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
-from sonic_py_common import device_info, multi_asic
-from swsscommon.swsscommon import ConfigDBConnector, SonicDBConfig
+from sonic_py_common import device_info
+from swsscommon.swsscommon import ConfigDBConnector
+from utilities_common.general import load_db_config
 from tabulate import tabulate
 
 BACKEND_ASIC_INTERFACE_NAME_PREFIX = 'Ethernet-BP'
@@ -48,10 +49,8 @@ class Lldpshow(object):
         # if further capability type is supported like WLAN, can just add the tag definition here
         self.ctags = {'Router': 'R', 'Bridge': 'B'}
 
-        if multi_asic.is_multi_asic():
-            SonicDBConfig.load_sonic_global_db_config()
-        else:
-            SonicDBConfig.initialize()
+        # Load database config files
+        load_db_config()
 
         # For multi-asic platforms we will get only front-panel interface to display
         namespaces = device_info.get_all_namespaces()

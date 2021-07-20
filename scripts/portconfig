@@ -37,7 +37,8 @@ try:
 except KeyError:
     pass
 
-from swsscommon.swsscommon import ConfigDBConnector, SonicDBConfig, SonicV2Connector
+from swsscommon.swsscommon import ConfigDBConnector, SonicV2Connector
+from utilities_common.general import load_db_config
 
 # APPL_DB constants
 PORT_TABLE_NAME = "PORT"
@@ -246,11 +247,8 @@ def main():
                         help = 'port advertised interface types', default=None)
     args = parser.parse_args()
 
-    if args.namespace is not None:
-        SonicDBConfig.load_sonic_global_db_config(namespace=args.namespace)
-    else:
-        SonicDBConfig.initialize()
-
+    # Load database config files
+    load_db_config()
     try:
         port = portconfig(args.verbose, args.port, args.namespace)
         if args.list:

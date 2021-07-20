@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 import click
-from swsscommon.swsscommon import ConfigDBConnector, SonicDBConfig
+from swsscommon.swsscommon import ConfigDBConnector
 from tabulate import tabulate
-from utilities_common import multi_asic as multi_asic_util
-from sonic_py_common import multi_asic
 
+from sonic_py_common import multi_asic
+from utilities_common.general import load_db_config
+from utilities_common import multi_asic as multi_asic_util
 class Crm:
     def __init__(self, db=None):
         self.cli_mode = None
@@ -213,13 +214,8 @@ def cli(ctx):
     # Use the db object if given as input.
     db = None if ctx.obj is None else ctx.obj.cfgdb
 
-    # Note: SonicDBConfig may be already initialized in unit test, then skip
-    if not SonicDBConfig.isInit():
-        if multi_asic.is_multi_asic():
-            # Load the global config file database_global.json once.
-            SonicDBConfig.load_sonic_global_db_config()
-        else:
-            SonicDBConfig.initialize()
+    # Load database config files
+    load_db_config()
 
     context = {
         "crm": Crm(db)

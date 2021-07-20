@@ -22,11 +22,13 @@ from socket import AF_INET, AF_INET6
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name
 from utilities_common import util_base
-from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 from utilities_common import bgp_util
 import utilities_common.cli as clicommon
+from utilities_common.general import load_db_config
+
 from .utils import log
 
 from . import aaa
@@ -952,12 +954,8 @@ def config(ctx):
     except (KeyError, TypeError):
         raise click.Abort()
 
-    # Load the global config file database_global.json once.
-    num_asic = multi_asic.get_num_asics()
-    if num_asic > 1:
-        SonicDBConfig.load_sonic_global_db_config()
-    else:
-        SonicDBConfig.initialize()
+    # Load database config files
+    load_db_config()
 
     if os.geteuid() != 0:
         exit("Root privileges are required for this operation")

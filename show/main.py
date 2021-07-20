@@ -14,6 +14,7 @@ from tabulate import tabulate
 from utilities_common import util_base
 from utilities_common.db import Db
 import utilities_common.constants as constants
+from utilities_common.general import load_db_config
 
 from . import acl
 from . import bgp_common
@@ -149,6 +150,8 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', '-?'])
 def cli(ctx):
     """SONiC command line - 'show' command"""
 
+    # Load database config files
+    load_db_config()
     ctx.obj = Db()
 
 

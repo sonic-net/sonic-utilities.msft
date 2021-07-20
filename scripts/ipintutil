@@ -12,6 +12,7 @@ from tabulate import tabulate
 from sonic_py_common import multi_asic
 from swsscommon import swsscommon
 from utilities_common import constants
+from utilities_common.general import load_db_config
 from utilities_common import multi_asic as multi_asic_util
 
 
@@ -262,7 +263,7 @@ def main():
     else:
         sys.exit("Invalid argument -a {}".format(args.address_family))
 
-    swsscommon.SonicDBConfig.load_sonic_global_db_config()
+    load_db_config()
     ip_intfs = get_ip_intfs(af, namespace, display)
     display_ip_intfs(ip_intfs)
 
