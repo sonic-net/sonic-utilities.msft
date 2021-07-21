@@ -159,7 +159,7 @@ def do_delete(t, k, lst):
 
 def do_operate(op_upd, t, k, lst):
     if lst:
-        if type(lst[lst.keys()[0]]) == dict:
+        if type(lst[next(iter(lst))]) == dict:
             for i in lst:
                 do_operate(op_upd, t, k+(i,), lst[i])
             return
