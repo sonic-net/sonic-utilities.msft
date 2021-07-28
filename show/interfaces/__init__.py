@@ -321,36 +321,65 @@ def expected(db, interfacename):
 
     click.echo(tabulate(body, header))
 
-# 'mpls' subcommand ("show interfaces mpls")
 @interfaces.command()
 @click.argument('interfacename', required=False)
+@click.option('--namespace', '-n', 'namespace', default=None,
+              type=str, show_default=True, help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+@click.option('--display', '-d', 'display', default=None, show_default=False,
+              type=str, help='all|frontend')
 @click.pass_context
-def mpls(ctx, interfacename):
+def mpls(ctx, interfacename, namespace, display):
     """Show Interface MPLS status"""
-
-    appl_db = SonicV2Connector()
-    appl_db.connect(appl_db.APPL_DB)
-
-    if interfacename is not None:
-        interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
-
-    # Fetching data from appl_db for intfs
-    keys = appl_db.keys(appl_db.APPL_DB, "INTF_TABLE:*")
+    
+    #Edge case: Force show frontend interfaces on single asic
+    if not (multi_asic.is_multi_asic()):
+       if (display == 'frontend' or display == 'all' or display is None):
+           display = None
+       else:
+           print("Error: Invalid display option command for single asic")
+           return
+    
+    masic = multi_asic_util.MultiAsic(display_option=display, namespace_option=namespace)
+    ns_list = masic.get_ns_list_based_on_options()
     intfs_data = {}
-    for key in keys if keys else []:
-        tokens = key.split(":")
-        # Skip INTF_TABLE entries with address information
-        if len(tokens) != 2:
-            continue
 
-        if (interfacename is not None) and (interfacename != tokens[1]):
-            continue
+    for ns in ns_list:
 
-        mpls = appl_db.get(appl_db.APPL_DB, key, 'mpls')
-        if mpls is None or mpls == '':
-            intfs_data.update({tokens[1]: 'disable'})
-        else:
-            intfs_data.update({tokens[1]: mpls})
+        appl_db = multi_asic.connect_to_all_dbs_for_ns(namespace=ns)
+
+        if interfacename is not None:
+            interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+
+        # Fetching data from appl_db for intfs
+        keys = appl_db.keys(appl_db.APPL_DB, "INTF_TABLE:*")
+        for key in keys if keys else []:
+            tokens = key.split(":")
+            ifname = tokens[1]
+            # Skip INTF_TABLE entries with address information
+            if len(tokens) != 2:
+                continue
+
+            if (interfacename is not None) and (interfacename != tokens[1]):
+                continue
+            
+            if (display != "all"):
+                if ("Loopback" in tokens[1]):
+                    continue
+                
+                if ifname.startswith("Ethernet") and multi_asic.is_port_internal(ifname, ns):
+                    continue
+
+                if ifname.startswith("PortChannel") and multi_asic.is_port_channel_internal(ifname, ns):
+                    continue
+
+
+            mpls_intf = appl_db.get_all(appl_db.APPL_DB, key)
+
+            if 'mpls' not in mpls_intf or mpls_intf['mpls'] == 'disable':
+                intfs_data.update({tokens[1]: 'disable'})
+            else:
+                intfs_data.update({tokens[1]: mpls_intf['mpls']}) 
 
     header = ['Interface', 'MPLS State']
     body = []

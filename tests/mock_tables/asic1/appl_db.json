@@ -55,5 +55,14 @@
     },
     "LAG_MEMBER_TABLE:PortChannel4009:Ethernet-BP260": {
         "status": "enabled"
+    },
+    "INTF_TABLE:Ethernet64": {
+	"mpls":"enable"
+    },
+    "INTF_TABLE:Ethernet-BP256": {
+	"mpls":"disable"
+    },
+    "INTF_TABLE:Ethernet-BP260": {
+	"mpls":"enable"
     }
 }

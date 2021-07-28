@@ -80,5 +80,17 @@
         "admin_status": "up",
         "mtu": "9100",
         "oper_status": "up"
+    }, 
+    "INTF_TABLE:Ethernet0": {
+	"mpls":"enable"
+    },
+    "INTF_TABLE:Ethernet4": {
+	"mpls":"disable"
+    },
+    "INTF_TABLE:Ethernet-BP0": {
+	"mpls":"enable"
+    },
+    "INTF_TABLE:Ethernet-BP4": {
+	"mpls":"disable"
     }
 }

@@ -1,18 +1,15 @@
 {
-    "INTF_TABLE:Ethernet16": {
+"INTF_TABLE:Ethernet16": {
         "NULL": "NULL"
     },
     "INTF_TABLE:Ethernet16:192.168.16.1/24": {
         "NULL": "NULL"
     },
-    "INTF_TABLE:Ethernet2": {
+    "INTF_TABLE:Ethernet0": {
         "mpls": "enable"
     },
-    "INTF_TABLE:Ethernet2:192.168.2.1/24": {
-        "NULL": "NULL"
-    },
     "INTF_TABLE:Ethernet4": {
-        "NULL": "NULL"
+        "mpls": "enable"
     },
     "INTF_TABLE:Ethernet4:192.168.4.1/24": {
         "NULL": "NULL"
@@ -26,22 +23,10 @@
     "INTF_TABLE:Ethernet8:192.168.8.1/24": {
         "NULL": "NULL"
     },
-    "INTF_TABLE:Loopback0": {
-        "NULL": "NULL"
-    },
-    "INTF_TABLE:Loopback0:192.168.0.1/24": {
-        "NULL": "NULL"
-    },
-    "INTF_TABLE:PortChannel2": {
+    "INTF_TABLE:Ethernet12": {
         "mpls": "disable"
     },
-    "INTF_TABLE:PortChannel2:10.0.0.56/31": {
-        "NULL": "NULL"
-    },
-    "INTF_TABLE:Vlan2": {
+    "INTF_TABLE:Ethernet20": {
         "mpls": "enable"
-    },
-    "INTF_TABLE:Vlan2:192.168.1.1/21": {
-        "NULL": "NULL"
     }
 }
