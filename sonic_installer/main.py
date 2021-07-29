@@ -554,6 +554,7 @@ DOCKER_CONTAINER_LIST = [
     "bgp",
     "dhcp_relay",
     "lldp",
+    "macsec",
     "nat",
     "pmon",
     "radv",
