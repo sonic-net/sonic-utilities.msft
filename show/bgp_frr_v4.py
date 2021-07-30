@@ -97,7 +97,7 @@ def neighbors(ipaddress, info_type, namespace):
                 show_default=True,
                 required=True if multi_asic.is_multi_asic is True else False,
                 help='Namespace name or all',
-                default=None,
+                default=multi_asic.DEFAULT_NAMESPACE,
                 callback=multi_asic_util.multi_asic_namespace_validation_callback)
 def network(ipaddress, info_type, namespace):
     """Show IP (IPv4) BGP network"""
