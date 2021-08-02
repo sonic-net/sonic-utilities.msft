@@ -56,6 +56,7 @@ test_data = {
 }
 
 err_data = ""
+max_log_lvl = -1
 cmds = []
 current_tc = None
 
@@ -66,6 +67,11 @@ def mount_file(d):
 
 def report_err_msg(lvl, m):
     global err_data
+    global max_log_lvl
+
+    if lvl > max_log_lvl:
+        max_log_lvl = lvl
+
     if lvl == syslog.LOG_ERR:
         if err_data:
             err_data += "|"
@@ -123,10 +129,15 @@ class TestDiskCheck(object):
     @patch("disk_check.syslog.syslog")
     @patch("disk_check.subprocess.run")
     def test_readonly(self, mock_proc, mock_log):
-        global err_data, cmds
+        global err_data, cmds, max_log_lvl
 
         mock_proc.side_effect = mock_subproc_run
         mock_log.side_effect = report_err_msg
+
+        with patch('sys.argv', ["", "-l", "7", "-d", "/tmp"]):
+            disk_check.main()
+            assert max_log_lvl == syslog.LOG_DEBUG
+            max_log_lvl = -1
 
         for i, tc in test_data.items():
             print("-----------Start tc {}---------".format(i))
@@ -159,3 +170,7 @@ class TestDiskCheck(object):
                 assert err_data == tc["err"]
             assert cmds == tc.get("cmds", [])
             print("-----------End tc {}-----------".format(i))
+
+            
+        assert max_log_lvl == syslog.LOG_ERR
+

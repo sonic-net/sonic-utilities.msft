@@ -33,19 +33,23 @@ UPPER_DIR = "/run/mount/upper"
 WORK_DIR = "/run/mount/work"
 MOUNTS_FILE = "/proc/mounts"
 
+chk_log_level = syslog.LOG_ERR
+
+def _log_msg(lvl, pfx, msg):
+    if lvl <= chk_log_level:
+        print("{}: {}".format(pfx, msg))
+        syslog.syslog(lvl, msg)
+
 def log_err(m):
-    print("Err: {}".format(m), file=sys.stderr)
-    syslog.syslog(syslog.LOG_ERR, m)
+    _log_msg(syslog.LOG_ERR, "Err", m)
 
 
 def log_info(m):
-    print("Info: {}".format(m))
-    syslog.syslog(syslog.LOG_INFO, m)
+    _log_msg(syslog.LOG_INFO, "Info",  m)
 
 
 def log_debug(m):
-    print("debug: {}".format(m))
-    syslog.syslog(syslog.LOG_DEBUG, m)
+    _log_msg(syslog.LOG_DEBUG, "Debug", m)
 
 
 def test_writable(dirs): 
@@ -135,14 +139,19 @@ def do_check(skip_mount, dirs):
 
 
 def main():
+    global chk_log_level
+
     parser=argparse.ArgumentParser(
             description="check disk for Read-Write and mount etc & home as Read-Write")
     parser.add_argument('-s', "--skip-mount", action='store_true', default=False,
             help="Skip mounting /etc & /home as Read-Write")
     parser.add_argument('-d', "--dirs", default="/etc,/home",
             help="dirs to mount")
+    parser.add_argument('-l', "--loglvl", default=syslog.LOG_ERR, type=int,
+            help="log level")
     args = parser.parse_args()
 
+    chk_log_level = args.loglvl
     ret = do_check(args.skip_mount, args.dirs.split(","))
     return ret
 
