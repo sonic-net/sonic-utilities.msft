@@ -22,6 +22,7 @@ from .exception import SonicRuntimeException
 
 SYSLOG_IDENTIFIER = "sonic-installer"
 LOG_ERR = logger.Logger.LOG_PRIORITY_ERROR
+LOG_WARN = logger.Logger.LOG_PRIORITY_WARNING
 LOG_NOTICE = logger.Logger.LOG_PRIORITY_NOTICE
 
 # Global Config object
@@ -332,6 +333,7 @@ def migrate_sonic_packages(bootloader, binary_image_version):
         echo_and_log("Error: SONiC package migration cannot proceed due to missing docker folder", LOG_ERR, fg="red")
         return
 
+    docker_started = False
     with bootloader.get_rootfs_path(new_image_dir) as new_image_squashfs_path:
         try:
             mount_squash_fs(new_image_squashfs_path, new_image_mount)
@@ -342,22 +344,25 @@ def migrate_sonic_packages(bootloader, binary_image_version):
             mount_bind(new_image_docker_dir, new_image_docker_mount)
             mount_procfs_chroot(new_image_mount)
             mount_sysfs_chroot(new_image_mount)
+            # Assume if docker.sh script exists we are installing Application Extension compatible image.
+            if not os.path.exists(os.path.join(new_image_mount, os.path.relpath(DOCKER_CTL_SCRIPT, os.path.abspath(os.sep)))):
+                echo_and_log("Warning: SONiC Application Extension is not supported in this image", LOG_WARN, fg="yellow")
+                return
             run_command_or_raise(["chroot", new_image_mount, DOCKER_CTL_SCRIPT, "start"])
+            docker_started = True
             run_command_or_raise(["cp", packages_path, os.path.join(new_image_mount, tmp_dir, packages_file)])
             run_command_or_raise(["touch", os.path.join(new_image_mount, "tmp", DOCKERD_SOCK)])
             run_command_or_raise(["mount", "--bind",
                                 os.path.join(VAR_RUN_PATH, DOCKERD_SOCK),
                                 os.path.join(new_image_mount, "tmp", DOCKERD_SOCK)])
             run_command_or_raise(["chroot", new_image_mount, "sh", "-c", "command -v {}".format(SONIC_PACKAGE_MANAGER)])
-        except SonicRuntimeException as err:
-            echo_and_log("Warning: SONiC Application Extension is not supported in this image: {}".format(err), LOG_ERR, fg="red")
-        else:
             run_command_or_raise(["chroot", new_image_mount, SONIC_PACKAGE_MANAGER, "migrate",
                                 os.path.join("/", tmp_dir, packages_file),
                                 "--dockerd-socket", os.path.join("/", tmp_dir, DOCKERD_SOCK),
                                 "-y"])
         finally:
-            run_command_or_raise(["chroot", new_image_mount, DOCKER_CTL_SCRIPT, "stop"], raise_exception=False)
+            if docker_started:
+                run_command_or_raise(["chroot", new_image_mount, DOCKER_CTL_SCRIPT, "stop"], raise_exception=False)
             umount(new_image_mount, recursive=True, read_only=False, remove_dir=False, raise_exception=False)
             umount(new_image_mount, raise_exception=False)
 
