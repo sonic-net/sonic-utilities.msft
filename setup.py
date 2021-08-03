@@ -130,7 +130,8 @@ setup(
         'scripts/watermarkstat',
         'scripts/watermarkcfg',
         'scripts/sonic-kdump-config',
-        'scripts/centralize_database'
+        'scripts/centralize_database',
+        'scripts/null_route_helper'
     ],
     entry_points={
         'console_scripts': [

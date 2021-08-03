@@ -35,19 +35,27 @@ RULE_6        EVERFLOW        9994              601            600
 
 # Expected output for aclshow -a
 all_output = """\
-RULE NAME     TABLE NAME      PRIO    PACKETS COUNT    BYTES COUNT
-------------  ------------  ------  ---------------  -------------
-RULE_1        DATAACL         9999              101            100
-RULE_2        DATAACL         9998              201            200
-RULE_3        DATAACL         9997              301            300
-RULE_4        DATAACL         9996              401            400
-RULE_05       DATAACL         9995                0              0
-RULE_7        DATAACL         9993              701            700
-RULE_9        DATAACL         9991              901            900
-RULE_10       DATAACL         9989             1001           1000
-DEFAULT_RULE  DATAACL            1                2              1
-RULE_6        EVERFLOW        9994              601            600
-RULE_08       EVERFLOW        9992                0              0
+RULE NAME                              TABLE NAME       PRIO  PACKETS COUNT    BYTES COUNT
+-------------------------------------  -------------  ------  ---------------  -------------
+RULE_1                                 DATAACL          9999  101              100
+RULE_2                                 DATAACL          9998  201              200
+RULE_3                                 DATAACL          9997  301              300
+RULE_4                                 DATAACL          9996  401              400
+RULE_05                                DATAACL          9995  0                0
+RULE_7                                 DATAACL          9993  701              700
+RULE_9                                 DATAACL          9991  901              900
+RULE_10                                DATAACL          9989  1001             1000
+DEFAULT_RULE                           DATAACL             1  2                1
+RULE_6                                 EVERFLOW         9994  601              600
+RULE_08                                EVERFLOW         9992  0                0
+RULE_1                                 NULL_ROUTE_V4    9999  N/A              N/A
+BLOCK_RULE_10.0.0.2/32                 NULL_ROUTE_V4    9999  N/A              N/A
+BLOCK_RULE_10.0.0.3/32                 NULL_ROUTE_V4    9999  N/A              N/A
+DEFAULT_RULE                           NULL_ROUTE_V4       1  N/A              N/A
+RULE_1                                 NULL_ROUTE_V6    9999  N/A              N/A
+BLOCK_RULE_1000:1000:1000:1000::2/128  NULL_ROUTE_V6    9999  N/A              N/A
+BLOCK_RULE_1000:1000:1000:1000::3/128  NULL_ROUTE_V6    9999  N/A              N/A
+DEFAULT_RULE                           NULL_ROUTE_V6       1  N/A              N/A
 """
 
 # Expected output for aclshow -r RULE_1 -t DATAACL
@@ -80,8 +88,8 @@ RULE NAME    TABLE NAME    PRIO    PACKETS COUNT    BYTES COUNT
 # Expected output for aclshow -r RULE_4,RULE_6 -vv
 rule4_rule6_verbose_output = """\
 Reading ACL info...
-Total number of ACL Tables: 8
-Total number of ACL Rules: 11
+Total number of ACL Tables: 10
+Total number of ACL Rules: 19
 
 RULE NAME    TABLE NAME      PRIO    PACKETS COUNT    BYTES COUNT
 -----------  ------------  ------  ---------------  -------------
@@ -116,19 +124,27 @@ clear_output = ''
 # Expected output for
 # aclshow -a -c ; aclshow -a
 all_after_clear_output = """\
-RULE NAME     TABLE NAME      PRIO    PACKETS COUNT    BYTES COUNT
-------------  ------------  ------  ---------------  -------------
-RULE_1        DATAACL         9999                0              0
-RULE_2        DATAACL         9998                0              0
-RULE_3        DATAACL         9997                0              0
-RULE_4        DATAACL         9996                0              0
-RULE_05       DATAACL         9995                0              0
-RULE_7        DATAACL         9993                0              0
-RULE_9        DATAACL         9991                0              0
-RULE_10       DATAACL         9989                0              0
-DEFAULT_RULE  DATAACL            1                0              0
-RULE_6        EVERFLOW        9994                0              0
-RULE_08       EVERFLOW        9992                0              0
+RULE NAME                              TABLE NAME       PRIO  PACKETS COUNT    BYTES COUNT
+-------------------------------------  -------------  ------  ---------------  -------------
+RULE_1                                 DATAACL          9999  0                0
+RULE_2                                 DATAACL          9998  0                0
+RULE_3                                 DATAACL          9997  0                0
+RULE_4                                 DATAACL          9996  0                0
+RULE_05                                DATAACL          9995  0                0
+RULE_7                                 DATAACL          9993  0                0
+RULE_9                                 DATAACL          9991  0                0
+RULE_10                                DATAACL          9989  0                0
+DEFAULT_RULE                           DATAACL             1  0                0
+RULE_6                                 EVERFLOW         9994  0                0
+RULE_08                                EVERFLOW         9992  0                0
+RULE_1                                 NULL_ROUTE_V4    9999  N/A              N/A
+BLOCK_RULE_10.0.0.2/32                 NULL_ROUTE_V4    9999  N/A              N/A
+BLOCK_RULE_10.0.0.3/32                 NULL_ROUTE_V4    9999  N/A              N/A
+DEFAULT_RULE                           NULL_ROUTE_V4       1  N/A              N/A
+RULE_1                                 NULL_ROUTE_V6    9999  N/A              N/A
+BLOCK_RULE_1000:1000:1000:1000::2/128  NULL_ROUTE_V6    9999  N/A              N/A
+BLOCK_RULE_1000:1000:1000:1000::3/128  NULL_ROUTE_V6    9999  N/A              N/A
+DEFAULT_RULE                           NULL_ROUTE_V6       1  N/A              N/A
 """
 
 
