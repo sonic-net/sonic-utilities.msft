@@ -127,53 +127,60 @@ class Lldpshow(object):
                 l_intf = intf.attrib['name']
                 if l_intf.startswith(BACKEND_ASIC_INTERFACE_NAME_PREFIX):
                     continue
-                self.lldpsum[l_intf] = {}
+                remote_port = intf.find('port')
+                r_portid = remote_port.find('id').text
+                key = l_intf + "#" + r_portid
+                self.lldpsum[key] = {}
+                self.lldpsum[key]['l_intf'] = l_intf
+                self.lldpsum[key]['r_portid'] = r_portid
                 chassis = intf.find('chassis')
                 capabs = chassis.findall('capability')
                 capab = self.parse_cap(capabs)
                 rmt_name = chassis.find('name')
                 if rmt_name is not None:
-                    self.lldpsum[l_intf]['r_name'] = rmt_name.text
+                    self.lldpsum[key]['r_name'] = rmt_name.text
                 else:
-                    self.lldpsum[l_intf]['r_name'] = ''
-                remote_port = intf.find('port')
-                self.lldpsum[l_intf]['r_portid'] = remote_port.find('id').text
+                    self.lldpsum[key]['r_name'] = ''
                 rmt_desc = remote_port.find('descr')
                 if rmt_desc is not None:
-                    self.lldpsum[l_intf]['r_portname'] = rmt_desc.text
+                    self.lldpsum[key]['r_portname'] = rmt_desc.text
                 else:
-                    self.lldpsum[l_intf]['r_portname'] = ''
-                self.lldpsum[l_intf]['capability'] = capab
+                    self.lldpsum[key]['r_portname'] = ''
+                self.lldpsum[key]['capability'] = capab
 
     def sort_sum(self, summary):
         """ Sort the summary information in the way that is expected(natural string)."""
-        def alphanum_key(key): return [re.findall('[A-Za-z]+', key) + [int(port_num)
-                                                                       for port_num in re.findall('\d+', key)]]
+        def alphanum_key(key):
+            key = key.split("#")[0]
+            return [re.findall('[A-Za-z]+', key) + [int(port_num)
+                                                    for port_num in re.findall('\d+', key)]]
         return sorted(summary, key=alphanum_key)
 
-    def display_sum(self, lldp_detail_info):
+    def get_summary_output(self, lldp_detail_info):
         """
-        print out summary result of lldp neighbors
+        returns summary result of lldp neighbors
         """
+        output_summary = ''
         # In detail mode output is plain text
         if self.lldpraw and lldp_detail_info:
             lldp_output = ''
             for lldp_detail_output in self.lldpraw:
                 lldp_output += lldp_detail_output
-            print(lldp_output)
+            output_summary += lldp_output + "\n"
         elif self.lldpraw:
             lldpstatus = []
-            print('Capability codes: (R) Router, (B) Bridge, (O) Other')
+            output_summary += "Capability codes: (R) Router, (B) Bridge, (O) Other\n"
             header = ['LocalPort', 'RemoteDevice', 'RemotePortID', 'Capability', 'RemotePortDescr']
             sortedsum = self.sort_sum(self.lldpsum)
             for key in sortedsum:
-                lldpstatus.append([key, self.lldpsum[key]['r_name'], self.lldpsum[key]['r_portid'],
+                lldpstatus.append([self.lldpsum[key]['l_intf'], self.lldpsum[key]['r_name'], self.lldpsum[key]['r_portid'],
                                    self.lldpsum[key]['capability'], self.lldpsum[key]['r_portname']])
-            print(tabulate(lldpstatus, header))
-            print('-'.rjust(50, '-'))
-            print('Total entries displayed: ', len(self.lldpsum))
+            output_summary += tabulate(lldpstatus, header) + "\n"
+            output_summary += ('-'.rjust(50, '-')) + "\n"
+            output_summary += "Total entries displayed:  {}".format(len(self.lldpsum))
         elif self.err is not None:
-            print('Error:', self.err)
+            output_summary += "Error: {}".format(self.err)
+        return output_summary
 
 
 def main():
@@ -202,7 +209,8 @@ def main():
         lldp = Lldpshow()
         lldp.get_info(lldp_detail_info, lldp_port)
         lldp.parse_info(lldp_detail_info)
-        lldp.display_sum(lldp_detail_info)
+        output_summary = lldp.get_summary_output(lldp_detail_info)
+        print(output_summary)
     except Exception as e:
         print(str(e), file=sys.stderr)
         sys.exit(1)
