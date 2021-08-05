@@ -36,7 +36,6 @@ EXIT_ORCHAGENT_SHUTDOWN=10
 EXIT_SYNCD_SHUTDOWN=11
 EXIT_FAST_REBOOT_DUMP_FAILURE=12
 EXIT_FILTER_FDB_ENTRIES_FAILURE=13
-EXIT_COUNTERPOLL_DISABLE_FAILURE=14
 EXIT_NO_CONTROL_PLANE_ASSISTANT=20
 EXIT_SONIC_INSTALLER_VERIFY_REBOOT=21
 
@@ -669,19 +668,6 @@ if [[ "$sonic_asic_type" = 'broadcom' ]];
 then
   service_name=$(systemctl list-units --plain --no-pager --no-legend --type=service | grep opennsl | cut -f 1 -d' ')
   systemctl stop "$service_name"
-fi
-
-if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
-    CONFIG_DB_FILE=/etc/sonic/config_db.json
-    COUNTERPOLL_DISABLE_RC=0
-    # Disable counters in config_db.json
-    /usr/local/bin/counterpoll config-db disable $CONFIG_DB_FILE || COUNTERPOLL_DISABLE_RC=$?
-    if [[ COUNTERPOLL_DISABLE_RC -ne 0 ]]; then
-        error "Failed to disable counterpoll. Exit code: $COUNTERPOLL_DISABLE_RC"
-        /usr/local/bin/counterpoll config-db enable $CONFIG_DB_FILE || COUNTERPOLL_DISABLE_RC=$?
-        unload_kernel
-        exit "${EXIT_COUNTERPOLL_DISABLE_FAILURE}"
-    fi
 fi
 
 # Update the reboot cause file to reflect that user issued this script
