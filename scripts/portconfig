@@ -81,7 +81,7 @@ class portconfig(object):
             self.state_db = SonicV2Connector(host='127.0.0.1')
         else:
             self.db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
-            self.state_db = SonicV2Connector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            self.state_db = SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
         self.db.connect()
         self.state_db.connect(self.state_db.STATE_DB, False)
 
