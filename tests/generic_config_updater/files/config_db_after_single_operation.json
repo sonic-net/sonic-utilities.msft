@@ -5,18 +5,6 @@
         },
         "Vlan1000|Ethernet4": {
             "tagging_mode": "untagged"
-        },
-        "Vlan1000|Ethernet8": {
-            "tagging_mode": "untagged"
-        },
-        "Vlan100|Ethernet2": {
-            "tagging_mode": "untagged"
-        },
-        "Vlan100|Ethernet3": {
-            "tagging_mode": "untagged"
-        },
-        "Vlan100|Ethernet1": {
-            "tagging_mode": "untagged"
         }
     },
     "VLAN": {
@@ -35,10 +23,7 @@
             "type": "L3",
             "policy_desc": "NO-NSW-PACL-V4",
             "ports": [
-                "Ethernet0",
-                "Ethernet1",
-                "Ethernet2",
-                "Ethernet3"
+                "Ethernet0"
             ]
         },
         "DATAACL": {
@@ -69,10 +54,10 @@
     },
     "PORT": {
         "Ethernet0": {
-            "alias": "Eth1/1",
-            "lanes": "65",
-            "description": "",
-            "speed": "10000"
+            "alias": "Eth1",
+            "lanes": "65, 66, 67, 68",
+            "description": "Ethernet0 100G link",
+            "speed": "100000"
         },
         "Ethernet4": {
             "admin_status": "up",
@@ -93,30 +78,6 @@
             "mtu": "9100",
             "pfc_asym": "off",
             "speed": "40000"
-        },
-        "Ethernet3": {
-            "alias": "Eth1/4",
-            "lanes": "68",
-            "description": "",
-            "speed": "10000"
-        },
-        "Ethernet1": {
-            "alias": "Eth1/2",
-            "lanes": "66",
-            "description": "",
-            "speed": "10000"
-        },
-        "Ethernet2": {
-            "alias": "Eth1/3",
-            "lanes": "67",
-            "description": "",
-            "speed": "10000"
-        }
-    },
-    "TABLE_WITHOUT_YANG": {
-        "Item1": {
-            "key11": "value11",
-            "key12": "value12"
         }
     }
 }
