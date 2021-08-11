@@ -26,7 +26,7 @@ try:
 except KeyError:
     pass
 
-from swsscommon.swsscommon import SonicV2Connector
+from swsscommon.swsscommon import ConfigDBConnector, SonicV2Connector
 
 STATUS_NA = 'N/A'
 
@@ -46,6 +46,9 @@ class PgDropStat(object):
     def __init__(self):
         self.counters_db = SonicV2Connector(host='127.0.0.1')
         self.counters_db.connect(self.counters_db.COUNTERS_DB)
+
+        self.configdb = ConfigDBConnector()
+        self.configdb.connect()
 
         dropstat_dir = get_dropstat_dir()
         self.port_drop_stats_file = os.path.join(dropstat_dir, 'pg_drop_stats')
@@ -212,6 +215,14 @@ class PgDropStat(object):
             sys.exit(e.errno)
         print("Cleared PG drop counter")
 
+    def check_if_stats_enabled(self):
+        pg_drop_info = self.configdb.get_entry('FLEX_COUNTER_TABLE', 'PG_DROP')
+        if pg_drop_info:
+            status = pg_drop_info.get("FLEX_COUNTER_STATUS", 'disable')
+            if status == "disable":
+                print("Warning: PG counters are disabled. Use 'counterpoll pg-drop enable' to enable polling")
+                sys.exit(0)
+
 def main():
     parser = argparse.ArgumentParser(description='Display PG drop counter',
                                      formatter_class=argparse.RawTextHelpFormatter,
@@ -240,6 +251,7 @@ pg-drop -c clear
     if command == 'clear':
         pgdropstat.clear_drop_counts()
     elif command == 'show':
+        pgdropstat.check_if_stats_enabled()
         pgdropstat.print_all_stat(COUNTER_TABLE_PREFIX, "pg_drop" )
     else:
         print("Command not recognized")
