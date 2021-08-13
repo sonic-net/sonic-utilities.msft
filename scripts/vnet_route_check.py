@@ -186,7 +186,9 @@ def filter_out_vnet_ip2me_routes(vnet_routes):
         # rif_attrs[1] - IP prefix and prefix legth
         # IP2ME routes have '/32' prefix length so replace it and add to the list
         if rif_attrs[0] in vnet_intfs:
-            vnet_ip2me_routes.append(rif_attrs[1].replace('/24', '/32'))
+            rif_ip, _ = rif_attrs[1].split('/')
+            ip2me_route = rif_ip + '/32'
+            vnet_ip2me_routes.append(ip2me_route)
 
     for vnet, vnet_attrs in vnet_routes.items():
         for route in vnet_attrs['routes']:
@@ -240,7 +242,7 @@ def get_vnet_routes_from_asic_db():
 
     vnet_vrfs = get_vrf_entries()
     vnet_vrfs_oids = [vnet_vrfs[k] for k in vnet_vrfs]
-    
+
     vnet_intfs = get_vnet_intfs()
 
     vrf_oid_to_vnet_map = {}
