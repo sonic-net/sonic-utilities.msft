@@ -43,7 +43,7 @@ from . import vlan
 from . import vxlan
 from . import plugins
 from .config_mgmt import ConfigMgmtDPB
-from . import mclag 
+from . import mclag
 
 # mock masic APIs for unit test
 try:
@@ -727,9 +727,9 @@ def _swss_ready():
     else:
         return False
 
-def _system_running():
+def _is_system_starting():
     out = clicommon.run_command("sudo systemctl is-system-running", return_cmd=True)
-    return out.strip() == "running"
+    return out.strip() == "starting"
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
     """ Check if an interface is in a vlan """
@@ -1233,7 +1233,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
        <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
     if not force and not no_service_restart:
-        if not _system_running():
+        if _is_system_starting():
             click.echo("System is not up. Retry later or use -f to avoid system checks")
             return
 
@@ -1491,10 +1491,10 @@ def load_port_config(config_db, port_config_path):
     # Validate if the input is an array
     if not isinstance(port_config_input, list):
         raise Exception("Bad format: port_config is not an array")
-    
+
     if len(port_config_input) == 0 or 'PORT' not in port_config_input[0]:
         raise Exception("Bad format: PORT table not exists")
-        
+
     port_config = port_config_input[0]['PORT']
 
     # Ensure all ports are exist
