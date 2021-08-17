@@ -7,6 +7,7 @@ import pyroute2
 from natsort import natsorted
 from sonic_py_common import multi_asic
 from utilities_common import constants
+from utilities_common.general import load_db_config
 
 
 class MultiAsic(object):
@@ -15,6 +16,8 @@ class MultiAsic(object):
         self, display_option=constants.DISPLAY_ALL, namespace_option=None,
         db=None
     ):
+        # Load database config files
+        load_db_config()
         self.namespace_option = namespace_option
         self.display_option = display_option
         self.current_namespace = None
