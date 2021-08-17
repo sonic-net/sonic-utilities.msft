@@ -4,7 +4,6 @@ import pytest
 
 from sonic_package_manager.constraint import ComponentConstraints
 from sonic_package_manager.manifest import Manifest, ManifestError
-from sonic_package_manager.version import VersionRange
 
 
 def test_manifest_v1_defaults():

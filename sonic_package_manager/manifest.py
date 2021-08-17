@@ -151,7 +151,7 @@ class ManifestSchema:
 
     # TODO: add description for each field
     SCHEMA = ManifestRoot('root', [
-        ManifestField('version', ParsedMarshaller(Version), Version(1, 0, 0)),
+        ManifestField('version', ParsedMarshaller(Version), Version.parse('1.0.0')),
         ManifestRoot('package', [
             ManifestField('version', ParsedMarshaller(Version)),
             ManifestField('name', DefaultMarshaller(str)),

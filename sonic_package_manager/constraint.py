@@ -3,18 +3,26 @@
 """ Package version constraints module. """
 
 import re
-from abc import ABC
 from dataclasses import dataclass, field
 from typing import Dict, Union
 
-import semver
+import semantic_version
+
+from sonic_package_manager.version import Version
 
 
-class VersionConstraint(semver.VersionConstraint, ABC):
-    """ Extends VersionConstraint from semver package. """
+class VersionConstraint:
+    """ Version constraint representation. """
 
-    @staticmethod
-    def parse(constraint_expression: str) -> 'VersionConstraint':
+    def __init__(self, *args, **kwargs):
+        self._constraint = semantic_version.SimpleSpec(*args, **kwargs)
+
+    @property
+    def expression(self):
+        return self._constraint.expression
+
+    @classmethod
+    def parse(cls, constraint_expression: str) -> 'VersionConstraint':
         """ Parse version constraint.
 
         Args:
@@ -23,7 +31,48 @@ class VersionConstraint(semver.VersionConstraint, ABC):
             The resulting VersionConstraint object.
         """
 
-        return semver.parse_constraint(constraint_expression)
+        return cls(constraint_expression)
+
+    def allows(self, version: Version) -> bool:
+        """ Checks if other version is allowed by this constraint
+
+        Args:
+            version: Version to check against this constraint.
+        Returns:
+            Boolean wether this constraint allows version.
+        """
+
+        return self._constraint.match(version._version)
+
+    def is_exact(self) -> bool:
+        """ Is the version constraint exact, meaning only one version is allowed.
+
+        Returns:
+            Boolean wether this constraint is exact.
+        """
+
+        clause = self._constraint.clause
+        return hasattr(clause, 'target') and clause.operator == '=='
+
+    def get_exact_version(self) -> Version:
+        """ Returns an exact version for this constraint if it is exact constraint.
+
+        Returns:
+            Exact version in case this constraint is exact.
+        Raises:
+            AttributeError: when constraint is not exact
+        """
+
+        return self._constraint.clause.target
+
+    def __str__(self):
+        return self._constraint.__str__()
+
+    def __repr__(self):
+        return self._constraint.__repr__()
+
+    def __eq__(self, other):
+        return self._constraint.__eq__(other._constraint)
 
 
 @dataclass

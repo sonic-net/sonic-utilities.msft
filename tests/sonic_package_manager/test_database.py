@@ -17,7 +17,7 @@ def test_database_get_package(fake_db):
     assert swss_package.built_in
     assert swss_package.repository == 'docker-orchagent'
     assert swss_package.default_reference == '1.0.0'
-    assert swss_package.version == Version(1, 0, 0)
+    assert swss_package.version == Version.parse('1.0.0')
 
 
 def test_database_get_package_not_builtin(fake_db):
@@ -52,11 +52,11 @@ def test_database_add_package_existing(fake_db):
 def test_database_update_package(fake_db):
     test_package = fake_db.get_package('test-package-2')
     test_package.installed = True
-    test_package.version = Version(1, 2, 3)
+    test_package.version = Version.parse('1.2.3')
     fake_db.update_package(test_package)
     test_package = fake_db.get_package('test-package-2')
     assert test_package.installed
-    assert test_package.version == Version(1, 2, 3)
+    assert test_package.version == Version.parse('1.2.3')
 
 
 def test_database_update_package_non_existing(fake_db):

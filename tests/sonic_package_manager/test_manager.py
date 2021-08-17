@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import re
 from unittest.mock import Mock, call
 
 import pytest
@@ -26,8 +27,8 @@ def test_installation_dependencies(package_manager, fake_metadata_resolver, mock
     manifest = fake_metadata_resolver.metadata_store['Azure/docker-test']['1.6.0']['manifest']
     manifest['package']['depends'] = ['swss^2.0.0']
     with pytest.raises(PackageInstallationError,
-                       match='Package test-package requires swss>=2.0.0,<3.0.0 '
-                             'but version 1.0.0 is installed'):
+                       match=re.escape('Package test-package requires swss^2.0.0 '
+                                       'but version 1.0.0 is installed')):
         package_manager.install('test-package')
 
 
@@ -80,8 +81,8 @@ def test_installation_components_dependencies_not_satisfied(package_manager, fak
         },
     ]
     with pytest.raises(PackageInstallationError,
-                       match='Package test-package requires libswsscommon >=1.1.0,<2.0.0 '
-                             'in package swss>=1.0.0 but version 1.0.0 is installed'):
+                       match=re.escape('Package test-package requires libswsscommon ^1.1.0 '
+                                       'in package swss>=1.0.0 but version 1.0.0 is installed')):
         package_manager.install('test-package')
 
 
@@ -98,8 +99,8 @@ def test_installation_components_dependencies_implicit(package_manager, fake_met
         },
     ]
     with pytest.raises(PackageInstallationError,
-                       match='Package test-package requires libswsscommon >=2.1.0,<3.0.0 '
-                             'in package swss>=1.0.0 but version 1.0.0 is installed'):
+                       match=re.escape('Package test-package requires libswsscommon ^2.1.0 '
+                                       'in package swss>=1.0.0 but version 1.0.0 is installed')):
         package_manager.install('test-package')
 
 
@@ -125,8 +126,8 @@ def test_installation_breaks(package_manager, fake_metadata_resolver):
     manifest = fake_metadata_resolver.metadata_store['Azure/docker-test']['1.6.0']['manifest']
     manifest['package']['breaks'] = ['swss^1.0.0']
     with pytest.raises(PackageInstallationError,
-                       match='Package test-package conflicts with '
-                             'swss>=1.0.0,<2.0.0 but version 1.0.0 is installed'):
+                       match=re.escape('Package test-package conflicts with '
+                                       'swss^1.0.0 but version 1.0.0 is installed')):
         package_manager.install('test-package')
 
 
@@ -294,7 +295,7 @@ def test_manager_upgrade(package_manager, sonic_fs):
 
     package_manager.install('test-package-6=2.0.0')
     upgraded_package = package_manager.get_installed_package('test-package-6')
-    assert upgraded_package.entry.version == Version(2, 0, 0)
+    assert upgraded_package.entry.version == Version.parse('2.0.0')
     assert upgraded_package.entry.default_reference == package.entry.default_reference
 
 
@@ -304,7 +305,7 @@ def test_manager_package_reset(package_manager, sonic_fs):
 
     package_manager.reset('test-package-6')
     upgraded_package = package_manager.get_installed_package('test-package-6')
-    assert upgraded_package.entry.version == Version(1, 5, 0)
+    assert upgraded_package.entry.version == Version.parse('1.5.0')
 
 
 def test_manager_migration(package_manager, fake_db_for_migration):
