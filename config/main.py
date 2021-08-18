@@ -950,8 +950,12 @@ def config(ctx):
 
     try:
         version_info = device_info.get_sonic_version_info()
-        asic_type = version_info['asic_type']
-    except (KeyError, TypeError):
+        if version_info:
+            asic_type = version_info['asic_type']
+        else:
+            asic_type = None
+    except (KeyError, TypeError) as e:
+        print("Caught an exception: " + str(e))
         raise click.Abort()
 
     # Load database config files
