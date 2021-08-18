@@ -65,6 +65,9 @@
 * [IP / IPv6](#ip--ipv6)
   * [IP show commands](#ip-show-commands)
   * [IPv6 show commands](#ipv6-show-commands)
+* [IPv6 Link Local](#ipv6-link-local)
+  * [IPv6 Link Local config commands](#ipv6-link-local-config-commands)
+  * [IPv6 Link Local show commands](#ipv6-link-local-show-commands)
 * [Kubernetes](#Kubernetes)
   * [Kubernetes show commands](#Kubernetes-show-commands)
   * [Kubernetes config commands](#Kubernetes-config-commands)
@@ -4407,6 +4410,96 @@ Refer the routing stack [Quagga Command Reference](https://www.quagga.net/docs/q
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#ip--ipv6)
 
+## IPv6 Link Local
+
+### IPv6 Link Local config commands
+
+This section explains all the commands that are supported in SONiC to configure IPv6 Link-local.
+
+**config interface ipv6 enable use-link-local-only <interface_name>**
+
+This command enables user to enable an interface to forward L3 traffic with out configuring an address. This command creates the routing interface based on the auto generated IPv6 link-local address. This command can be used even if an address is configured on the interface.
+
+- Usage:
+  ```
+  config interface ipv6 enable use-link-local-only <interface_name>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config interface ipv6 enable use-link-local-only Vlan206
+  admin@sonic:~$ sudo config interface ipv6 enable use-link-local-only PortChannel007
+  admin@sonic:~$ sudo config interface ipv6 enable use-link-local-only Ethernet52
+  ```
+
+**config interface ipv6 disable use-link-local-only <interface_name>**
+
+This command enables user to disable use-link-local-only configuration on an interface.
+
+- Usage:
+  ```
+  config interface ipv6 disable use-link-local-only <interface_name>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config interface ipv6 disable use-link-local-only Vlan206
+  admin@sonic:~$ sudo config interface ipv6 disable use-link-local-only PortChannel007
+  admin@sonic:~$ sudo config interface ipv6 disable use-link-local-only Ethernet52
+  ```
+
+**config ipv6 enable link-local**
+
+This command enables user to enable use-link-local-only command on all the interfaces globally.
+
+- Usage:
+  ```
+  sudo config ipv6 enable link-local
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config ipv6 enable link-local
+  ```
+
+**config ipv6 disable link-local**
+
+This command enables user to disable use-link-local-only command on all the interfaces globally.
+
+- Usage:
+  ```
+  sudo config ipv6 disable link-local
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config ipv6 disable link-local
+  ```
+
+### IPv6 Link Local show commands
+
+**show ipv6 link-local-mode**
+
+This command displays the link local mode of all the interfaces.
+
+- Usage:
+  ```
+  show ipv6 link-local-mode
+  ```
+
+- Example:
+  ```
+  root@sonic:/home/admin# show ipv6 link-local-mode
+  +------------------+----------+
+  | Interface Name   | Mode     |
+  +==================+==========+
+  | Ethernet16       | Disabled |
+  +------------------+----------+
+  | Ethernet18       | Enabled  |
+  +------------------+----------+
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#ipv6-link-local)
 
 ## Kubernetes
 

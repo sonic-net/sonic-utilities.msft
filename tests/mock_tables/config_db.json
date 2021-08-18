@@ -622,7 +622,7 @@
         "NULL": "NULL"
     },
     "PORTCHANNEL_INTERFACE|PortChannel0001": {
-        "NULL": "NULL"
+        "ipv6_use_link_local_only": "disable"
     },
     "PORTCHANNEL_INTERFACE|PortChannel0002": {
         "NULL": "NULL"
@@ -658,7 +658,7 @@
         "NULL": "NULL"
     },
     "INTERFACE|Ethernet0": {
-        "NULL": "NULL"
+        "ipv6_use_link_local_only": "disable"
     },
     "INTERFACE|Ethernet0|14.14.0.1/24": {
         "NULL": "NULL"
