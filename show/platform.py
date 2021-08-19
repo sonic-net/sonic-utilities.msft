@@ -12,23 +12,27 @@ from sonic_py_common import device_info
 
 def get_chassis_info():
     """
-    Attempts to get the chassis info via STATE_DB and falls back to direct Platform API calls.
+    Attempts to retrieve chassis information from CHASSIS_INFO table in STATE_DB if this table does
+    not exist then we assume pmon has crashed and will attempt to call the platform API directly. If this
+    call fails we simply return N/A.
     """
 
-    chassis_info = device_info.get_chassis_info()
-    required_keys = ['serial', 'model', 'revision']
-    failed_vals = ['', 'N/A']
-    platform_chassis = None
+    keys = ["serial", "model", "revision"]
 
-    for k in required_keys:
-        if chassis_info.get(k, '') in failed_vals:
-            if platform_chassis is None:
+    def try_get(platform, attr, fallback):
+        try:
+            if platform["chassis"] is None:
                 import sonic_platform
-                platform_chassis = sonic_platform.platform.Platform().get_chassis()
-            try:
-                chassis_info[k] = getattr(platform_chassis, "get_".format(k))()
-            except AttributeError:
-                chassis_info[k] = 'N/A'
+                platform["chassis"] = sonic_platform.platform.Platform().get_chassis()
+            return getattr(platform["chassis"], "get_{}".format(attr))()
+        except Exception:
+            return 'N/A'
+
+    chassis_info = device_info.get_chassis_info()
+
+    if all(v is None for k, v in chassis_info.items()):
+        platform_cache = {"chassis": None}
+        chassis_info = {k:try_get(platform_cache, k, "N/A") for k in keys}
 
     return chassis_info
 
