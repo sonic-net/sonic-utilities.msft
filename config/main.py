@@ -4039,7 +4039,9 @@ def add(ctx, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    table_name = get_interface_table_name(interface_name)
+    table_name = get_interface_table_name(interface_name)  
+    if not clicommon.is_interface_in_config_db(config_db, interface_name):
+        ctx.fail('interface {} doesn`t exist'.format(interface_name))
     if table_name == "":
         ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan]")
     config_db.set_entry(table_name, interface_name, {"mpls": "enable"})
@@ -4059,7 +4061,9 @@ def remove(ctx, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    table_name = get_interface_table_name(interface_name)
+    table_name = get_interface_table_name(interface_name) 
+    if not clicommon.is_interface_in_config_db(config_db, interface_name):
+        ctx.fail('interface {} doesn`t exist'.format(interface_name))
     if table_name == "":
         ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan]")
     config_db.set_entry(table_name, interface_name, {"mpls": "disable"})

@@ -576,3 +576,14 @@ def interface_is_untagged_member(db, interface_name):
             if (val['tagging_mode'] == 'untagged'):
                 return True
     return False
+
+def is_interface_in_config_db(config_db, interface_name):
+    """ Check if an interface is in CONFIG DB """
+    if (not interface_name in config_db.get_keys('VLAN_INTERFACE') and
+        not interface_name in config_db.get_keys('INTERFACE') and
+        not interface_name in config_db.get_keys('PORTCHANNEL_INTERFACE') and
+        not interface_name == 'null'):
+            return False
+
+    return True
+

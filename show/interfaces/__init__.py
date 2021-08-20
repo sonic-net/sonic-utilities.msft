@@ -340,9 +340,11 @@ def mpls(ctx, interfacename, namespace, display):
            print("Error: Invalid display option command for single asic")
            return
     
+    display = "all" if interfacename else display
     masic = multi_asic_util.MultiAsic(display_option=display, namespace_option=namespace)
     ns_list = masic.get_ns_list_based_on_options()
     intfs_data = {}
+    intf_found = False
 
     for ns in ns_list:
 
@@ -360,11 +362,14 @@ def mpls(ctx, interfacename, namespace, display):
             if len(tokens) != 2:
                 continue
 
-            if (interfacename is not None) and (interfacename != tokens[1]):
-                continue
+            if (interfacename is not None):
+                if (interfacename != ifname):
+                    continue
+                
+                intf_found = True
             
             if (display != "all"):
-                if ("Loopback" in tokens[1]):
+                if ("Loopback" in ifname):
                     continue
                 
                 if ifname.startswith("Ethernet") and multi_asic.is_port_internal(ifname, ns):
@@ -377,9 +382,13 @@ def mpls(ctx, interfacename, namespace, display):
             mpls_intf = appl_db.get_all(appl_db.APPL_DB, key)
 
             if 'mpls' not in mpls_intf or mpls_intf['mpls'] == 'disable':
-                intfs_data.update({tokens[1]: 'disable'})
+                intfs_data.update({ifname: 'disable'})
             else:
-                intfs_data.update({tokens[1]: mpls_intf['mpls']}) 
+                intfs_data.update({ifname: mpls_intf['mpls']}) 
+    
+    # Check if interface is valid
+    if (interfacename is not None and not intf_found):
+        ctx.fail('interface {} doesn`t exist'.format(interfacename))    
 
     header = ['Interface', 'MPLS State']
     body = []

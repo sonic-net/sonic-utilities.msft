@@ -50,7 +50,39 @@ Ethernet-BP0  enable
 Ethernet-BP4  disable
 """
 
+show_interfaces_mpls_output_interface="""\
+Interface    MPLS State
+-----------  ------------
+Ethernet4    enable
+"""
 
+show_interfaces_mpls_masic_output_interface="""\
+Interface    MPLS State
+-----------  ------------
+Ethernet4    disable
+"""
+
+invalid_interface_remove_output = """\
+Usage: remove [OPTIONS] <interface_name>
+Try "remove --help" for help.
+
+Error: interface Ethernet8 doesn`t exist
+"""
+
+invalid_interface_add_output = """\
+Usage: add [OPTIONS] <interface_name>
+Try "add --help" for help.
+
+Error: interface Ethernet8 doesn`t exist
+""" 
+ 
+invalid_interface_show_output = """\
+Usage: mpls [OPTIONS] [INTERFACENAME]
+Try "mpls --help" for help.
+
+Error: interface Ethernet100 doesn`t exist
+"""
+ 
 modules_path = os.path.join(os.path.dirname(__file__), "..")
 test_path = os.path.join(modules_path, "tests")
 scripts_path = os.path.join(modules_path, "scripts")
@@ -72,12 +104,27 @@ class TestMpls(object):
 
         result = runner.invoke(
                  config.config.commands["interface"].commands["mpls"].commands["add"],
-                 ["Ethernet8"], obj=obj
+                 ["Ethernet0"], obj=obj
                  )
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert db.cfgdb.get_entry("INTERFACE", "Ethernet8") == {"mpls": "enable"}
+        assert db.cfgdb.get_entry("INTERFACE", "Ethernet0") == {"mpls": "enable"}
+
+    def test_config_mpls_invalid_interface_add(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb}
+
+        result = runner.invoke(
+                 config.config.commands["interface"].commands["mpls"].commands["add"],
+                 ["Ethernet8"], obj=obj
+                 )
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 2
+        assert result.output == invalid_interface_add_output
+
 
     def test_show_interfaces_mpls_frontend(self):
 
@@ -111,7 +158,41 @@ class TestMpls(object):
         assert result.exit_code == 0
         assert result.output == show_interfaces_mpls_output_frontend
 
+    def test_show_interfaces_mpls_asic_interface(self):
+        runner = CliRunner()
+        result = runner.invoke(
+                 show.cli.commands["interfaces"].commands["mpls"],
+                 ["Ethernet4"]
+                 )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_interfaces_mpls_output_interface
+    
+    def test_show_interfaces_mpls_asic_invalid_interface(self):
+        runner = CliRunner()
+        result = runner.invoke(
+                 show.cli.commands["interfaces"].commands["mpls"],
+                 ["Ethernet100"]
+                 )
+        print(result.output)
+        assert result.exit_code == 2
+        assert result.output == invalid_interface_show_output 
+    
     def test_config_mpls_remove(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb}
+
+        result = runner.invoke(
+                 config.config.commands["interface"].commands["mpls"].commands["remove"],
+                 ["Ethernet0"], obj=obj
+                 )
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert db.cfgdb.get_entry("INTERFACE", "Ethernet0") == {"mpls": "disable"}
+
+    def test_config_mpls_invalid_interface_remove(self):
         runner = CliRunner()
         db = Db()
         obj = {'config_db':db.cfgdb}
@@ -122,8 +203,9 @@ class TestMpls(object):
                  )
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 0
-        assert db.cfgdb.get_entry("INTERFACE", "Ethernet8") == {"mpls": "disable"}
+        assert result.exit_code == 2
+        assert result.output == invalid_interface_remove_output 
+
 
     @classmethod 
     def teardown_class(cls):
@@ -152,12 +234,27 @@ class TestMplsMasic(object):
 
         result = runner.invoke(
                  config.config.commands["interface"].commands["mpls"].commands["add"],
-                 ["Ethernet8"], obj=obj
+                 ["Ethernet0"], obj=obj
                  )
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
-        assert db.cfgdb.get_entry("INTERFACE", "Ethernet8") == {"mpls": "enable"}
+        assert db.cfgdb.get_entry("INTERFACE", "Ethernet0") == {"mpls": "enable"}
+
+
+    def test_config_mpls_masic_invalid_interface_add(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb, 'namespace':'asic0'}
+
+        result = runner.invoke(
+                 config.config.commands["interface"].commands["mpls"].commands["add"],
+                 ["Ethernet8"], obj=obj
+                 )
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 2
+        assert result.output == invalid_interface_add_output 
 
 
     def test_show_interfaces_mpls_masic_frontend(self):
@@ -202,7 +299,41 @@ class TestMplsMasic(object):
         assert result.exit_code == 0
         assert result.output == show_interfaces_mpls_masic_output_asic_all
     
+    def test_show_interfaces_mpls_masic_asic_interface(self):
+        runner = CliRunner()
+        result = runner.invoke(
+                 show.cli.commands["interfaces"].commands["mpls"],
+                 ["Ethernet4"]
+                 )
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_interfaces_mpls_masic_output_interface
+    
+    def test_show_interfaces_mpls_masic_asic_invalid_interface(self):
+        runner = CliRunner()
+        result = runner.invoke(
+                 show.cli.commands["interfaces"].commands["mpls"],
+                 ["Ethernet100"]
+                 )
+        print(result.output)
+        assert result.exit_code == 2
+        assert result.output == invalid_interface_show_output 
+    
     def test_config_mpls_masic_remove(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb, 'namespace':'asic0'}
+
+        result = runner.invoke(
+                 config.config.commands["interface"].commands["mpls"].commands["remove"],
+                 ["Ethernet0"], obj=obj
+                 )
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert db.cfgdb.get_entry("INTERFACE", "Ethernet0") == {"mpls": "disable"}
+
+    def test_config_mpls_masic_invalid_interface_remove(self):
         runner = CliRunner()
         db = Db()
         obj = {'config_db':db.cfgdb, 'namespace':'asic0'}
@@ -213,8 +344,9 @@ class TestMplsMasic(object):
                  )
         print(result.exit_code)
         print(result.output)
-        assert result.exit_code == 0
-        assert db.cfgdb.get_entry("INTERFACE", "Ethernet8") == {"mpls": "disable"}
+        assert result.exit_code == 2
+        assert result.output == invalid_interface_remove_output 
+
 
     @classmethod
     def teardown_class(cls):
