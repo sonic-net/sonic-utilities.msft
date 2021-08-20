@@ -413,6 +413,36 @@ def filter_out_default_routes(lst):
     return upd
 
 
+def filter_out_vnet_routes(routes):
+    """
+    Helper to filter out VNET routes
+    :param routes: list of routes to filter
+    :return filtered list of routes.
+    """
+    db = swsscommon.DBConnector('APPL_DB', 0)
+
+    vnet_route_table = swsscommon.Table(db, 'VNET_ROUTE_TABLE')
+    vnet_route_tunnel_table = swsscommon.Table(db, 'VNET_ROUTE_TUNNEL_TABLE')
+
+    vnet_routes_db_keys = vnet_route_table.getKeys() + vnet_route_tunnel_table.getKeys()
+
+    vnet_routes = []
+
+    for vnet_route_db_key in vnet_routes_db_keys:
+        vnet_route_attrs = vnet_route_db_key.split(':')
+        vnet_name = vnet_route_attrs[0]
+        vnet_route = vnet_route_attrs[1]
+        vnet_routes.append(vnet_route)
+
+    updated_routes = []
+
+    for route in routes:
+        if not (route in vnet_routes):
+            updated_routes.append(route)
+
+    return updated_routes
+
+
 def check_routes():
     """
     The heart of this script which runs the checks.
@@ -448,6 +478,7 @@ def check_routes():
     # Check missed ASIC routes against APPL-DB INTF_TABLE
     _, rt_asic_miss = diff_sorted_lists(intf_appl, rt_asic_miss)
     rt_asic_miss = filter_out_default_routes(rt_asic_miss)
+    rt_asic_miss = filter_out_vnet_routes(rt_asic_miss)
 
     # Check APPL-DB INTF_TABLE with ASIC table route entries
     intf_appl_miss, _ = diff_sorted_lists(intf_appl, rt_asic)

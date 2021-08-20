@@ -24,6 +24,7 @@ OP_SET = "SET"
 OP_DEL = "DEL"
 
 ROUTE_TABLE = 'ROUTE_TABLE'
+VNET_ROUTE_TABLE = 'VNET_ROUTE_TABLE'
 INTF_TABLE = 'INTF_TABLE'
 RT_ENTRY_TABLE = 'ASIC_STATE'
 SEPARATOR = ":"
@@ -251,6 +252,45 @@ test_data = {
             "missed_ROUTE_TABLE_routes": [
                 "10.10.196.30/31"
             ]
+        }
+    },
+    "6": {
+        DESCR: "Good one with VNET routes",
+        ARGS: "route_check",
+        PRE: {
+            APPL_DB: {
+                ROUTE_TABLE: {
+                    "0.0.0.0/0" : { "ifname": "portchannel0" },
+                    "10.10.196.12/31" : { "ifname": "portchannel0" },
+                    "10.10.196.20/31" : { "ifname": "portchannel0" },
+                    "10.10.196.30/31" : { "ifname": "lo" }
+                },
+                VNET_ROUTE_TABLE: {
+                    "Vnet1:30.1.10.0/24": { "ifname": "Vlan3001" },
+                    "Vnet1:50.1.1.0/24": { "ifname": "Vlan3001" },
+                    "Vnet1:50.2.2.0/24": { "ifname": "Vlan3001" }
+                },
+                INTF_TABLE: {
+                    "PortChannel1013:10.10.196.24/31": {},
+                    "PortChannel1023:2603:10b0:503:df4::5d/126": {},
+                    "PortChannel1024": {},
+                    "Vlan3001": { "vnet_name": "Vnet1" },
+                    "Vlan3001:30.1.10.1/24": {}
+                }
+            },
+            ASIC_DB: {
+                RT_ENTRY_TABLE: {
+                    RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "10.10.196.20/31" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "30.1.10.1/32" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "30.1.10.0/24" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "50.1.1.0/24" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "50.2.2.0/24" + RT_ENTRY_KEY_SUFFIX: {}
+                }
+            }
         }
     }
 }
