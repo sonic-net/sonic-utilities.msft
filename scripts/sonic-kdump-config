@@ -607,86 +607,6 @@ def cmd_kdump_num_dumps(verbose, num_dumps):
         kdump_memory = get_kdump_memory()
         save_config(kdump_enabled, kdump_memory, num_dumps)
 
-## Command: Display kdump status
-def cmd_kdump_status():
-    print('Kdump Administrative Mode: ', end='')
-    kdump_enabled = get_kdump_administrative_mode()
-    if kdump_enabled:
-        print('Enabled')
-    else:
-        print('Disabled')
-
-    print('Kdump Operational State:   ', end='')
-    (rc, lines, err_str) = run_command("/usr/sbin/kdump-config status", use_shell=False);
-    if len(lines) >= 1 and ": ready to kdump" in lines[0]:
-        use_kdump_in_cfg = read_use_kdump()
-        if use_kdump_in_cfg:
-            print('Ready')
-        else:
-            print('Not Ready')
-    elif not kdump_enabled:
-        print('Disabled')
-    else:
-        print('Ready after Reboot')
-
-## Get the current number of kernel dump files stored
-#
-#  @param The number of kdump files stored in /var/crash
-def get_nb_dumps_in_var_crash():
-    (rc, lines, err_str) = run_command("find /var/crash/ -name 'kdump.*'", use_shell=False);
-    if rc == 0:
-        return len(lines)
-    return 0
-
-## Command: Display kdump files
-def cmd_kdump_files():
-    nb_dumps = get_nb_dumps_in_var_crash()
-    if nb_dumps == 0:
-        print("No kernel core dump files")
-    else:
-        (rc1, lines1, err_str) = run_command("find /var/crash/ -name 'dmesg.*'", use_shell=False);
-        lines1.sort(reverse=True)
-        (rc2, lines2, err_str) = run_command("find /var/crash/ -name 'kdump.*'", use_shell=False);
-        lines2.sort(reverse=True)
-        print("Record Key           Filename")
-        print("-------------------------------------------------------------")
-        for n in range(len(lines1)):
-            print("%6d %s %s\n                    %s" % (n+1, lines1[n][11:23], lines1[n], lines2[n]))
-
-## Command: Display kdump file (kernel log)
-#
-#  @param num_lines Number of last lines displayed
-#  @param filename  Name or index of the kernel log file (dmesg)
-def cmd_kdump_file(num_lines, filename):
-    fname = None
-    nb_dumps = get_nb_dumps_in_var_crash()
-    if nb_dumps ==  0:
-        print("Kernel crash log not found")
-    else:
-        (rc, lines, err_str) = run_command("find /var/crash/ -name 'dmesg.*'", use_shell=False);
-        if rc == 0 and nb_dumps == len(lines):
-            if filename.isdigit() and len(filename) <= 2:
-                num = int(filename)
-                if num < 1 or num > nb_dumps:
-                    if nb_dumps == 1:
-                        print("Invalid record number - Should be 1")
-                    else:
-                        print("Invalid record number - Should be between 1 and %d" % nb_dumps)
-                    sys.exit(1)
-                fname = sorted(lines, reverse=True)[num-1]
-            else:
-                lines.sort(reverse=True)
-                for x in lines:
-                    if x.find(filename) != -1:
-                        fname = x
-                        break
-                if fname is None:
-                    print("Invalid key")
-                    sys.exit(1)
-            (rc, lines, err_str) = run_command("/usr/bin/tail -n %d %s" % (num_lines, fname), use_shell=False);
-            if rc == 0:
-                print('File: %s' % fname)
-                print('\n'.join(lines))
 
 def main():
 
@@ -715,10 +635,6 @@ def main():
         help='Disable kdump')
 
     # kdump status on Current Image
-    parser.add_argument('--status', action='store_true',
-        help='Show kdump status')
-
-    # kdump status on Current Image
     parser.add_argument('--status-json', action='store_true',
         help='Show kdump status in json format')
 
@@ -726,7 +642,6 @@ def main():
     parser.add_argument('--kdump-records-json', action='store_true',
         help='Show kdump records in json format')
 
-    # kdump config on Current Image
     # kdump config on Current Image
     parser.add_argument('--config-json', action='store_true',
         help='Show kdump config in json format')
@@ -738,14 +653,6 @@ def main():
     # Memory allocated for capture kernel on Current Image
     parser.add_argument('--memory', nargs='?', type=str, action='store', default=False,
         help='Amount of memory reserved for the capture kernel')
-
-    # Capture kernel files
-    parser.add_argument('--files', action='store_true',
-        help='Show stored capture kernel files')
-
-    # Capture kernel file
-    parser.add_argument('--file', nargs=1, type=str,
-        help='Show stored capture kernel file')
 
     # Show more information (used for sonic-kdump-config status)
     parser.add_argument("-v", "--verbose", action='store_true',
@@ -776,12 +683,6 @@ def main():
             cmd_kdump_memory(options.verbose, options.memory)
         elif options.num_dumps != False:
             cmd_kdump_num_dumps(options.verbose, options.num_dumps)
-        elif options.status:
-            cmd_kdump_status()
-        elif options.files != False:
-            cmd_kdump_files()
-        elif options.file:
-            cmd_kdump_file(options.lines, options.file[0])
         elif options.dump_db:
             cmd_dump_db()
         elif options.status_json:
