@@ -684,6 +684,11 @@
     "DEBUG_COUNTER_DROP_REASON|DEBUG_2|IP_HEADER_ERROR": {},
     "DEBUG_COUNTER_DROP_REASON|DEBUG_2|NO_L3_HEADER": {},
     "DEBUG_COUNTER_DROP_REASON|lowercase_counter|L2_ANY": {},
+    "KDUMP|config": {
+        "enabled": "false",
+        "memory": "256MB",
+        "num_dumps": "3"
+    },
     "FEATURE|bgp": {
         "state": "enabled",
         "auto_restart": "enabled",

@@ -1,44 +1,86 @@
-import os
+import sys
+
 import click
-import utilities_common.cli as clicommon
-from swsscommon.swsscommon import ConfigDBConnector
+from utilities_common.cli import AbbreviationGroup, pass_db
 
-@click.group(cls=clicommon.AbbreviationGroup, name="kdump")
+
+#
+# 'kdump' group ('sudo config kdump ...')
+#
+@click.group(cls=AbbreviationGroup, name="kdump")
 def kdump():
-    """ Configure kdump """
-    if os.geteuid() != 0:
-        exit("Root privileges are required for this operation")
+    """Configure the KDUMP mechanism"""
+    pass
 
-@kdump.command()
-def disable():
-    """Disable kdump operation"""
-    config_db = ConfigDBConnector()
-    if config_db is not None:
-        config_db.connect()
-        config_db.mod_entry("KDUMP", "config", {"enabled": "false"})
 
-@kdump.command()
-def enable():
-    """Enable kdump operation"""
-    config_db = ConfigDBConnector()
-    if config_db is not None:
-        config_db.connect()
-        config_db.mod_entry("KDUMP", "config", {"enabled": "true"})
+def check_kdump_table_existence(kdump_table):
+    """Checks whether the 'KDUMP' table is configured in Config DB.
 
-@kdump.command()
+    Args:
+      kdump_table: A dictionary represents the key-value pair in sub-table
+      of 'KDUMP'.
+
+    Returns:
+      None.
+    """
+    if not kdump_table:
+        click.echo("Unable to retrieve 'KDUMP' table from Config DB.")
+        sys.exit(1)
+
+    if "config" not in kdump_table:
+        click.echo("Unable to retrieve key 'config' from KDUMP table.")
+        sys.exit(2)
+
+
+#
+# 'disable' command ('sudo config kdump disable')
+#
+@kdump.command(name="disable", short_help="Disable the KDUMP mechanism")
+@pass_db
+def kdump_disable(db):
+    """Disable the KDUMP mechanism"""
+    kdump_table = db.cfgdb.get_table("KDUMP")
+    check_kdump_table_existence(kdump_table)
+
+    db.cfgdb.mod_entry("KDUMP", "config", {"enabled": "false"})
+
+
+#
+# 'enable' command ('sudo config kdump enable')
+#
+@kdump.command(name="enable", short_help="Enable the KDUMP mechanism")
+@pass_db
+def kdump_enable(db):
+    """Enable the KDUMP mechanism"""
+    kdump_table = db.cfgdb.get_table("KDUMP")
+    check_kdump_table_existence(kdump_table)
+
+    db.cfgdb.mod_entry("KDUMP", "config", {"enabled": "true"})
+
+
+#
+# 'memory' command ('sudo config kdump memory ...')
+#
+@kdump.command(name="memory", short_help="Configure the memory for KDUMP mechanism")
 @click.argument('kdump_memory', metavar='<kdump_memory>', required=True)
-def memory(kdump_memory):
-    """Set memory allocated for kdump capture kernel"""
-    config_db = ConfigDBConnector()
-    if config_db is not None:
-        config_db.connect()
-        config_db.mod_entry("KDUMP", "config", {"memory": kdump_memory})
+@pass_db
+def kdump_memory(db, kdump_memory):
+    """Reserve memory for kdump capture kernel"""
+    kdump_table = db.cfgdb.get_table("KDUMP")
+    check_kdump_table_existence(kdump_table)
 
-@kdump.command('num-dumps')
+    db.cfgdb.mod_entry("KDUMP", "config", {"memory": kdump_memory})
+
+
+#
+# 'num_dumps' command ('sudo config keump num_dumps ...')
+#
+@kdump.command(name="num_dumps", short_help="Configure the maximum dump files of KDUMP mechanism")
 @click.argument('kdump_num_dumps', metavar='<kdump_num_dumps>', required=True, type=int)
-def num_dumps(kdump_num_dumps):
-    """Set max number of dump files for kdump"""
-    config_db = ConfigDBConnector()
-    if config_db is not None:
-        config_db.connect()
-        config_db.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
+@pass_db
+def kdump_num_dumps(db, kdump_num_dumps):
+    """Set maximum number of dump files for kdump"""
+    kdump_table = db.cfgdb.get_table("KDUMP")
+    check_kdump_table_existence(kdump_table)
+
+    db.cfgdb.mod_entry("KDUMP", "config", {"num_dumps": kdump_num_dumps})
