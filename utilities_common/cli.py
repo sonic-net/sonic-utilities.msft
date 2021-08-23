@@ -7,6 +7,7 @@ import sys
 
 import click
 import json
+import netaddr
 
 from natsort import natsorted
 from sonic_py_common import multi_asic
@@ -203,6 +204,17 @@ def is_ipaddress(val):
         return False
     return True
 
+def ipaddress_type(val):
+    """ Return the IP address type """
+    if not val:
+        return None
+
+    try:
+        ip_version = netaddr.IPAddress(str(val))
+    except netaddr.core.AddrFormatError:
+        return None
+
+    return ip_version.version
 
 def is_ip_prefix_in_key(key):
     '''

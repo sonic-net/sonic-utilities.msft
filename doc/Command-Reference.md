@@ -2231,33 +2231,43 @@ This sub-section of commands is used to add or remove the DHCP Relay Destination
 
 **config vlan dhcp_relay add**
 
-This command is used to add a DHCP Relay Destination IP address to the a VLAN.  Note that more that one DHCP Relay Destination IP address can be added on a VLAN interface.
+This command is used to add a DHCP Relay Destination IP address or multiple IP addresses to a VLAN.  Note that more than one DHCP Relay Destination IP address can be added on a VLAN interface.
 
 - Usage:
   ```
-  config vlan dhcp_relay add <vlan_id> <dhcp_relay_destination_ip>
+  config vlan dhcp_relay add <vlan_id> <dhcp_relay_destination_ips>
   ```
 
 - Example:
   ```
   admin@sonic:~$ sudo config vlan dhcp_relay add 1000 7.7.7.7
-  Added DHCP relay destination address 7.7.7.7 to Vlan1000
+  Added DHCP relay destination address ['7.7.7.7'] to Vlan1000
+  Restarting DHCP relay service...
+  ```
+  ```
+  admin@sonic:~$ sudo config vlan dhcp_relay add 1000 7.7.7.7 1.1.1.1
+  Added DHCP relay destination address ['7.7.7.7', '1.1.1.1'] to Vlan1000
   Restarting DHCP relay service...
   ```
 
 **config vlan dhcp_relay delete**
 
-This command is used to delete a configured DHCP Relay Destination IP address from a VLAN interface.
+This command is used to delete a configured DHCP Relay Destination IP address or multiple IP addresses from a VLAN interface.
 
 - Usage:
   ```
-  config vlan dhcp_relay del <vlan-id> <dhcp_relay_destination_ip>
+  config vlan dhcp_relay del <vlan-id> <dhcp_relay_destination_ips>
   ```
 
 - Example:
   ```
   admin@sonic:~$ sudo config vlan dhcp_relay del 1000 7.7.7.7
   Removed DHCP relay destination address 7.7.7.7 from Vlan1000
+  Restarting DHCP relay service...
+  ```
+  ```
+  admin@sonic:~$ sudo config vlan dhcp_relay del 1000 7.7.7.7 1.1.1.1
+  Removed DHCP relay destination address ('7.7.7.7', '1.1.1.1') from Vlan1000
   Restarting DHCP relay service...
   ```
 
