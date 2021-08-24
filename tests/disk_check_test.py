@@ -2,6 +2,7 @@ import sys
 import syslog
 from unittest.mock import patch
 import pytest
+import subprocess
 
 sys.path.append("scripts")
 import disk_check
@@ -26,7 +27,7 @@ test_data = {
         "workdir": "/tmp/tmpy",
         "mounts": "overlay_tmpx blahblah",
         "err": "/tmpx is not read-write|READ-ONLY: Mounted ['/tmpx'] to make Read-Write",
-        "cmds": ['mount -t overlay overlay_tmpx -o lowerdir=/tmpx,upperdir=/tmp/tmpx,workdir=/tmp/tmpy /tmpx']
+        "cmds": ['mount -t overlay overlay_tmpx -o lowerdir=/tmpx,upperdir=/tmp/tmpx/tmpx,workdir=/tmp/tmpy/tmpx /tmpx']
     },
     "3": {
         "desc": "Not good as /tmpx is not read-write; mount fail as create of upper fails",
@@ -90,8 +91,11 @@ class proc:
             self.stderr = proc_upd.get("stderr", None)
 
 
-def mock_subproc_run(cmd, shell, text, capture_output):
+def mock_subproc_run(cmd, shell, stdout):
     global cmds
+
+    assert shell == True
+    assert stdout == subprocess.PIPE
 
     upd = (current_tc["proc"][len(cmds)]
             if len(current_tc.get("proc", [])) > len(cmds) else None)
