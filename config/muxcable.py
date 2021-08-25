@@ -1,18 +1,25 @@
 import json
 import os
 import sys
+import time
 
 import click
 import re
 import utilities_common.cli as clicommon
 from sonic_py_common import multi_asic
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+from swsscommon import swsscommon
 from tabulate import tabulate
 from utilities_common import platform_sfputil_helper
 
 platform_sfputil = None
 
 REDIS_TIMEOUT_MSECS = 0
+SELECT_TIMEOUT = 1000
+
+# The empty namespace refers to linux host namespace.
+EMPTY_NAMESPACE = ''
+
 
 CONFIG_SUCCESSFUL = 0
 CONFIG_FAIL = 1
@@ -22,6 +29,9 @@ VENDOR_MODEL_REGEX = re.compile(r"CAC\w{3}321P2P\w{2}MS")
 
 # Helper functions
 
+def db_connect(db_name, namespace=EMPTY_NAMESPACE):
+    return swsscommon.DBConnector(db_name, REDIS_TIMEOUT_MSECS, True, namespace)
+
 def get_value_for_key_in_dict(mdict, port, key, table_name):
     value = mdict.get(key, None)
     if value is None:
@@ -29,10 +39,152 @@ def get_value_for_key_in_dict(mdict, port, key, table_name):
         sys.exit(CONFIG_FAIL)
     return value
 
-#
-# 'muxcable' command ("config muxcable")
-#
+def delete_all_keys_in_db_table(db_type, table_name):
 
+    redis_db = {}
+    table = {}
+    table_keys = {}
+
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+        redis_db[asic_id] = db_connect(db_type, namespace)
+        table[asic_id] = swsscommon.Table(redis_db[asic_id], table_name)
+        table_keys[asic_id] = table[asic_id].getKeys()
+        for key in table_keys[asic_id]:
+            table[asic_id]._del(key)
+
+
+def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_name, rsp_table_name, port, cmd_timeout_secs, arg=None):
+
+    res_dict = {}
+    state_db, appl_db = {}, {}
+    firmware_rsp_tbl, firmware_rsp_tbl_keys = {}, {}
+    firmware_rsp_sub_tbl = {}
+    firmware_cmd_tbl = {}
+
+    CMD_TIMEOUT_SECS = cmd_timeout_secs
+
+    time_start = time.time()
+
+    sel = swsscommon.Select()
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+        state_db[asic_id] = db_connect("STATE_DB", namespace)
+        appl_db[asic_id] = db_connect("APPL_DB", namespace)
+        firmware_cmd_tbl[asic_id] = swsscommon.Table(appl_db[asic_id], cmd_table_name)
+        firmware_rsp_sub_tbl[asic_id] = swsscommon.SubscriberStateTable(state_db[asic_id], rsp_table_name)
+        firmware_rsp_tbl[asic_id] = swsscommon.Table(state_db[asic_id], rsp_table_name)
+        firmware_rsp_tbl_keys[asic_id] = firmware_rsp_tbl[asic_id].getKeys()
+        for key in firmware_rsp_tbl_keys[asic_id]:
+            firmware_rsp_tbl[asic_id]._del(key)
+        sel.addSelectable(firmware_rsp_sub_tbl[asic_id])
+
+    rc = CONFIG_FAIL
+    res_dict[0] = CONFIG_FAIL
+    res_dict[1] = 'unknown'
+
+    logical_port_list = platform_sfputil_helper.get_logical_list()
+    if port not in logical_port_list:
+        click.echo("ERR: This is not a valid port, valid ports ({})".format(", ".join(logical_port_list)))
+        res_dict[0] = rc
+        return res_dict
+
+    asic_index = None
+    if platform_sfputil is not None:
+        asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
+    if asic_index is None:
+        # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+        # is fully mocked
+        import sonic_platform_base.sonic_sfp.sfputilhelper
+        asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+        if asic_index is None:
+            click.echo("Got invalid asic index for port {}, cant perform firmware cmd".format(port))
+            res_dict[0] = rc
+            return res_dict
+
+    if arg is None:
+        cmd_arg = "null"
+    else:
+        cmd_arg = str(arg)
+
+    fvs = swsscommon.FieldValuePairs([(cmd_name, cmd_arg)])
+    firmware_cmd_tbl[asic_index].set(port, fvs)
+
+    # Listen indefinitely for changes to the HW_MUX_CABLE_TABLE in the Application DB's
+    while True:
+        # Use timeout to prevent ignoring the signals we want to handle
+        # in signal_handler() (e.g. SIGTERM for graceful shutdown)
+
+        (state, selectableObj) = sel.select(SELECT_TIMEOUT)
+
+        time_now = time.time()
+        time_diff = time_now - time_start
+        if time_diff >= CMD_TIMEOUT_SECS:
+            return res_dict
+
+        if state == swsscommon.Select.TIMEOUT:
+            # Do not flood log when select times out
+            continue
+        if state != swsscommon.Select.OBJECT:
+            click.echo("sel.select() did not  return swsscommon.Select.OBJECT for sonic_y_cable updates")
+            continue
+
+        # Get the redisselect object  from selectable object
+        redisSelectObj = swsscommon.CastSelectableToRedisSelectObj(
+            selectableObj)
+        # Get the corresponding namespace from redisselect db connector object
+        namespace = redisSelectObj.getDbConnector().getNamespace()
+        asic_index = multi_asic.get_asic_index_from_namespace(namespace)
+
+        (port_m, op_m, fvp_m) = firmware_rsp_sub_tbl[asic_index].pop()
+
+        if not port_m:
+            click.echo("Did not receive a port response {}".format(port))
+            res_dict[1] = 'unknown'
+            res_dict[0] = CONFIG_FAIL
+            firmware_rsp_tbl[asic_index]._del(port)
+            break
+
+        if port_m != port:
+
+            res_dict[1] = 'unknown'
+            res_dict[0] = CONFIG_FAIL
+            firmware_rsp_tbl[asic_index]._del(port)
+            continue
+
+        if fvp_m:
+
+            fvp_dict = dict(fvp_m)
+            if rsp_name in fvp_dict:
+                # check if xcvrd got a probe command
+                result = fvp_dict[rsp_name]
+
+
+                if result == exp_rsp:
+                    res_dict[1] = result
+                    res_dict[0] = 0
+                else:
+                    res_dict[1] = result
+                    res_dict[0] = CONFIG_FAIL
+
+                firmware_rsp_tbl[asic_index]._del(port)
+                break
+            else:
+                res_dict[1] = 'unknown'
+                res_dict[0] = CONFIG_FAIL
+                firmware_rsp_tbl[asic_index]._del(port)
+                break
+        else:
+            res_dict[1] = 'unknown'
+            res_dict[0] = CONFIG_FAIL
+            firmware_rsp_tbl[asic_index]._del(port)
+            break
+
+    delete_all_keys_in_db_table("STATE_DB", rsp_table_name)
+
+    return res_dict
 
 def get_value_for_key_in_config_tbl(config_db, port, key, table):
     info_dict = {}
@@ -45,6 +197,9 @@ def get_value_for_key_in_config_tbl(config_db, port, key, table):
 
     return value
 
+#
+# 'muxcable' command ("config muxcable")
+#
 
 @click.group(name='muxcable', cls=clicommon.AliasedGroup)
 def muxcable():
@@ -266,152 +421,46 @@ def state(db, state, port):
 
     port = platform_sfputil_helper.get_interface_alias(port, db)
 
-    per_npu_statedb = {}
-    transceiver_table_keys = {}
-    transceiver_dict = {}
-
-    # Getting all front asic namespace and correspding config and state DB connector
-
-    namespaces = multi_asic.get_front_end_namespaces()
-    for namespace in namespaces:
-        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-        per_npu_statedb[asic_id] = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
-        per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
-
-        transceiver_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
-            per_npu_statedb[asic_id].STATE_DB, 'TRANSCEIVER_INFO|*')
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_DIR_CMD")
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_HWMODE_DIR_RSP")
 
     if port is not None and port != "all":
         click.confirm(('Muxcable at port {} will be changed to {} state. Continue?'.format(port, state)), abort=True)
-        logical_port_list = platform_sfputil_helper.get_logical_list()
-        if port not in logical_port_list:
-            click.echo("ERR: This is not a valid port, valid ports ({})".format(", ".join(logical_port_list)))
-            sys.exit(CONFIG_FAIL)
 
-        asic_index = None
-        if platform_sfputil is not None:
-            asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
-            if asic_index is None:
-                # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
-                # is fully mocked
-                import sonic_platform_base.sonic_sfp.sfputilhelper
-                asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
-                if asic_index is None:
-                    click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
-                    sys.exit(CONFIG_FAIL)
+        res_dict = {}
+        res_dict [0] = CONFIG_FAIL
+        res_dict [1] = "unknown"
+        res_dict = update_and_get_response_for_xcvr_cmd("config","result", "True", "XCVRD_CONFIG_HWMODE_DIR_CMD", "XCVRD_CONFIG_HWMODE_DIR_RSP", port, 1, state)
 
-        if platform_sfputil is not None:
-            physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
+        rc = res_dict[0]
 
-        if not isinstance(physical_port_list, list):
-            click.echo(("ERR: Unable to locate physical port information for {}".format(port)))
-            sys.exit(CONFIG_FAIL)
-        if len(physical_port_list) != 1:
-            click.echo("ERR: Found multiple physical ports ({}) associated with {}".format(
-                ", ".join(physical_port_list), port))
-            sys.exit(CONFIG_FAIL)
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_DIR_CMD")
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_HWMODE_DIR_RSP")
 
-        transceiver_dict[asic_index] = per_npu_statedb[asic_index].get_all(
-            per_npu_statedb[asic_index].STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port))
-
-        vendor_value = get_value_for_key_in_dict(transceiver_dict[asic_index], port, "manufacturer", "TRANSCEIVER_INFO")
-        model_value = get_value_for_key_in_dict(transceiver_dict[asic_index], port, "model", "TRANSCEIVER_INFO")
-
-        """ This check is required for checking whether or not this port is connected to a Y cable
-        or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
-        TODO: this should be removed once their is support for multiple vendors on Y cable"""
-
-        if vendor_value != VENDOR_NAME or not re.match(VENDOR_MODEL_REGEX, model_value):
-            click.echo("ERR: Got invalid vendor value and model for port {}".format(port))
-            sys.exit(CONFIG_FAIL)
-
-        physical_port = physical_port_list[0]
-
-        logical_port_list_for_physical_port = platform_sfputil_helper.get_physical_to_logical()
-
-        logical_port_list_per_port = logical_port_list_for_physical_port.get(physical_port, None)
-
-        """ This check is required for checking whether or not this logical port is the one which is 
-        actually mapped to physical port and by convention it is always the first port.
-        TODO: this should be removed with more logic to check which logical port maps to actual physical port
-        being used"""
-
-        if port != logical_port_list_per_port[0]:
-            click.echo("ERR: This logical Port {} is not on a muxcable".format(port))
-            sys.exit(CONFIG_FAIL)
-
-        import sonic_y_cable.y_cable
-        read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
-        if read_side == False or read_side == -1:
-            click.echo(("ERR: Unable to get read_side for the cable port {}".format(port)))
-            sys.exit(CONFIG_FAIL)
-
-        mux_direction = sonic_y_cable.y_cable.check_mux_direction(physical_port)
-        if mux_direction == False or mux_direction == -1:
-            click.echo(("ERR: Unable to get mux direction for the cable port {}".format(port)))
-            sys.exit(CONFIG_FAIL)
-
-        if int(read_side) == 1:
-            if state == "active":
-                res = sonic_y_cable.y_cable.toggle_mux_to_torA(physical_port)
-            elif state == "standby":
-                res = sonic_y_cable.y_cable.toggle_mux_to_torB(physical_port)
+        if rc == 0:
             click.echo("Success in toggling port {} to {}".format(port, state))
-        elif int(read_side) == 2:
-            if state == "active":
-                res = sonic_y_cable.y_cable.toggle_mux_to_torB(physical_port)
-            elif state == "standby":
-                res = sonic_y_cable.y_cable.toggle_mux_to_torA(physical_port)
-            click.echo("Success in toggling port {} to {}".format(port, state))
-
-        if res == False:
+        else:
             click.echo("ERR: Unable to toggle port {} to {}".format(port, state))
             sys.exit(CONFIG_FAIL)
 
-    elif port == "all" and port is not None:
+    elif port == "all":
+        click.confirm(('Muxcable at all ports will be changed to {} state. Continue?'.format(state)), abort=True)
 
-        click.confirm(('Muxcables at all ports will be changed to {} state. Continue?'.format(state)), abort=True)
         logical_port_list = platform_sfputil_helper.get_logical_list()
 
-        rc = True
+        rc_exit = 0
+
         for port in logical_port_list:
+
             if platform_sfputil is not None:
                 physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
 
-            asic_index = None
-            if platform_sfputil is not None:
-                asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
-                if asic_index is None:
-                    # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
-                    # is fully mocked
-                    import sonic_platform_base.sonic_sfp.sfputilhelper
-                    asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
-                    if asic_index is None:
-                        click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
-
             if not isinstance(physical_port_list, list):
-                click.echo(("ERR: Unable to locate physical port information for {}".format(port)))
                 continue
-
             if len(physical_port_list) != 1:
-                click.echo("ERR: Found multiple physical ports ({}) associated with {}".format(
-                    ", ".join(physical_port_list), port))
-                continue
-
-            transceiver_dict[asic_index] = per_npu_statedb[asic_index].get_all(
-                per_npu_statedb[asic_index].STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port))
-            vendor_value = transceiver_dict[asic_index].get("manufacturer", None)
-            model_value = transceiver_dict[asic_index].get("model", None)
-
-            """ This check is required for checking whether or not this port is connected to a Y cable
-            or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
-            TODO: this should be removed once their is support for multiple vendors on Y cable"""
-
-            if vendor_value != VENDOR_NAME or not re.match(VENDOR_MODEL_REGEX, model_value):
                 continue
 
             physical_port = physical_port_list[0]
-
             logical_port_list_for_physical_port = platform_sfputil_helper.get_physical_to_logical()
 
             logical_port_list_per_port = logical_port_list_for_physical_port.get(physical_port, None)
@@ -424,39 +473,24 @@ def state(db, state, port):
             if port != logical_port_list_per_port[0]:
                 continue
 
-            import sonic_y_cable.y_cable
-            read_side = sonic_y_cable.y_cable.check_read_side(physical_port)
-            if read_side == False or read_side == -1:
-                click.echo(("ERR: Unable to get read side for the cable port {}".format(port)))
-                rc = False
-                continue
+            res_dict = {}
+            res_dict [0] = CONFIG_FAIL
+            res_dict [1] = 'unknown'
 
-            mux_direction = sonic_y_cable.y_cable.check_mux_direction(physical_port)
-            if mux_direction == False or mux_direction == -1:
-                click.echo(("ERR: Unable to get mux direction for the cable port {}".format(port)))
-                rc = False
-                continue
+            res_dict = update_and_get_response_for_xcvr_cmd("config","result", "True", "XCVRD_CONFIG_HWMODE_DIR_CMD", "XCVRD_CONFIG_HWMODE_DIR_RSP", port, 1, state)
 
-            if int(read_side) == 1:
-                if state == "active":
-                    res = sonic_y_cable.y_cable.toggle_mux_to_torA(physical_port)
-                elif state == "standby":
-                    res = sonic_y_cable.y_cable.toggle_mux_to_torB(physical_port)
+            rc = res_dict[0]
+
+            delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_DIR_CMD")
+            delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_HWMODE_DIR_RSP")
+
+            if rc == 0:
                 click.echo("Success in toggling port {} to {}".format(port, state))
-            elif int(read_side) == 2:
-                if state == "active":
-                    res = sonic_y_cable.y_cable.toggle_mux_to_torB(physical_port)
-                elif state == "standby":
-                    res = sonic_y_cable.y_cable.toggle_mux_to_torA(physical_port)
-                click.echo("Success in toggling port {} to {}".format(port, state))
-
-            if res == False:
-                rc = False
+            else:
                 click.echo("ERR: Unable to toggle port {} to {}".format(port, state))
+                rc_exit = CONFIG_FAIL
 
-        if rc == False:
-            click.echo("ERR: Unable to toggle one or more ports to {}".format(state))
-            sys.exit(CONFIG_FAIL)
+        sys.exit(rc_exit)
 
 
 @hwmode.command()
@@ -468,132 +502,48 @@ def setswitchmode(db, state, port):
 
     port = platform_sfputil_helper.get_interface_alias(port, db)
 
-    per_npu_statedb = {}
-    transceiver_dict = {}
 
-    # Getting all front asic namespace and correspding config and state DB connector
-
-    namespaces = multi_asic.get_front_end_namespaces()
-    for namespace in namespaces:
-        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-        per_npu_statedb[asic_id] = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
-        per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_SWMODE_CMD")
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_HWMODE_SWMODE_RSP")
 
     if port is not None and port != "all":
         click.confirm(('Muxcable at port {} will be changed to {} switching mode. Continue?'.format(port, state)), abort=True)
-        logical_port_list = platform_sfputil_helper.get_logical_list()
-        if port not in logical_port_list:
-            click.echo("ERR: This is not a valid port, valid ports ({})".format(", ".join(logical_port_list)))
+
+        res_dict = {}
+        res_dict [0] = CONFIG_FAIL
+        res_dict [1] = "unknown"
+        res_dict = update_and_get_response_for_xcvr_cmd("config", "result", "True", "XCVRD_CONFIG_HWMODE_SWMODE_CMD", "XCVRD_CONFIG_HWMODE_SWMODE_RSP", port, 1, state)
+
+
+        rc = res_dict[0]
+
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_SWMODE_CMD")
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_HWMODE_SWMODE_RSP")
+
+        if rc == 0:
+            click.echo("Success in switch muxcable mode port {} to {}".format(port, state))
+        else:
+            click.echo("ERR: Unable to switch muxcable mode port {} to {}".format(port, state))
             sys.exit(CONFIG_FAIL)
 
-        asic_index = None
-        if platform_sfputil is not None:
-            asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
-            if asic_index is None:
-                # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
-                # is fully mocked
-                import sonic_platform_base.sonic_sfp.sfputilhelper
-                asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
-                if asic_index is None:
-                    click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
-                    sys.exit(CONFIG_FAIL)
+    elif port == "all":
+        click.confirm(('Muxcable at all ports will be changed to {} switching mode. Continue?'.format(state)), abort=True)
 
-        if platform_sfputil is not None:
-            physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
-
-        if not isinstance(physical_port_list, list):
-            click.echo(("ERR: Unable to locate physical port information for {}".format(port)))
-            sys.exit(CONFIG_FAIL)
-        if len(physical_port_list) != 1:
-            click.echo("ERR: Found multiple physical ports ({}) associated with {}".format(
-                ", ".join(physical_port_list), port))
-            sys.exit(CONFIG_FAIL)
-
-        transceiver_dict[asic_index] = per_npu_statedb[asic_index].get_all(
-            per_npu_statedb[asic_index].STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port))
-
-        vendor_value = get_value_for_key_in_dict(transceiver_dict[asic_index], port, "manufacturer", "TRANSCEIVER_INFO")
-        model_value = get_value_for_key_in_dict(transceiver_dict[asic_index], port, "model", "TRANSCEIVER_INFO")
-
-        """ This check is required for checking whether or not this port is connected to a Y cable
-        or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
-        TODO: this should be removed once their is support for multiple vendors on Y cable"""
-
-        if vendor_value != VENDOR_NAME or not re.match(VENDOR_MODEL_REGEX, model_value):
-            click.echo("ERR: Got invalid vendor value and model for port {}".format(port))
-            sys.exit(CONFIG_FAIL)
-
-        physical_port = physical_port_list[0]
-
-        logical_port_list_for_physical_port = platform_sfputil_helper.get_physical_to_logical()
-
-        logical_port_list_per_port = logical_port_list_for_physical_port.get(physical_port, None)
-
-        """ This check is required for checking whether or not this logical port is the one which is
-        actually mapped to physical port and by convention it is always the first port.
-        TODO: this should be removed with more logic to check which logical port maps to actual physical port
-        being used"""
-
-        if port != logical_port_list_per_port[0]:
-            click.echo("ERR: This logical Port {} is not on a muxcable".format(port))
-            sys.exit(CONFIG_FAIL)
-
-        if state == "auto":
-            mode = sonic_y_cable.y_cable.SWITCHING_MODE_AUTO
-        elif state == "manual":
-            mode = sonic_y_cable.y_cable.SWITCHING_MODE_MANUAL
-        import sonic_y_cable.y_cable
-        result = sonic_y_cable.y_cable.set_switching_mode(physical_port, mode)
-        if result == False:
-            click.echo(("ERR: Unable to set switching mode for the cable port {}".format(port)))
-            sys.exit(CONFIG_FAIL)
-
-        click.echo("Success in switching mode on port {} to {}".format(port, state))
-
-    elif port == "all" and port is not None:
-
-        click.confirm(('Muxcable at port {} will be changed to {} switching mode. Continue?'.format(port, state)), abort=True)
         logical_port_list = platform_sfputil_helper.get_logical_list()
 
-        rc = True
+        rc_exit = 0
+
         for port in logical_port_list:
+
             if platform_sfputil is not None:
                 physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
 
-            asic_index = None
-            if platform_sfputil is not None:
-                asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
-                if asic_index is None:
-                    # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
-                    # is fully mocked
-                    import sonic_platform_base.sonic_sfp.sfputilhelper
-                    asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
-                    if asic_index is None:
-                        click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
-
             if not isinstance(physical_port_list, list):
-                click.echo(("ERR: Unable to locate physical port information for {}".format(port)))
                 continue
-
             if len(physical_port_list) != 1:
-                click.echo("ERR: Found multiple physical ports ({}) associated with {}".format(
-                    ", ".join(physical_port_list), port))
-                continue
-
-            transceiver_dict[asic_index] = per_npu_statedb[asic_index].get_all(
-                per_npu_statedb[asic_index].STATE_DB, 'TRANSCEIVER_INFO|{}'.format(port))
-            vendor_value = transceiver_dict[asic_index].get("manufacturer", None)
-            model_value = transceiver_dict[asic_index].get("model", None)
-
-            """ This check is required for checking whether or not this port is connected to a Y cable
-            or not. The check gives a way to differentiate between non Y cable ports and Y cable ports.
-            TODO: this should be removed once their is support for multiple vendors on Y cable"""
-
-            if vendor_value != VENDOR_NAME or not re.match(VENDOR_MODEL_REGEX, model_value):
                 continue
 
             physical_port = physical_port_list[0]
-
             logical_port_list_for_physical_port = platform_sfputil_helper.get_physical_to_logical()
 
             logical_port_list_per_port = logical_port_list_for_physical_port.get(physical_port, None)
@@ -606,98 +556,23 @@ def setswitchmode(db, state, port):
             if port != logical_port_list_per_port[0]:
                 continue
 
-            if state == "auto":
-                mode = sonic_y_cable.y_cable.SWITCHING_MODE_AUTO
-            elif state == "manual":
-                mode = sonic_y_cable.y_cable.SWITCHING_MODE_MANUAL
-            import sonic_y_cable.y_cable
-            result = sonic_y_cable.y_cable.set_switching_mode(physical_port, mode)
-            if result == False:
-                rc = False
-                click.echo("ERR: Unable to set switching mode on port {} to {}".format(port, state))
+            res_dict = {}
+            res_dict [0] = CONFIG_FAIL
+            res_dict [1] = "unknown"
+            res_dict = update_and_get_response_for_xcvr_cmd("config", "result", "True", "XCVRD_CONFIG_HWMODE_SWMODE_CMD", "XCVRD_CONFIG_HWMODE_SWMODE_RSP", port, 1, state)
 
-            click.echo("Success in switching mode on port {} to {}".format(port, state))
+            rc = res_dict[0]
 
-        if rc == False:
-            click.echo("ERR: Unable to set switching mode one or more ports to {}".format(state))
-            sys.exit(CONFIG_FAIL)
+            delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_SWMODE_CMD")
+            delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_HWMODE_SWMODE_RSP")
 
+            if rc == 0:
+                click.echo("Success in toggling port {} to {}".format(port, state))
+            else:
+                click.echo("ERR: Unable to toggle port {} to {}".format(port, state))
+                rc_exit = CONFIG_FAIL
 
-def get_per_npu_statedb(per_npu_statedb, port_table_keys):
-
-    # Getting all front asic namespace and correspding config and state DB connector
-
-    namespaces = multi_asic.get_front_end_namespaces()
-    for namespace in namespaces:
-        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-        # replace these with correct macros
-        per_npu_statedb[asic_id] = SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
-        per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
-
-        port_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
-            per_npu_statedb[asic_id].STATE_DB, 'MUX_CABLE_TABLE|*')
-
-
-def get_physical_port_list(port):
-
-    physical_port_list = []
-    if platform_sfputil is not None:
-        physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
-
-    asic_index = None
-    if platform_sfputil is not None:
-        asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
-        if asic_index is None:
-            # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
-            # is fully mocked
-            import sonic_platform_base.sonic_sfp.sfputilhelper
-            asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
-            if asic_index is None:
-                click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port))
-
-    if not isinstance(physical_port_list, list):
-        click.echo(("ERR: Unable to locate physical port information for {}".format(port)))
-        sys.exit(CONFIG_FAIL)
-
-    if len(physical_port_list) != 1:
-        click.echo("ERR: Found multiple physical ports ({}) associated with {}".format(
-            ", ".join(physical_port_list), port))
-        sys.exit(CONFIG_FAIL)
-
-    return (physical_port_list, asic_index)
-
-
-def perform_download_firmware(physical_port, fwfile, port):
-    import sonic_y_cable.y_cable
-    result = sonic_y_cable.y_cable.download_firmware(physical_port, fwfile)
-    if result == sonic_y_cable.y_cable.FIRMWARE_DOWNLOAD_SUCCESS:
-        click.echo("firmware download successful {}".format(port))
-        return True
-    else:
-        click.echo("firmware download failure {}".format(port))
-        return False
-
-
-def perform_activate_firmware(physical_port, port):
-    import sonic_y_cable.y_cable
-    result = sonic_y_cable.y_cable.activate_firmware(physical_port)
-    if result == sonic_y_cable.y_cable.FIRMWARE_ACTIVATE_SUCCESS:
-        click.echo("firmware activate successful for {}".format(port))
-        return True
-    else:
-        click.echo("firmware activate failure for {}".format(port))
-        return False
-
-
-def perform_rollback_firmware(physical_port, port):
-    import sonic_y_cable.y_cable
-    result = sonic_y_cable.y_cable.rollback_firmware(physical_port)
-    if result == sonic_y_cable.y_cable.FIRMWARE_ROLLBACK_SUCCESS:
-        click.echo("firmware rollback successful {}".format(port))
-        return True
-    else:
-        click.echo("firmware rollback failure {}".format(port))
-        return False
+        sys.exit(rc_exit)
 
 
 @muxcable.group(cls=clicommon.AbbreviationGroup)
@@ -715,149 +590,229 @@ def download(db, fwfile, port):
 
     port = platform_sfputil_helper.get_interface_alias(port, db)
 
-    per_npu_statedb = {}
-    y_cable_asic_table_keys = {}
-    port_table_keys = {}
-
-    get_per_npu_statedb(per_npu_statedb, port_table_keys)
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_DOWN_FW_RSP")
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_DOWN_FW_CMD")
 
     if port is not None and port != "all":
 
-        physical_port_list = []
-        physical_port_list, asic_index = get_physical_port_list(port)
-        physical_port = physical_port_list[0]
-        if per_npu_statedb[asic_index] is not None:
-            y_cable_asic_table_keys = port_table_keys[asic_index]
-            logical_key = "MUX_CABLE_TABLE|{}".format(port)
-            if logical_key in y_cable_asic_table_keys:
-                perform_download_firmware(physical_port, fwfile, port)
+        res_dict = {}
+        res_dict [0] = CONFIG_FAIL
+        res_dict [1] = "unknown"
+        res_dict = update_and_get_response_for_xcvr_cmd("download_firmware", "status", "0", "XCVRD_DOWN_FW_CMD", "XCVRD_DOWN_FW_RSP", port, 1000, fwfile)
 
-            else:
-                click.echo("this is not a valid port present on mux_cable".format(port))
-                sys.exit(CONFIG_FAIL)
+        rc = res_dict[0]
+
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_DOWN_FW_RSP")
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_DOWN_FW_CMD")
+
+        if rc == 0:
+            click.echo("Success in downloading firmware port {} {}".format(port, fwfile))
         else:
-            click.echo("there is not a valid asic table for this asic_index".format(asic_index))
+            click.echo("ERR: Unable to download firmware port {} {}".format(port, fwfile))
             sys.exit(CONFIG_FAIL)
 
-    elif port == "all" and port is not None:
+    elif port == "all":
+        click.confirm(('Muxcable at all ports will be changed to {} switching mode. Continue?'.format(state)), abort=True)
 
-        rc = CONFIG_SUCCESSFUL
-        for namespace in namespaces:
-            asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-            for key in port_table_keys[asic_id]:
-                port = key.split("|")[1]
+        logical_port_list = platform_sfputil_helper.get_logical_list()
 
-                physical_port_list = []
-                (physical_port_list, asic_index) = get_physical_port_list(port)
+        rc_exit = True
 
-                physical_port = physical_port_list[0]
+        for port in logical_port_list:
 
-                status = perform_download_firmware(physical_port, fwfile, port)
+            if platform_sfputil is not None:
+                physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
 
-                if status is not True:
-                    rc = CONFIG_FAIL
+            if not isinstance(physical_port_list, list):
+                continue
+            if len(physical_port_list) != 1:
+                continue
 
-        sys.exit(rc)
+            physical_port = physical_port_list[0]
+            logical_port_list_for_physical_port = platform_sfputil_helper.get_physical_to_logical()
+
+            logical_port_list_per_port = logical_port_list_for_physical_port.get(physical_port, None)
+
+            """ This check is required for checking whether or not this logical port is the one which is
+            actually mapped to physical port and by convention it is always the first port.
+            TODO: this should be removed with more logic to check which logical port maps to actual physical port
+            being used"""
+
+            if port != logical_port_list_per_port[0]:
+                continue
+
+            res_dict = {}
+
+            res_dict [0] = CONFIG_FAIL
+            res_dict [1] = "unknown"
+            res_dict = update_and_get_response_for_xcvr_cmd("download_firmware", "status", "0", "XCVRD_DOWN_FW_CMD", "XCVRD_DOWN_FW_RSP", port, 1000, fwfile)
+
+            rc = res_dict[0]
+
+            delete_all_keys_in_db_table("STATE_DB", "XCVRD_DOWN_FW_RSP")
+            delete_all_keys_in_db_table("APPL_DB", "XCVRD_DOWN_FW_CMD")
+
+            if rc == 0:
+                click.echo("Success in downloading firmware port {} {}".format(port, fwfile))
+            else:
+                click.echo("ERR: Unable to download firmware port {} {}".format(port, fwfile))
+                rc_exit = CONFIG_FAIL
+
+        sys.exit(rc_exit)
 
 
 @firmware.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
+@click.argument('fwfile', metavar='<firmware_file>', required=False, default=None)
 @clicommon.pass_db
-def activate(db, port):
+def activate(db, port, fwfile):
     """Config muxcable firmware activate"""
 
     port = platform_sfputil_helper.get_interface_alias(port, db)
 
-    per_npu_statedb = {}
-    y_cable_asic_table_keys = {}
-    port_table_keys = {}
-
-    get_per_npu_statedb(per_npu_statedb, port_table_keys)
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_ACTI_FW_RSP")
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_ACTI_FW_CMD")
 
     if port is not None and port != "all":
 
-        physical_port_list = []
-        (physical_port_list, asic_index) = get_physical_port_list(port)
-        physical_port = physical_port_list[0]
-        if per_npu_statedb[asic_index] is not None:
-            y_cable_asic_table_keys = port_table_keys[asic_index]
-            logical_key = "MUX_CABLE_TABLE|{}".format(port)
-            if logical_key in y_cable_asic_table_keys:
-                perform_activate_firmware(physical_port, port)
+        res_dict = {}
+        res_dict [0] = CONFIG_FAIL
+        res_dict [1] = "unknown"
+        res_dict = update_and_get_response_for_xcvr_cmd("activate_firmware", "status", "0", "XCVRD_ACTI_FW_CMD", "XCVRD_ACTI_FW_RSP", port, 60, fwfile)
 
-            else:
-                click.echo("this is not a valid port present on mux_cable".format(port))
-                sys.exit(CONFIG_FAIL)
+        rc = res_dict[0]
+
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_ACTI_FW_RSP")
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_ACTI_FW_CMD")
+
+        if rc == 0:
+            click.echo("Success in activate firmware port {} fwfile {}".format(port, fwfile))
         else:
-            click.echo("there is not a valid asic table for this asic_index".format(asic_index))
+            click.echo("ERR: Unable to activate firmware port {} fwfile {}".format(port, fwfile))
             sys.exit(CONFIG_FAIL)
 
-    elif port == "all" and port is not None:
+    elif port == "all":
 
-        rc = CONFIG_SUCCESSFUL
-        for namespace in namespaces:
-            asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-            for key in port_table_keys[asic_id]:
-                port = key.split("|")[1]
+        logical_port_list = platform_sfputil_helper.get_logical_list()
 
-                physical_port_list = []
+        rc_exit = True
 
-                (physical_port_list, asic_index) = get_physical_port_list(port)
-                physical_port = physical_port_list[0]
-                status = perform_activate_firmware(physical_port, port)
+        for port in logical_port_list:
 
-                if status is not True:
-                    rc = CONFIG_FAIL
+            if platform_sfputil is not None:
+                physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
 
-        sys.exit(rc)
+            if not isinstance(physical_port_list, list):
+                continue
+            if len(physical_port_list) != 1:
+                continue
+
+            physical_port = physical_port_list[0]
+            logical_port_list_for_physical_port = platform_sfputil_helper.get_physical_to_logical()
+
+            logical_port_list_per_port = logical_port_list_for_physical_port.get(physical_port, None)
+
+            """ This check is required for checking whether or not this logical port is the one which is
+            actually mapped to physical port and by convention it is always the first port.
+            TODO: this should be removed with more logic to check which logical port maps to actual physical port
+            being used"""
+
+            if port != logical_port_list_per_port[0]:
+                continue
+
+            res_dict = {}
+
+            res_dict [0] = CONFIG_FAIL
+            res_dict [1] = "unknown"
+            res_dict = update_and_get_response_for_xcvr_cmd("activate_firmware", "status", "0", "XCVRD_ACTI_FW_CMD", "XCVRD_ACTI_FW_RSP", port, 60, fwfile)
+
+            delete_all_keys_in_db_table("STATE_DB", "XCVRD_ACTI_FW_RSP")
+            delete_all_keys_in_db_table("APPL_DB", "XCVRD_ACTI_FW_CMD")
+
+            rc = res_dict[0]
+
+            if rc == 0:
+                click.echo("Success in activate firmware port {} fwfile {}".format(port, fwfile))
+            else:
+                click.echo("ERR: Unable to activate firmware port {} fwfile {}".format(port, fwfile))
+                rc_exit = CONFIG_FAIL
+
+        sys.exit(rc_exit)
 
 
 @firmware.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
+@click.argument('fwfile', metavar='<firmware_file>', required=False, default=None)
 @clicommon.pass_db
-def rollback(db, port):
+def rollback(db, port, fwfile):
     """Config muxcable firmware rollback"""
 
     port = platform_sfputil_helper.get_interface_alias(port, db)
 
-    port_table_keys = {}
-    y_cable_asic_table_keys = {}
-    per_npu_statedb = {}
-
-    get_per_npu_statedb(per_npu_statedb, port_table_keys)
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_ROLL_FW_RSP")
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_ROLL_FW_CMD")
 
     if port is not None and port != "all":
 
-        physical_port_list = []
-        (physical_port_list, asic_index) = get_physical_port_list(port)
-        physical_port = physical_port_list[0]
-        if per_npu_statedb[asic_index] is not None:
-            y_cable_asic_table_keys = port_table_keys[asic_index]
-            logical_key = "MUX_CABLE_TABLE|{}".format(port)
-            if logical_key in y_cable_asic_table_keys:
-                perform_rollback_firmware(physical_port, port)
+        res_dict = {}
+        res_dict [0] = CONFIG_FAIL
+        res_dict [1] = "unknown"
+        res_dict = update_and_get_response_for_xcvr_cmd("rollback_firmware", "status", "0", "XCVRD_ROLL_FW_CMD", "XCVRD_ROLL_FW_RSP", port, 60, fwfile)
 
-            else:
-                click.echo("this is not a valid port present on mux_cable".format(port))
-                sys.exit(CONFIG_FAIL)
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_ROLL_FW_RSP")
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_ROLL_FW_CMD")
+
+        rc = res_dict[0]
+        if rc == 0:
+            click.echo("Success in rollback firmware port {} fwfile {}".format(port, fwfile))
         else:
-            click.echo("there is not a valid asic table for this asic_index".format(asic_index))
+            click.echo("ERR: Unable to rollback firmware port {} fwfile {}".format(port, fwfile))
             sys.exit(CONFIG_FAIL)
 
-    elif port == "all" and port is not None:
+    elif port == "all":
 
-        rc = CONFIG_SUCCESSFUL
-        for namespace in namespaces:
-            asic_id = multi_asic.get_asic_index_from_namespace(namespace)
-            for key in port_table_keys[asic_id]:
-                port = key.split("|")[1]
+        logical_port_list = platform_sfputil_helper.get_logical_list()
 
-                physical_port_list = []
-                (physical_port_list, asic_index) = get_physical_port_list(port)
-                physical_port = physical_port_list[0]
-                status = perform_rollback_firmware(physical_port, port)
+        rc_exit = True
 
-                if status is not True:
-                    rc = CONFIG_FAIL
+        for port in logical_port_list:
 
-        sys.exit(rc)
+            if platform_sfputil is not None:
+                physical_port_list = platform_sfputil_helper.logical_port_name_to_physical_port_list(port)
+
+            if not isinstance(physical_port_list, list):
+                continue
+            if len(physical_port_list) != 1:
+                continue
+
+            physical_port = physical_port_list[0]
+            logical_port_list_for_physical_port = platform_sfputil_helper.get_physical_to_logical()
+
+            logical_port_list_per_port = logical_port_list_for_physical_port.get(physical_port, None)
+
+            """ This check is required for checking whether or not this logical port is the one which is
+            actually mapped to physical port and by convention it is always the first port.
+            TODO: this should be removed with more logic to check which logical port maps to actual physical port
+            being used"""
+
+            if port != logical_port_list_per_port[0]:
+                continue
+
+            res_dict = {}
+
+            res_dict [0] = CONFIG_FAIL
+            res_dict [1] = "unknown"
+            res_dict = update_and_get_response_for_xcvr_cmd("rollback_firmware", "status", "0", "XCVRD_ROLL_FW_CMD", "XCVRD_ROLL_FW_RSP", port, 60, fwfile)
+
+            delete_all_keys_in_db_table("STATE_DB", "XCVRD_ROLL_FW_RSP")
+            delete_all_keys_in_db_table("APPL_DB", "XCVRD_ROLL_FW_CMD")
+
+            rc = res_dict[0]
+
+            if rc == 0:
+                click.echo("Success in rollback firmware port {} fwfile {}".format(port, fwfile))
+            else:
+                click.echo("ERR: Unable to rollback firmware port {} fwfile {}".format(port, fwfile))
+                rc_exit = CONFIG_FAIL
+
+        sys.exit(rc_exit)

@@ -615,6 +615,10 @@ class TestMuxcable(object):
                                ["Ethernet0"], obj=db)
         assert result.exit_code == 1
 
+
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "active"}))
     @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
     @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
@@ -632,6 +636,9 @@ class TestMuxcable(object):
         assert result.exit_code == 0
         assert result.output == show_muxcable_hwmode_muxdirection_active_expected_output
 
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "standby"}))
     @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
     @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
@@ -647,6 +654,9 @@ class TestMuxcable(object):
         result = runner.invoke(show.cli.commands["muxcable"].commands["hwmode"].commands["muxdirection"], obj=db)
         assert result.exit_code == 0
 
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "standby"}))
     @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
     @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
@@ -664,6 +674,9 @@ class TestMuxcable(object):
         assert result.exit_code == 0
         assert result.output == show_muxcable_hwmode_muxdirection_standby_expected_output
 
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "sucess"}))
     @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
     @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
@@ -679,6 +692,13 @@ class TestMuxcable(object):
         result = runner.invoke(show.cli.commands["muxcable"].commands["hwmode"].commands["muxdirection"], obj=db)
         assert result.exit_code == 0
 
+    @mock.patch('config.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "sucess"}))
+    @mock.patch('config.muxcable.swsscommon.DBConnector', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Select', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.SubscriberStateTable', mock.MagicMock(return_value=0))
     @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
     @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
     @mock.patch('config.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
@@ -697,6 +717,13 @@ class TestMuxcable(object):
                                ["active", "Ethernet12"], obj=db)
         assert result.exit_code == 0
 
+    @mock.patch('config.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "sucess"}))
+    @mock.patch('config.muxcable.swsscommon.DBConnector', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Select', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.SubscriberStateTable', mock.MagicMock(return_value=0))
     @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
     @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
     @mock.patch('config.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
@@ -715,6 +742,13 @@ class TestMuxcable(object):
                                ["active", "all"], obj=db)
         assert result.exit_code == 0
 
+    @mock.patch('config.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "standby"}))
+    @mock.patch('config.muxcable.swsscommon.DBConnector', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Select', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.SubscriberStateTable', mock.MagicMock(return_value=0))
     @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
     @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
     @mock.patch('config.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
@@ -733,6 +767,13 @@ class TestMuxcable(object):
                                ["standby", "Ethernet12"], obj=db)
         assert result.exit_code == 0
 
+    @mock.patch('config.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "standby"}))
+    @mock.patch('config.muxcable.swsscommon.DBConnector', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Select', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.SubscriberStateTable', mock.MagicMock(return_value=0))
     @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
     @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
     @mock.patch('config.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
@@ -751,6 +792,18 @@ class TestMuxcable(object):
                                ["standby", "all"], obj=db)
         assert result.exit_code == 0
 
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "True"}))
+    @mock.patch('show.muxcable.get_response_for_version', mock.MagicMock(return_value={"version_self_active": "0.6MS",
+                                                                                           "version_self_inactive": "0.6MS",
+                                                                                           "version_self_next": "0.6MS",
+                                                                                           "version_peer_active": "0.6MS",
+                                                                                           "version_peer_inactive": "0.6MS",
+                                                                                           "version_peer_next": "0.6MS",
+                                                                                           "version_nic_active": "0.6MS",
+                                                                                           "version_nic_inactive": "0.6MS",
+                                                                                           "version_nic_next": "0.6MS"}))
     @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
     @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
@@ -770,6 +823,13 @@ class TestMuxcable(object):
         assert result.exit_code == 0
         assert result.output == show_muxcable_firmware_version_expected_output
 
+    @mock.patch('config.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "sucess"}))
+    @mock.patch('config.muxcable.swsscommon.DBConnector', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Select', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.SubscriberStateTable', mock.MagicMock(return_value=0))
     @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
     @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
     @mock.patch('config.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
@@ -787,6 +847,13 @@ class TestMuxcable(object):
                                "fwfile", "Ethernet0"], obj=db)
         assert result.exit_code == 0
 
+    @mock.patch('config.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "sucess"}))
+    @mock.patch('config.muxcable.swsscommon.DBConnector', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.Select', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.swsscommon.SubscriberStateTable', mock.MagicMock(return_value=0))
     @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
     @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
     @mock.patch('config.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
@@ -804,6 +871,13 @@ class TestMuxcable(object):
                                "Ethernet0"], obj=db)
         assert result.exit_code == 0
 
+    @mock.patch('config.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('config.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "sucess"}))
+    @mock.patch("config.muxcable.swsscommon.DBConnector", mock.MagicMock(return_value=0))
+    @mock.patch("config.muxcable.swsscommon.Table", mock.MagicMock(return_value=0))
+    @mock.patch("config.muxcable.swsscommon.Select", mock.MagicMock(return_value=0))
+    @mock.patch("config.muxcable.swsscommon.SubscriberStateTable", mock.MagicMock(return_value=0))
     @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
     @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
     @mock.patch('config.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
@@ -847,6 +921,18 @@ class TestMuxcable(object):
         assert result.exit_code == 0
         assert result.output == show_muxcable_metrics_expected_output_json
 
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "True"}))
+    @mock.patch('show.muxcable.get_response_for_version', mock.MagicMock(return_value={"version_self_active": "0.6MS",
+                                                                                           "version_self_inactive": "0.6MS",
+                                                                                           "version_self_next": "0.6MS",
+                                                                                           "version_peer_active": "0.6MS",
+                                                                                           "version_peer_inactive": "0.6MS",
+                                                                                           "version_peer_next": "0.6MS",
+                                                                                           "version_nic_active": "0.6MS",
+                                                                                           "version_nic_inactive": "0.6MS",
+                                                                                           "version_nic_next": "0.6MS"}))
     @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
     @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
