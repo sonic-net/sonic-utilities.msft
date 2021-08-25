@@ -4,6 +4,7 @@ from tabulate import tabulate
 from swsscommon.swsscommon import SonicV2Connector
 
 import utilities_common.cli as clicommon
+from sonic_py_common import multi_asic
 
 CHASSIS_MODULE_INFO_TABLE = 'CHASSIS_MODULE_TABLE'
 CHASSIS_MODULE_INFO_KEY_TEMPLATE = 'CHASSIS_MODULE {}'
@@ -17,11 +18,16 @@ CHASSIS_MIDPLANE_INFO_IP_FIELD = 'ip_address'
 CHASSIS_MIDPLANE_INFO_ACCESS_FIELD = 'access'
 
 @click.group(cls=clicommon.AliasedGroup)
-def chassis_modules():
+def chassis():
+    """Chassis commands group"""
+    pass
+
+@chassis.group()
+def modules():
     """Show chassis-modules information"""
     pass
 
-@chassis_modules.command()
+@modules.command()
 @clicommon.pass_db
 @click.argument('chassis_module_name', metavar='<module_name>', required=False)
 def status(db, chassis_module_name):
@@ -66,7 +72,7 @@ def status(db, chassis_module_name):
     else:
         click.echo('No data available in CHASSIS_MODULE_TABLE\n')
 
-@chassis_modules.command()
+@modules.command()
 @click.argument('chassis_module_name', metavar='<module_name>', required=False)
 def midplane_status(chassis_module_name):
     """Show chassis-modules midplane-status"""
@@ -102,3 +108,59 @@ def midplane_status(chassis_module_name):
         click.echo(tabulate(table, header, tablefmt='simple', stralign='right'))
     else:
         click.echo('No data available in CHASSIS_MIDPLANE_TABLE\n')
+
+@chassis.command()
+@click.argument('systemportname', required=False)
+@click.option('--namespace', '-n', 'namespace', required=True if multi_asic.is_multi_asic() else False, 
+                default=None, type=str, show_default=False, help='Namespace name or all')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def system_ports(systemportname, namespace, verbose):
+    """Show VOQ system ports information"""
+
+    cmd = "voqutil -c system_ports"
+
+    if systemportname is not None:
+        cmd += " -i \"{}\"".format(systemportname)
+    
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
+
+    clicommon.run_command(cmd, display_cmd=verbose)
+
+@chassis.command()
+@click.argument('ipaddress', required=False)
+@click.option('--asicname', '-n', 'asicname', default=None, type=str, show_default=False, help='Asic name')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def system_neighbors(asicname, ipaddress, verbose):
+    """Show VOQ system neighbors information"""
+
+    cmd = "voqutil -c system_neighbors"
+
+    if ipaddress is not None:
+        cmd += " -a {}".format(ipaddress)
+
+    if asicname is not None:
+        cmd += " -n {}".format(asicname)
+
+    clicommon.run_command(cmd, display_cmd=verbose)
+
+@chassis.command()
+@click.argument('systemlagname', required=False)
+@click.option('--asicname', '-n', 'asicname', default=None, type=str, show_default=False, help='Asic name')
+@click.option('--linecardname', '-l', 'linecardname', default=None, type=str, show_default=False, help='Linecard or Host name')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def system_lags(systemlagname, asicname, linecardname, verbose):
+    """Show VOQ system lags information"""
+
+    cmd = "voqutil -c system_lags"
+
+    if systemlagname is not None:
+        cmd += " -s \"{}\"".format(systemlagname)
+
+    if asicname is not None:
+        cmd += " -n {}".format(asicname)
+
+    if linecardname is not None:
+        cmd += " -l \"{}\"".format(linecardname)
+
+    clicommon.run_command(cmd, display_cmd=verbose)

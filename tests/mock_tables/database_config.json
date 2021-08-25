@@ -51,6 +51,11 @@
             "id" : 7,
             "separator": "|",
             "instance" : "redis"
+        },
+        "CHASSIS_APP_DB" : {
+            "id" : 12,
+            "separator": "|",
+            "instance" : "redis"
         }
     },
     "VERSION" : "1.1"

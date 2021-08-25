@@ -59,6 +59,41 @@
         "role": "Int",
         "speed": "100000"
     },
+    "SYSTEM_PORT_TABLE:Linecard1|Asic0|Ethernet0": {
+        "core_index": "0", 
+        "core_port_index": "1", 
+        "speed": "100000", 
+        "switch_id": "0", 
+        "system_port_id": "1"
+    }, 
+    "SYSTEM_PORT_TABLE:Linecard1|Asic0|Ethernet-IB0": {
+        "core_index": "1", 
+        "core_port_index": "6", 
+        "speed": "10000", 
+        "switch_id": "0", 
+        "system_port_id": "13"
+    }, 
+    "SYSTEM_PORT_TABLE:Linecard1|Asic1|Ethernet12": {
+        "core_index": "0", 
+        "core_port_index": "1", 
+        "speed": "100000", 
+        "switch_id": "2", 
+        "system_port_id": "65"
+    }, 
+    "SYSTEM_PORT_TABLE:Linecard1|Asic2|Ethernet24": {
+        "core_index": "0", 
+        "core_port_index": "1", 
+        "speed": "100000", 
+        "switch_id": "4", 
+        "system_port_id": "129"
+    }, 
+    "SYSTEM_PORT_TABLE:Linecard2|Asic0|Ethernet0": {
+        "core_index": "0", 
+        "core_port_index": "1", 
+        "speed": "100000", 
+        "switch_id": "6", 
+        "system_port_id": "193"
+    }, 
     "LAG_MEMBER_TABLE:PortChannel1015:Ethernet20": {
         "status": "enabled"
     },

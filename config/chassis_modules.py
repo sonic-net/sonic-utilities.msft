@@ -8,14 +8,19 @@ import utilities_common.cli as clicommon
 # 'chassis_modules' group ('config chassis_modules ...')
 #
 @click.group(cls=clicommon.AliasedGroup)
-def chassis_modules():
-    """Configure chassis-modules options"""
+def chassis():
+    """Configure chassis commands group"""
+    pass
+
+@chassis.group()
+def modules():
+    """Configure chassis modules"""
     pass
 
 #
 # 'shutdown' subcommand ('config chassis_modules shutdown ...')
 #
-@chassis_modules.command('shutdown')
+@modules.command('shutdown')
 @clicommon.pass_db
 @click.argument('chassis_module_name', metavar='<module_name>', required=True)
 def shutdown_chassis_module(db, chassis_module_name):
@@ -34,7 +39,7 @@ def shutdown_chassis_module(db, chassis_module_name):
 #
 # 'startup' subcommand ('config chassis_modules startup ...')
 #
-@chassis_modules.command('startup')
+@modules.command('startup')
 @clicommon.pass_db
 @click.argument('chassis_module_name', metavar='<module_name>', required=True)
 def startup_chassis_module(db, chassis_module_name):

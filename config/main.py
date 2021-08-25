@@ -981,7 +981,7 @@ def config(ctx):
 config.add_command(aaa.aaa)
 config.add_command(aaa.tacacs)
 config.add_command(aaa.radius)
-config.add_command(chassis_modules.chassis_modules)
+config.add_command(chassis_modules.chassis)
 config.add_command(console.console)
 config.add_command(feature.feature)
 config.add_command(kdump.kdump)
