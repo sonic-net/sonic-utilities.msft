@@ -1,0 +1,10 @@
+{
+    "COUNTERS:pbh_table1:nvgre": {
+        "Packets": "100",
+        "Bytes": "200"
+    },
+    "COUNTERS:pbh_table2:vxlan": {
+        "Packets": "300",
+        "Bytes": "400"
+    }
+}
