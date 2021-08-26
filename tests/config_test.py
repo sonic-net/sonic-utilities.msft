@@ -35,7 +35,13 @@ def mock_run_command_side_effect(*args, **kwargs):
         click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
 
     if kwargs.get('return_cmd'):
-        return ''
+        if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
+            return 'snmp.timer'
+        elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
+            return 'swss'
+        else:
+            return ''
+
 
 class TestLoadMinigraph(object):
     @classmethod
@@ -55,7 +61,11 @@ class TestLoadMinigraph(object):
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
-            assert mock_run_command.call_count == 7
+            # Verify "systemctl reset-failed" is called for services under sonic.target 
+            mock_run_command.assert_any_call('systemctl reset-failed swss')
+            # Verify "systemctl reset-failed" is called for services under sonic-delayed.target 
+            mock_run_command.assert_any_call('systemctl reset-failed snmp')
+            assert mock_run_command.call_count == 10
 
     def test_load_minigraph_with_port_config_bad_format(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
