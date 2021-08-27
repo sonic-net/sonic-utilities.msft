@@ -103,6 +103,26 @@ class TestIntfstat(object):
         show.run_command("intfstat -D")
         assert expected in result.output
 
+    def test_clear_single_interface_check_all(self):
+        runner = CliRunner()
+        result = runner.invoke(clear.cli.commands["rifcounters"], ["Ethernet20"])
+        print(result.stdout)
+        assert result.exit_code == 0
+        result = runner.invoke(show.cli.commands["interfaces"].commands["counters"].commands["rif"], [])
+        print(result.stdout)
+        expected = ["     Ethernet20        0  0.00 B/s    0.00/s         0        0  0.00 B/s    0.00/s         0",
+                    "PortChannel0001      883       N/A       N/A         0        0       N/A       N/A         0",
+                    "PortChannel0002      883       N/A       N/A         0        0       N/A       N/A         0",
+                    "PortChannel0003        0       N/A       N/A         0        0       N/A       N/A         0",
+                    "PortChannel0004      883       N/A       N/A         0        0       N/A       N/A         0",
+                    "       Vlan1000        0       N/A       N/A         0        0       N/A       N/A         0"]
+
+
+        # remove the counters snapshot
+        show.run_command("intfstat -D")
+        for line in expected:
+            assert line in result.output
+
     def test_clear(self):
         runner = CliRunner()
         result = runner.invoke(clear.cli.commands["rifcounters"], [])

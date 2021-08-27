@@ -204,17 +204,16 @@ class Intfstat(object):
 
         cntr = cnstat_new_dict.get(rif)
 
-        if cnstat_old_dict:
+        if cnstat_old_dict and cnstat_old_dict.get(rif):
             old_cntr = cnstat_old_dict.get(rif)
-            if old_cntr:
-                body = body % (ns_diff(cntr.rx_p_ok, old_cntr.rx_p_ok),
-                            ns_diff(cntr.rx_b_ok, old_cntr.rx_b_ok),
-                            ns_diff(cntr.rx_p_err, old_cntr.rx_p_err),
-                            ns_diff(cntr.rx_b_err, old_cntr.rx_b_err),
-                            ns_diff(cntr.tx_p_ok, old_cntr.tx_p_ok),
-                            ns_diff(cntr.tx_b_ok, old_cntr.tx_b_ok),
-                            ns_diff(cntr.tx_p_err, old_cntr.tx_p_err),
-                            ns_diff(cntr.tx_b_err, old_cntr.tx_b_err))
+            body = body % (ns_diff(cntr.rx_p_ok, old_cntr.rx_p_ok),
+                        ns_diff(cntr.rx_b_ok, old_cntr.rx_b_ok),
+                        ns_diff(cntr.rx_p_err, old_cntr.rx_p_err),
+                        ns_diff(cntr.rx_b_err, old_cntr.rx_b_err),
+                        ns_diff(cntr.tx_p_ok, old_cntr.tx_p_ok),
+                        ns_diff(cntr.tx_b_ok, old_cntr.tx_b_ok),
+                        ns_diff(cntr.tx_p_err, old_cntr.tx_p_err),
+                        ns_diff(cntr.tx_b_err, old_cntr.tx_b_err))
         else:
             body = body % (cntr.rx_p_ok, cntr.rx_b_ok, cntr.rx_p_err,cntr.rx_b_err,
                            cntr.tx_p_ok, cntr.tx_b_ok, cntr.tx_p_err, cntr.tx_b_err)
@@ -258,8 +257,9 @@ def main():
     wait_time_in_seconds = args.period
     interface_name = args.interface if args.interface else ""
 
-    # fancy filename with dashes: uid-tag-intf / uid-intf / uid-tag etc
-    filename_components = [uid, tag_name, interface_name]
+    # fancy filename with dashes: uid-tag / uid etc
+    filename_components = [uid, tag_name]
+
     cnstat_file = "-".join(filter(None, filename_components))
 
     cnstat_dir = "/tmp/intfstat-" + uid
@@ -305,7 +305,26 @@ def main():
 
     if save_fresh_stats:
         try:
-            pickle.dump(cnstat_dict, open(cnstat_fqn_file, 'wb'))
+            # Add the information also to the general file - i.e. without the tag name
+            if tag_name != '' and tag_name in cnstat_fqn_file.split('/')[-1]:
+                gen_index = cnstat_fqn_file.rfind('/')
+                cnstat_fqn_general_file = cnstat_fqn_file[:gen_index] + cnstat_fqn_file[gen_index:].split('-')[0]
+                if os.path.isfile(cnstat_fqn_general_file):
+                    try:
+                        general_data = pickle.load(open(cnstat_fqn_general_file, 'rb'))
+                        for key, val in cnstat_dict.items():
+                            general_data[key] = val
+                        pickle.dump(general_data, open(cnstat_fqn_general_file, 'wb'))
+                    except IOError as e:
+                        sys.exit(e.errno)
+            # Add the information also to tag specific file
+            if os.path.isfile(cnstat_fqn_file):
+                data = pickle.load(open(cnstat_fqn_file, 'rb'))
+                for key, val in cnstat_dict.items():
+                    data[key] = val
+                pickle.dump(data, open(cnstat_fqn_file, 'wb'))
+            else:
+                pickle.dump(cnstat_dict, open(cnstat_fqn_file, 'wb'))
         except IOError as e:
             sys.exit(e.errno)
         else:
@@ -313,9 +332,17 @@ def main():
             sys.exit(0)
 
     if wait_time_in_seconds == 0:
-        if os.path.isfile(cnstat_fqn_file):
+        gen_index = cnstat_fqn_file.rfind('/')
+        cnstat_fqn_general_file = cnstat_fqn_file[:gen_index] + cnstat_fqn_file[gen_index:].split('-')[0]
+
+        if os.path.isfile(cnstat_fqn_file) or (os.path.isfile(cnstat_fqn_general_file)):
             try:
-                cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'rb'))
+                cnstat_cached_dict = {}
+                if os.path.isfile(cnstat_fqn_file):
+                    cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'rb'))
+                else:
+                    cnstat_cached_dict = pickle.load(open(cnstat_fqn_general_file, 'rb'))
+
                 print("Last cached time was " + str(cnstat_cached_dict.get('time')))
                 if interface_name:
                     intfstat.cnstat_single_interface(interface_name, cnstat_dict, cnstat_cached_dict)
