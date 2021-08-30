@@ -199,10 +199,11 @@ class EcnQ(object):
     """
     Process ecn on/off on queues
     """
-    def __init__(self, queues, verbose):
+    def __init__(self, queues, filename, verbose):
         self.ports_key = []
         self.queues = queues.split(',')
         self.validate_queues()
+        self.filename = filename
         self.verbose = verbose
 
         # Set up db connections
@@ -222,13 +223,19 @@ class EcnQ(object):
     def gen_ports_key(self):
         if self.ports_key is not None:
             port_table = self.config_db.get_table(DEVICE_NEIGHBOR_TABLE_NAME)
-            self.ports_key = port_table.keys()
+            self.ports_key = list(port_table.keys())
 
             # In multi-ASIC platforms backend ethernet ports are identified as
             # 'Ethernet-BPxy'. Add 1024 to sort backend ports to the end.
             self.ports_key.sort(
                 key = lambda k: int(k[8:]) if "BP" not in k else int(k[11:]) + 1024
             )
+
+    def dump_table_info(self):
+        if self.filename is not None:
+            q_table = self.config_db.get_table(QUEUE_TABLE_NAME)
+            with open(self.filename, "w") as fd:
+                json.dump({repr(x):y for x, y in q_table.items()}, fd)
 
     def set(self, enable):
         chk_exec_privilege()
@@ -239,6 +246,7 @@ class EcnQ(object):
             for port_key in self.ports_key:
                 key = '|'.join([port_key, queue])
                 self.config_db.mod_entry(QUEUE_TABLE_NAME, key, {FIELD: ON if enable else OFF})
+        self.dump_table_info()
 
     def get(self):
         print("ECN status:")
@@ -256,6 +264,7 @@ class EcnQ(object):
                 print("%s: on" % (out))
             else:
                 print("%s: off" % (out))
+        self.dump_table_info()
 
 def main():
     parser = argparse.ArgumentParser(description='Show and change:\n'
@@ -357,10 +366,15 @@ def main():
                     prof_cfg.set_wred_prob(args.profile, "rdrop", args.red_drop_prob)
 
         elif args.queue:
-            if len(sys.argv) < (4 if args.verbose else 3):
+            arg_len_min = 3
+            if args.filename:
+                arg_len_min += 1
+            if args.verbose:
+                arg_len_min += 1
+            if len(sys.argv) < arg_len_min:
                 raise Exception("Input arguments error. Specify at least one queue by index")
 
-            q_ecn = EcnQ(args.queue, args.verbose)
+            q_ecn = EcnQ(args.queue, args.filename, args.verbose)
             if not args.command:
                 q_ecn.get()
             else:
