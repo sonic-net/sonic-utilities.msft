@@ -131,7 +131,7 @@ class InterfaceAliasConverter(object):
 
 
         if not self.port_dict:
-            click.echo(message="Warning: failed to retrieve PORT table from ConfigDB!", err=True)
+            click.echo(message="Configuration database contains no ports")
             self.port_dict = {}
 
         for port_name in self.port_dict:
