@@ -34,7 +34,7 @@ class TestBuffer(object):
         print(result.output)
         assert result.exit_code == 0
         profile = db.cfgdb.get_entry('BUFFER_PROFILE', 'testprofile')
-        assert profile == {'dynamic_th': '3', 'pool': '[BUFFER_POOL|ingress_lossless_pool]', 'xon': '18432', 'xoff': '32768', 'size': '18432'}
+        assert profile == {'dynamic_th': '3', 'pool': 'ingress_lossless_pool', 'xon': '18432', 'xoff': '32768', 'size': '18432'}
 
     def test_config_buffer_profile_dynamic_th(self):
         runner = CliRunner()
@@ -45,7 +45,7 @@ class TestBuffer(object):
         print(result.output)
         assert result.exit_code == 0
         profile = db.cfgdb.get_entry('BUFFER_PROFILE', 'testprofile')
-        assert profile == {'dynamic_th': '3', 'pool': '[BUFFER_POOL|ingress_lossless_pool]', 'headroom_type': 'dynamic'}
+        assert profile == {'dynamic_th': '3', 'pool': 'ingress_lossless_pool', 'headroom_type': 'dynamic'}
 
     def test_config_buffer_profile_add_existing(self):
         runner = CliRunner()
@@ -164,7 +164,7 @@ class TestBuffer(object):
         print(result.output)
         assert result.exit_code == 0
         profile = db.cfgdb.get_entry('BUFFER_PROFILE', 'test1')
-        assert profile == {'dynamic_th': '3', 'pool': '[BUFFER_POOL|ingress_lossless_pool]', 'xon': '18432', 'xoff': '32768', 'size': '51200'}
+        assert profile == {'dynamic_th': '3', 'pool': 'ingress_lossless_pool', 'xon': '18432', 'xoff': '32768', 'size': '51200'}
 
         # Xoff should equal size - xon
         result = runner.invoke(config.config.commands["buffer"].commands["profile"].commands["add"],
@@ -173,7 +173,7 @@ class TestBuffer(object):
         print(result.output)
         assert result.exit_code == 0
         profile = db.cfgdb.get_entry('BUFFER_PROFILE', 'test2')
-        assert profile == {'dynamic_th': '3', 'pool': '[BUFFER_POOL|ingress_lossless_pool]', 'xon': '18432', 'xoff': '14336', 'size': '32768'}
+        assert profile == {'dynamic_th': '3', 'pool': 'ingress_lossless_pool', 'xon': '18432', 'xoff': '14336', 'size': '32768'}
 
         # Neither xon nor size is provided
         result = runner.invoke(config.config.commands["buffer"].commands["profile"].commands["add"],
@@ -198,7 +198,7 @@ class TestBuffer(object):
         print(result.output)
         assert result.exit_code == 0
         profile = db.cfgdb.get_entry('BUFFER_PROFILE', 'test2')
-        assert profile == {'dynamic_th': '3', 'pool': '[BUFFER_POOL|ingress_lossless_pool]', 'xon': '18432', 'xoff': '14336', 'size': '65536'}
+        assert profile == {'dynamic_th': '3', 'pool': 'ingress_lossless_pool', 'xon': '18432', 'xoff': '14336', 'size': '65536'}
 
         # Set xon
         result = runner.invoke(config.config.commands["buffer"].commands["profile"].commands["set"],
@@ -207,7 +207,7 @@ class TestBuffer(object):
         print(result.output)
         assert result.exit_code == 0
         profile = db.cfgdb.get_entry('BUFFER_PROFILE', 'test2')
-        assert profile == {'dynamic_th': '3', 'pool': '[BUFFER_POOL|ingress_lossless_pool]', 'xon': '19456', 'xoff': '14336', 'size': '65536'}
+        assert profile == {'dynamic_th': '3', 'pool': 'ingress_lossless_pool', 'xon': '19456', 'xoff': '14336', 'size': '65536'}
 
         # Set xoff
         result = runner.invoke(config.config.commands["buffer"].commands["profile"].commands["set"],
@@ -216,7 +216,7 @@ class TestBuffer(object):
         print(result.output)
         assert result.exit_code == 0
         profile = db.cfgdb.get_entry('BUFFER_PROFILE', 'test2')
-        assert profile == {'dynamic_th': '3', 'pool': '[BUFFER_POOL|ingress_lossless_pool]', 'xon': '19456', 'xoff': '18432', 'size': '65536'}
+        assert profile == {'dynamic_th': '3', 'pool': 'ingress_lossless_pool', 'xon': '19456', 'xoff': '18432', 'size': '65536'}
 
         # Enable SHP by setting size
         result = runner.invoke(config.config.commands["buffer"].commands["shared-headroom-pool"].commands["size"],
@@ -232,7 +232,7 @@ class TestBuffer(object):
         print(result.output)
         assert result.exit_code == 0
         profile = db.cfgdb.get_entry('BUFFER_PROFILE', 'testprofile3')
-        assert profile == {'dynamic_th': '3', 'pool': '[BUFFER_POOL|ingress_lossless_pool]', 'xon': '18432', 'xoff': '32768', 'size': '18432'}
+        assert profile == {'dynamic_th': '3', 'pool': 'ingress_lossless_pool', 'xon': '18432', 'xoff': '32768', 'size': '18432'}
 
         # Negative test: xoff not provided
         result = runner.invoke(config.config.commands["buffer"].commands["profile"].commands["add"],

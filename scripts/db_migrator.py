@@ -44,7 +44,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_2_0_2'
+        self.CURRENT_VERSION = 'version_2_0_3'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -60,9 +60,11 @@ class DBMigrator():
             self.configDB = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace, **db_kwargs)
         self.configDB.db_connect('CONFIG_DB')
 
-        self.appDB = SonicV2Connector(host='127.0.0.1')
-        if self.appDB is not None:
-            self.appDB.connect(self.appDB.APPL_DB)
+        if namespace is None:
+            self.appDB = ConfigDBConnector(**db_kwargs)
+        else:
+            self.appDB = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace, **db_kwargs)
+        self.appDB.db_connect('APPL_DB')
 
         self.stateDB = SonicV2Connector(host='127.0.0.1')
         if self.stateDB is not None:
@@ -382,6 +384,69 @@ class DBMigrator():
                 elif value['autoneg'] == '0':
                     self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, key), 'autoneg', 'off')
 
+    def migrate_qos_db_fieldval_reference_remove(self, table_list, db, db_num, db_delimeter):
+        for pair in table_list:
+            table_name, fields_list = pair
+            qos_table = db.get_table(table_name)
+            for key, value in qos_table.items():
+                if type(key) is tuple:
+                    db_key = table_name + db_delimeter + db_delimeter.join(key)
+                else:
+                    db_key = table_name + db_delimeter + key
+
+                for field in fields_list:
+                    if field in value:
+                        fieldVal = value.get(field)
+                        if not fieldVal or fieldVal == "NULL":
+                            continue
+                        newFiledVal = ""
+                        # Check for ABNF format presence and convert ABNF to string
+                        if "[" in fieldVal and db_delimeter in fieldVal and "]" in fieldVal:
+                            log.log_info("Found ABNF format field value in table {} key {} field {} val {}".format(table_name, db_key, field, fieldVal))
+                            value_list = fieldVal.split(",")
+                            for item in value_list:
+                                if "[" != item[0] or db_delimeter not in item or "]" != item[-1]:
+                                    continue
+                                newFiledVal = newFiledVal + item[1:-1].split(db_delimeter)[1] + ','
+                            newFiledVal = newFiledVal[:-1]
+                            db.set(db_num, db_key, field, newFiledVal)
+                            log.log_info("Modified ABNF format field value to string in table {} key {} field {} val {}".format(table_name, db_key, field, newFiledVal))
+        return True
+
+    def migrate_qos_fieldval_reference_format(self):
+        '''
+        This is to change for first time to remove field refernces of ABNF format
+        in APPL DB for warm boot.
+        i.e "[Tabale_name:name]" to string in APPL_DB. Reasons for doing this
+         - To consistent with all other SoNIC CONFIG_DB/APPL_DB tables and fields
+         - References in DB is not required, this will be taken care by YANG model leafref.
+        '''
+        qos_app_table_list = [
+            ('BUFFER_PG_TABLE', ['profile']),
+            ('BUFFER_QUEUE_TABLE', ['profile']),
+            ('BUFFER_PROFILE_TABLE', ['pool']),
+            ('BUFFER_PORT_INGRESS_PROFILE_LIST_TABLE', ['profile_list']),
+            ('BUFFER_PORT_EGRESS_PROFILE_LIST_TABLE', ['profile_list'])
+        ]
+
+        log.log_info("Remove APPL_DB QOS tables field reference ABNF format")
+        self.migrate_qos_db_fieldval_reference_remove(qos_app_table_list, self.appDB, self.appDB.APPL_DB, ':')
+
+        qos_table_list = [
+            ('QUEUE', ['scheduler', 'wred_profile']),
+            ('PORT_QOS_MAP', ['dscp_to_tc_map', 'dot1p_to_tc_map',
+                              'pfc_to_queue_map', 'tc_to_pg_map',
+                              'tc_to_queue_map', 'pfc_to_pg_map']),
+            ('BUFFER_PG', ['profile']),
+            ('BUFFER_QUEUE', ['profile']),
+            ('BUFFER_PROFILE', ['pool']),
+            ('BUFFER_PORT_INGRESS_PROFILE_LIST', ['profile_list']),
+            ('BUFFER_PORT_EGRESS_PROFILE_LIST', ['profile_list'])
+        ]
+        log.log_info("Remove CONFIG_DB QOS tables field reference ABNF format")
+        self.migrate_qos_db_fieldval_reference_remove(qos_table_list, self.configDB, self.configDB.CONFIG_DB, '|')
+        return True
+
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
@@ -542,9 +607,19 @@ class DBMigrator():
 
     def version_2_0_2(self):
         """
-        Current latest version. Nothing to do here.
+        Version 2_0_2.
         """
         log.log_info('Handling version_2_0_2')
+        self.migrate_qos_fieldval_reference_format()
+        self.set_version('version_2_0_3')
+        return 'version_2_0_3'
+
+
+    def version_2_0_3(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log.log_info('Handling version_2_0_3')
         return None
 
     def get_version(self):

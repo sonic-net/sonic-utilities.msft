@@ -31,27 +31,27 @@ type  ingress
 ----  -------
 
 Profile: ingress_lossy_profile
-----------  --------------------------------
+----------  ------------------
 dynamic_th  3
-pool        [BUFFER_POOL|ingress_lossy_pool]
+pool        ingress_lossy_pool
 size        0
-----------  --------------------------------
+----------  ------------------
 
 Profile: headroom_profile
-----------  -----------------------------------
+----------  ---------------------
 dynamic_th  0
-pool        [BUFFER_POOL|ingress_lossless_pool]
+pool        ingress_lossless_pool
 xon         18432
 xoff        32768
 size        51200
-----------  -----------------------------------
+----------  ---------------------
 
 Profile: alpha_profile
--------------  -----------------------------------
+-------------  ---------------------
 dynamic_th     0
-pool           [BUFFER_POOL|ingress_lossless_pool]
+pool           ingress_lossless_pool
 headroom_type  dynamic
--------------  -----------------------------------
+-------------  ---------------------
 
 """
 
@@ -85,20 +85,20 @@ type  ingress
 ----  -------
 
 Profile: ingress_lossy_profile
-----------  --------------------------------------
+----------  ------------------
 dynamic_th  3
-pool        [BUFFER_POOL_TABLE|ingress_lossy_pool]
+pool        ingress_lossy_pool
 size        0
-----------  --------------------------------------
+----------  ------------------
 
 Profile: headroom_profile
-----------  -----------------------------------------
+----------  ---------------------
 dynamic_th  0
-pool        [BUFFER_POOL_TABLE|ingress_lossless_pool]
+pool        ingress_lossless_pool
 xon         18432
 xoff        32768
 size        51200
-----------  -----------------------------------------
+----------  ---------------------
 
 """
 

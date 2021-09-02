@@ -33,7 +33,7 @@
         "lacp_key": "auto"
     },
     "VERSIONS|DATABASE": {
-        "VERSION": "version_2_0_2"
+        "VERSION": "version_2_0_3"
     }
 } 
 

@@ -1709,26 +1709,26 @@
     },
     "BUFFER_PROFILE|ingress_lossy_profile": {
 	"dynamic_th": "3",
-	"pool": "[BUFFER_POOL|ingress_lossy_pool]",
+	"pool": "ingress_lossy_pool",
 	"size": "0"
     },
     "BUFFER_PROFILE|headroom_profile": {
         "dynamic_th": "0",
-        "pool": "[BUFFER_POOL|ingress_lossless_pool]",
+        "pool": "ingress_lossless_pool",
         "xon": "18432",
         "xoff": "32768",
         "size": "51200"
     },
     "BUFFER_PROFILE|alpha_profile": {
         "dynamic_th": "0",
-        "pool": "[BUFFER_POOL|ingress_lossless_pool]",
+        "pool": "ingress_lossless_pool",
         "headroom_type": "dynamic"
     },
     "BUFFER_PG|Ethernet0|3-4": {
         "profile": "NULL"
     },
     "BUFFER_PG|Ethernet0|0": {
-        "profile": "[BUFFER_PROFILE|ingress_lossy_profile]"
+        "profile": "ingress_lossy_profile"
     },
     "PORT_QOS_MAP|Ethernet0": {
         "pfc_enable": "3,4"

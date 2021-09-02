@@ -43,10 +43,9 @@ class TestMellanoxBufferMigrator(object):
         cls.config_db_tables_to_verify = ['BUFFER_POOL', 'BUFFER_PROFILE', 'BUFFER_PG', 'DEFAULT_LOSSLESS_BUFFER_PARAMETER', 'LOSSLESS_TRAFFIC_PATTERN', 'VERSIONS', 'DEVICE_METADATA']
         cls.appl_db_tables_to_verify = ['BUFFER_POOL_TABLE:*', 'BUFFER_PROFILE_TABLE:*', 'BUFFER_PG_TABLE:*', 'BUFFER_QUEUE:*', 'BUFFER_PORT_INGRESS_PROFILE_LIST:*', 'BUFFER_PORT_EGRESS_PROFILE_LIST:*']
         cls.warm_reboot_from_version = 'version_1_0_6'
-        cls.warm_reboot_to_version = 'version_2_0_0'
+        cls.warm_reboot_to_version = 'version_2_0_3'
 
-        cls.version_list = ['version_1_0_1', 'version_1_0_2', 'version_1_0_3', 'version_1_0_4', 'version_1_0_5', 'version_1_0_6', 'version_2_0_0']
-
+        cls.version_list = ['version_1_0_1', 'version_1_0_2', 'version_1_0_3', 'version_1_0_4', 'version_1_0_5', 'version_1_0_6', 'version_2_0_0', 'version_2_0_3']
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
 
     @classmethod
@@ -221,7 +220,6 @@ class TestAutoNegMigrator(object):
         assert dbmgtr.configDB.get_table('PORT') == expected_db.cfgdb.get_table('PORT')
         assert dbmgtr.configDB.get_table('VERSIONS') == expected_db.cfgdb.get_table('VERSIONS')
 
-
 class TestInitConfigMigrator(object):
     @classmethod
     def setup_class(cls):
@@ -248,7 +246,6 @@ class TestInitConfigMigrator(object):
 
         assert not expected_db.cfgdb.get_table('CONTAINER_FEATURE')
 
-
 class TestLacpKeyMigrator(object):
     @classmethod
     def setup_class(cls):
@@ -270,3 +267,58 @@ class TestLacpKeyMigrator(object):
 
         assert dbmgtr.configDB.get_table('PORTCHANNEL') == expected_db.cfgdb.get_table('PORTCHANNEL')
         assert dbmgtr.configDB.get_table('VERSIONS') == expected_db.cfgdb.get_table('VERSIONS')
+
+class TestQosDBFieldValueReferenceRemoveMigrator(object):
+    @classmethod
+    def setup_class(cls):
+        cls.config_db_tables_to_verify = ['QUEUE', 'PORT_QOS_MAP', 'BUFFER_PROFILE', 'BUFFER_PG', 'BUFFER_PORT_INGRESS_PROFILE_LIST', 'BUFFER_PORT_EGRESS_PROFILE_LIST', 'VERSIONS']
+        cls.appl_db_tables_to_verify = ['BUFFER_PROFILE_TABLE:*', 'BUFFER_PG_TABLE:*', 'BUFFER_QUEUE_TABLE:*', 'BUFFER_PORT_INGRESS_PROFILE_LIST_TABLE:*', 'BUFFER_PORT_EGRESS_PROFILE_LIST_TABLE:*']
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def mock_dedicated_config_db(self, filename):
+        jsonfile = os.path.join(mock_db_path, 'config_db', filename)
+        dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile
+        db = Db()
+        return db
+
+    def mock_dedicated_appl_db(self, filename):
+        jsonfile = os.path.join(mock_db_path, 'appl_db', filename)
+        dbconnector.dedicated_dbs['APPL_DB'] = jsonfile
+        appl_db = SonicV2Connector(host='127.0.0.1')
+        appl_db.connect(appl_db.APPL_DB)
+        return appl_db
+
+    def clear_dedicated_mock_dbs(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+        dbconnector.dedicated_dbs['APPL_DB'] = None
+
+    def check_config_db(self, result, expected):
+        for table in self.config_db_tables_to_verify:
+            assert result.get_table(table) == expected.get_table(table)
+
+    def check_appl_db(self, result, expected):
+        for table in self.appl_db_tables_to_verify:
+            keys = expected.keys(expected.APPL_DB, table)
+            if keys is None:
+                continue
+            for key in keys:
+                assert expected.get_all(expected.APPL_DB, key) == result.get_all(result.APPL_DB, key)
+
+    def test_qos_buffer_migrator_for_cold_reboot(self):
+        db_before_migrate = 'qos_tables_db_field_value_reference_format_2_0_1'
+        db_after_migrate = 'qos_tables_db_field_value_reference_format_2_0_3'
+        db = self.mock_dedicated_config_db(db_before_migrate)
+        _ = self.mock_dedicated_appl_db(db_before_migrate)
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        expected_db = self.mock_dedicated_config_db(db_after_migrate)
+        expected_appl_db = self.mock_dedicated_appl_db(db_after_migrate)
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_2_0_3')
+        self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
+        self.check_appl_db(dbmgtr.appDB, expected_appl_db)
+        self.clear_dedicated_mock_dbs()
