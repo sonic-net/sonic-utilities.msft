@@ -176,6 +176,7 @@ setup(
         'jinja2>=2.11.3',
         'jsondiff>=1.2.0',
         'jsonpatch>=1.32.0',
+        'jsonpointer>=1.9',
         'm2crypto>=0.31.0',
         'natsort>=6.2.1',  # 6.2.1 is the last version which supports Python 2. Can update once we no longer support Python 2
         'netaddr>=0.8.0',

@@ -3,6 +3,7 @@ import os
 from enum import Enum
 from .gu_common import GenericConfigUpdaterError, ConfigWrapper, \
                        DryRunConfigWrapper, PatchWrapper
+from .patch_sorter import PatchSorter
 
 CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
 CHECKPOINT_EXT = ".cp.json"
@@ -15,11 +16,6 @@ class ConfigLock:
     def release_lock(self):
         # TODO: Implement ConfigLock
         pass
-
-class PatchSorter:
-    def sort(self, patch):
-        # TODO: Implement patch sorter
-        raise NotImplementedError("PatchSorter.sort(patch) is not implemented yet")
 
 class ChangeApplier:
     def apply(self, change):
@@ -36,7 +32,7 @@ class PatchApplier:
                  changeapplier=None,
                  config_wrapper=None,
                  patch_wrapper=None):
-        self.patchsorter = patchsorter if patchsorter is not None else PatchSorter()
+        self.patchsorter = patchsorter if patchsorter is not None else PatchSorter(config_wrapper, patch_wrapper)
         self.changeapplier = changeapplier if changeapplier is not None else ChangeApplier()
         self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
         self.patch_wrapper = patch_wrapper if patch_wrapper is not None else PatchWrapper()
