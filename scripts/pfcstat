@@ -18,7 +18,7 @@ from natsort import natsorted
 from tabulate import tabulate
 
 from sonic_py_common.multi_asic import get_external_ports
-from utilities_common.netstat import ns_diff, STATUS_NA
+from utilities_common.netstat import ns_diff, STATUS_NA, format_number_with_comma
 from utilities_common import multi_asic as multi_asic_util
 from utilities_common import constants
 
@@ -141,10 +141,14 @@ class Pfcstat(object):
             if key == 'time':
                 continue
             table.append((key,
-                        data.pfc0, data.pfc1,
-                        data.pfc2, data.pfc3,
-                        data.pfc4, data.pfc5,
-                        data.pfc6, data.pfc7))
+                          format_number_with_comma(data.pfc0),
+                          format_number_with_comma(data.pfc1),
+                          format_number_with_comma(data.pfc2),
+                          format_number_with_comma(data.pfc3),
+                          format_number_with_comma(data.pfc4),
+                          format_number_with_comma(data.pfc5),
+                          format_number_with_comma(data.pfc6),
+                          format_number_with_comma(data.pfc7)))
 
         if rx:
             print(tabulate(table, header_Rx, tablefmt='simple', stralign='right'))
@@ -176,10 +180,14 @@ class Pfcstat(object):
                             ns_diff(cntr.pfc7, old_cntr.pfc7)))
             else:
                 table.append((key,
-                            cntr.pfc0, cntr.pfc1,
-                            cntr.pfc2, cntr.pfc3,
-                            cntr.pfc4, cntr.pfc5,
-                            cntr.pfc6, cntr.pfc7))
+                              format_number_with_comma(cntr.pfc0),
+                              format_number_with_comma(cntr.pfc1),
+                              format_number_with_comma(cntr.pfc2),
+                              format_number_with_comma(cntr.pfc3),
+                              format_number_with_comma(cntr.pfc4),
+                              format_number_with_comma(cntr.pfc5),
+                              format_number_with_comma(cntr.pfc6),
+                              format_number_with_comma(cntr.pfc7)))
 
         if rx:
             print(tabulate(table, header_Rx, tablefmt='simple', stralign='right'))

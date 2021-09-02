@@ -38,7 +38,7 @@ from utilities_common import constants
 from utilities_common.intf_filter import parse_interface_in_filter
 import  utilities_common.multi_asic as multi_asic_util
 from utilities_common.netstat import (ns_brate, ns_diff, ns_prate, ns_util,
-                                      table_as_json)
+                                      table_as_json, format_number_with_comma)
 
 
 PORT_RATE = 40
@@ -238,27 +238,45 @@ class Portstat(object):
             if print_all:
                 header = header_all
                 table.append((key, self.get_port_state(key),
-                              data.rx_ok, STATUS_NA, STATUS_NA, STATUS_NA, data.rx_err,
-                              data.rx_drop, data.rx_ovr,
-                              data.tx_ok, STATUS_NA, STATUS_NA, STATUS_NA, data.tx_err,
-                              data.tx_drop, data.tx_ovr))
+                              format_number_with_comma(data.rx_ok),
+                              STATUS_NA, STATUS_NA, STATUS_NA,
+                              format_number_with_comma(data.rx_err),
+                              format_number_with_comma(data.rx_drop),
+                              format_number_with_comma(data.rx_ovr),
+                              format_number_with_comma(data.tx_ok),
+                              STATUS_NA, STATUS_NA, STATUS_NA,
+                              format_number_with_comma(data.tx_err),
+                              format_number_with_comma(data.tx_drop),
+                              format_number_with_comma(data.tx_ovr)))
             elif errors_only:
                 header = header_errors_only
                 table.append((key, self.get_port_state(key),
-                              data.rx_err, data.rx_drop, data.rx_ovr,
-                              data.tx_err, data.tx_drop, data.tx_ovr))
+                              format_number_with_comma(data.rx_err),
+                              format_number_with_comma(data.rx_drop),
+                              format_number_with_comma(data.rx_ovr),
+                              format_number_with_comma(data.tx_err),
+                              format_number_with_comma(data.tx_drop),
+                              format_number_with_comma(data.tx_ovr)))
             elif rates_only:
                 header = header_rates_only
                 table.append((key, self.get_port_state(key),
-                              data.rx_ok, STATUS_NA, STATUS_NA, STATUS_NA,
-                              data.tx_ok, STATUS_NA, STATUS_NA, STATUS_NA))
+                              format_number_with_comma(data.rx_ok),
+                              STATUS_NA, STATUS_NA, STATUS_NA,
+                              format_number_with_comma(data.tx_ok),
+                              STATUS_NA, STATUS_NA, STATUS_NA))
             else:
                 header = header_std
                 table.append((key, self.get_port_state(key),
-                              data.rx_ok, STATUS_NA, STATUS_NA, data.rx_err,
-                              data.rx_drop, data.rx_ovr,
-                              data.tx_ok, STATUS_NA, STATUS_NA, data.tx_err,
-                              data.tx_drop, data.tx_ovr))
+                              format_number_with_comma(data.rx_ok),
+                              STATUS_NA, STATUS_NA,
+                              format_number_with_comma(data.rx_err),
+                              format_number_with_comma(data.rx_drop),
+                              format_number_with_comma(data.rx_ovr),
+                              format_number_with_comma(data.tx_ok),
+                              STATUS_NA, STATUS_NA,
+                              format_number_with_comma(data.tx_err),
+                              format_number_with_comma(data.tx_drop),
+                              format_number_with_comma(data.tx_ovr)))
 
         if use_json:
             print(table_as_json(table, header))
@@ -371,20 +389,20 @@ class Portstat(object):
                                   ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
                 else:
                     table.append((key, self.get_port_state(key),
-                                  cntr.rx_ok,
+                                  format_number_with_comma(cntr.rx_ok),
                                   STATUS_NA,
                                   STATUS_NA,
                                   STATUS_NA,
-                                  cntr.rx_err,
-                                  cntr.rx_drop,
-                                  cntr.rx_ovr,
-                                  cntr.tx_ok,
+                                  format_number_with_comma(cntr.rx_err),
+                                  format_number_with_comma(cntr.rx_drop),
+                                  format_number_with_comma(cntr.rx_ovr),
+                                  format_number_with_comma(cntr.tx_ok),
                                   STATUS_NA,
                                   STATUS_NA,
                                   STATUS_NA,
-                                  cntr.tx_err,
-                                  cntr.tx_drop,
-                                  cntr.tx_ovr))
+                                  format_number_with_comma(cntr.tx_err),
+                                  format_number_with_comma(cntr.tx_drop),
+                                  format_number_with_comma(cntr.tx_ovr)))
             elif errors_only:
                 header = header_errors_only
                 table.append((key, self.get_port_state(key),
@@ -423,18 +441,18 @@ class Portstat(object):
                                   ns_diff(cntr.tx_ovr, old_cntr.tx_ovr)))
                 else:
                     table.append((key, self.get_port_state(key),
-                                  cntr.rx_ok,
+                                  format_number_with_comma(cntr.rx_ok),
                                   STATUS_NA,
                                   STATUS_NA,
-                                  cntr.rx_err,
-                                  cntr.rx_drop,
-                                  cntr.rx_ovr,
-                                  cntr.tx_ok,
+                                  format_number_with_comma(cntr.rx_err),
+                                  format_number_with_comma(cntr.rx_drop),
+                                  format_number_with_comma(cntr.rx_ovr),
+                                  format_number_with_comma(cntr.tx_ok),
                                   STATUS_NA,
                                   STATUS_NA,
-                                  cntr.tx_err,
-                                  cntr.tx_drop,
-                                  cntr.tx_ovr))
+                                  format_number_with_comma(cntr.tx_err),
+                                  format_number_with_comma(cntr.tx_drop),
+                                  format_number_with_comma(cntr.tx_ovr)))
 
         if use_json:
             print(table_as_json(table, header))

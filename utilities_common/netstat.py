@@ -69,3 +69,13 @@ def table_as_json(table, header):
         output[if_name] = {header[i]: line[i] for i in range(1, len(header))}
     
     return json.dumps(output, indent=4, sort_keys=True)
+
+
+def format_number_with_comma(number_in_str):
+    """
+        Format the number with comma.
+    """
+    if number_in_str.isdecimal():
+        return '{:,}'.format(int(number_in_str))
+    else:
+        return number_in_str
