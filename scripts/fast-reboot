@@ -5,6 +5,7 @@ REBOOT_TIME=$(date)
 REBOOT_CAUSE_FILE="/host/reboot-cause/reboot-cause.txt"
 WARM_DIR=/host/warmboot
 REDIS_FILE=dump.rdb
+CONFIG_DB_FILE=/etc/sonic/config_db.json
 REBOOT_SCRIPT_NAME=$(basename $0)
 REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
 SHUTDOWN_ORDER_FILE="/etc/sonic/${REBOOT_TYPE}_order"
@@ -36,6 +37,7 @@ EXIT_ORCHAGENT_SHUTDOWN=10
 EXIT_SYNCD_SHUTDOWN=11
 EXIT_FAST_REBOOT_DUMP_FAILURE=12
 EXIT_FILTER_FDB_ENTRIES_FAILURE=13
+EXIT_COUNTERPOLL_DELAY_FAILURE=14
 EXIT_NO_CONTROL_PLANE_ASSISTANT=20
 EXIT_SONIC_INSTALLER_VERIFY_REBOOT=21
 
@@ -513,7 +515,6 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Dump the ARP and FDB tables to files also as default routes for both IPv4 and IPv6
     # into /host/fast-reboot
     DUMP_DIR=/host/fast-reboot
-    CONFIG_DB_FILE=/etc/sonic/config_db.json
     mkdir -p $DUMP_DIR
     FAST_REBOOT_DUMP_RC=0
     /usr/local/bin/fast-reboot-dump.py -t $DUMP_DIR || FAST_REBOOT_DUMP_RC=$?
@@ -551,6 +552,17 @@ if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" ]]; t
         else
             exit "${EXIT_ORCHAGENT_SHUTDOWN}"
         fi
+    fi
+fi
+
+if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
+    COUNTERPOLL_DELAY_RC=0
+    # Delay counters in config_db.json
+    /usr/local/bin/counterpoll config-db delay $CONFIG_DB_FILE || COUNTERPOLL_DELAY_RC=$?
+    if [[ COUNTERPOLL_DELAY_RC -ne 0 ]]; then
+        error "Failed to delay counterpoll. Exit code: $COUNTERPOLL_DELAY_RC"
+        unload_kernel
+        exit "${EXIT_COUNTERPOLL_DELAY_FAILURE}"
     fi
 fi
 
