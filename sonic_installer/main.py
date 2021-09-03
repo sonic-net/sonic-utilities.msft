@@ -4,6 +4,7 @@ import re
 import subprocess
 import sys
 import time
+import utilities_common.cli as clicommon
 from urllib.request import urlopen, urlretrieve
 
 import click
@@ -367,6 +368,102 @@ def migrate_sonic_packages(bootloader, binary_image_version):
             umount(new_image_mount, raise_exception=False)
 
 
+class SWAPAllocator(object):
+    """Context class to allocate SWAP memory."""
+
+    SWAP_MEM_SIZE = 1024
+    DISK_FREESPACE_THRESHOLD = 4 * 1024
+    TOTAL_MEM_THRESHOLD = 2048
+    AVAILABLE_MEM_THRESHOLD = 1200
+    SWAP_FILE_PATH = '/host/swapfile'
+    KiB_TO_BYTES_FACTOR = 1024
+    MiB_TO_BYTES_FACTOR = 1024 * 1024
+
+    def __init__(self, allocate, swap_mem_size=None, total_mem_threshold=None, available_mem_threshold=None):
+        """
+        Initialize the SWAP memory allocator.
+        The allocator will try to setup SWAP memory only if all the below conditions are met:
+            - allocate evaluates to True
+            - disk has enough space(> DISK_MEM_THRESHOLD)
+            - either system total memory < total_mem_threshold or system available memory < available_mem_threshold
+
+        @param allocate: True to allocate SWAP memory if necessarry
+        @param swap_mem_size: the size of SWAP memory to allocate(in MiB)
+        @param total_mem_threshold: the system totla memory threshold(in MiB)
+        @param available_mem_threshold: the system available memory threshold(in MiB)
+        """
+        self.allocate = allocate
+        self.swap_mem_size = SWAPAllocator.SWAP_MEM_SIZE if swap_mem_size is None else swap_mem_size
+        self.total_mem_threshold = SWAPAllocator.TOTAL_MEM_THRESHOLD if total_mem_threshold is None else total_mem_threshold
+        self.available_mem_threshold = SWAPAllocator.AVAILABLE_MEM_THRESHOLD if available_mem_threshold is None else available_mem_threshold
+        self.is_allocated = False
+
+    @staticmethod
+    def get_disk_freespace(path):
+        """Return free disk space in bytes."""
+        fs_stats = os.statvfs(path)
+        return fs_stats.f_bsize * fs_stats.f_bavail
+
+    @staticmethod
+    def read_from_meminfo():
+        """Read information from /proc/meminfo."""
+        meminfo = {}
+        with open("/proc/meminfo") as fd:
+            for line in fd.readlines():
+                if line:
+                    fields = line.split()
+                    if len(fields) >= 2 and fields[1].isdigit():
+                        meminfo[fields[0].rstrip(":")] = int(fields[1])
+        return meminfo
+
+    def setup_swapmem(self):
+        swapfile = SWAPAllocator.SWAP_FILE_PATH
+        with open(swapfile, 'wb') as fd:
+            os.posix_fallocate(fd.fileno(), 0, self.swap_mem_size * SWAPAllocator.MiB_TO_BYTES_FACTOR)
+        os.chmod(swapfile, 0o600)
+        run_command(f'mkswap {swapfile}; swapon {swapfile}')
+
+    def remove_swapmem(self):
+        swapfile = SWAPAllocator.SWAP_FILE_PATH
+        run_command_or_raise(['swapoff', swapfile], raise_exception=False)
+        try:
+            os.unlink(swapfile)
+        finally:
+            pass
+
+    def __enter__(self):
+        if self.allocate:
+            if self.get_disk_freespace('/host') < max(SWAPAllocator.DISK_FREESPACE_THRESHOLD, self.swap_mem_size) * SWAPAllocator.MiB_TO_BYTES_FACTOR:
+                echo_and_log("Failed to setup SWAP memory due to insufficient disk free space...", LOG_ERR)
+                return
+            meminfo = self.read_from_meminfo()
+            mem_total_in_bytes = meminfo["MemTotal"] * SWAPAllocator.KiB_TO_BYTES_FACTOR
+            mem_avail_in_bytes = meminfo["MemAvailable"] * SWAPAllocator.KiB_TO_BYTES_FACTOR
+            if (mem_total_in_bytes < self.total_mem_threshold * SWAPAllocator.MiB_TO_BYTES_FACTOR
+                    or mem_avail_in_bytes < self.available_mem_threshold * SWAPAllocator.MiB_TO_BYTES_FACTOR):
+                echo_and_log("Setup SWAP memory")
+                swapfile = SWAPAllocator.SWAP_FILE_PATH
+                if os.path.exists(swapfile):
+                    self.remove_swapmem()
+                try:
+                    self.setup_swapmem()
+                except Exception:
+                    self.remove_swapmem()
+                    raise
+                self.is_allocated = True
+
+    def __exit__(self, *exc_info):
+        if self.is_allocated:
+            self.remove_swapmem()
+
+
+def validate_positive_int(ctx, param, value):
+    """Callback to validate param passed is a positive integer."""
+    if isinstance(value, int) and value > 0:
+        return value
+    raise click.BadParameter("Must be a positive integer")
+
+
 # Main entrypoint
 @click.group(cls=AliasedGroup)
 def sonic_installer():
@@ -389,8 +486,22 @@ def sonic_installer():
               help="Do not migrate current configuration to the newly installed image")
 @click.option('--skip-package-migration', is_flag=True,
               help="Do not migrate current packages to the newly installed image")
+@click.option('--skip-setup-swap', is_flag=True,
+              help='Skip setup temporary SWAP memory used for installation')
+@click.option('--swap-mem-size', default=1024, type=int, show_default='1024 MiB',
+              help='SWAP memory space size', callback=validate_positive_int,
+              cls=clicommon.MutuallyExclusiveOption, mutually_exclusive=['skip_setup_swap'])
+@click.option('--total-mem-threshold', default=2048, type=int, show_default='2048 MiB',
+              help='If system total memory is lower than threshold, setup SWAP memory',
+              cls=clicommon.MutuallyExclusiveOption, mutually_exclusive=['skip_setup_swap'],
+              callback=validate_positive_int)
+@click.option('--available-mem-threshold', default=1200, type=int, show_default='1200 MiB',
+              help='If system available memory is lower than threhold, setup SWAP memory',
+              cls=clicommon.MutuallyExclusiveOption, mutually_exclusive=['skip_setup_swap'],
+              callback=validate_positive_int)
 @click.argument('url')
-def install(url, force, skip_migration=False, skip_package_migration=False):
+def install(url, force, skip_migration=False, skip_package_migration=False,
+            skip_setup_swap=False, swap_mem_size=None, total_mem_threshold=None, available_mem_threshold=None):
     """ Install image from local binary or URL"""
     bootloader = get_bootloader()
 
@@ -427,7 +538,8 @@ def install(url, force, skip_migration=False, skip_package_migration=False):
             raise click.Abort()
 
         echo_and_log("Installing image {} and setting it as default...".format(binary_image_version))
-        bootloader.install_image(image_path)
+        with SWAPAllocator(not skip_setup_swap, swap_mem_size, total_mem_threshold, available_mem_threshold):
+            bootloader.install_image(image_path)
         # Take a backup of current configuration
         if skip_migration:
             echo_and_log("Skipping configuration migration as requested in the command option.")

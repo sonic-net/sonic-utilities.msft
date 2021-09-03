@@ -599,3 +599,33 @@ def is_interface_in_config_db(config_db, interface_name):
 
     return True
 
+
+class MutuallyExclusiveOption(click.Option):
+    """
+    This option type is extended with `mutually_exclusive` parameter which make
+    CLI to ensure the other options specified in `mutually_exclusive` are not used.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.mutually_exclusive = set(kwargs.pop('mutually_exclusive', []))
+        super(MutuallyExclusiveOption, self).__init__(*args, **kwargs)
+
+    def get_help_record(self, ctx):
+        """Return help string with mutually_exclusive list added."""
+        help_record = list(super(MutuallyExclusiveOption, self).get_help_record(ctx))
+        if self.mutually_exclusive:
+            mutually_exclusive_str = 'NOTE: this argument is mutually exclusive with arguments: %s' % ', '.join(self.mutually_exclusive)
+            if help_record[-1]:
+                help_record[-1] += ' ' + mutually_exclusive_str
+            else:
+                help_record[-1] = mutually_exclusive_str
+        return tuple(help_record)
+
+    def handle_parse_result(self, ctx, opts, args):
+        if self.name in opts and opts[self.name] is not None:
+            for opt_name in self.mutually_exclusive:
+                if opt_name in opts and opts[opt_name] is not None:
+                    raise click.UsageError(
+                        "Illegal usage: %s is mutually exclusive with arguments %s" % (self.name, ', '.join(self.mutually_exclusive))
+                        )
+        return super(MutuallyExclusiveOption, self).handle_parse_result(ctx, opts, args)
