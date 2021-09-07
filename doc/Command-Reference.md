@@ -159,6 +159,7 @@
   * [SONiC Package Manager](#sonic-package-manager)
   * [SONiC Installer](#sonic-installer)
 * [Troubleshooting Commands](#troubleshooting-commands)
+  * [Debug Dumps](#debug-dumps)
 * [Routing Stack](#routing-stack)
 * [Quagga BGP Show Commands](#Quagga-BGP-Show-Commands)
 * [ZTP Configuration And Show Commands](#ztp-configuration-and-show-commands)
@@ -9712,6 +9713,60 @@ If the SONiC system was running for quite some time `show techsupport` will prod
   admin@sonic:~$ show techsupport --since='hour ago' # Will collect syslog and core files for the last one hour
   ```
 
+### Debug Dumps
+
+In SONiC, there usually exists a set of tables related/relevant to a particular module. All of these might have to be looked at to confirm whether any configuration update is properly applied and propagated. This utility comes in handy because it prints a unified view of the redis-state for a given module
+		
+- Usage:
+  ```
+  Usage: dump state [OPTIONS] MODULE IDENTIFIER	 
+  Dump the redis-state of the identifier for the module specified
+  
+  Options:
+	  -s, --show            Display Modules Available
+	  -d, --db TEXT         Only dump from these Databases
+	  -t, --table           Print in tabular format  [default: False]
+	  -k, --key-map         Only fetch the keys matched, don't extract field-value dumps  [default: False]
+	  -v, --verbose         Prints any intermediate output to stdout useful for dev & troubleshooting  [default: False]
+	  -n, --namespace TEXT  Dump the redis-state for this namespace.  [default: DEFAULT_NAMESPACE]
+	  --help                Show this message and exit.
+  ```
+
+  
+- Examples:
+  ```
+  root@sonic# dump state --show
+  Module    Identifier
+  --------  ------------
+  port      port_name
+  copp      trap_id		
+  ```
+		
+  ```
+  admin@sonic:~$ dump state copp arp_req --key-map --db ASIC_DB
+  {
+	    "arp_req": {
+		"ASIC_DB": {
+		    "keys": [
+			"ASIC_STATE:SAI_OBJECT_TYPE_HOSTIF_TRAP:oid:0x22000000000c5b",
+			"ASIC_STATE:SAI_OBJECT_TYPE_HOSTIF_TRAP_GROUP:oid:0x11000000000c59",
+			"ASIC_STATE:SAI_OBJECT_TYPE_POLICER:oid:0x12000000000c5a",
+			"ASIC_STATE:SAI_OBJECT_TYPE_QUEUE:oid:0x15000000000626"
+		    ],
+		    "tables_not_found": [],
+		    "vidtorid": {
+			"oid:0x22000000000c5b": "oid:0x200000000022",
+			"oid:0x11000000000c59": "oid:0x300000011",
+			"oid:0x12000000000c5a": "oid:0x200000012",
+			"oid:0x15000000000626": "oid:0x12e0000040015"
+		    }
+		}
+	    }
+	}	
+  ```
+  
+		
+		
 Go Back To [Beginning of the document](#) or [Beginning of this section](#troubleshooting-commands)
 
 ## Routing Stack
