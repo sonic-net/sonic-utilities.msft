@@ -38,6 +38,7 @@ HOME=${HOME:-/root}
 USER=${USER:-root}
 TIMEOUT_MIN="5"
 SKIP_BCMCMD=0
+DEBUG_DUMP=false
 
 handle_signal()
 {
@@ -1019,6 +1020,31 @@ save_counter_snapshot() {
 }
 
 ###############################################################################
+# save the debug dump output
+###############################################################################
+save_dump_state_all_ns() {
+    MODULES="$(dump state -s | sed '1d;2d' | awk '{print $1}')"
+    local UVDUMP="unified_view_dump"
+    echo "DEBUG DUMP: Modules Available to Generate Debug Dump Output"
+    echo $MODULES
+    $MKDIR $V -p $LOGDIR/$UVDUMP
+
+    for addr in $MODULES;
+    do
+            save_cmd "dump state $addr all --key-map" "$UVDUMP/$addr"
+            if [[ ( "$NUM_ASICS" > 1 ) ]] ; then
+                for (( i=0; i<$NUM_ASICS; i++ ))
+                do
+                        local cmd="dump state $addr all --key-map --namespace asic$i"
+                        local file="$UVDUMP/$addr.asic$i"
+                        save_cmd "$cmd" "$file"
+                done
+            fi
+    done
+}
+
+
+###############################################################################
 # Main generate_dump routine
 # Globals:
 #  All of them.
@@ -1129,6 +1155,11 @@ main() {
     save_nat_info
     save_bfd_info
     save_redis_info
+
+    if $DEBUG_DUMP 
+    then
+        save_dump_state_all_ns
+    fi
 
     save_cmd "docker ps -a" "docker.ps"
     save_cmd "docker top pmon" "docker.pmon"
@@ -1265,11 +1296,13 @@ OPTIONS
         "24 March", "yesterday", etc.
     -t TIMEOUT_MINS
         Command level timeout in minutes
+    -d 
+        Collect the output of debug dump cli
 
 EOF
 }
 
-while getopts ":xnvhzas:t:" opt; do
+while getopts ":xnvhzas:t:d" opt; do
     case $opt in
         x)
             # enable bash debugging
@@ -1310,6 +1343,9 @@ while getopts ":xnvhzas:t:" opt; do
             ;;
         t)
             TIMEOUT_MIN="${OPTARG}"
+            ;;
+        d) 
+            DEBUG_DUMP=true
             ;;
         /?)
             echo "Invalid option: -$OPTARG" >&2
