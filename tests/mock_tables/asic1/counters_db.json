@@ -178,6 +178,18 @@
     "COUNTERS:oid:0x21000000000000": {
         "SAI_SWITCH_STAT_IN_DROP_REASON_RANGE_BASE": "1000"
     },
+    "RATES:oid:0x1000000000b06": {
+            "RX_BPS": "0",
+            "RX_PPS": "0",
+            "TX_BPS": "0",
+            "TX_PPS": "0"
+    },
+    "RATES:oid:0x1000000000b08": {
+            "RX_BPS": "0",
+            "RX_PPS": "0",
+            "TX_BPS": "0",
+            "TX_PPS": "0"
+    },
     "COUNTERS_PORT_NAME_MAP": {
         "Ethernet-BP256": "oid:0x1000000000b06",
         "Ethernet-BP260": "oid:0x1000000000b08"

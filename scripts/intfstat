@@ -11,7 +11,6 @@ import argparse
 import datetime
 import sys
 import os
-import sys
 import time
 
 # mock the redis for unit test purposes #
@@ -28,15 +27,37 @@ except KeyError:
 from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
-from utilities_common.netstat import ns_diff, ns_brate, ns_prate, table_as_json, STATUS_NA
+from utilities_common.netstat import ns_diff, table_as_json, STATUS_NA, format_brate, format_prate
 from swsscommon.swsscommon import SonicV2Connector
 
+nstat_fields = (
+    "rx_b_ok",
+    "rx_p_ok",
+    "tx_b_ok",
+    "tx_p_ok",
+    "rx_b_err",
+    "rx_p_err",
+    "tx_b_err",
+    "tx_p_err"
+)
 
-NStats = namedtuple("NStats", "rx_b_ok, rx_p_ok, tx_b_ok, tx_p_ok,\
-                    rx_b_err, rx_p_err, tx_b_err, tx_p_err,")
+NStats = namedtuple("NStats", nstat_fields)
 
-header = ['IFACE', 'RX_OK', 'RX_BPS', 'RX_PPS', 'RX_ERR',
-              'TX_OK', 'TX_BPS', 'TX_PPS', 'TX_ERR']
+header = [
+    'IFACE',
+    'RX_OK',
+    'RX_BPS',
+    'RX_PPS',
+    'RX_ERR',
+    'TX_OK',
+    'TX_BPS',
+    'TX_PPS',
+    'TX_ERR'
+]
+
+rates_key_list = [ 'RX_BPS', 'RX_PPS', 'TX_BPS', 'TX_PPS']
+ratestat_fields = ("rx_bps", "rx_pps", "tx_bps", "tx_pps")
+RateStats = namedtuple("RateStats", ratestat_fields)
 
 counter_names = (
     'SAI_ROUTER_INTERFACE_STAT_IN_OCTETS',
@@ -49,18 +70,10 @@ counter_names = (
     'SAI_ROUTER_INTERFACE_STAT_OUT_ERROR_PACKETS'
 )
 
+RATES_TABLE_PREFIX = "RATES:"
 
 COUNTER_TABLE_PREFIX = "COUNTERS:"
 COUNTERS_RIF_NAME_MAP = "COUNTERS_RIF_NAME_MAP"
-COUNTERS_RIF_TYPE_MAP = "COUNTERS_RIF_TYPE_MAP"
-
-INTERFACE_TABLE_PREFIX = "PORT_TABLE:"
-INTF_STATUS_VALUE_UP = 'UP'
-INTF_STATUS_VALUE_DOWN = 'DOWN'
-
-INTF_STATE_UP = 'U'
-INTF_STATE_DOWN = 'D'
-INTF_STATE_DISABLED = 'X'
 
 class Intfstat(object):
     def __init__(self):
@@ -76,7 +89,7 @@ class Intfstat(object):
             """
                 Get the counters from specific table.
             """
-            fields = [STATUS_NA] * (len(header) - 1)
+            fields = [STATUS_NA] * len(nstat_fields)
             for pos, counter_name in enumerate(counter_names):
                 full_table_id = COUNTER_TABLE_PREFIX + table_id
                 counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name)
@@ -85,13 +98,28 @@ class Intfstat(object):
             cntr = NStats._make(fields)
             return cntr
 
+        def get_rates(table_id):
+            """
+                Get the rates from specific table.
+            """
+            fields = ["0","0","0","0"]
+            for pos, name in enumerate(rates_key_list):
+                full_table_id = RATES_TABLE_PREFIX + table_id
+                counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, name)
+                if counter_data is None:
+                    fields[pos] = STATUS_NA
+                elif fields[pos] != STATUS_NA:
+                    fields[pos] = float(counter_data)
+            cntr = RateStats._make(fields)
+            return cntr
+
         # Build a dictionary of the stats
         cnstat_dict = OrderedDict()
         cnstat_dict['time'] = datetime.datetime.now()
+        ratestat_dict = OrderedDict()
 
         # Get the info from database
-        counter_rif_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_RIF_NAME_MAP);
-
+        counter_rif_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_RIF_NAME_MAP)
 
         if counter_rif_name_map is None:
             print("No %s in the DB!" % COUNTERS_RIF_NAME_MAP)
@@ -103,31 +131,15 @@ class Intfstat(object):
 
         if rif:
             cnstat_dict[rif] = get_counters(counter_rif_name_map[rif])
-            return cnstat_dict
+            ratestat_dict[rif] = get_rates(counter_rif_name_map[rif])
+            return cnstat_dict, ratestat_dict
 
         for rif in natsorted(counter_rif_name_map):
             cnstat_dict[rif] = get_counters(counter_rif_name_map[rif])
-        return cnstat_dict
+            ratestat_dict[rif] = get_rates(counter_rif_name_map[rif])
+        return cnstat_dict, ratestat_dict
 
-    def get_intf_state(self, port_name):
-        """
-            Get the port state
-        """
-        full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
-        admin_state = self.db.get(self.db.APPL_DB, full_table_id, PORT_ADMIN_STATUS_FIELD)
-        oper_state = self.db.get(self.db.APPL_DB, full_table_id, PORT_OPER_STATUS_FIELD)
-        if admin_state is None or oper_state is None:
-             return STATUS_NA
-        elif admin_state.upper() == PORT_STATUS_VALUE_DOWN:
-            return PORT_STATE_DISABLED
-        elif admin_state.upper() == PORT_STATUS_VALUE_UP and oper_state.upper() == PORT_STATUS_VALUE_UP:
-            return PORT_STATE_UP
-        elif admin_state.upper() == PORT_STATUS_VALUE_UP and oper_state.upper() == PORT_STATUS_VALUE_DOWN:
-            return PORT_STATE_DOWN
-        else:
-            return STATUS_NA
-
-    def cnstat_print(self, cnstat_dict, use_json):
+    def cnstat_print(self, cnstat_dict, ratestat_dict, use_json):
         """
             Print the cnstat.
         """
@@ -137,8 +149,17 @@ class Intfstat(object):
             if key == 'time':
                 continue
 
-            table.append((key, data.rx_p_ok, STATUS_NA, STATUS_NA, data.rx_p_err,
-                               data.tx_p_ok, STATUS_NA, STATUS_NA, data.tx_p_err))
+            rates = ratestat_dict.get(key, RateStats._make([STATUS_NA] * len(rates_key_list)))
+
+            table.append((key,
+                          data.rx_p_ok,
+                          format_brate(rates.rx_bps),
+                          format_prate(rates.rx_pps),
+                          data.rx_p_err,
+                          data.tx_p_ok,
+                          format_brate(rates.tx_bps),
+                          format_prate(rates.tx_pps),
+                          data.tx_p_err))
 
         if use_json:
             print(table_as_json(table, header))
@@ -146,7 +167,7 @@ class Intfstat(object):
         else:
             print(tabulate(table, header, tablefmt='simple', stralign='right'))
 
-    def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, use_json):
+    def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, ratestat_dict, use_json):
         """
             Print the difference between two cnstat results.
         """
@@ -155,33 +176,34 @@ class Intfstat(object):
 
         for key, cntr in cnstat_new_dict.items():
             if key == 'time':
-                time_gap = cnstat_new_dict.get('time') - cnstat_old_dict.get('time')
-                time_gap = time_gap.total_seconds()
                 continue
             old_cntr = None
             if key in cnstat_old_dict:
                 old_cntr = cnstat_old_dict.get(key)
 
+            rates = ratestat_dict.get(key, RateStats._make([STATUS_NA] * len(rates_key_list)))
+
             if old_cntr is not None:
                 table.append((key,
                             ns_diff(cntr.rx_p_ok, old_cntr.rx_p_ok),
-                            ns_brate(cntr.rx_b_ok, old_cntr.rx_b_ok, time_gap),
-                            ns_prate(cntr.rx_p_ok, old_cntr.rx_p_ok, time_gap),
+                            format_brate(rates.rx_bps),
+                            format_prate(rates.rx_pps),
                             ns_diff(cntr.rx_p_err, old_cntr.rx_p_err),
                             ns_diff(cntr.tx_p_ok, old_cntr.tx_p_ok),
-                            ns_brate(cntr.tx_b_ok, old_cntr.tx_b_ok, time_gap),
-                            ns_prate(cntr.tx_p_ok, old_cntr.tx_p_ok, time_gap),
+                            format_brate(rates.tx_bps),
+                            format_prate(rates.tx_pps),
                             ns_diff(cntr.tx_p_err, old_cntr.tx_p_err)))
             else:
                 table.append((key,
                             cntr.rx_p_ok,
-                            STATUS_NA,
-                            STATUS_NA,
+                            format_brate(rates.rx_bps),
+                            format_prate(rates.rx_pps),
                             cntr.rx_p_err,
                             cntr.tx_p_ok,
-                            STATUS_NA,
-                            STATUS_NA,
+                            format_brate(rates.tx_bps),
+                            format_prate(rates.tx_pps),
                             cntr.tx_p_err))
+
         if use_json:
             print(table_as_json(table, header))
         else:
@@ -293,7 +315,7 @@ def main():
             sys.exit(0)
 
     intfstat = Intfstat()
-    cnstat_dict = intfstat.get_cnstat(rif=interface_name)
+    cnstat_dict, ratestat_dict = intfstat.get_cnstat(rif=interface_name)
 
     # At this point, either we'll create a file or open an existing one.
     if not os.path.exists(cnstat_dir):
@@ -347,7 +369,7 @@ def main():
                 if interface_name:
                     intfstat.cnstat_single_interface(interface_name, cnstat_dict, cnstat_cached_dict)
                 else:
-                    intfstat.cnstat_diff_print(cnstat_dict, cnstat_cached_dict, use_json)
+                    intfstat.cnstat_diff_print(cnstat_dict, cnstat_cached_dict, ratestat_dict, use_json)
             except IOError as e:
                 print(e.errno, e)
         else:
@@ -358,16 +380,16 @@ def main():
                 if interface_name:
                     intfstat.cnstat_single_interface(interface_name, cnstat_dict, None)
                 else:
-                    intfstat.cnstat_print(cnstat_dict, use_json)
+                    intfstat.cnstat_print(cnstat_dict, ratestat_dict, use_json)
     else:
         #wait for the specified time and then gather the new stats and output the difference.
         time.sleep(wait_time_in_seconds)
         print("The rates are calculated within %s seconds period" % wait_time_in_seconds)
-        cnstat_new_dict = intfstat.get_cnstat(rif=interface_name)
+        cnstat_new_dict, ratestat_new_dict = intfstat.get_cnstat(rif=interface_name)
         if interface_name:
             intfstat.cnstat_single_interface(interface_name, cnstat_new_dict, cnstat_dict)
         else:
-            intfstat.cnstat_diff_print(cnstat_new_dict, cnstat_dict, use_json)
+            intfstat.cnstat_diff_print(cnstat_new_dict, cnstat_dict, ratestat_new_dict, use_json)
 
 if __name__ == "__main__":
     main()

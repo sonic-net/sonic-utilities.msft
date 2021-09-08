@@ -12,42 +12,42 @@ modules_path = os.path.dirname(root_path)
 scripts_path = os.path.join(modules_path, "scripts")
 
 intf_counters_before_clear = """\
-    IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
----------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
-Ethernet0        D        8       N/A        N/A        10       100       N/A       10       N/A        N/A       N/A       N/A       N/A
-Ethernet4      N/A        4       N/A        N/A         0     1,000       N/A       40       N/A        N/A       N/A       N/A       N/A
-Ethernet8      N/A        6       N/A        N/A       100        10       N/A       60       N/A        N/A       N/A       N/A       N/A
+    IFACE    STATE    RX_OK        RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK       TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  ------------  ---------  --------  --------  --------  -------  -----------  ---------  --------  --------  --------
+Ethernet0        D        8      0.00 B/s      0.00%        10       100       N/A       10     0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet4      N/A        4   204.80 KB/s        N/A         0     1,000       N/A       40  204.85 KB/s        N/A       N/A       N/A       N/A
+Ethernet8      N/A        6  1350.00 KB/s        N/A       100        10       N/A       60   13.37 MB/s        N/A       N/A       N/A       N/A
 """
 
 intf_counters_ethernet4 = """\
-    IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
----------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
-Ethernet4      N/A        4       N/A        N/A         0     1,000       N/A       40       N/A        N/A       N/A       N/A       N/A
+    IFACE    STATE    RX_OK       RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK       TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  -----------  ---------  --------  --------  --------  -------  -----------  ---------  --------  --------  --------
+Ethernet4      N/A        4  204.80 KB/s        N/A         0     1,000       N/A       40  204.85 KB/s        N/A       N/A       N/A       N/A
 """
 
 intf_counters_all = """\
-    IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    Tx_PPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
----------  -------  -------  --------  --------  ---------  --------  --------  --------  -------  --------  --------  ---------  --------  --------  --------
-Ethernet0        D        8       N/A       N/A        N/A        10       100       N/A       10       N/A       N/A        N/A       N/A       N/A       N/A
-Ethernet4      N/A        4       N/A       N/A        N/A         0     1,000       N/A       40       N/A       N/A        N/A       N/A       N/A       N/A
-Ethernet8      N/A        6       N/A       N/A        N/A       100        10       N/A       60       N/A       N/A        N/A       N/A       N/A       N/A
+    IFACE    STATE    RX_OK        RX_BPS     RX_PPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK       TX_BPS     TX_PPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  ------------  ---------  ---------  --------  --------  --------  -------  -----------  ---------  ---------  --------  --------  --------
+Ethernet0        D        8      0.00 B/s     0.00/s      0.00%        10       100       N/A       10     0.00 B/s     0.00/s      0.00%       N/A       N/A       N/A
+Ethernet4      N/A        4   204.80 KB/s   200.00/s        N/A         0     1,000       N/A       40  204.85 KB/s   201.00/s        N/A       N/A       N/A       N/A
+Ethernet8      N/A        6  1350.00 KB/s  9000.00/s        N/A       100        10       N/A       60   13.37 MB/s  9000.00/s        N/A       N/A       N/A       N/A
 """
 
 intf_counters_period = """\
 The rates are calculated within 3 seconds period
-    IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
----------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
-Ethernet0        D        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
-Ethernet4      N/A        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
-Ethernet8      N/A        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
+    IFACE    STATE    RX_OK        RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK       TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  ------------  ---------  --------  --------  --------  -------  -----------  ---------  --------  --------  --------
+Ethernet0        D        0      0.00 B/s      0.00%         0         0       N/A        0     0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet4      N/A        0   204.80 KB/s        N/A         0         0       N/A        0  204.85 KB/s        N/A       N/A       N/A       N/A
+Ethernet8      N/A        0  1350.00 KB/s        N/A         0         0       N/A        0   13.37 MB/s        N/A       N/A       N/A       N/A
 """
 
 intf_counter_after_clear = """\
-    IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
----------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
-Ethernet0        D        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
-Ethernet4      N/A        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A
-Ethernet8      N/A        0  0.00 B/s      0.00%         0         0       N/A        0  0.00 B/s      0.00%       N/A       N/A       N/A"""
+    IFACE    STATE    RX_OK        RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK       TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+---------  -------  -------  ------------  ---------  --------  --------  --------  -------  -----------  ---------  --------  --------  --------
+Ethernet0        D        0      0.00 B/s      0.00%         0         0       N/A        0     0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet4      N/A        0   204.80 KB/s        N/A         0         0       N/A        0  204.85 KB/s        N/A       N/A       N/A       N/A
+Ethernet8      N/A        0  1350.00 KB/s        N/A         0         0       N/A        0   13.37 MB/s        N/A       N/A       N/A       N/A"""
 
 clear_counter = """\
 Cleared counters"""
@@ -55,54 +55,54 @@ Cleared counters"""
 multi_asic_external_intf_counters = """\
     IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
 ---------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
-Ethernet0        U        8       N/A        N/A        10       100       N/A       10       N/A        N/A       N/A       N/A       N/A
-Ethernet4        U        4       N/A        N/A         0     1,000       N/A       40       N/A        N/A       N/A       N/A       N/A
+Ethernet0        U        8  0.00 B/s      0.00%        10       100       N/A       10  0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet4        U        4  0.00 B/s      0.00%         0     1,000       N/A       40  0.00 B/s      0.00%       N/A       N/A       N/A
 """
 
 multi_asic_all_intf_counters = """\
          IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
 --------------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
-     Ethernet0        U        8       N/A        N/A        10       100       N/A       10       N/A        N/A       N/A       N/A       N/A
-     Ethernet4        U        4       N/A        N/A         0     1,000       N/A       40       N/A        N/A       N/A       N/A       N/A
-  Ethernet-BP0        U        6       N/A        N/A         0     1,000       N/A       60       N/A        N/A       N/A       N/A       N/A
-  Ethernet-BP4        U        8       N/A        N/A         0     1,000       N/A       80       N/A        N/A       N/A       N/A       N/A
-Ethernet-BP256        U        8       N/A        N/A        10       100       N/A       10       N/A        N/A       N/A       N/A       N/A
-Ethernet-BP260        U        4       N/A        N/A         0     1,000       N/A       40       N/A        N/A       N/A       N/A       N/A
+     Ethernet0        U        8  0.00 B/s      0.00%        10       100       N/A       10  0.00 B/s      0.00%       N/A       N/A       N/A
+     Ethernet4        U        4  0.00 B/s      0.00%         0     1,000       N/A       40  0.00 B/s      0.00%       N/A       N/A       N/A
+  Ethernet-BP0        U        6  0.00 B/s      0.00%         0     1,000       N/A       60  0.00 B/s      0.00%       N/A       N/A       N/A
+  Ethernet-BP4        U        8  0.00 B/s      0.00%         0     1,000       N/A       80  0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet-BP256        U        8  0.00 B/s      0.00%        10       100       N/A       10  0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet-BP260        U        4  0.00 B/s      0.00%         0     1,000       N/A       40  0.00 B/s      0.00%       N/A       N/A       N/A
 """
 multi_asic_intf_counters_asic0 = """\
        IFACE    STATE    RX_OK    RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
 ------------  -------  -------  --------  ---------  --------  --------  --------  -------  --------  ---------  --------  --------  --------
-   Ethernet0        U        8       N/A        N/A        10       100       N/A       10       N/A        N/A       N/A       N/A       N/A
-   Ethernet4        U        4       N/A        N/A         0     1,000       N/A       40       N/A        N/A       N/A       N/A       N/A
-Ethernet-BP0        U        6       N/A        N/A         0     1,000       N/A       60       N/A        N/A       N/A       N/A       N/A
-Ethernet-BP4        U        8       N/A        N/A         0     1,000       N/A       80       N/A        N/A       N/A       N/A       N/A
+   Ethernet0        U        8  0.00 B/s      0.00%        10       100       N/A       10  0.00 B/s      0.00%       N/A       N/A       N/A
+   Ethernet4        U        4  0.00 B/s      0.00%         0     1,000       N/A       40  0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet-BP0        U        6  0.00 B/s      0.00%         0     1,000       N/A       60  0.00 B/s      0.00%       N/A       N/A       N/A
+Ethernet-BP4        U        8  0.00 B/s      0.00%         0     1,000       N/A       80  0.00 B/s      0.00%       N/A       N/A       N/A
 """
 
 multi_asic_external_intf_counters_printall = """\
-    IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    Tx_PPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+    IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_PPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
 ---------  -------  -------  --------  --------  ---------  --------  --------  --------  -------  --------  --------  ---------  --------  --------  --------
-Ethernet0        U        8       N/A       N/A        N/A        10       100       N/A       10       N/A       N/A        N/A       N/A       N/A       N/A
-Ethernet4        U        4       N/A       N/A        N/A         0     1,000       N/A       40       N/A       N/A        N/A       N/A       N/A       N/A
+Ethernet0        U        8  0.00 B/s    0.00/s      0.00%        10       100       N/A       10  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
+Ethernet4        U        4  0.00 B/s    0.00/s      0.00%         0     1,000       N/A       40  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
 """
 
 multi_asic_intf_counters_printall = """\
-         IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    Tx_PPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+         IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_PPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
 --------------  -------  -------  --------  --------  ---------  --------  --------  --------  -------  --------  --------  ---------  --------  --------  --------
-     Ethernet0        U        8       N/A       N/A        N/A        10       100       N/A       10       N/A       N/A        N/A       N/A       N/A       N/A
-     Ethernet4        U        4       N/A       N/A        N/A         0     1,000       N/A       40       N/A       N/A        N/A       N/A       N/A       N/A
-  Ethernet-BP0        U        6       N/A       N/A        N/A         0     1,000       N/A       60       N/A       N/A        N/A       N/A       N/A       N/A
-  Ethernet-BP4        U        8       N/A       N/A        N/A         0     1,000       N/A       80       N/A       N/A        N/A       N/A       N/A       N/A
-Ethernet-BP256        U        8       N/A       N/A        N/A        10       100       N/A       10       N/A       N/A        N/A       N/A       N/A       N/A
-Ethernet-BP260        U        4       N/A       N/A        N/A         0     1,000       N/A       40       N/A       N/A        N/A       N/A       N/A       N/A
+     Ethernet0        U        8  0.00 B/s    0.00/s      0.00%        10       100       N/A       10  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
+     Ethernet4        U        4  0.00 B/s    0.00/s      0.00%         0     1,000       N/A       40  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
+  Ethernet-BP0        U        6  0.00 B/s    0.00/s      0.00%         0     1,000       N/A       60  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
+  Ethernet-BP4        U        8  0.00 B/s    0.00/s      0.00%         0     1,000       N/A       80  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
+Ethernet-BP256        U        8  0.00 B/s    0.00/s      0.00%        10       100       N/A       10  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
+Ethernet-BP260        U        4  0.00 B/s    0.00/s      0.00%         0     1,000       N/A       40  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
 """
 
 multi_asic_intf_counters_asic0_printall = """\
-       IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    Tx_PPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
+       IFACE    STATE    RX_OK    RX_BPS    RX_PPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK    TX_BPS    TX_PPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
 ------------  -------  -------  --------  --------  ---------  --------  --------  --------  -------  --------  --------  ---------  --------  --------  --------
-   Ethernet0        U        8       N/A       N/A        N/A        10       100       N/A       10       N/A       N/A        N/A       N/A       N/A       N/A
-   Ethernet4        U        4       N/A       N/A        N/A         0     1,000       N/A       40       N/A       N/A        N/A       N/A       N/A       N/A
-Ethernet-BP0        U        6       N/A       N/A        N/A         0     1,000       N/A       60       N/A       N/A        N/A       N/A       N/A       N/A
-Ethernet-BP4        U        8       N/A       N/A        N/A         0     1,000       N/A       80       N/A       N/A        N/A       N/A       N/A       N/A
+   Ethernet0        U        8  0.00 B/s    0.00/s      0.00%        10       100       N/A       10  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
+   Ethernet4        U        4  0.00 B/s    0.00/s      0.00%         0     1,000       N/A       40  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
+Ethernet-BP0        U        6  0.00 B/s    0.00/s      0.00%         0     1,000       N/A       60  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
+Ethernet-BP4        U        8  0.00 B/s    0.00/s      0.00%         0     1,000       N/A       80  0.00 B/s    0.00/s      0.00%       N/A       N/A       N/A
 """
 multi_asic_intf_counters_period = """\
 The rates are calculated within 3 seconds period
