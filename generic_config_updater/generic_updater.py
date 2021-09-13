@@ -32,10 +32,10 @@ class PatchApplier:
                  changeapplier=None,
                  config_wrapper=None,
                  patch_wrapper=None):
-        self.patchsorter = patchsorter if patchsorter is not None else PatchSorter(config_wrapper, patch_wrapper)
-        self.changeapplier = changeapplier if changeapplier is not None else ChangeApplier()
         self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
         self.patch_wrapper = patch_wrapper if patch_wrapper is not None else PatchWrapper()
+        self.patchsorter = patchsorter if patchsorter is not None else PatchSorter(self.config_wrapper, self.patch_wrapper)
+        self.changeapplier = changeapplier if changeapplier is not None else ChangeApplier()
 
     def apply(self, patch):
         # validate patch is only updating tables with yang models
