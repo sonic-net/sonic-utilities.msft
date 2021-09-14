@@ -121,7 +121,7 @@ class FdbShow(object):
                         bvid_tlb[bvid] = vlan_id
                         if vlan_id is None:
                             # the situation could be faced if the system has an FDB entries,
-                            # which are linked to default Vlan(caused by untagged trafic)
+                            # which are linked to default Vlan(caused by untagged traffic)
                             continue
                     except Exception:
                         vlan_id = bvid
