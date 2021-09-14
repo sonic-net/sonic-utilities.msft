@@ -44,5 +44,5 @@ class OnieInstallerBootloader(Bootloader): # pylint: disable=abstract-method
 
         return IMAGE_PREFIX + version_num
 
-    def verify_binary_image(self, image_path):
+    def verify_secureboot_image(self, image_path):
         return os.path.isfile(image_path)

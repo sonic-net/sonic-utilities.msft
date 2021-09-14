@@ -49,8 +49,12 @@ class Bootloader(object):
         """returns the version of the image"""
         raise NotImplementedError
 
-    def verify_binary_image(self, image_path):
-        """verify that the image is supported by the bootloader"""
+    def verify_image_platform(self, image_path):
+        """verify that the image is of the same platform than running platform"""
+        raise NotImplementedError
+
+    def verify_secureboot_image(self, image_path):
+        """verify that the image is secure running image"""
         raise NotImplementedError
 
     def verify_next_image(self):

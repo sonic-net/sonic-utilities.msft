@@ -8,6 +8,7 @@ import subprocess
 
 import click
 
+from sonic_py_common import device_info
 from ..common import (
    HOST_PATH,
    IMAGE_DIR_PREFIX,
@@ -15,6 +16,9 @@ from ..common import (
    run_command,
 )
 from .onie import OnieInstallerBootloader
+from .onie import default_sigpipe
+
+MACHINE_CONF = "installer/machine.conf"
 
 class GrubBootloader(OnieInstallerBootloader):
 
@@ -80,6 +84,36 @@ class GrubBootloader(OnieInstallerBootloader):
 
         run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
         click.echo('Image removed')
+
+    def verify_image_platform(self, image_path):
+        if not os.path.isfile(image_path):
+            return False
+
+        # Get running platform's ASIC
+        try:
+            version_info = device_info.get_sonic_version_info()
+            if version_info:
+                asic_type = version_info['asic_type']
+            else:
+                asic_type = None
+        except (KeyError, TypeError) as e:
+            click.echo("Caught an exception: " + str(e))
+
+        # Get installing image's ASIC
+        p1 = subprocess.Popen(["sed", "-e", "1,/^exit_marker$/d", image_path], stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+        p2 = subprocess.Popen(["tar", "xf", "-", MACHINE_CONF, "-O"], stdin=p1.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+        p3 = subprocess.Popen(["sed", "-n", r"s/^machine=\(.*\)/\1/p"], stdin=p2.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe, text=True)
+
+        stdout = p3.communicate()[0]
+        image_asic = stdout.rstrip('\n')
+
+        # Return false if machine is not found or unexpected issue occur
+        if not image_asic:
+            return False
+
+        if asic_type == image_asic:
+            return True
+        return False
 
     @classmethod
     def detect(cls):
