@@ -265,14 +265,14 @@ def convert_sfp_info_to_output_string(sfp_info_dict):
             else:
                 output += '{}{}:\n'.format(indent, QSFP_DATA_MAP['specification_compliance'])
 
-            spec_compliance_dict = {}
-            try:
-                spec_compliance_dict = ast.literal_eval(sfp_info_dict['specification_compliance'])
-                sorted_compliance_key_table = natsorted(spec_compliance_dict)
-                for compliance_key in sorted_compliance_key_table:
-                    output += '{}{}: {}\n'.format((indent * 2), compliance_key, spec_compliance_dict[compliance_key])
-            except ValueError as e:
-                output += '{}N/A\n'.format((indent * 2))
+                spec_compliance_dict = {}
+                try:
+                    spec_compliance_dict = ast.literal_eval(sfp_info_dict['specification_compliance'])
+                    sorted_compliance_key_table = natsorted(spec_compliance_dict)
+                    for compliance_key in sorted_compliance_key_table:
+                        output += '{}{}: {}\n'.format((indent * 2), compliance_key, spec_compliance_dict[compliance_key])
+                except ValueError as e:
+                    output += '{}N/A\n'.format((indent * 2))
         else:
             output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
 
