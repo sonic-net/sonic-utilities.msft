@@ -141,7 +141,11 @@ class portconfig(object):
             supported_speeds_str = self.get_supported_speeds(port)
             if supported_speeds_str:
                 supported_speeds = set(supported_speeds_str.split(','))
-                config_speeds = set(adv_speeds.split(','))
+                config_speed_list = [x.strip() for x in adv_speeds.split(',')]
+                config_speeds = set(config_speed_list)
+                if len(config_speeds) < len(config_speed_list):
+                    print('Invalid speed specified: {}. Please remove duplicate speed'.format(adv_speeds))
+                    exit(1)
                 invalid_speeds = config_speeds - supported_speeds
                 if invalid_speeds:
                     print('Invalid speed specified: {}'.format(','.join(invalid_speeds)))
@@ -164,7 +168,11 @@ class portconfig(object):
             print("Setting adv_interface_types %s on port %s" % (adv_interface_types, port))
         
         if adv_interface_types != 'all':
-            config_interface_types = set(adv_interface_types.split(','))
+            config_interface_type_list = [x.strip() for x in adv_interface_types.split(',')]
+            config_interface_types = set(config_interface_type_list)
+            if len(config_interface_types) < len(config_interface_type_list):
+                print("Invalid interface type specified: {}. Please remove duplicate interface type".format(adv_interface_types))
+                exit(1)
             invalid_interface_types = config_interface_types - VALID_INTERFACE_TYPE_SET
             if invalid_interface_types:
                 print("Invalid interface type specified: {}".format(','.join(invalid_interface_types)))
