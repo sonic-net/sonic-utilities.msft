@@ -706,7 +706,7 @@ def _reset_failed_services():
 
 def _restart_services():
     click.echo("Restarting SONiC target ...")
-    clicommon.run_command("sudo systemctl restart sonic.target --job-mode replace-irreversibly")
+    clicommon.run_command("sudo systemctl restart sonic.target")
 
     try:
         subprocess.check_call("sudo monit status", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
