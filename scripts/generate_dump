@@ -38,7 +38,10 @@ HOME=${HOME:-/root}
 USER=${USER:-root}
 TIMEOUT_MIN="5"
 SKIP_BCMCMD=0
+SAVE_STDERR=true
+RETURN_CODE=0
 DEBUG_DUMP=false
+
 
 handle_signal()
 {
@@ -48,7 +51,15 @@ handle_signal()
 }
 trap 'handle_signal' SIGINT
 
+handle_error() {
+    if [ "$1" != "0" ]; then
+        echo "ERR: RC:-$1 observed on line $2" >&2
+        RETURN_CODE=1
+    fi
+}
+
 save_bcmcmd() {
+    trap 'handle_error $? $LINENO' ERR
     local start_t=$(date +%s%3N)
     local end_t=0
     local cmd="$1"
@@ -108,6 +119,7 @@ save_bcmcmd() {
 #  None
 ###############################################################################
 save_bcmcmd_all_ns() {
+    trap 'handle_error $? $LINENO' ERR
     local do_gzip=${3:-false}
 
     if [[ ( "$NUM_ASICS" > 1 ) ]]; then
@@ -140,26 +152,27 @@ save_bcmcmd_all_ns() {
 #  cmd: The command to run. Make sure that arguments with spaces have quotes
 #  filename: the filename to save the output as in $BASE/dump
 #  do_gzip: (OPTIONAL) true or false. Should the output be gzipped
-#  save_stderr: (OPTIONAL) true or false. Should the stderr output be saved
 # Returns:
 #  None
 ###############################################################################
 save_cmd() {
+    trap 'handle_error $? $LINENO' ERR
     local start_t=$(date +%s%3N)
     local end_t=0
     local cmd="$1"
     local filename=$2
     local filepath="${LOGDIR}/$filename"
     local do_gzip=${3:-false}
-    local save_stderr=${4:-true}
     local tarpath="${BASE}/dump/$filename"
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
-    local redirect="&>"
+    local redirect='&>'
+    local redirect_eval='2>&1'
     [ ! -d $LOGDIR ] && $MKDIR $V -p $LOGDIR
 
-    if ! $save_stderr
+    if ! $SAVE_STDERR
     then
         redirect=">"
+        redirect_eval=""
     fi
 
     # eval required here to re-evaluate the $cmd properly at runtime
@@ -169,7 +182,7 @@ save_cmd() {
     if $do_gzip; then
         tarpath="${tarpath}.gz"
         filepath="${filepath}.gz"
-        local cmds="$cmd 2>&1 | gzip -c > '${filepath}'"
+        local cmds="$cmd $redirect_eval | gzip -c > '${filepath}'"
         if $NOOP; then
             echo "${timeout_cmd} bash -c \"${cmds}\""
         else
@@ -208,6 +221,7 @@ save_cmd() {
 #  None
 ###############################################################################
 save_cmd_all_ns() {
+    trap 'handle_error $? $LINENO' ERR
     local do_zip=${3:-false}
 
     # host or default namespace
@@ -236,6 +250,7 @@ save_cmd_all_ns() {
 #  None
 ###############################################################################
 copy_from_docker() {
+    trap 'handle_error $? $LINENO' ERR
     local start_t=$(date +%s%3N)
     local end_t=0
     local docker=$1
@@ -243,7 +258,7 @@ copy_from_docker() {
     local dstpath=$3
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
 
-    local touch_cmd="sudo docker exec -i ${docker} touch ${filename}"
+    local touch_cmd="sudo docker exec ${docker} touch ${filename}"
     local cp_cmd="sudo docker cp ${docker}:${filename} ${dstpath}"
 
     if $NOOP; then
@@ -277,6 +292,7 @@ copy_from_docker() {
 #  None
 ###############################################################################
 copy_from_masic_docker() {
+    trap 'handle_error $? $LINENO' ERR
     local docker=$1
     local filename=$2
     local dstpath=$3
@@ -302,6 +318,7 @@ copy_from_masic_docker() {
 #  vtysh namespace option
 ###############################################################################
 get_vtysh_namespace() {
+    trap 'handle_error $? $LINENO' ERR
     local asic_id=${1:-""}
     local ns=""
     if [[ ( $asic_id = "" ) ]] ; then
@@ -326,6 +343,7 @@ get_vtysh_namespace() {
 #  None
 ###############################################################################
 save_vtysh() {
+    trap 'handle_error $? $LINENO' ERR
     local vtysh_cmd=$1
     local filename=$2
     local do_gzip=${3:-false}
@@ -355,6 +373,7 @@ save_vtysh() {
 #  None
 ###############################################################################
 save_ip() {
+    trap 'handle_error $? $LINENO' ERR
     local ip_args=$1
     local filename="ip.$2"
     local do_gzip=${3:-false}
@@ -373,6 +392,7 @@ save_ip() {
 #  None
 ###############################################################################
 save_bridge() {
+    trap 'handle_error $? $LINENO' ERR
     local br_args=$1
     local filename="bridge.$2"
     local do_gzip=${3:-false}
@@ -389,6 +409,7 @@ save_bridge() {
 #  None
 ###############################################################################
 save_bridge_info() {
+    trap 'handle_error $? $LINENO' ERR
     save_bridge "fdb show" "fdb"
     save_bridge "vlan show" "vlan"
 }
@@ -405,6 +426,7 @@ save_bridge_info() {
 #  None
 ###############################################################################
 save_bgp_neighbor() {
+    trap 'handle_error $? $LINENO' ERR
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
     local asic_id=${1:-""}
     local ns=$(get_vtysh_namespace $asic_id)
@@ -441,6 +463,7 @@ save_bgp_neighbor() {
 #  None
 ###############################################################################
 save_bgp_neighbor_all_ns() {
+    trap 'handle_error $? $LINENO' ERR
     if [[ ( "$NUM_ASICS" == 1 ) ]] ; then
         save_bgp_neighbor
     else
@@ -461,6 +484,7 @@ save_bgp_neighbor_all_ns() {
 #  None
 ###############################################################################
 save_nat_info() {
+    trap 'handle_error $? $LINENO' ERR
     save_cmd_all_ns "iptables -t nat -nv -L" "nat.iptables"
     save_cmd_all_ns "conntrack -j -L" "nat.conntrack"
     save_cmd_all_ns "conntrack -j -L | wc" "nat.conntrackcount"
@@ -479,6 +503,7 @@ save_nat_info() {
 #  None
 ###############################################################################
 save_bfd_info() {
+    trap 'handle_error $? $LINENO' ERR
     save_vtysh "show bfd peers" "frr.bfd.peers"
     save_vtysh "show bfd peers counters" "frr.bfd.peers.counters"
     save_vtysh "show bfd peers json" "frr.bfd.peers.json"
@@ -495,6 +520,7 @@ save_bfd_info() {
 #  None
 ###############################################################################
 save_ip_info() {
+    trap 'handle_error $? $LINENO' ERR
     save_ip "link" "link"
     save_ip "addr" "addr"
     save_ip "rule" "rule"
@@ -513,6 +539,7 @@ save_ip_info() {
 #  None
 ###############################################################################
 save_bgp_info() {
+    trap 'handle_error $? $LINENO' ERR
     save_vtysh "show ip bgp summary" "bgp.summary"
     save_vtysh "show ip bgp neighbors" "bgp.neighbors"
     save_vtysh "show ip bgp" "bgp.table"
@@ -532,6 +559,7 @@ save_bgp_info() {
 #  None
 ###############################################################################
 save_frr_info() {
+    trap 'handle_error $? $LINENO' ERR
     save_vtysh "show running-config" "frr.running_config"
     save_vtysh "show ip route vrf all" "frr.ip_route"
     save_vtysh "show ipv6 route vrf all" "frr.ip6_route"
@@ -551,6 +579,7 @@ save_frr_info() {
 #  None
 ###############################################################################
 save_redis_info() {
+    trap 'handle_error $? $LINENO' ERR
     save_redis "APPL_DB"
     save_redis "ASIC_DB"
     save_redis "COUNTERS_DB"
@@ -578,6 +607,7 @@ save_redis_info() {
 #  None
 ###############################################################################
 save_proc() {
+    trap 'handle_error $? $LINENO' ERR
     local procfiles="$@"
     $MKDIR $V -p $TARDIR/proc
     for f in $procfiles
@@ -603,6 +633,7 @@ save_proc() {
 #  None
 ###############################################################################
 save_redis() {
+    trap 'handle_error $? $LINENO' ERR
     local db_name=$1
     if [ $# -ge 2 ] && [ -n "$2" ]; then
         local dest_file_name=$2
@@ -622,12 +653,13 @@ save_redis() {
 #  None
 ###############################################################################
 save_saidump() {
+    trap 'handle_error $? $LINENO' ERR
     if [[ ( "$NUM_ASICS" == 1 ) ]] ; then
-        save_cmd "docker exec -it syncd saidump" "saidump"
+        save_cmd "docker exec -t syncd saidump" "saidump"
     else
         for (( i=0; i<$NUM_ASICS; i++ ))
         do
-            save_cmd "docker exec -it syncd$i saidump" "saidump$i"
+            save_cmd "docker exec -t syncd$i saidump" "saidump$i"
         done
     fi
 }
@@ -642,6 +674,7 @@ save_saidump() {
 #  None
 ###############################################################################
 save_platform_info() {
+    trap 'handle_error $? $LINENO' ERR
     save_cmd "show platform syseeprom" "syseeprom"
     save_cmd "show platform psustatus" "psustatus"
     save_cmd "show platform ssdhealth" "ssdhealth"
@@ -669,6 +702,7 @@ save_platform_info() {
 #  None
 ###############################################################################
 save_file() {
+    trap 'handle_error $? $LINENO' ERR
     local start_t=$(date +%s%3N)
     local end_t=0
     local orig_path=$1
@@ -715,6 +749,7 @@ save_file() {
 #  None
 ###############################################################################
 find_files() {
+    trap 'handle_error $? $LINENO' ERR
     local -r directory=$1
     $TOUCH --date="${SINCE_DATE}" "${REFERENCE_FILE}"
     local -r find_command="find -L $directory -type f -newer ${REFERENCE_FILE}"
@@ -759,11 +794,12 @@ enable_logrotate() {
 #  None
 ###############################################################################
 collect_mellanox() {
+    trap 'handle_error $? $LINENO' ERR
     local sai_dump_folder="/tmp/saisdkdump"
     local sai_dump_filename="${sai_dump_folder}/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
 
-    ${CMD_PREFIX}docker exec -it syncd mkdir -p $sai_dump_folder
-    ${CMD_PREFIX}docker exec -it syncd saisdkdump -f $sai_dump_filename
+    ${CMD_PREFIX}docker exec -t syncd mkdir -p $sai_dump_folder
+    ${CMD_PREFIX}docker exec -t syncd saisdkdump -f $sai_dump_filename
 
     copy_from_docker syncd $sai_dump_folder $sai_dump_folder
     echo "$sai_dump_folder"
@@ -772,13 +808,13 @@ collect_mellanox() {
     done
 
     ${CMD_PREFIX}rm -rf $sai_dump_folder
-    ${CMD_PREFIX}docker exec -it syncd rm -rf $sai_dump_folder
+    ${CMD_PREFIX}docker exec -t syncd rm -rf $sai_dump_folder
     
     # Save SDK error dumps
     local sdk_dump_path=`${CMD_PREFIX}docker exec syncd cat /tmp/sai.profile|grep "SAI_DUMP_STORE_PATH"|cut -d = -f2`
-    if [[ $sdk_dump_path ]]; then
+    if [[ -d $sdk_dump_path ]]; then
         copy_from_docker syncd $sdk_dump_path  /tmp/sdk-dumps
-        for file in $(find /tmp/sdk-dumps); do
+        for file in $(find /tmp/sdk-dumps -type f); do
             save_file ${file} sai_sdk_dump false
         done
         rm -rf /tmp/sdk-dumps
@@ -795,6 +831,7 @@ collect_mellanox() {
 #  None
 ###############################################################################
 collect_broadcom() {
+    trap 'handle_error $? $LINENO' ERR
     local platform=$(show platform summary --json | python -c 'import sys, json; \
         print(json.load(sys.stdin)["platform"])')
     local hwsku=$(show platform summary --json | python -c 'import sys, json; \
@@ -881,6 +918,7 @@ collect_broadcom() {
 #  None
 ###############################################################################
 save_log_files() {
+    trap 'handle_error $? $LINENO' ERR
     disable_logrotate
     trap enable_logrotate HUP INT QUIT TERM KILL ABRT ALRM
 
@@ -921,6 +959,7 @@ save_log_files() {
 ###############################################################################
 save_warmboot_files() {
     # Copy the warmboot files
+    trap 'handle_error $? $LINENO' ERR
     start_t=$(date +%s%3N)
     if $NOOP; then
         echo "$CP $V -rf /host/warmboot $TARDIR"
@@ -948,6 +987,7 @@ save_warmboot_files() {
 ###############################################################################
 save_crash_files() {
     # archive core dump files
+    trap 'handle_error $? $LINENO' ERR
     for file in $(find_files "/var/core/"); do
         # don't gzip already-gzipped log files :)
         if [ -z "${file##*.gz}" ]; then
@@ -980,9 +1020,15 @@ save_crash_files() {
 #  ASIC Count
 ###############################################################################
 get_asic_count() {
+    trap 'handle_error $? $LINENO' ERR
+    local redirect_eval="2>&1"
+    if ! $SAVE_STDERR 
+    then
+         redirect_eval=""
+    fi
     local cmd="show platform summary --json | python -c 'import sys, json; \
                print(json.load(sys.stdin)[\"asic_count\"])'"
-    echo `eval ${cmd} 2>&1`
+    echo `eval ${cmd} ${redirect_eval}`
 }
 
 ###############################################################################
@@ -996,6 +1042,7 @@ get_asic_count() {
 #  None
 ###############################################################################
 save_counter_snapshot() {
+    trap 'handle_error $? $LINENO' ERR
     local asic_name="$1"
     local idx=$2
     counter_t=$(date +'%d/%m/%Y %H:%M:%S:%6N')
@@ -1023,6 +1070,7 @@ save_counter_snapshot() {
 # save the debug dump output
 ###############################################################################
 save_dump_state_all_ns() {
+    trap 'handle_error $? $LINENO' ERR
     MODULES="$(dump state -s | sed '1d;2d' | awk '{print $1}')"
     local UVDUMP="unified_view_dump"
     echo "DEBUG DUMP: Modules Available to Generate Debug Dump Output"
@@ -1054,6 +1102,7 @@ save_dump_state_all_ns() {
 #  None
 ###############################################################################
 main() {
+    trap 'handle_error $? $LINENO' ERR
     local start_t=0
     local end_t=0
     if [ `whoami` != root ] && ! $NOOP;
@@ -1132,12 +1181,12 @@ main() {
     if [[ ( "$NUM_ASICS" > 1 ) ]]; then
         for (( i=0; i<$NUM_ASICS; i++ ))
         do
-            save_cmd "docker exec -it lldp$i lldpcli show statistics" "lldp$i.statistics"
+            save_cmd "docker exec -t lldp$i lldpcli show statistics" "lldp$i.statistics"
             save_cmd "docker logs bgp$i" "docker.bgp$i.log"
             save_cmd "docker logs swss$i" "docker.swss$i.log"
         done
     else
-        save_cmd "docker exec -it lldp lldpcli show statistics" "lldp.statistics"
+        save_cmd "docker exec -t lldp lldpcli show statistics" "lldp.statistics"
         save_cmd "docker logs bgp" "docker.bgp.log"
         save_cmd "docker logs swss" "docker.swss.log"
     fi
@@ -1163,12 +1212,14 @@ main() {
 
     save_cmd "docker ps -a" "docker.ps"
     save_cmd "docker top pmon" "docker.pmon"
-
-    local -r dump_plugins="$(find ${PLUGINS_DIR} -type f -executable)"
-    for plugin in $dump_plugins; do
-        # save stdout output of plugin and gzip it
-        save_cmd "$plugin" "$(basename $plugin)" true false
-    done
+    
+    if [[ -d ${PLUGINS_DIR} ]]; then
+        local -r dump_plugins="$(find ${PLUGINS_DIR} -type f -executable)"
+        for plugin in $dump_plugins; do
+            # save stdout output of plugin and gzip it
+            save_cmd "$plugin" "$(basename $plugin)" true
+        done
+    fi
 
     save_saidump
 
@@ -1241,6 +1292,7 @@ main() {
     fi
 
     echo ${TARFILE}
+    exit $RETURN_CODE
 }
 
 ###############################################################################
@@ -1296,13 +1348,15 @@ OPTIONS
         "24 March", "yesterday", etc.
     -t TIMEOUT_MINS
         Command level timeout in minutes
+    -r 
+        Redirect any intermediate errors to STDERR
     -d 
         Collect the output of debug dump cli
-
 EOF
 }
 
-while getopts ":xnvhzas:t:d" opt; do
+
+while getopts ":xnvhzas:t:r:d" opt; do
     case $opt in
         x)
             # enable bash debugging
@@ -1343,6 +1397,9 @@ while getopts ":xnvhzas:t:d" opt; do
             ;;
         t)
             TIMEOUT_MIN="${OPTARG}"
+            ;;
+        r)
+            SAVE_STDERR=false
             ;;
         d) 
             DEBUG_DUMP=true
