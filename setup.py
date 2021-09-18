@@ -135,7 +135,8 @@ setup(
         'scripts/watermarkcfg',
         'scripts/sonic-kdump-config',
         'scripts/centralize_database',
-        'scripts/null_route_helper'
+        'scripts/null_route_helper',
+        'scripts/check_db_integrity.py'
     ],
     entry_points={
         'console_scripts': [
