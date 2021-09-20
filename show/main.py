@@ -57,7 +57,6 @@ from . import system_health
 from . import warm_restart
 from . import plugins
 
-
 # Global Variables
 PLATFORM_JSON = 'platform.json'
 HWSKU_JSON = 'hwsku.json'
@@ -1676,12 +1675,10 @@ def ztp(status, verbose):
        cmd = cmd + " --verbose"
     run_command(cmd, display_cmd=verbose)
 
-
 # Load plugins and register them
 helper = util_base.UtilHelper()
 for plugin in helper.load_plugins(plugins):
     helper.register_plugin(plugin, cli)
-
 
 if __name__ == '__main__':
     cli()
