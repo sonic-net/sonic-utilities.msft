@@ -1636,6 +1636,11 @@
 	"server_ipv4": "10.1.1.1",
 	"server_ipv6": "fc00::75"
     },
+    "MUX_CABLE|Ethernet16": {
+        "state": "standby",
+	"server_ipv4": "10.1.1.1",
+	"server_ipv6": "fc00::75"
+    },
     "MUX_CABLE|Ethernet28": {
         "state": "manual",
 	"server_ipv4": "10.1.1.1",

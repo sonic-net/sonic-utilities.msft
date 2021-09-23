@@ -233,7 +233,7 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_c
     else:
         config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val,
                                                 "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
-        if str(state_cfg_val) == 'active' and str(state) != 'active':
+        if (str(state_cfg_val) == 'active' and str(state) != 'active') or (str(state_cfg_val) == 'standby' and str(state) != 'standby'):
             port_status_dict[port] = 'INPROGRESS'
         else:
             port_status_dict[port] = 'OK'
@@ -241,7 +241,7 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_c
 
 # 'muxcable' command ("config muxcable mode <port|all> active|auto")
 @muxcable.command()
-@click.argument('state', metavar='<operation_status>', required=True, type=click.Choice(["active", "auto", "manual"]))
+@click.argument('state', metavar='<operation_status>', required=True, type=click.Choice(["active", "auto", "manual", "standby"]))
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 @click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL)
 @clicommon.pass_db

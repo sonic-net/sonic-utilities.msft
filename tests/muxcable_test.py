@@ -31,6 +31,7 @@ Ethernet0   active    healthy
 Ethernet4   standby   healthy
 Ethernet8   standby   unhealthy
 Ethernet12  unknown   unhealthy
+Ethernet16  standby   healthy
 Ethernet32  active    healthy
 """
 
@@ -53,6 +54,10 @@ json_data_status_output_expected = """\
             "STATUS": "unknown",
             "HEALTH": "unhealthy"
         },
+        "Ethernet16": {
+            "STATUS": "standby",
+            "HEALTH": "healthy"
+        },
         "Ethernet32": {
             "STATUS": "active",
             "HEALTH": "healthy"
@@ -72,6 +77,7 @@ Ethernet0   active   10.2.1.1  e800::46
 Ethernet4   auto     10.3.1.1  e801::46
 Ethernet8   active   10.4.1.1  e802::46
 Ethernet12  active   10.4.1.1  e802::46
+Ethernet16  standby  10.1.1.1  fc00::75
 Ethernet28  manual   10.1.1.1  fc00::75
 Ethernet32  auto     10.1.1.1  fc00::75
 """
@@ -107,6 +113,13 @@ json_data_status_config_output_expected = """\
                 "SERVER": {
                     "IPv4": "10.4.1.1",
                     "IPv6": "e802::46"
+                }
+            },
+            "Ethernet16": {
+                "STATE": "standby",
+                "SERVER": {
+                    "IPv4": "10.1.1.1",
+                    "IPv6": "fc00::75"
                 }
             },
             "Ethernet28": {
@@ -151,6 +164,7 @@ json_data_config_output_auto_expected = """\
     "Ethernet0": "OK",
     "Ethernet4": "OK",
     "Ethernet8": "OK",
+    "Ethernet16": "OK",
     "Ethernet12": "OK"
 }
 """
@@ -161,6 +175,7 @@ json_data_config_output_active_expected = """\
     "Ethernet0": "OK",
     "Ethernet4": "INPROGRESS",
     "Ethernet8": "OK",
+    "Ethernet16": "INPROGRESS",
     "Ethernet12": "OK"
 }
 """
@@ -378,6 +393,16 @@ class TestMuxcable(object):
         with mock.patch('sonic_platform_base.sonic_sfp.sfputilhelper') as patched_util:
             patched_util.SfpUtilHelper.return_value.get_asic_id_for_logical_port.return_value = 0
             result = runner.invoke(config.config.commands["muxcable"].commands["mode"], ["manual", "Ethernet8"], obj=db)
+
+        assert result.exit_code == 0
+
+    def test_config_muxcable_tabular_port_Ethernet16_standby(self):
+        runner = CliRunner()
+        db = Db()
+
+        with mock.patch('sonic_platform_base.sonic_sfp.sfputilhelper') as patched_util:
+            patched_util.SfpUtilHelper.return_value.get_asic_id_for_logical_port.return_value = 0
+            result = runner.invoke(config.config.commands["muxcable"].commands["mode"], ["standby", "Ethernet16"], obj=db)
 
         assert result.exit_code == 0
 
