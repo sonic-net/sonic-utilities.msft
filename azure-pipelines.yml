@@ -19,6 +19,9 @@ stages:
   jobs:
   - job:
     displayName: "Python3"
+    variables:
+      DIFF_COVER_CHECK_THRESHOLD: 0
+      DIFF_COVER_ENABLE: 'true'
     pool:
       vmImage: ubuntu-20.04
 
@@ -90,14 +93,6 @@ stages:
     - script: |
         python3 setup.py test
       displayName: 'Test Python 3'
-
-    - script: |
-        sudo pip3 install diff-cover
-        target_branch=$(System.PullRequest.TargetBranch)
-        compare_branch=origin/${target_branch#refs/heads/}
-        diff-cover coverage.xml --compare-branch=$compare_branch
-      condition: eq(variables['Build.Reason'], 'PullRequest')
-      displayName: "Diff coverage"
 
     - task: PublishTestResults@2
       inputs:
