@@ -195,8 +195,9 @@ save_cmd() {
         if $NOOP; then
             echo "${timeout_cmd} $cmd $redirect '$filepath'"
         else
-            eval "${timeout_cmd} $cmd" "$redirect" "$filepath"
-            if [ $? -ne 0 ]; then
+            RC=0
+            eval "${timeout_cmd} $cmd" "$redirect" "$filepath" || RC=$?
+            if [ $RC -ne 0 ]; then
                 echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
             fi
         fi
@@ -988,26 +989,30 @@ save_warmboot_files() {
 save_crash_files() {
     # archive core dump files
     trap 'handle_error $? $LINENO' ERR
-    for file in $(find_files "/var/core/"); do
-        # don't gzip already-gzipped log files :)
-        if [ -z "${file##*.gz}" ]; then
-            save_file $file core false
-        else
-            save_file $file core true
-        fi
-    done
+    if [ -d /var/core/ ]; then
+        for file in $(find_files "/var/core/"); do
+            # don't gzip already-gzipped log files :)
+            if [ -z "${file##*.gz}" ]; then
+                save_file $file core false
+            else
+                save_file $file core true
+            fi
+        done
+    fi
 
     # archive kernel dump files
-    [ -d /var/crash/ ] && for file in $(find_files "/var/crash/"); do
-        # don't gzip already-gzipped dmesg files :)
-        if [ ! ${file} = "/var/crash/kexec_cmd" -a ! ${file} = "/var/crash/export" ]; then
-            if [[ ${file} == *"kdump."* ]]; then
-                save_file $file kdump false
-            else
-                save_file $file kdump true
+    if [ -d /var/crash/ ]; then
+        for file in $(find_files "/var/crash/"); do
+            # don't gzip already-gzipped dmesg files :)
+            if [ ! ${file} = "/var/crash/kexec_cmd" -a ! ${file} = "/var/crash/export" ]; then
+                if [[ ${file} == *"kdump."* ]]; then
+                    save_file $file kdump false
+                else
+                    save_file $file kdump true
+                fi
             fi
-        fi
-    done
+        done
+    fi
 }
 
 ###############################################################################
