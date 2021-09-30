@@ -68,7 +68,9 @@ save_bcmcmd() {
     local do_gzip=${3:-false}
     local tarpath="${BASE}/dump/$filename"
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
-    [ ! -d $LOGDIR ] && $MKDIR $V -p $LOGDIR
+    if [ ! -d $LOGDIR ]; then
+        $MKDIR $V -p $LOGDIR
+    fi
 
     if [ $SKIP_BCMCMD -eq 1 ]; then
         echo "Skip $cmd"
@@ -81,14 +83,15 @@ save_bcmcmd() {
     if $NOOP; then
         echo "${timeout_cmd} $cmd &> '${filepath}'"
     else
-        eval "${timeout_cmd} $cmd" &> "${filepath}"
-        ret=$?
+        ret=0
+        eval "${timeout_cmd} $cmd" &> "${filepath}" || ret=$?
         if [ $ret -ne 0 ]; then
             if [ $ret -eq 124 ]; then
                 echo "Command: $cmd timedout after ${TIMEOUT_MIN} minutes."
             else
-                grep "polling socket timeout: Success" ${filepath} &>/dev/null
-                if [ $? -eq 0 ]; then
+                RC=0
+                grep "polling socket timeout: Success" ${filepath} &>/dev/null || RC=$?
+                if [ $RC -eq 0 ]; then
                     echo "bcmcmd command timeout. Setting SKIP_BCMCMD to true ..."
                     SKIP_BCMCMD=1
                 fi
@@ -167,7 +170,9 @@ save_cmd() {
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
     local redirect='&>'
     local redirect_eval='2>&1'
-    [ ! -d $LOGDIR ] && $MKDIR $V -p $LOGDIR
+    if [ ! -d $LOGDIR ]; then
+        $MKDIR $V -p $LOGDIR
+    fi
 
     if ! $SAVE_STDERR
     then
@@ -186,8 +191,9 @@ save_cmd() {
         if $NOOP; then
             echo "${timeout_cmd} bash -c \"${cmds}\""
         else
-            eval "${timeout_cmd} bash -c \"${cmds}\""
-            if [ $? -ne 0 ]; then
+            RC=0
+            eval "${timeout_cmd} bash -c \"${cmds}\"" || RC=$?
+            if [ $RC -ne 0 ]; then
                 echo "Command: $cmds timedout after ${TIMEOUT_MIN} minutes."
             fi
         fi
@@ -266,12 +272,13 @@ copy_from_docker() {
         echo "${timeout_cmd} ${touch_cmd}"
         echo "${timeout_cmd} ${cp_cmd}"
     else
-        eval "${timeout_cmd} ${touch_cmd}"
-        if [ $? -ne 0 ]; then
+        RC=0
+        eval "${timeout_cmd} ${touch_cmd}" || RC=$?
+        if [ $RC -ne 0 ]; then
             echo "Command: $touch_cmd timedout after ${TIMEOUT_MIN} minutes."
         fi
-        eval "${timeout_cmd} ${cp_cmd}"
-        if [ $? -ne 0 ]; then
+        eval "${timeout_cmd} ${cp_cmd}" || RC=$?
+        if [ $RC -ne 0 ]; then
             echo "Command: $cp_cmd timedout after ${TIMEOUT_MIN} minutes."
         fi
     fi
@@ -712,7 +719,9 @@ save_file() {
     local tar_path="${BASE}/$supp_dir/$(basename $orig_path)"
     local do_gzip=${3:-true}
     local do_tar_append=${4:-true}
-    [ ! -d "$TARDIR/$supp_dir" ] && $MKDIR $V -p "$TARDIR/$supp_dir"
+    if [ ! -d "$TARDIR/$supp_dir" ]; then
+        $MKDIR $V -p "$TARDIR/$supp_dir"
+    fi
 
     if $do_gzip; then
         gz_path="${gz_path}.gz"
@@ -1288,8 +1297,9 @@ main() {
     $RM $V -rf $TARDIR
 
     if $DO_COMPRESS; then
-        $GZIP $V $TARFILE
-        if [ $? -eq 0 ]; then
+        RC=0
+        $GZIP $V $TARFILE || RC=$?
+        if [ $RC -eq 0 ]; then
             TARFILE="${TARFILE}.gz"
         else
             echo "WARNING: gzip operation appears to have failed." >&2
