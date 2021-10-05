@@ -10,11 +10,26 @@ import pytest
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
-xml_input_path = os.path.join(modules_path, "tests/sku_create_input/2700_files")
-output_xml_dir_path = os.path.join(modules_path, "tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8_NEW/")
-sku_def_file = os.path.join(xml_input_path, "Mellanox-SN2700-D48C8.xml")
-output_xml_file_path = os.path.join(modules_path, "tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8_NEW/port_config.ini")
-model_xml_file_path = os.path.join(modules_path, "tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8/port_config.ini")
+
+# xml file input related test resources
+xml_input_paths = ["tests/sku_create_input/2700_files", "tests/sku_create_input/7050_files", "tests/sku_create_input/7260_files"]
+output_xml_dir_paths = [
+    "tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8_NEW/",
+    "tests/sku_create_input/7050_files/Arista-7050CX3-32S-D48C8_NEW",
+    "tests/sku_create_input/7260_files/Arista-7260CX3-D108C8_NEW"
+]
+sku_def_files = ["Mellanox-SN2700-D48C8.xml", "Arista-7050CX3-32S-D48C8.xml", "Arista-7260CX3-D108C8.xml"]
+output_xml_file_paths = [
+    "tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8_NEW/port_config.ini",
+    "tests/sku_create_input/7050_files/Arista-7050CX3-32S-D48C8_NEW/port_config.ini",
+    "tests/sku_create_input/7260_files/Arista-7260CX3-D108C8_NEW/port_config.ini"
+]
+model_xml_file_paths = [
+    "tests/sku_create_input/2700_files/Mellanox-SN2700-D48C8/port_config.ini",
+    "tests/sku_create_input/7050_files/Arista-7050CX3-32S-D48C8/port_config.ini",
+    "tests/sku_create_input/7260_files/Arista-7260CX3-D108C8/port_config.ini"
+]
+
 minigraph_input_path = os.path.join(modules_path, "tests/sku_create_input/3800_files")
 output_minigraph_dir_path = os.path.join(modules_path, "tests/sku_create_input/3800_files/Mellanox-SN3800-D28C50_NEW/")
 minigraph_file = os.path.join(minigraph_input_path, "t0-1-06-minigraph.xml")
@@ -70,26 +85,34 @@ class TestSkuCreate(object):
         return True
     
     def test_sku_from_xml_file(self):
-        if (os.path.exists(output_xml_dir_path)):
-            shutil.rmtree(output_xml_dir_path)
+        test_resources = zip(xml_input_paths, output_xml_dir_paths, sku_def_files, output_xml_file_paths, model_xml_file_paths)
+        for xml_input_path, output_xml_dir_path, sku_def_file, output_xml_file_path, model_xml_file_path in test_resources:
+            xml_input_path = os.path.join(modules_path, xml_input_path)
+            output_xml_dir_path = os.path.join(modules_path, output_xml_dir_path)
+            sku_def_file = os.path.join(xml_input_path, sku_def_file)
+            output_xml_file_path = os.path.join(modules_path, output_xml_file_path)
+            model_xml_file_path = os.path.join(modules_path, model_xml_file_path)
 
-        my_command = sku_create_script + " -f "  + sku_def_file  + " -d " + xml_input_path
+            if (os.path.exists(output_xml_dir_path)):
+                shutil.rmtree(output_xml_dir_path)
 
-        #Test case execution without stdout
-        result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
-        print(result)
+            my_command = sku_create_script + " -f "  + sku_def_file  + " -d " + xml_input_path
 
-        #Check if the Output file exists
-        if (os.path.exists(output_xml_file_path)):
-            print("Output file: ",output_xml_file_path, "exists. SUCCESS!")
-        else:
-            pytest.fail("Output file: {} does not exist. FAILURE!".format(output_xml_file_path))
+            #Test case execution without stdout
+            result = subprocess.check_output(my_command,stderr=subprocess.STDOUT,shell=True)
+            print(result)
 
-        #Check if the Output file and the model file have same contents
-        if self.are_file_contents_same(output_xml_file_path, model_xml_file_path) == True:
-            print("Output file: ",output_xml_file_path, " and model file: ",model_xml_file_path, "contents are same. SUCCESS!")
-        else:
-            pytest.fail("Output file: {} and model file: {} contents are not same. FAILURE!".format(output_xml_file_path, model_xml_file_path))
+            #Check if the Output file exists
+            if (os.path.exists(output_xml_file_path)):
+                print("Output file: ",output_xml_file_path, "exists. SUCCESS!")
+            else:
+                pytest.fail("Output file: {} does not exist. FAILURE!".format(output_xml_file_path))
+
+            #Check if the Output file and the model file have same contents
+            if self.are_file_contents_same(output_xml_file_path, model_xml_file_path) == True:
+                print("Output file: ",output_xml_file_path, " and model file: ",model_xml_file_path, "contents are same. SUCCESS!")
+            else:
+                pytest.fail("Output file: {} and model file: {} contents are not same. FAILURE!".format(output_xml_file_path, model_xml_file_path))
 
     def test_sku_from_minigraph_file(self):
         if (os.path.exists(output_minigraph_dir_path)):

@@ -23,6 +23,7 @@ optional arguments:
 """
 
 import argparse
+import itertools
 import json
 import os
 import re
@@ -74,6 +75,11 @@ class SkuCreate(object):
     Tool for SKU creator
     """
 
+    PORT_ALIAS_PATTERNS = (
+        re.compile(r"^etp(?P<port_index>\d+)(?P<lane>[a-d]?)"),
+        re.compile(r"^Ethernet(?P<port_index>\d+)(/)?(?(2)(?P<lane>[1-4]+))")
+    )
+
     def __init__(self):
 
         self.portconfig_dict = {}
@@ -96,7 +102,7 @@ class SkuCreate(object):
         self.bko_dict = {}
 
     def sku_def_parser(self, sku_def):
-        # Parsing XML sku definition file to extract Interface speed and InterfaceName(alias) <etp<#><a/b/c/d> to be used to analyze split configuration
+        # Parsing XML sku definition file to extract Interface speed and InterfaceName(alias) <etp<#><a/b/c/d>|<Ethernet<#>/<#> to be used to analyze split configuration
         # Rest of the fields are used as placeholders for portconfig_dict [name,lanes,SPEED,ALIAS,index]
         try:
             f = open(str(sku_def),"r")
@@ -525,20 +531,28 @@ class SkuCreate(object):
             exit(1)
         self.break_in_cfg(self.cfg_file,port_name,port_split,lanes_str_result)
 
+    def _parse_interface_alias(self, alias):
+        """Analyze the front panel port index and split index based on the alias."""
+        for alias_pattern in self.PORT_ALIAS_PATTERNS:
+            m = alias_pattern.match(alias)
+            if m:
+                return m.group("port_index"), m.group("lane")
+        return None, None
+
     def split_analyze(self):
         # Analyze the front panl ports split  based on the interfaces alias names
         # fpp_split is a hash with key=front panel port and values is a list of lists ([alias],[index])
         alias_index = PORTCONFIG_HEADER.index('alias')
         for idx, ifc in self.portconfig_dict.items():
-            pattern = '^etp([0-9]{1,})([a-d]?)'
-            m = re.match(pattern,str(ifc[alias_index]))
-            if int(m.group(1)) not in self.fpp_split :
-                self.fpp_split[int(m.group(1))] = [[ifc[alias_index]],[idx]] #1
+            pi, _ = self._parse_interface_alias(ifc[alias_index])
+            pi = int(pi)
+            if pi not in self.fpp_split :
+                self.fpp_split[pi] = [[ifc[alias_index]],[idx]] #1
             else:
-                self.fpp_split[int(m.group(1))][0].append(str(ifc[alias_index])) #+= 1
-                self.fpp_split[int(m.group(1))][1].append(idx)
+                self.fpp_split[pi][0].append(str(ifc[alias_index])) #+= 1
+                self.fpp_split[pi][1].append(idx)
                 if (self.verbose):
-                    print("split_analyze -> ",m.group(1), " : ", self.fpp_split[int(m.group(1))])
+                    print("split_analyze -> ", pi, " : ", self.fpp_split[pi])
         self.num_of_fpp = len(list(self.fpp_split.keys()))
 
     def get_default_lanes(self):
@@ -549,14 +563,14 @@ class SkuCreate(object):
                 if line_header[0] == "#" : del line_header[0] # if hashtag is in a different column, remove it to align column header and data
                 alias_index = line_header.index('alias')
                 lanes_index = line_header.index('lanes')
-                pattern = '^etp([0-9]{1,})'
                 for line in f:
                     line_arr = line.split()
-                    m = re.match(pattern,line_arr[alias_index])
-                    self.default_lanes_per_port.insert(int(m.group(1))-1,line_arr[lanes_index])
+                    pi, _ = self._parse_interface_alias(line_arr[alias_index])
+                    pi = int(pi)
+                    self.default_lanes_per_port.insert(pi - 1, line_arr[lanes_index])
                     if (self.verbose):
-                        print("get_default_lanes -> ",m.group(1), " : ", self.default_lanes_per_port[int(m.group(1))-1])
-                f.close()
+                        print("get_default_lanes -> ", pi, " : ", self.default_lanes_per_port[pi - 1])
+
         except IOError:
             print("Could not open file "+ self.base_file_path, file=sys.stderr)
             exit(1)
@@ -572,19 +586,26 @@ class SkuCreate(object):
             idx_arr = sorted(values[1])
 
             splt = len(splt_arr)
-            pattern = '(\d+),(\d+),(\d+),(\d+)'      #Currently the assumption is that the default(base) is 4 lanes
+            lanes = [_.strip() for _ in self.default_lanes_per_port[fp - 1].split(",")]
+            lanes_count = len(lanes)
+            if lanes_count % splt != 0:
+                print("Lanes(%s) could not be evenly splitted by %d." % (self.default_lanes_per_port[fp - 1], splt))
+                exit(1)
 
-            m = re.match(pattern,self.default_lanes_per_port[fp-1])
+            # split the lanes
+            it = iter(lanes)
+            lanes_splitted = list(iter(lambda: tuple(itertools.islice(it, lanes_count // splt)), ()))
+
             if (splt == 1):
-                self.portconfig_dict[idx_arr[0]][lanes_index] = m.group(1)+","+m.group(2)+","+m.group(3)+","+m.group(4) 
+                self.portconfig_dict[idx_arr[0]][lanes_index] = ",".join(lanes_splitted[0])
                 self.portconfig_dict[idx_arr[0]][index_index] = str(fp)
                 self.portconfig_dict[idx_arr[0]][name_index] = "Ethernet"+str((fp-1)*4)
                 if (self.verbose):
                     print("set_lanes -> FP: ",fp, "Split: ",splt)
                     print("PortConfig_dict ",idx_arr[0],":", self.portconfig_dict[idx_arr[0]])
             elif (splt == 2):
-                self.portconfig_dict[idx_arr[0]][lanes_index] = m.group(1)+","+m.group(2) 
-                self.portconfig_dict[idx_arr[1]][lanes_index] = m.group(3)+","+m.group(4)
+                self.portconfig_dict[idx_arr[0]][lanes_index] = ",".join(lanes_splitted[0])
+                self.portconfig_dict[idx_arr[1]][lanes_index] = ",".join(lanes_splitted[1])
                 self.portconfig_dict[idx_arr[0]][index_index] = str(fp) 
                 self.portconfig_dict[idx_arr[1]][index_index] = str(fp)
                 self.portconfig_dict[idx_arr[0]][name_index] = "Ethernet"+str((fp-1)*4) 
@@ -594,10 +615,10 @@ class SkuCreate(object):
                     print("PortConfig_dict ",idx_arr[0],":", self.portconfig_dict[idx_arr[0]])
                     print("PortConfig_dict ",idx_arr[1],":", self.portconfig_dict[idx_arr[1]])
             elif (splt == 4):
-                self.portconfig_dict[idx_arr[0]][lanes_index] = m.group(1) 
-                self.portconfig_dict[idx_arr[1]][lanes_index] = m.group(2) 
-                self.portconfig_dict[idx_arr[2]][lanes_index] = m.group(3) 
-                self.portconfig_dict[idx_arr[3]][lanes_index] = m.group(4)
+                self.portconfig_dict[idx_arr[0]][lanes_index] = ",".join(lanes_splitted[0])
+                self.portconfig_dict[idx_arr[1]][lanes_index] = ",".join(lanes_splitted[1])
+                self.portconfig_dict[idx_arr[2]][lanes_index] = ",".join(lanes_splitted[2])
+                self.portconfig_dict[idx_arr[3]][lanes_index] = ",".join(lanes_splitted[3])
                 self.portconfig_dict[idx_arr[0]][index_index] = str(fp) 
                 self.portconfig_dict[idx_arr[1]][index_index] = str(fp) 
                 self.portconfig_dict[idx_arr[2]][index_index] = str(fp) 
