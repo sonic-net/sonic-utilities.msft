@@ -356,39 +356,6 @@ def write_num_dumps(num_dumps):
         print_err("Error while writing KDUMP_NUM_DUMPS into %s" % kdump_cfg)
         sys.exit(1)
 
-## Save kdump configuration into the startup configuration
-# @kdump_enabled Administrative mode (False/True)
-# @memory        Amount of memory allocated for the capture kernel
-# @num_dumps     Max number of core files saved locally
-def save_config(kdump_enabled, memory, num_dumps):
-
-    configdb_fname = '/etc/sonic/config_db.json'
-
-    # Read current configuration
-    if not os.path.exists(configdb_fname):
-        print_err("Startup configuration not found, Kdump configuration is not saved")
-        return
-    else:
-        try:
-            with open(configdb_fname) as json_file:
-                data = json.load(json_file)
-        except Exception as e:
-            print_err("Error [%s] while reading startup configuration" % e)
-            return
-
-    # Rewrite configuration
-    try:
-        kdump_data = {'config': {'enabled': '', 'num_dumps': '', 'memory': ''}}
-        (kdump_data['config'])['enabled']   = str(kdump_enabled).lower()
-        (kdump_data['config'])['num_dumps'] = str(num_dumps)
-        (kdump_data['config'])['memory']    = memory
-        data['KDUMP'] = kdump_data
-        with open(configdb_fname, 'w') as fp:
-            json.dump(data, fp, indent=4, sort_keys=False)
-        print("Kdump configuration has been updated in the startup configuration")
-    except Exception as e:
-        print_err("Error [%s] while saving Kdump configuration to startup configuration" % e)
-
 ## Enable kdump
 #
 #  @param verbose If True, the function will display a few additinal information
@@ -432,9 +399,6 @@ def kdump_enable(verbose, kdump_enabled, memory, num_dumps, image, cmdline_file)
 
     if changed:
         rewrite_cfg(lines, cmdline_file)
-        save_config(kdump_enabled, memory, num_dumps)
-    else:
-        save_config(kdump_enabled, memory, num_dumps)
 
     write_use_kdump(1)
     if crash_kernel_in_cmdline is not None:
@@ -545,7 +509,6 @@ def kdump_disable(verbose, kdump_enabled, memory, num_dumps, image, cmdline_file
 
     if changed:
         rewrite_grub_cfg(lines, grub_cfg)
-        save_config(kdump_enabled, memory, num_dumps)
 
     return changed
 
@@ -590,7 +553,6 @@ def cmd_kdump_memory(verbose, memory):
                 print("Kdump updated memory will be only operational after the system reboots")
         else:
             num_dumps = get_kdump_num_dumps()
-            save_config(False, memory, num_dumps)
 
 ## Command: Set / Get num_dumps
 #
@@ -605,7 +567,6 @@ def cmd_kdump_num_dumps(verbose, num_dumps):
         write_num_dumps(num_dumps)
         kdump_enabled = get_kdump_administrative_mode()
         kdump_memory = get_kdump_memory()
-        save_config(kdump_enabled, kdump_memory, num_dumps)
 
 
 def main():

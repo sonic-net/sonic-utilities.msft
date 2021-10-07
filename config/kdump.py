@@ -43,6 +43,8 @@ def kdump_disable(db):
     check_kdump_table_existence(kdump_table)
 
     db.cfgdb.mod_entry("KDUMP", "config", {"enabled": "false"})
+    click.echo("KDUMP configuration changes may require a reboot to take effect.")
+    click.echo("Save SONiC configuration using 'config save' before issuing the reboot command.")
 
 
 #
@@ -56,6 +58,8 @@ def kdump_enable(db):
     check_kdump_table_existence(kdump_table)
 
     db.cfgdb.mod_entry("KDUMP", "config", {"enabled": "true"})
+    click.echo("KDUMP configuration changes may require a reboot to take effect.")
+    click.echo("Save SONiC configuration using 'config save' before issuing the reboot command.")
 
 
 #
@@ -70,6 +74,8 @@ def kdump_memory(db, kdump_memory):
     check_kdump_table_existence(kdump_table)
 
     db.cfgdb.mod_entry("KDUMP", "config", {"memory": kdump_memory})
+    click.echo("KDUMP configuration changes may require a reboot to take effect.")
+    click.echo("Save SONiC configuration using 'config save' before issuing the reboot command.")
 
 
 #

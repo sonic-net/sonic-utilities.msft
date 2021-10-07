@@ -78,7 +78,7 @@ def config():
         click.echo("Kdump operational mode: {}".format(oper_mode))
 
     mem_config = get_kdump_config("memory")
-    click.echo("Kdump memory researvation: {}".format(mem_config))
+    click.echo("Kdump memory reservation: {}".format(mem_config))
 
     num_files_config = get_kdump_config("num_dumps")
     click.echo("Maximum number of Kdump files: {}".format(num_files_config))
