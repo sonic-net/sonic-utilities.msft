@@ -997,7 +997,10 @@ class PatchSorter:
         current_config = self.config_wrapper.get_config_db_as_json()
         target_config = self.patch_wrapper.simulate_patch(patch, current_config)
 
-        diff = Diff(current_config, target_config)
+        cropped_current_config = self.config_wrapper.crop_tables_without_yang(current_config)
+        cropped_target_config = self.config_wrapper.crop_tables_without_yang(target_config)
+
+        diff = Diff(cropped_current_config, cropped_target_config)
 
         sort_algorithm = self.sort_algorithm_factory.create(algorithm)
         moves = sort_algorithm.sort(diff)
