@@ -260,7 +260,8 @@ def convert_sfp_info_to_output_string(sfp_info_dict):
         elif key == 'cable_length':
             pass
         elif key == 'specification_compliance':
-            if sfp_info_dict['type'] == "QSFP-DD Double Density 8X Pluggable Transceiver":
+            if sfp_info_dict['type'] == "QSFP-DD Double Density 8X Pluggable Transceiver" or \
+            sfp_info_dict['type'] == "OSFP 8X Pluggable Transceiver":
                 output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
             else:
                 output += '{}{}:\n'.format(indent, QSFP_DATA_MAP['specification_compliance'])
