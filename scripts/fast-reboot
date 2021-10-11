@@ -277,8 +277,13 @@ function backup_database()
 function setup_control_plane_assistant()
 {
     if [[ -n "${ASSISTANT_IP_LIST}" && -x ${ASSISTANT_SCRIPT} ]]; then
-        debug "Setting up control plane assistant: ${ASSISTANT_IP_LIST} ..."
-        ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m set
+        # TH3 HW is not capable of VxLAN programming thus skipping TH3 platforms
+        if [[ "${HWSKU}" != "DellEMC-Z9332f-M-O16C64" && "${HWSKU}" != "DellEMC-Z9332f-M-O16C64-lab" ]]; then
+            debug "Setting up control plane assistant: ${ASSISTANT_IP_LIST} ..."
+            ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m set
+        else
+            debug "${HWSKU} Not capable to support CPA. Skipping gracefully ..."
+        fi
     elif [[ X"${STRICT}" == X"yes" ]]; then
         debug "Strict mode: fail due to lack of control plane assistant ..."
         exit ${EXIT_NO_CONTROL_PLANE_ASSISTANT}
@@ -288,8 +293,11 @@ function setup_control_plane_assistant()
 function teardown_control_plane_assistant()
 {
     if [[ -n "${ASSISTANT_IP_LIST}" && -x ${ASSISTANT_SCRIPT} ]]; then
-        debug "Tearing down control plane assistant: ${ASSISTANT_IP_LIST} ..."
-        ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m reset
+        # TH3 HW is not capable of VxLAN programming thus skipping TH3 platforms
+        if [[ "${HWSKU}" != "DellEMC-Z9332f-M-O16C64" && "${HWSKU}" != "DellEMC-Z9332f-M-O16C64-lab" ]]; then
+            debug "Tearing down control plane assistant: ${ASSISTANT_IP_LIST} ..."
+            ${ASSISTANT_SCRIPT} -s ${ASSISTANT_IP_LIST} -m reset
+        fi
     fi
 }
 
@@ -300,6 +308,7 @@ function is_secureboot() {
 function setup_reboot_variables()
 {
     # Kernel and initrd image
+    HWSKU=$(show platform summary --json | python -c 'import sys, json; print(json.load(sys.stdin)["hwsku"])')
     NEXT_SONIC_IMAGE=$(sonic-installer list | grep "Next: " | cut -d ' ' -f 2)
     IMAGE_PATH="/host/image-${NEXT_SONIC_IMAGE#SONiC-OS-}"
     if grep -q aboot_platform= /host/machine.conf; then
