@@ -68,15 +68,28 @@ def get_physical_to_logical():
     return platform_sfputil.physical_to_logical
 
 
+def get_interface_name(port, db):
+
+    if port is not "all" and port is not None:
+        alias = port
+        iface_alias_converter = clicommon.InterfaceAliasConverter(db)
+        if clicommon.get_interface_naming_mode() == "alias":
+            port = iface_alias_converter.alias_to_name(alias)
+            if port is None:
+                click.echo("cannot find port name for alias {}".format(alias))
+                sys.exit(1)
+
+    return port
+
 def get_interface_alias(port, db):
 
     if port is not "all" and port is not None:
         alias = port
         iface_alias_converter = clicommon.InterfaceAliasConverter(db)
-        port = iface_alias_converter.alias_to_name(alias)
-        if port is None:
-            click.echo("cannot find port name for alias {}".format(alias))
-            sys.exit(1)
+        if clicommon.get_interface_naming_mode() == "alias":
+            port = iface_alias_converter.name_to_alias(alias)
+            if port is None:
+                click.echo("cannot find port name for alias {}".format(alias))
+                sys.exit(1)
 
     return port
-

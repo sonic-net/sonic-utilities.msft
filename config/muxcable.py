@@ -219,7 +219,7 @@ def muxcable():
     platform_sfputil = platform_sfputil_helper.platform_sfputil
 
 
-def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_cfg_val, port_status_dict):
+def lookup_statedb_and_update_configdb(db, per_npu_statedb, config_db, port, state_cfg_val, port_status_dict):
 
     muxcable_statedb_dict = per_npu_statedb.get_all(per_npu_statedb.STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
     configdb_state = get_value_for_key_in_config_tbl(config_db, port, "state", "MUX_CABLE")
@@ -228,15 +228,17 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_c
 
     state = get_value_for_key_in_dict(muxcable_statedb_dict, port, "state", "MUX_CABLE_TABLE")
 
+    port_name = platform_sfputil_helper.get_interface_alias(port, db)
+
     if str(state_cfg_val) == str(configdb_state):
-        port_status_dict[port] = 'OK'
+        port_status_dict[port_name] = 'OK'
     else:
         config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val,
                                                 "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
         if (str(state_cfg_val) == 'active' and str(state) != 'active') or (str(state_cfg_val) == 'standby' and str(state) != 'standby'):
-            port_status_dict[port] = 'INPROGRESS'
+            port_status_dict[port_name] = 'INPROGRESS'
         else:
-            port_status_dict[port] = 'OK'
+            port_status_dict[port_name] = 'OK'
 
 
 # 'muxcable' command ("config muxcable mode <port|all> active|auto")
@@ -248,7 +250,7 @@ def lookup_statedb_and_update_configdb(per_npu_statedb, config_db, port, state_c
 def mode(db, state, port, json_output):
     """Config muxcable mode"""
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
 
     port_table_keys = {}
     y_cable_asic_table_keys = {}
@@ -292,7 +294,7 @@ def mode(db, state, port, json_output):
             if logical_key in y_cable_asic_table_keys:
                 port_status_dict = {}
                 lookup_statedb_and_update_configdb(
-                    per_npu_statedb[asic_index], per_npu_configdb[asic_index], port, state, port_status_dict)
+                    db, per_npu_statedb[asic_index], per_npu_configdb[asic_index], port, state, port_status_dict)
 
                 if json_output:
                     click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
@@ -318,7 +320,7 @@ def mode(db, state, port, json_output):
             for key in port_table_keys[asic_id]:
                 logical_port = key.split("|")[1]
                 lookup_statedb_and_update_configdb(
-                    per_npu_statedb[asic_id], per_npu_configdb[asic_id], logical_port, state, port_status_dict)
+                    db, per_npu_statedb[asic_id], per_npu_configdb[asic_id], logical_port, state, port_status_dict)
 
             if json_output:
                 click.echo("{}".format(json.dumps(port_status_dict, indent=4)))
@@ -419,7 +421,7 @@ def hwmode():
 def state(db, state, port):
     """Configure the muxcable mux state {active/standby}"""
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
 
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_DIR_CMD")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_HWMODE_DIR_RSP")
@@ -436,6 +438,8 @@ def state(db, state, port):
 
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_DIR_CMD")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_HWMODE_DIR_RSP")
+
+        port = platform_sfputil_helper.get_interface_alias(port, db)
 
         if rc == 0:
             click.echo("Success in toggling port {} to {}".format(port, state))
@@ -484,6 +488,8 @@ def state(db, state, port):
             delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_DIR_CMD")
             delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_HWMODE_DIR_RSP")
 
+            port = platform_sfputil_helper.get_interface_alias(port, db)
+
             if rc == 0:
                 click.echo("Success in toggling port {} to {}".format(port, state))
             else:
@@ -500,7 +506,7 @@ def state(db, state, port):
 def setswitchmode(db, state, port):
     """Configure the muxcable mux switching mode {auto/manual}"""
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
 
 
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_SWMODE_CMD")
@@ -519,6 +525,8 @@ def setswitchmode(db, state, port):
 
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_SWMODE_CMD")
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_HWMODE_SWMODE_RSP")
+
+        port = platform_sfputil_helper.get_interface_alias(port, db)
 
         if rc == 0:
             click.echo("Success in switch muxcable mode port {} to {}".format(port, state))
@@ -566,6 +574,8 @@ def setswitchmode(db, state, port):
             delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_SWMODE_CMD")
             delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_HWMODE_SWMODE_RSP")
 
+            port = platform_sfputil_helper.get_interface_alias(port, db)
+
             if rc == 0:
                 click.echo("Success in toggling port {} to {}".format(port, state))
             else:
@@ -588,7 +598,7 @@ def firmware():
 def download(db, fwfile, port):
     """Config muxcable firmware download"""
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
 
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_DOWN_FW_RSP")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_DOWN_FW_CMD")
@@ -604,6 +614,8 @@ def download(db, fwfile, port):
 
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_DOWN_FW_RSP")
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_DOWN_FW_CMD")
+
+        port = platform_sfputil_helper.get_interface_alias(port, db)
 
         if rc == 0:
             click.echo("Success in downloading firmware port {} {}".format(port, fwfile))
@@ -652,6 +664,8 @@ def download(db, fwfile, port):
             delete_all_keys_in_db_table("STATE_DB", "XCVRD_DOWN_FW_RSP")
             delete_all_keys_in_db_table("APPL_DB", "XCVRD_DOWN_FW_CMD")
 
+            port = platform_sfputil_helper.get_interface_alias(port, db)
+
             if rc == 0:
                 click.echo("Success in downloading firmware port {} {}".format(port, fwfile))
             else:
@@ -668,7 +682,7 @@ def download(db, fwfile, port):
 def activate(db, port, fwfile):
     """Config muxcable firmware activate"""
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
 
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_ACTI_FW_RSP")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_ACTI_FW_CMD")
@@ -684,6 +698,8 @@ def activate(db, port, fwfile):
 
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_ACTI_FW_RSP")
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_ACTI_FW_CMD")
+
+        port = platform_sfputil_helper.get_interface_alias(port, db)
 
         if rc == 0:
             click.echo("Success in activate firmware port {} fwfile {}".format(port, fwfile))
@@ -731,6 +747,8 @@ def activate(db, port, fwfile):
 
             rc = res_dict[0]
 
+            port = platform_sfputil_helper.get_interface_alias(port, db)
+
             if rc == 0:
                 click.echo("Success in activate firmware port {} fwfile {}".format(port, fwfile))
             else:
@@ -747,7 +765,7 @@ def activate(db, port, fwfile):
 def rollback(db, port, fwfile):
     """Config muxcable firmware rollback"""
 
-    port = platform_sfputil_helper.get_interface_alias(port, db)
+    port = platform_sfputil_helper.get_interface_name(port, db)
 
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_ROLL_FW_RSP")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_ROLL_FW_CMD")
@@ -763,6 +781,9 @@ def rollback(db, port, fwfile):
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_ROLL_FW_CMD")
 
         rc = res_dict[0]
+
+        port = platform_sfputil_helper.get_interface_alias(port, db)
+
         if rc == 0:
             click.echo("Success in rollback firmware port {} fwfile {}".format(port, fwfile))
         else:
@@ -808,6 +829,8 @@ def rollback(db, port, fwfile):
             delete_all_keys_in_db_table("APPL_DB", "XCVRD_ROLL_FW_CMD")
 
             rc = res_dict[0]
+
+            port = platform_sfputil_helper.get_interface_alias(port, db)
 
             if rc == 0:
                 click.echo("Success in rollback firmware port {} fwfile {}".format(port, fwfile))

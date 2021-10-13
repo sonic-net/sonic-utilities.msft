@@ -35,6 +35,17 @@ Ethernet16  standby   healthy
 Ethernet32  active    healthy
 """
 
+tabular_data_status_output_expected_alias = """\
+PORT    STATUS    HEALTH
+------  --------  ---------
+etp1    active    healthy
+etp2    standby   healthy
+etp3    standby   unhealthy
+etp4    unknown   unhealthy
+etp5    standby   healthy
+etp9    active    healthy
+"""
+
 json_data_status_output_expected = """\
 {
     "MUX_CABLE": {
@@ -66,6 +77,37 @@ json_data_status_output_expected = """\
 }
 """
 
+json_data_status_output_expected_alias = """\
+{
+    "MUX_CABLE": {
+        "etp1": {
+            "STATUS": "active",
+            "HEALTH": "healthy"
+        },
+        "etp2": {
+            "STATUS": "standby",
+            "HEALTH": "healthy"
+        },
+        "etp3": {
+            "STATUS": "standby",
+            "HEALTH": "unhealthy"
+        },
+        "etp4": {
+            "STATUS": "unknown",
+            "HEALTH": "unhealthy"
+        },
+        "etp5": {
+            "STATUS": "standby",
+            "HEALTH": "healthy"
+        },
+        "etp9": {
+            "STATUS": "active",
+            "HEALTH": "healthy"
+        }
+    }
+}
+"""
+
 
 tabular_data_config_output_expected = """\
 SWITCH_NAME    PEER_TOR
@@ -80,6 +122,21 @@ Ethernet12  active   10.4.1.1  e802::46
 Ethernet16  standby  10.1.1.1  fc00::75
 Ethernet28  manual   10.1.1.1  fc00::75
 Ethernet32  auto     10.1.1.1  fc00::75
+"""
+
+tabular_data_config_output_expected_alias = """\
+SWITCH_NAME    PEER_TOR
+-------------  ----------
+sonic-switch   10.2.2.2
+port    state    ipv4      ipv6
+------  -------  --------  --------
+etp1    active   10.2.1.1  e800::46
+etp2    auto     10.3.1.1  e801::46
+etp3    active   10.4.1.1  e802::46
+etp4    active   10.4.1.1  e802::46
+etp5    standby  10.1.1.1  fc00::75
+etp8    manual   10.1.1.1  fc00::75
+etp9    auto     10.1.1.1  fc00::75
 """
 
 json_data_status_config_output_expected = """\
@@ -141,12 +198,88 @@ json_data_status_config_output_expected = """\
 }
 """
 
+json_data_status_config_output_expected_alias = """\
+{
+    "MUX_CABLE": {
+        "PEER_TOR": "10.2.2.2",
+        "PORTS": {
+            "etp1": {
+                "STATE": "active",
+                "SERVER": {
+                    "IPv4": "10.2.1.1",
+                    "IPv6": "e800::46"
+                }
+            },
+            "etp2": {
+                "STATE": "auto",
+                "SERVER": {
+                    "IPv4": "10.3.1.1",
+                    "IPv6": "e801::46"
+                }
+            },
+            "etp3": {
+                "STATE": "active",
+                "SERVER": {
+                    "IPv4": "10.4.1.1",
+                    "IPv6": "e802::46"
+                }
+            },
+            "etp4": {
+                "STATE": "active",
+                "SERVER": {
+                    "IPv4": "10.4.1.1",
+                    "IPv6": "e802::46"
+                }
+            },
+            "etp5": {
+                "STATE": "standby",
+                "SERVER": {
+                    "IPv4": "10.1.1.1",
+                    "IPv6": "fc00::75"
+                }
+            },
+            "etp8": {
+                "STATE": "manual",
+                "SERVER": {
+                    "IPv4": "10.1.1.1",
+                    "IPv6": "fc00::75"
+                }
+            },
+            "etp9": {
+                "STATE": "auto",
+                "SERVER": {
+                    "IPv4": "10.1.1.1",
+                    "IPv6": "fc00::75"
+                }
+            }
+        }
+    }
+}
+"""
+
 json_port_data_status_config_output_expected = """\
 {
     "MUX_CABLE": {
         "PEER_TOR": "10.2.2.2",
         "PORTS": {
             "Ethernet32": {
+                "STATE": "auto",
+                "SERVER": {
+                    "IPv4": "10.1.1.1",
+                    "IPv6": "fc00::75"
+                }
+            }
+        }
+    }
+}
+"""
+
+json_port_data_status_config_output_expected_alias = """\
+{
+    "MUX_CABLE": {
+        "PEER_TOR": "10.2.2.2",
+        "PORTS": {
+            "etp9": {
                 "STATE": "auto",
                 "SERVER": {
                     "IPv4": "10.1.1.1",
@@ -169,6 +302,17 @@ json_data_config_output_auto_expected = """\
 }
 """
 
+json_data_config_output_auto_expected_alias = """\
+{
+    "etp9": "OK",
+    "etp1": "OK",
+    "etp2": "OK",
+    "etp3": "OK",
+    "etp5": "OK",
+    "etp4": "OK"
+}
+"""
+
 json_data_config_output_active_expected = """\
 {
     "Ethernet32": "OK",
@@ -177,6 +321,17 @@ json_data_config_output_active_expected = """\
     "Ethernet8": "OK",
     "Ethernet16": "INPROGRESS",
     "Ethernet12": "OK"
+}
+"""
+
+json_data_config_output_active_expected_alias = """\
+{
+    "etp9": "OK",
+    "etp1": "OK",
+    "etp2": "INPROGRESS",
+    "etp3": "OK",
+    "etp5": "INPROGRESS",
+    "etp4": "OK"
 }
 """
 
@@ -192,10 +347,22 @@ Port        Direction
 Ethernet12  active
 """
 
+show_muxcable_hwmode_muxdirection_active_expected_output_alias = """\
+Port    Direction
+------  -----------
+etp4    active
+"""
+
 show_muxcable_hwmode_muxdirection_standby_expected_output = """\
 Port        Direction
 ----------  -----------
 Ethernet12  standby
+"""
+
+show_muxcable_hwmode_muxdirection_standby_expected_output_alias = """\
+Port    Direction
+------  -----------
+etp4    standby
 """
 
 show_muxcable_firmware_version_expected_output = """\
@@ -229,6 +396,15 @@ Ethernet0  xcvrd_switch_standby_end      2021-May-13 10:01:15.696051
 Ethernet0  linkmgrd_switch_standby_end   2021-May-13 10:01:15.696728
 """
 
+show_muxcable_metrics_expected_output_alias = """\
+PORT    EVENT                         TIME
+------  ----------------------------  ---------------------------
+etp1    linkmgrd_switch_active_start  2021-May-13 10:00:21.420898
+etp1    xcvrd_switch_standby_start    2021-May-13 10:01:15.690835
+etp1    xcvrd_switch_standby_end      2021-May-13 10:01:15.696051
+etp1    linkmgrd_switch_standby_end   2021-May-13 10:01:15.696728
+"""
+
 show_muxcable_metrics_expected_output_json = """\
 {
     "linkmgrd_switch_active_start": "2021-May-13 10:00:21.420898",
@@ -253,6 +429,16 @@ class TestMuxcable(object):
         assert result.exit_code == 0
         assert result.output == tabular_data_status_output_expected
 
+    def test_muxcable_status_alias(self):
+        runner = CliRunner()
+        db = Db()
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        result = runner.invoke(show.cli.commands["muxcable"].commands["status"], obj=db)
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+
+        assert result.exit_code == 0
+        assert result.output == tabular_data_status_output_expected_alias
+
     def test_muxcable_status_json(self):
         runner = CliRunner()
         db = Db()
@@ -261,6 +447,17 @@ class TestMuxcable(object):
 
         assert result.exit_code == 0
         assert result.output == json_data_status_output_expected
+
+    def test_muxcable_status_json_alias(self):
+        runner = CliRunner()
+        db = Db()
+
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        result = runner.invoke(show.cli.commands["muxcable"].commands["status"], ["--json"], obj=db)
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+
+        assert result.exit_code == 0
+        assert result.output == json_data_status_output_expected_alias
 
     def test_muxcable_status_config(self):
         runner = CliRunner()
@@ -271,6 +468,17 @@ class TestMuxcable(object):
         assert result.exit_code == 0
         assert result.output == tabular_data_config_output_expected
 
+    def test_muxcable_status_config_alias(self):
+        runner = CliRunner()
+        db = Db()
+
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        result = runner.invoke(show.cli.commands["muxcable"].commands["config"], obj=db)
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+
+        assert result.exit_code == 0
+        assert result.output == tabular_data_config_output_expected_alias
+
     def test_muxcable_status_config_json(self):
         runner = CliRunner()
         db = Db()
@@ -279,6 +487,18 @@ class TestMuxcable(object):
 
         assert result.exit_code == 0
         assert result.output == json_data_status_config_output_expected
+
+    def test_muxcable_status_config_json_alias(self):
+        runner = CliRunner()
+        db = Db()
+
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        result = runner.invoke(show.cli.commands["muxcable"].commands["config"], ["--json"], obj=db)
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+
+        assert result.exit_code == 0
+        assert result.output == json_data_status_config_output_expected_alias
+
 
     def test_muxcable_config_json_with_incorrect_port(self):
         runner = CliRunner()
@@ -296,6 +516,18 @@ class TestMuxcable(object):
             result = runner.invoke(show.cli.commands["muxcable"].commands["status"], ["Ethernet0", "--json"], obj=db)
 
         assert result.exit_code == 0
+
+    def test_muxcable_status_json_with_correct_port_alias(self):
+        runner = CliRunner()
+        db = Db()
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        with mock.patch('sonic_platform_base.sonic_sfp.sfputilhelper') as patched_util:
+            patched_util.SfpUtilHelper.return_value.get_asic_id_for_logical_port.return_value = 0
+            result = runner.invoke(show.cli.commands["muxcable"].commands["status"], ["Ethernet0", "--json"], obj=db)
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+
+        assert result.exit_code == 0
+
 
     def test_muxcable_status_json_port_incorrect_index(self):
         runner = CliRunner()
@@ -415,6 +647,17 @@ class TestMuxcable(object):
         assert result.exit_code == 0
         assert result.output == json_data_config_output_auto_expected
 
+    def test_config_muxcable_mode_auto_json_alias(self):
+        runner = CliRunner()
+        db = Db()
+
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        result = runner.invoke(config.config.commands["muxcable"].commands["mode"], ["auto", "all", "--json"], obj=db)
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+
+        assert result.exit_code == 0
+        assert result.output == json_data_config_output_auto_expected_alias
+
     def test_config_muxcable_mode_active_json(self):
         runner = CliRunner()
         db = Db()
@@ -423,6 +666,17 @@ class TestMuxcable(object):
 
         assert result.exit_code == 0
         assert result.output == json_data_config_output_active_expected
+
+    def test_config_muxcable_mode_active_json_alias(self):
+        runner = CliRunner()
+        db = Db()
+
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        result = runner.invoke(config.config.commands["muxcable"].commands["mode"], ["active", "all", "--json"], obj=db)
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+
+        assert result.exit_code == 0
+        assert result.output == json_data_config_output_active_expected_alias
 
     def test_config_muxcable_json_port_auto_Ethernet0(self):
         runner = CliRunner()
@@ -663,6 +917,28 @@ class TestMuxcable(object):
 
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "active"}))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_physical_to_logical', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    @mock.patch('sonic_y_cable.y_cable.check_read_side', mock.MagicMock(return_value=(1)))
+    @mock.patch('sonic_y_cable.y_cable.check_mux_direction', mock.MagicMock(return_value=(1)))
+    @mock.patch('re.match', mock.MagicMock(return_value=(True)))
+    def test_show_muxcable_hwmode_muxdirection_active_expected_output_alias(self):
+        runner = CliRunner()
+        db = Db()
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        result = runner.invoke(show.cli.commands["muxcable"].commands["hwmode"].commands["muxdirection"],
+                               ["etp4"], obj=db)
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+        assert result.exit_code == 0
+        assert result.output == show_muxcable_hwmode_muxdirection_active_expected_output_alias
+
+
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
                                                                                                       1: "standby"}))
     @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
     @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
@@ -698,6 +974,28 @@ class TestMuxcable(object):
                                ["Ethernet12"], obj=db)
         assert result.exit_code == 0
         assert result.output == show_muxcable_hwmode_muxdirection_standby_expected_output
+
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "standby"}))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_physical_to_logical', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    @mock.patch('sonic_y_cable.y_cable.check_read_side', mock.MagicMock(return_value=(1)))
+    @mock.patch('sonic_y_cable.y_cable.check_mux_direction', mock.MagicMock(return_value=(2)))
+    @mock.patch('re.match', mock.MagicMock(return_value=(True)))
+    def test_show_muxcable_hwmode_muxdirection_port_standby_alias(self):
+        runner = CliRunner()
+        db = Db()
+
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        result = runner.invoke(show.cli.commands["muxcable"].commands["hwmode"].commands["muxdirection"],
+                               ["etp4"], obj=db)
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+        assert result.exit_code == 0
+        assert result.output == show_muxcable_hwmode_muxdirection_standby_expected_output_alias
 
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
@@ -937,7 +1235,23 @@ class TestMuxcable(object):
     @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
     @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
-    def test_show_muxcable_metrics_port(self):
+    def test_show_muxcable_metrics_port_alias(self):
+        runner = CliRunner()
+        db = Db()
+
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        result = runner.invoke(show.cli.commands["muxcable"].commands["metrics"],
+                               ["etp1"], obj=db)
+
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+        assert result.exit_code == 0
+        assert result.output == show_muxcable_metrics_expected_output_alias
+
+    @mock.patch('utilities_common.platform_sfputil_helper.get_logical_list', mock.MagicMock(return_value=["Ethernet0", "Ethernet12"]))
+    @mock.patch('utilities_common.platform_sfputil_helper.get_asic_id_for_logical_port', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value={0: ["Ethernet12", "Ethernet0"]}))
+    @mock.patch('utilities_common.platform_sfputil_helper.logical_port_name_to_physical_port_list', mock.MagicMock(return_value=[0]))
+    def test_show_muxcable_metrics_port_json(self):
         runner = CliRunner()
         db = Db()
 
