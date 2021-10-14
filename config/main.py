@@ -292,6 +292,7 @@ def interface_name_is_valid(config_db, interface_name):
     port_dict = config_db.get_table('PORT')
     port_channel_dict = config_db.get_table('PORTCHANNEL')
     sub_port_intf_dict = config_db.get_table('VLAN_SUB_INTERFACE')
+    loopback_dict = config_db.get_table('LOOPBACK_INTERFACE')
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -310,6 +311,10 @@ def interface_name_is_valid(config_db, interface_name):
         if sub_port_intf_dict:
             for sub_port_intf_name in sub_port_intf_dict:
                 if interface_name == sub_port_intf_name:
+                    return True
+        if loopback_dict:
+            for loopback_name in loopback_dict:
+                if interface_name == loopback_name:
                     return True
     return False
 
