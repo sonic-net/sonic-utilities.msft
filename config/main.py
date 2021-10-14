@@ -92,6 +92,11 @@ DEFAULT_TPID = "0x8100"
 
 asic_type = None
 
+DSCP_RANGE = click.IntRange(min=0, max=63)
+TTL_RANGE = click.IntRange(min=0, max=255)
+QUEUE_RANGE = click.IntRange(min=0, max=255)
+GRE_TYPE_RANGE = click.IntRange(min=0, max=65535)
+
 #
 # Helper functions
 #
@@ -953,6 +958,19 @@ def cache_arp_entries():
         open(restore_flag_file, 'w').close()
     return success
 
+
+def validate_ipv4_address(ctx, param, ip_addr):
+    """Helper function to validate ipv4 address
+    """
+    try:
+        ip_n = ipaddress.ip_network(ip_addr, False)
+        if ip_n.version != 4:
+            raise click.UsageError("{} is not a valid IPv4 address".format(ip_addr))
+        return ip_addr
+    except ValueError as e:
+        raise click.UsageError(str(e))
+
+
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
 @click.pass_context
@@ -1775,12 +1793,12 @@ def mirror_session():
 
 @mirror_session.command('add')
 @click.argument('session_name', metavar='<session_name>', required=True)
-@click.argument('src_ip', metavar='<src_ip>', required=True)
-@click.argument('dst_ip', metavar='<dst_ip>', required=True)
-@click.argument('dscp', metavar='<dscp>', required=True)
-@click.argument('ttl', metavar='<ttl>', required=True)
-@click.argument('gre_type', metavar='[gre_type]', required=False)
-@click.argument('queue', metavar='[queue]', required=False)
+@click.argument('src_ip', metavar='<src_ip>', callback=validate_ipv4_address, required=True)
+@click.argument('dst_ip', metavar='<dst_ip>', callback=validate_ipv4_address, required=True)
+@click.argument('dscp', metavar='<dscp>', type=DSCP_RANGE, required=True)
+@click.argument('ttl', metavar='<ttl>', type=TTL_RANGE, required=True)
+@click.argument('gre_type', metavar='[gre_type]', type=GRE_TYPE_RANGE, required=False)
+@click.argument('queue', metavar='[queue]', type=QUEUE_RANGE, required=False)
 @click.option('--policer')
 def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer):
     """ Add ERSPAN mirror session.(Legacy support) """
@@ -1799,12 +1817,12 @@ def erspan(ctx):
 
 @erspan.command('add')
 @click.argument('session_name', metavar='<session_name>', required=True)
-@click.argument('src_ip', metavar='<src_ip>', required=True)
-@click.argument('dst_ip', metavar='<dst_ip>', required=True)
-@click.argument('dscp', metavar='<dscp>', required=True)
-@click.argument('ttl', metavar='<ttl>', required=True)
-@click.argument('gre_type', metavar='[gre_type]', required=False)
-@click.argument('queue', metavar='[queue]', required=False)
+@click.argument('src_ip', metavar='<src_ip>', callback=validate_ipv4_address, required=True)
+@click.argument('dst_ip', metavar='<dst_ip>', callback=validate_ipv4_address,required=True)
+@click.argument('dscp', metavar='<dscp>', type=DSCP_RANGE, required=True)
+@click.argument('ttl', metavar='<ttl>', type=TTL_RANGE, required=True)
+@click.argument('gre_type', metavar='[gre_type]', type=GRE_TYPE_RANGE, required=False)
+@click.argument('queue', metavar='[queue]', type=QUEUE_RANGE, required=False)
 @click.argument('src_port', metavar='[src_port]', required=False)
 @click.argument('direction', metavar='[direction]', required=False)
 @click.option('--policer')
@@ -1877,7 +1895,7 @@ def span(ctx):
 @click.argument('dst_port', metavar='<dst_port>', required=True)
 @click.argument('src_port', metavar='[src_port]', required=False)
 @click.argument('direction', metavar='[direction]', required=False)
-@click.argument('queue', metavar='[queue]', required=False)
+@click.argument('queue', metavar='[queue]', type=QUEUE_RANGE, required=False)
 @click.option('--policer')
 def add(session_name, dst_port, src_port, direction, queue, policer):
     """ Add SPAN mirror session """
