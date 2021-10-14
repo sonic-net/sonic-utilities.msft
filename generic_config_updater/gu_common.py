@@ -6,9 +6,11 @@ import subprocess
 import yang as ly
 import copy
 import re
+from sonic_py_common import logger
 from enum import Enum
 
 YANG_DIR = "/usr/local/yang-models"
+SYSLOG_IDENTIFIER = "GenericConfigUpdater"
 
 class GenericConfigUpdaterError(Exception):
     pass
@@ -691,3 +693,26 @@ class PathAddressing:
                     return submodel
 
         return None
+
+class TitledLogger(logger.Logger):
+    def __init__(self, syslog_identifier, title, verbose):
+        super().__init__(syslog_identifier)
+        self._title = title
+        if verbose:
+            self.set_min_log_priority_debug()
+
+    def log(self, priority, msg, also_print_to_console=False):
+        combined_msg = f"{self._title}: {msg}"
+        super().log(priority, combined_msg, also_print_to_console)
+
+class GenericUpdaterLogging:
+    def __init__(self):
+        self.set_verbose(False)
+
+    def set_verbose(self, verbose):
+        self._verbose = verbose
+
+    def get_logger(self, title):
+        return TitledLogger(SYSLOG_IDENTIFIER, title, self._verbose)
+
+genericUpdaterLogging = GenericUpdaterLogging()

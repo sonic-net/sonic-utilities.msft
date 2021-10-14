@@ -2,7 +2,7 @@ import json
 import os
 from enum import Enum
 from .gu_common import GenericConfigUpdaterError, ConfigWrapper, \
-                       DryRunConfigWrapper, PatchWrapper
+                       DryRunConfigWrapper, PatchWrapper, genericUpdaterLogging
 from .patch_sorter import PatchSorter
 
 CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
@@ -32,37 +32,57 @@ class PatchApplier:
                  changeapplier=None,
                  config_wrapper=None,
                  patch_wrapper=None):
+        self.logger = genericUpdaterLogging.get_logger(title="Patch Applier")
         self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
         self.patch_wrapper = patch_wrapper if patch_wrapper is not None else PatchWrapper()
         self.patchsorter = patchsorter if patchsorter is not None else PatchSorter(self.config_wrapper, self.patch_wrapper)
         self.changeapplier = changeapplier if changeapplier is not None else ChangeApplier()
 
     def apply(self, patch):
+        print_to_console=True
+        self.logger.log_notice("Patch application starting.", print_to_console)
+        self.logger.log_notice(f"Patch: {patch}", print_to_console)
+
         # validate patch is only updating tables with yang models
+        self.logger.log_notice("Validating patch is not making changes to tables without YANG models.", print_to_console)
         if not(self.patch_wrapper.validate_config_db_patch_has_yang_models(patch)):
             raise ValueError(f"Given patch is not valid because it has changes to tables without YANG models")
 
         # Get old config
+        self.logger.log_notice("Getting current config db.", print_to_console)
         old_config = self.config_wrapper.get_config_db_as_json()
 
         # Generate target config
+        self.logger.log_notice("Simulating the target full config after applying the patch.", print_to_console)
         target_config = self.patch_wrapper.simulate_patch(patch, old_config)
 
         # Validate target config
+        self.logger.log_notice("Validating target config according to YANG models.", print_to_console)
         if not(self.config_wrapper.validate_config_db_config(target_config)):
             raise ValueError(f"Given patch is not valid because it will result in an invalid config")
 
         # Generate list of changes to apply
+        self.logger.log_notice("Sorting patch updates.", print_to_console)
         changes = self.patchsorter.sort(patch)
+        changes_len = len(changes)
+        self.logger.log_notice(f"The patch was sorted into {changes_len} " \
+                             f"change{'s' if changes_len != 1 else ''}{':' if changes_len > 0 else '.'}",
+                             print_to_console)
+        for change in changes:
+            self.logger.log_notice(f"  * {change}", print_to_console)
 
         # Apply changes in order
+        self.logger.log_notice("Applying changes in order.", print_to_console)
         for change in changes:
             self.changeapplier.apply(change)
 
         # Validate config updated successfully
+        self.logger.log_notice("Verifying patch updates are reflected on ConfigDB.", print_to_console)
         new_config = self.config_wrapper.get_config_db_as_json()
         if not(self.patch_wrapper.verify_same_json(target_config, new_config)):
             raise GenericConfigUpdaterError(f"After applying patch to config, there are still some parts not updated")
+
+        self.logger.log_notice("Patch application completed.", print_to_console)
 
 class ConfigReplacer:
     def __init__(self, patch_applier=None, config_wrapper=None, patch_wrapper=None):
@@ -293,11 +313,7 @@ class GenericUpdateFactory:
         return config_rollbacker
 
     def init_verbose_logging(self, verbose):
-        # TODO: implement verbose logging
-        # Usually logs have levels such as: error, warning, info, debug.
-        # By default all log levels should show up to the user, except debug.
-        # By allowing verbose logging, debug msgs will also be shown to the user.
-        pass
+        genericUpdaterLogging.set_verbose(verbose)
 
     def get_config_wrapper(self, dry_run):
         if dry_run:
