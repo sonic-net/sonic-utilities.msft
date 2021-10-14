@@ -198,7 +198,7 @@ fi
 
 if [ -x ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} ]; then
     VERBOSE=yes debug "Rebooting with platform ${PLATFORM} specific tool ..."
-    exec ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} $@
+    ${DEVPATH}/${PLATFORM}/${PLAT_REBOOT} $@
 
     # There are a couple reasons execution reaches here:
     #
