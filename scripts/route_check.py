@@ -47,6 +47,7 @@ import signal
 import traceback
 
 from swsscommon import swsscommon
+from utilities_common import chassis
 
 APPL_DB_NAME = 'APPL_DB'
 ASIC_DB_NAME = 'ASIC_DB'
@@ -348,6 +349,9 @@ def filter_out_local_interfaces(keys):
     local_if_lst = {'eth0', 'docker0'}
     local_if_lo = [r'tun0', r'lo', r'Loopback\d+']
 
+    chassis_local_intfs = chassis.get_chassis_local_interfaces()
+    local_if_lst.update(set(chassis_local_intfs))
+    
     db = swsscommon.DBConnector(APPL_DB_NAME, 0)
     tbl = swsscommon.Table(db, 'ROUTE_TABLE')
 
