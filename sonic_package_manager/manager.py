@@ -435,6 +435,17 @@ class PackageManager:
         # After all checks are passed we proceed to actual uninstallation
 
         try:
+            # Stop and disable the service.
+            # First to make sure we are not uninstalling
+            # package before the service has fully stopped
+            # since "config feature state" command is not blocking.
+            # Second, we make sure the service is in disabled state
+            # so that after reinstall and enablement hostcfgd will enable
+            # it and start it.
+            # TODO: once there is a way to block till hostcfgd will stop
+            # the service, replace it with new approach.
+            self._systemctl_action(package, 'stop')
+            self._systemctl_action(package, 'disable')
             self._uninstall_cli_plugins(package)
             self.service_creator.remove(package)
             self.service_creator.generate_shutdown_sequence_files(
