@@ -140,6 +140,36 @@ def parse_reference_expression(expression):
         return PackageReference.parse(expression)
 
 
+def get_cli_plugin_directory(command: str) -> str:
+    """ Returns a plugins package directory for command group.
+
+    Args:
+        command: SONiC command: "show"/"config"/"clear".
+    Returns:
+        Path to plugins package directory.
+    """
+
+    pkg_loader = pkgutil.get_loader(f'{command}.plugins')
+    if pkg_loader is None:
+        raise PackageManagerError(f'Failed to get plugins path for {command} CLI')
+    plugins_pkg_path = os.path.dirname(pkg_loader.path)
+    return plugins_pkg_path
+
+
+def get_cli_plugin_path(package: Package, command: str) -> str:
+    """ Returns a path where to put CLI plugin code.
+
+    Args:
+        package: Package to generate this path for.
+        command: SONiC command: "show"/"config"/"clear".
+    Returns:
+        Path generated for this package.
+    """
+
+    plugin_module_file = package.name + '.py'
+    return os.path.join(get_cli_plugin_directory(command), plugin_module_file)
+
+
 def validate_package_base_os_constraints(package: Package, sonic_version_info: Dict[str, str]):
     """ Verify that all dependencies on base OS components are met.
     Args:
@@ -917,18 +947,6 @@ class PackageManager:
             for npu in range(self.num_npus):
                 run_command(f'systemctl {action} {name}@{npu}')
 
-    @staticmethod
-    def _get_cli_plugin_name(package: Package):
-        return utils.make_python_identifier(package.name) + '.py'
-
-    @classmethod
-    def _get_cli_plugin_path(cls, package: Package, command):
-        pkg_loader = pkgutil.get_loader(f'{command}.plugins')
-        if pkg_loader is None:
-            raise PackageManagerError(f'Failed to get plugins path for {command} CLI')
-        plugins_pkg_path = os.path.dirname(pkg_loader.path)
-        return os.path.join(plugins_pkg_path, cls._get_cli_plugin_name(package))
-
     def _install_cli_plugins(self, package: Package):
         for command in ('show', 'config', 'clear'):
             self._install_cli_plugin(package, command)
@@ -941,14 +959,14 @@ class PackageManager:
         image_plugin_path = package.manifest['cli'][command]
         if not image_plugin_path:
             return
-        host_plugin_path = self._get_cli_plugin_path(package, command)
+        host_plugin_path = get_cli_plugin_path(package, command)
         self.docker.extract(package.entry.image_id, image_plugin_path, host_plugin_path)
 
     def _uninstall_cli_plugin(self, package: Package, command: str):
         image_plugin_path = package.manifest['cli'][command]
         if not image_plugin_path:
             return
-        host_plugin_path = self._get_cli_plugin_path(package, command)
+        host_plugin_path = get_cli_plugin_path(package, command)
         if os.path.exists(host_plugin_path):
             os.remove(host_plugin_path)
 
