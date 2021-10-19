@@ -28,6 +28,33 @@ Reloading Monit configuration ...
 Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
 """
 
+
+RELOAD_CONFIG_DB_OUTPUT = """\
+Running command: rm -rf /tmp/dropstat-*
+Stopping SONiC target ...
+Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
+Restarting SONiC target ...
+Reloading Monit configuration ...
+"""
+
+RELOAD_YANG_CFG_OUTPUT = """\
+Running command: rm -rf /tmp/dropstat-*
+Stopping SONiC target ...
+Running command: /usr/local/bin/sonic-cfggen  -Y /tmp/config.json  --write-to-db
+Restarting SONiC target ...
+Reloading Monit configuration ...
+"""
+
+RELOAD_MASIC_CONFIG_DB_OUTPUT = """\
+Running command: rm -rf /tmp/dropstat-*
+Stopping SONiC target ...
+Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
+Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic0  --write-to-db
+Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic1  --write-to-db
+Restarting SONiC target ...
+Reloading Monit configuration ...
+"""
+
 def mock_run_command_side_effect(*args, **kwargs):
     command = args[0]
 
@@ -129,6 +156,86 @@ class TestLoadMinigraph(object):
         print("TEARDOWN")
 
 
+class TestReloadConfig(object):
+    dummy_cfg_file = os.path.join(os.sep, "tmp", "config.json")
+
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        print("SETUP")
+        import config.main
+        importlib.reload(config.main)
+        open(cls.dummy_cfg_file, 'w').close()
+
+    def test_reload_config(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+
+            result = runner.invoke(
+                config.config.commands["reload"],
+                [self.dummy_cfg_file, '-y', '-f'])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
+                == RELOAD_CONFIG_DB_OUTPUT
+
+    def test_reload_config_masic(self, get_cmd_module, setup_multi_broadcom_masic):
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            # 3 config files: 1 for host and 2 for asic
+            cfg_files = "{},{},{}".format(
+                            self.dummy_cfg_file, 
+                            self.dummy_cfg_file,
+                            self.dummy_cfg_file)
+            result = runner.invoke(
+                config.config.commands["reload"],
+                [cfg_files, '-y', '-f'])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
+                == RELOAD_MASIC_CONFIG_DB_OUTPUT
+
+    def test_reload_yang_config(self, get_cmd_module,
+                                        setup_single_broadcom_asic):
+        with mock.patch(
+                "utilities_common.cli.run_command",
+                mock.MagicMock(side_effect=mock_run_command_side_effect)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+
+            result = runner.invoke(config.config.commands["reload"],
+                                    [self.dummy_cfg_file, '-y','-f' ,'-t', 'config_yang'])
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
+                == RELOAD_YANG_CFG_OUTPUT
+
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        os.remove(cls.dummy_cfg_file)
+        print("TEARDOWN")
+
+
 class TestConfigQos(object):
     @classmethod
     def setup_class(cls):
@@ -227,7 +334,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
     def setUp(self):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         self.runner = CliRunner()
-        self.any_patch_as_json = [{"op":"remove", "path":"/PORT"}]
+        self.any_patch_as_json = [{"op": "remove", "path": "/PORT"}]
         self.any_patch = jsonpatch.JsonPatch(self.any_patch_as_json)
         self.any_patch_as_text = json.dumps(self.any_patch_as_json)
         self.any_path = '/usr/admin/patch.json-patch'

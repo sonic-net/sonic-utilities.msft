@@ -6,7 +6,7 @@ from unittest import mock
 
 
 import pytest
-from sonic_py_common import device_info
+from sonic_py_common import device_info, multi_asic
 from swsscommon.swsscommon import ConfigDBConnector
 
 from .mock_tables import dbconnector
@@ -104,10 +104,14 @@ def setup_multi_broadcom_masic():
 
     set_mock_apis()
     device_info.get_num_npus = mock.MagicMock(return_value=2)
+    multi_asic.get_num_asics = mock.MagicMock(return_value=2)
+    multi_asic.is_multi_asic= mock.MagicMock(return_value=True)
 
     yield
 
     device_info.get_num_npus = mock.MagicMock(return_value=1)
+    multi_asic.get_num_asics = mock.MagicMock(return_value=1)
+    multi_asic.is_multi_asic= mock.MagicMock(return_value=False)
 
 
 @pytest.fixture

@@ -67,6 +67,7 @@ SONIC_CFGGEN_PATH = '/usr/local/bin/sonic-cfggen'
 VLAN_SUB_INTERFACE_SEPARATOR = '.'
 ASIC_CONF_FILENAME = 'asic.conf'
 DEFAULT_CONFIG_DB_FILE = '/etc/sonic/config_db.json'
+DEFAULT_CONFIG_YANG_FILE = '/etc/sonic/config_yang.json'
 NAMESPACE_PREFIX = 'asic'
 INTF_KEY = "interfaces"
 
@@ -1268,9 +1269,10 @@ def list_checkpoints(ctx, verbose):
 @click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
 @click.option('-d', '--disable_arp_cache', default=False, is_flag=True, help='Do not cache ARP table before reloading (applies to dual ToR systems only)')
 @click.option('-f', '--force', default=False, is_flag=True, help='Force config reload without system checks')
+@click.option('-t', '--file_format', default='config_db',type=click.Choice(['config_yang', 'config_db']),show_default=True,help='specify the file format')
 @click.argument('filename', required=False)
 @clicommon.pass_db
-def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cache, force):
+def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cache, force, file_format):
     """Clear current configuration and import a previous saved config DB dump file.
        <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
@@ -1288,9 +1290,9 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
             return
 
     if filename is None:
-        message = 'Clear current config and reload config from the default config file(s) ?'
+        message = 'Clear current config and reload config in {} format from the default config file(s) ?'.format(file_format)
     else:
-        message = 'Clear current config and reload config from the file(s) {} ?'.format(filename)
+        message = 'Clear current config and reload config in {} from the file(s) {} ?'.format(file_format, filename)
 
     if not yes:
         click.confirm(message, abort=True)
@@ -1301,7 +1303,8 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
     cfg_files = []
 
     num_cfg_file = 1
-    if multi_asic.is_multi_asic():
+    # single config_yang file for the multi asic device
+    if multi_asic.is_multi_asic() and file_format == 'config_db':
         num_cfg_file += num_asic
 
     # Remove cached PG drop counters data
@@ -1354,14 +1357,18 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
         if cfg_files:
             file = cfg_files[inst+1]
         else:
-            if namespace is None:
-                file = DEFAULT_CONFIG_DB_FILE
+            if file_format == 'config_db':
+                if namespace is None:
+                    file = DEFAULT_CONFIG_DB_FILE
+                else:
+                    file = "/etc/sonic/config_db{}.json".format(inst)
             else:
-                file = "/etc/sonic/config_db{}.json".format(inst)
+                file = DEFAULT_CONFIG_YANG_FILE
+
 
         # Check the file exists before proceeding.
         if not os.path.exists(file):
-            click.echo("The config_db file {} doesn't exist".format(file))
+            click.echo("The config file {} doesn't exist".format(file))
             continue
 
         if namespace is None:
@@ -1372,6 +1379,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
         config_db.connect()
         client = config_db.get_redis_client(config_db.CONFIG_DB)
         client.flushdb()
+
         if load_sysinfo:
             if namespace is None:
                 command = "{} -H -k {} --write-to-db".format(SONIC_CFGGEN_PATH, cfg_hwsku)
@@ -1382,16 +1390,23 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
         # For the database service running in linux host we use the file user gives as input
         # or by default DEFAULT_CONFIG_DB_FILE. In the case of database service running in namespace,
         # the default config_db<namespaceID>.json format is used.
-        if namespace is None:
-            if os.path.isfile(INIT_CFG_FILE):
-                command = "{} -j {} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, file)
-            else:
-                command = "{} -j {} --write-to-db".format(SONIC_CFGGEN_PATH, file)
+
+        config_gen_opts = ""
+        if file_format == 'config_db':
+            config_gen_opts += ' -j {} '.format(file)
         else:
-            if os.path.isfile(INIT_CFG_FILE):
-                command = "{} -j {} -j {} -n {} --write-to-db".format(SONIC_CFGGEN_PATH, INIT_CFG_FILE, file, namespace)
-            else:
-                command = "{} -j {} -n {} --write-to-db".format(SONIC_CFGGEN_PATH, file, namespace)
+            config_gen_opts += ' -Y {} '.format(file)
+
+        if os.path.isfile(INIT_CFG_FILE):
+            config_gen_opts += " -j {} ".format(INIT_CFG_FILE)
+
+        if namespace is not None:
+            config_gen_opts += " -n {} ".format(namespace)
+
+
+        command = "{sonic_cfggen} {options} --write-to-db".format(
+            sonic_cfggen=SONIC_CFGGEN_PATH,
+            options=config_gen_opts)
 
         clicommon.run_command(command, display_cmd=True)
         client.set(config_db.INIT_INDICATOR, 1)
@@ -1734,9 +1749,9 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     # Dont allow a port to be member of port channel if its MTU does not match with portchannel
     portchannel_entry =  db.get_entry('PORTCHANNEL', portchannel_name)
     if portchannel_entry and portchannel_entry.get(PORT_MTU) is not None :
-       port_entry = db.get_entry('PORT', port_name)
+        port_entry = db.get_entry('PORT', port_name)
 
-       if port_entry and port_entry.get(PORT_MTU) is not None:
+        if port_entry and port_entry.get(PORT_MTU) is not None:
             port_mtu = port_entry.get(PORT_MTU)
 
             portchannel_mtu = portchannel_entry.get(PORT_MTU)
@@ -1749,9 +1764,9 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
     # new member by SAI.
     port_entry = db.get_entry('PORT', port_name)
     if port_entry and port_entry.get(PORT_TPID) is not None:
-       port_tpid = port_entry.get(PORT_TPID)
-       if port_tpid != DEFAULT_TPID:
-           ctx.fail("Port TPID of {}: {} is not at default 0x8100".format(port_name, port_tpid))
+        port_tpid = port_entry.get(PORT_TPID)
+        if port_tpid != DEFAULT_TPID:
+            ctx.fail("Port TPID of {}: {} is not at default 0x8100".format(port_name, port_tpid))
 
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})
@@ -3155,10 +3170,10 @@ def startup(ctx, interface_name):
 
     intf_fs = parse_interface_in_filter(interface_name)
     if len(intf_fs) > 1 and multi_asic.is_multi_asic():
-         ctx.fail("Interface range not supported in multi-asic platforms !!")
+        ctx.fail("Interface range not supported in multi-asic platforms !!")
 
     if len(intf_fs) == 1 and interface_name_is_valid(config_db, interface_name) is False:
-         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
     log.log_info("'interface startup {}' executing...".format(interface_name))
     port_dict = config_db.get_table('PORT')
@@ -3196,7 +3211,7 @@ def shutdown(ctx, interface_name):
 
     intf_fs = parse_interface_in_filter(interface_name)
     if len(intf_fs) > 1 and multi_asic.is_multi_asic():
-         ctx.fail("Interface range not supported in multi-asic platforms !!")
+        ctx.fail("Interface range not supported in multi-asic platforms !!")
 
     if len(intf_fs) == 1 and interface_name_is_valid(config_db, interface_name) is False:
         ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
@@ -3632,8 +3647,8 @@ def add(ctx, interface_name, ip_addr, gw):
     # changing it to a router port
     vlan_member_table = config_db.get_table('VLAN_MEMBER')
     if (interface_is_in_vlan(vlan_member_table, interface_name)):
-            click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
-            return
+        click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
+        return
 
     try:
         net = ipaddress.ip_network(ip_addr, strict=False)
@@ -4066,7 +4081,7 @@ def add(ctx, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    table_name = get_interface_table_name(interface_name)  
+    table_name = get_interface_table_name(interface_name)
     if not clicommon.is_interface_in_config_db(config_db, interface_name):
         ctx.fail('interface {} doesn`t exist'.format(interface_name))
     if table_name == "":
@@ -4088,7 +4103,7 @@ def remove(ctx, interface_name):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    table_name = get_interface_table_name(interface_name) 
+    table_name = get_interface_table_name(interface_name)
     if not clicommon.is_interface_in_config_db(config_db, interface_name):
         ctx.fail('interface {} doesn`t exist'.format(interface_name))
     if table_name == "":
@@ -4406,7 +4421,7 @@ def route(ctx):
     ctx.obj = {}
     ctx.obj['config_db'] = config_db
 
-@route.command('add', context_settings={"ignore_unknown_options":True})
+@route.command('add', context_settings={"ignore_unknown_options": True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
 @click.pass_context
 def add_route(ctx, command_str):
@@ -4477,7 +4492,7 @@ def add_route(ctx, command_str):
     else:
         config_db.set_entry("STATIC_ROUTE", key, route)
 
-@route.command('del', context_settings={"ignore_unknown_options":True})
+@route.command('del', context_settings={"ignore_unknown_options": True})
 @click.argument('command_str', metavar='prefix [vrf <vrf_name>] <A.B.C.D/M> nexthop <[vrf <vrf_name>] <A.B.C.D>>|<dev <dev_name>>', nargs=-1, type=click.Path())
 @click.pass_context
 def del_route(ctx, command_str):
