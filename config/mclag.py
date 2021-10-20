@@ -22,7 +22,7 @@ def mclag_ka_session_dep_check(ka, session_tmout):
     """Check if the MCLAG Keepalive timer and session timeout values are multiples of each other and keepalive is < session timeout value 
     """
     if not session_tmout >= ( 3 * ka):
-        return False, "MCLAG Keepalive:{} Session_timeout:{} values not satisfying session_timeout >= (3 * KA) ".format(session_tmout, ka)
+        return False, "MCLAG Keepalive:{} Session_timeout:{} values not satisfying session_timeout >= (3 * KA) ".format(ka, session_tmout)
 
     if session_tmout % ka:
         return False, "MCLAG keepalive:{} Session_timeout:{} Values not satisfying session_timeout should be a multiple of KA".format(ka, session_tmout)
