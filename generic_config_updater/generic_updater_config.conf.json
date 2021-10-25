@@ -1,0 +1,59 @@
+{
+    "tables": {
+        "": {
+            "services_to_validate": [ "system_health" ]
+        },
+        "PORT": {
+            "services_to_validate": [ "port_service" ]
+        },
+        "SYSLOG_SERVER":{
+            "services_to_validate": [ "rsyslog" ]
+        },
+        "DHCP_RELAY": {
+            "services_to_validate": [ "dhcp-relay" ]
+        },
+        "DHCP_SERVER": {
+            "services_to_validate": [ "dhcp-relay" ]
+        }
+    },
+    "README": [
+        "Validate_commands provides, module & method name as ",
+        "    <module name>.<method name>",
+        "NOTE: module name could have '.'",
+        " ",
+        "The last element separated by  '.' is considered as ",
+        "method name",
+        "",
+        "e.g. 'show.acl.test_acl'",
+        "",
+        "Here we load 'show.acl' and call 'test_acl' method on it.",
+        "",
+        "called as:",
+        "    <module>.<method>>(<config before change>, ",
+        "        <config after change>, <affected keys>)",
+        "    config is in JSON format as in config_db.json",
+        "    affected_keys in same format, but w/o value",
+        "    { 'ACL_TABLE': { 'SNMP_ACL': {} ... }, ...}",
+        "    The affected keys has 'added', 'updated' & 'deleted'",
+        "",
+        "Multiple validate commands may be provided.",
+        "",
+        "Note: The commands may be called in any order",
+        ""
+    ],
+    "services": {
+        "system_health": { 
+            "validate_commands": [ ]
+        },
+        "port_service": {
+            "validate_commands": [ ]
+        },
+        "rsyslog": {
+            "validate_commands": [ "services_validator.ryslog_validator" ]
+        },
+        "dhcp-relay": {
+            "validate_commands": [ "services_validator.dhcp_validator" ]
+        }
+    }
+}
+
