@@ -4,19 +4,14 @@ Common logic for bootloaders using an ONIE installer image
 
 import os
 import re
-import signal
 import subprocess
 
 from ..common import (
    IMAGE_DIR_PREFIX,
    IMAGE_PREFIX,
+   default_sigpipe,
 )
 from .bootloader import Bootloader
-
-# Needed to prevent "broken pipe" error messages when piping
-# output of multiple commands using subprocess.Popen()
-def default_sigpipe():
-    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 class OnieInstallerBootloader(Bootloader): # pylint: disable=abstract-method
 

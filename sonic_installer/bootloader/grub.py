@@ -14,11 +14,11 @@ from ..common import (
    IMAGE_DIR_PREFIX,
    IMAGE_PREFIX,
    run_command,
+   default_sigpipe,
 )
 from .onie import OnieInstallerBootloader
-from .onie import default_sigpipe
 
-MACHINE_CONF = "installer/machine.conf"
+PLATFORMS_ASIC = "installer/platforms_asic"
 
 class GrubBootloader(OnieInstallerBootloader):
 
@@ -85,35 +85,34 @@ class GrubBootloader(OnieInstallerBootloader):
         run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
         click.echo('Image removed')
 
+    def platform_in_platforms_asic(self, platform, image_path):
+        """
+        For those images that don't have devices list builtin, 'tar' will have non-zero returncode.
+        In this case, we simply return True to make it worked compatible as before.
+        Otherwise, we can grep to check if platform is inside the supported target platforms list.
+        """
+        with open(os.devnull, 'w') as fnull:
+            p1 = subprocess.Popen(["sed", "-e", "1,/^exit_marker$/d", image_path], stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
+            p2 = subprocess.Popen(["tar", "xf", "-", PLATFORMS_ASIC, "-O"], stdin=p1.stdout, stdout=subprocess.PIPE, stderr=fnull, preexec_fn=default_sigpipe)
+            p3 = subprocess.Popen(["grep", "-Fxq", "-m 1", platform], stdin=p2.stdout, preexec_fn=default_sigpipe)
+
+            p2.wait()
+            if p2.returncode != 0:
+                return True
+
+            # Code 0 is returned by grep as a result of found
+            p3.wait()
+            return p3.returncode ==0
+
     def verify_image_platform(self, image_path):
         if not os.path.isfile(image_path):
             return False
 
-        # Get running platform's ASIC
-        try:
-            version_info = device_info.get_sonic_version_info()
-            if version_info:
-                asic_type = version_info['asic_type']
-            else:
-                asic_type = None
-        except (KeyError, TypeError) as e:
-            click.echo("Caught an exception: " + str(e))
+        # Get running platform
+        platform = device_info.get_platform()
 
-        # Get installing image's ASIC
-        p1 = subprocess.Popen(["sed", "-e", "1,/^exit_marker$/d", image_path], stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
-        p2 = subprocess.Popen(["tar", "xf", "-", MACHINE_CONF, "-O"], stdin=p1.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe)
-        p3 = subprocess.Popen(["sed", "-n", r"s/^machine=\(.*\)/\1/p"], stdin=p2.stdout, stdout=subprocess.PIPE, preexec_fn=default_sigpipe, text=True)
-
-        stdout = p3.communicate()[0]
-        image_asic = stdout.rstrip('\n')
-
-        # Return false if machine is not found or unexpected issue occur
-        if not image_asic:
-            return False
-
-        if asic_type == image_asic:
-            return True
-        return False
+        # Check if platform is inside image's target platforms
+        return self.platform_in_platforms_asic(platform, image_path)
 
     @classmethod
     def detect(cls):

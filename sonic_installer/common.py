@@ -5,6 +5,7 @@ subpackages.
 
 import subprocess
 import sys
+import signal
 
 import click
 
@@ -41,3 +42,9 @@ def run_command_or_raise(argv, raise_exception=True):
         raise SonicRuntimeException("Failed to run command '{0}'".format(argv))
 
     return out.rstrip("\n")
+
+# Needed to prevent "broken pipe" error messages when piping
+# output of multiple commands using subprocess.Popen()
+def default_sigpipe():
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
