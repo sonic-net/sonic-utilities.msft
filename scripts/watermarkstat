@@ -232,7 +232,7 @@ class Watermarkstat(object):
             idx = int(idx_func(obj_id))
             pos = idx - self.min_idx
             counter_data = self.counters_db.get(self.counters_db.COUNTERS_DB, full_table_id, watermark)
-            if counter_data is None:
+            if counter_data is None or counter_data == '':
                 fields[pos] = STATUS_NA
             elif fields[pos] != STATUS_NA:
                 fields[pos] = str(int(counter_data))
