@@ -22,6 +22,7 @@ DEVPATH="/usr/share/sonic/device"
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
 LOG_SSD_HEALTH="/usr/local/bin/log_ssd_health"
+PLATFORM_FWUTIL_AU_REBOOT_HANDLE="platform_fw_au_reboot_handle"
 SSD_FW_UPDATE="ssd-fw-upgrade"
 TAG_LATEST=yes
 
@@ -42,6 +43,7 @@ EXIT_COUNTERPOLL_DELAY_FAILURE=14
 EXIT_DB_INTEGRITY_FAILURE=15
 EXIT_NO_CONTROL_PLANE_ASSISTANT=20
 EXIT_SONIC_INSTALLER_VERIFY_REBOOT=21
+EXIT_PLATFORM_FW_AU_FAILURE=22
 
 function error()
 {
@@ -456,6 +458,25 @@ function check_warm_restart_in_progress() {
     done
 }
 
+function check_conflict_boot_in_fw_update() {
+    # Make sure firmware auto update is not scheduled for a different reboot
+    FIRMWARE_AU_STATUS_DIR="/tmp/firmwareupdate"
+    FW_AU_TASK_FILE_REGEX="${FIRMWARE_AU_STATUS_DIR}/*_fw_au_task"
+    case "$REBOOT_TYPE" in
+        "fast-reboot")
+            FW_AU_TASK_FILE_EXP="${FIRMWARE_AU_STATUS_DIR}/fast_fw_au_task"
+            ;;
+        "warm-reboot")
+            FW_AU_TASK_FILE_EXP="${FIRMWARE_AU_STATUS_DIR}/warm_fw_au_task"
+            ;;
+    esac
+    FW_AU_TASK_FILE=$(compgen -G ${FW_AU_TASK_FILE_REGEX}) || true
+    if [[ -n "${FW_AU_TASK_FILE}" ]] && [[ ! -f "${FW_AU_TASK_FILE_EXP}" ]]; then
+        error "Firmware auto update scheduled for a different reboot: ${FW_AU_TASK_FILE}"
+        exit "${EXIT_FAILURE}"
+    fi
+}
+
 # main starts here
 parseOptions $@
 
@@ -465,6 +486,8 @@ then
     echo "This command must be run as root" >&2
     exit "${EXIT_FAILURE}"
 fi
+
+check_conflict_boot_in_fw_update
 
 sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 
@@ -731,10 +754,16 @@ if [ -x /sbin/hwclock ]; then
     /sbin/hwclock -w || /bin/true
 fi
 
-if [ -x ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ]; then
-    debug "updating ssd fw for${REBOOT_TYPE}"
-    ${DEVPATH}/${PLATFORM}/${SSD_FW_UPDATE} ${REBOOT_TYPE}
+
+if [[ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_FWUTIL_AU_REBOOT_HANDLE} ]]; then
+    debug "Handling task file for boot type ${REBOOT_TYPE}"
+    ${DEVPATH}/${PLATFORM}/${PLATFORM_FWUTIL_AU_REBOOT_HANDLE} ${REBOOT_TYPE} || PLATFORM_FW_AU_RC=$?
+    if [[ $PLATFORM_FW_AU_RC -ne 0 ]]; then
+        debug "ERROR: Failed to handle the platform firmware auto-update for ${REBOOT_TYPE} Exit code: $PLATFORM_FW_AU_RC"
+        exit "${EXIT_PLATFORM_FW_AU_FAILURE}"
+    fi
 fi
+
 
 # Enable Watchdog Timer
 if [ -x ${WATCHDOG_UTIL} ]; then

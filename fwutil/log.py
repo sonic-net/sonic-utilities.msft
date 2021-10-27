@@ -29,6 +29,7 @@ class LogHelper(object):
     FW_ACTION_DOWNLOAD = "download"
     FW_ACTION_INSTALL = "install"
     FW_ACTION_UPDATE = "update"
+    FW_ACTION_AUTO_UPDATE = "auto-update"
 
     STATUS_SUCCESS = "success"
     STATUS_FAILURE = "failure"
@@ -42,6 +43,19 @@ class LogHelper(object):
                 caption,
                 component,
                 firmware
+            )
+        )
+
+    def __log_fw_au_action_start(self, action, component, firmware, boot):
+        caption = "Firmware {} started".format(action)
+        template = "{}: component={}, firmware={}, for boot_type={}"
+
+        log.log_info(
+            template.format(
+                caption,
+                component,
+                firmware,
+                boot
             )
         )
 
@@ -61,16 +75,7 @@ class LogHelper(object):
                 )
             )
         else:
-            if exception is None:
-                log.log_error(
-                    status_template.format(
-                        caption,
-                        component,
-                        firmware,
-                        self.STATUS_FAILURE
-                    )
-                )
-            else:
+            if exception:
                 log.log_error(
                     exception_template.format(
                         caption,
@@ -80,6 +85,43 @@ class LogHelper(object):
                         str(exception)
                     )
                 )
+            else:
+                log.log_error(
+                    status_template.format(
+                        caption,
+                        component,
+                        firmware,
+                        self.STATUS_FAILURE
+                    )
+                )
+
+    def __log_fw_au_action_end(self, action, component, firmware, boot, status, info=None):
+        caption = "Firmware {} ended".format(action)
+
+        status_template = "{}: component={}, firmware={}, boot={}, status={}"
+        status_info_template = "{}: component={}, firmware={}, boot={}, status={}, info={}"
+
+        if info:
+            log.log_info(
+                status_info_template.format(
+                    caption,
+                    component,
+                    firmware,
+                    boot,
+                    self.STATUS_SUCCESS,
+                    info
+                )
+            )
+        else:
+            log.log_info(
+                status_template.format(
+                    caption,
+                    component,
+                    firmware,
+                    boot,
+                    self.STATUS_FAILURE,
+                )
+            )
 
     def log_fw_download_start(self, component, firmware):
         self.__log_fw_action_start(self.FW_ACTION_DOWNLOAD, component, firmware)
@@ -98,6 +140,15 @@ class LogHelper(object):
 
     def log_fw_update_end(self, component, firmware, status, exception=None):
         self.__log_fw_action_end(self.FW_ACTION_UPDATE, component, firmware, status, exception)
+
+    def log_fw_auto_update_start(self, component, firmware, boot):
+        self.__log_fw_au_action_start(self.FW_ACTION_AUTO_UPDATE, component, firmware, boot)
+
+    def log_fw_auto_update_end(self, component, firmware, status, boot, exception=None):
+        self.__log_fw_au_action_end(self.FW_ACTION_AUTO_UPDATE, component, firmware, status, exception, boot)
+
+    def log_fw_auto_update_fail(self, component, firmware, status, boot, exception=None):
+        self.__log_fw_au_action_end(self.FW_ACTION_AUTO_UPDATE, component, firmware, status, exception, boot)
 
     def print_error(self, msg):
         click.echo("Error: {}.".format(msg))
