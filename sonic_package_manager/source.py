@@ -26,6 +26,7 @@ class PackageSource(object):
         Returns:
             Metadata
         """
+
         raise NotImplementedError
 
     def install_image(self, package: Package):

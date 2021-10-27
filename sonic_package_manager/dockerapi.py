@@ -186,6 +186,15 @@ class DockerApi:
         self.client.containers.get(container).remove(**kwargs)
         log.debug(f'removed container {container}')
 
+    def rm_by_ancestor(self, image_id: str, **kwargs):
+        """ Docker 'rm' command for running containers instantiated
+        from image passed to this function. """
+
+        # Clean containers based on the old image
+        containers = self.ps(filters={'ancestor': image_id}, all=True)
+        for container in containers:
+            self.rm(container.id, **kwargs)
+
     def ps(self, **kwargs):
         """ Docker 'ps' command. """
 

@@ -361,7 +361,7 @@ def install(ctx,
 
     package_source = package_expr or from_repository or from_tarball
     if not package_source:
-        exit_cli(f'Package source is not specified', fg='red')
+        exit_cli('Package source is not specified', fg='red')
 
     if not yes and not force:
         click.confirm(f'{package_source} is going to be installed, '
@@ -386,7 +386,7 @@ def install(ctx,
     except Exception as err:
         exit_cli(f'Failed to install {package_source}: {err}', fg='red')
     except KeyboardInterrupt:
-        exit_cli(f'Operation canceled by user', fg='red')
+        exit_cli('Operation canceled by user', fg='red')
 
 
 @cli.command()
@@ -409,7 +409,7 @@ def reset(ctx, name, force, yes, skip_host_plugins):
     except Exception as err:
         exit_cli(f'Failed to reset package {name}: {err}', fg='red')
     except KeyboardInterrupt:
-        exit_cli(f'Operation canceled by user', fg='red')
+        exit_cli('Operation canceled by user', fg='red')
 
 
 @cli.command()
@@ -426,12 +426,16 @@ def uninstall(ctx, name, force, yes):
         click.confirm(f'Package {name} is going to be uninstalled, '
                       f'continue?', abort=True, show_default=True)
 
+    uninstall_opts = {
+        'force': force,
+    }
+
     try:
-        manager.uninstall(name, force)
+        manager.uninstall(name, **uninstall_opts)
     except Exception as err:
         exit_cli(f'Failed to uninstall package {name}: {err}', fg='red')
     except KeyboardInterrupt:
-        exit_cli(f'Operation canceled by user', fg='red')
+        exit_cli('Operation canceled by user', fg='red')
 
 
 @cli.command()
@@ -453,7 +457,7 @@ def migrate(ctx, database, force, yes, dockerd_socket):
     except Exception as err:
         exit_cli(f'Failed to migrate packages {err}', fg='red')
     except KeyboardInterrupt:
-        exit_cli(f'Operation canceled by user', fg='red')
+        exit_cli('Operation canceled by user', fg='red')
 
 
 if __name__ == "__main__":

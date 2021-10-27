@@ -38,7 +38,7 @@ class AuthenticationService:
 
         response = requests.get(f'{realm}?scope={scope}&service={service}')
         if response.status_code != requests.codes.ok:
-            raise AuthenticationServiceError(f'Failed to retrieve token')
+            raise AuthenticationServiceError('Failed to retrieve token')
 
         content = json.loads(response.content)
         token = content['token']

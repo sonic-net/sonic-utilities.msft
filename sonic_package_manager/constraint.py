@@ -95,7 +95,7 @@ class ComponentConstraints:
         """
 
         components = {component: VersionConstraint.parse(version)
-                     for component, version in constraints.items()}
+                      for component, version in constraints.items()}
         return ComponentConstraints(components)
 
     def deparse(self) -> Dict[str, str]:

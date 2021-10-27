@@ -39,6 +39,7 @@ from sonic_package_manager.package import Package
 from sonic_package_manager.progress import ProgressManager
 from sonic_package_manager.reference import PackageReference
 from sonic_package_manager.registry import RegistryResolver
+from sonic_package_manager.service_creator import SONIC_CLI_COMMANDS
 from sonic_package_manager.service_creator.creator import (
     ServiceCreator,
     run_command
@@ -52,7 +53,6 @@ from sonic_package_manager.source import (
     RegistrySource,
     TarballSource
 )
-from sonic_package_manager.utils import DockerReference
 from sonic_package_manager.version import (
     Version,
     version_to_tag,
@@ -101,7 +101,7 @@ def opt_check(func: Callable) -> Callable:
     return wrapped_function
 
 
-def rollback(func, *args, **kwargs):
+def rollback(func, *args, **kwargs) -> Callable:
     """ Used in rollback callbacks to ignore failure
     but proceed with rollback. Error will be printed
     but not fail the whole procedure of rollback. """
@@ -131,7 +131,7 @@ def package_constraint_to_reference(constraint: PackageConstraint) -> PackageRef
     return PackageReference(package_name, version_to_tag(version))
 
 
-def parse_reference_expression(expression):
+def parse_reference_expression(expression) -> PackageReference:
     try:
         return package_constraint_to_reference(PackageConstraint.parse(expression))
     except ValueError:
@@ -247,7 +247,7 @@ def validate_package_tree(packages: Dict[str, Package]):
                     continue
 
                 component_version = conflicting_package.components[component]
-                log.debug(f'conflicting package {dependency.name}: '
+                log.debug(f'conflicting package {conflict.name}: '
                           f'component {component} version is {component_version}')
 
                 if constraint.allows(component_version):
@@ -397,12 +397,17 @@ class PackageManager:
         if not self.database.has_package(package.name):
             self.database.add_package(package.name, package.repository)
 
+        service_create_opts = {
+            'state': feature_state,
+            'owner': default_owner,
+        }
+
         try:
             with contextlib.ExitStack() as exits:
                 source.install(package)
                 exits.callback(rollback(source.uninstall, package))
 
-                self.service_creator.create(package, state=feature_state, owner=default_owner)
+                self.service_creator.create(package, **service_create_opts)
                 exits.callback(rollback(self.service_creator.remove, package))
 
                 self.service_creator.generate_shutdown_sequence_files(
@@ -481,13 +486,7 @@ class PackageManager:
             self.service_creator.generate_shutdown_sequence_files(
                 self._get_installed_packages_except(package)
             )
-
-            # Clean containers based on this image
-            containers = self.docker.ps(filters={'ancestor': package.image_id},
-                                        all=True)
-            for container in containers:
-                self.docker.rm(container.id, force=True)
-
+            self.docker.rm_by_ancestor(package.image_id, force=True)
             self.docker.rmi(package.image_id, force=True)
             package.entry.image_id = None
         except Exception as err:
@@ -563,6 +562,13 @@ class PackageManager:
 
         # After all checks are passed we proceed to actual upgrade
 
+        service_create_opts = {
+            'register_feature': False,
+        }
+        service_remove_opts = {
+            'deregister_feature': False,
+        }
+
         try:
             with contextlib.ExitStack() as exits:
                 self._uninstall_cli_plugins(old_package)
@@ -576,19 +582,15 @@ class PackageManager:
                     exits.callback(rollback(self._systemctl_action,
                                             old_package, 'start'))
 
-                self.service_creator.remove(old_package, deregister_feature=False)
+                self.service_creator.remove(old_package, **service_remove_opts)
                 exits.callback(rollback(self.service_creator.create, old_package,
-                                        register_feature=False))
+                                        **service_create_opts))
 
-                # Clean containers based on the old image
-                containers = self.docker.ps(filters={'ancestor': old_package.image_id},
-                                            all=True)
-                for container in containers:
-                    self.docker.rm(container.id, force=True)
+                self.docker.rm_by_ancestor(old_package.image_id, force=True)
 
-                self.service_creator.create(new_package, register_feature=False)
+                self.service_creator.create(new_package, **service_create_opts)
                 exits.callback(rollback(self.service_creator.remove, new_package,
-                                        register_feature=False))
+                                        **service_remove_opts))
 
                 self.service_creator.generate_shutdown_sequence_files(
                     self._get_installed_packages_and(new_package)
@@ -654,16 +656,16 @@ class PackageManager:
                          old_package_database: PackageDatabase,
                          dockerd_sock: Optional[str] = None):
         """
-        Migrate packages from old database. This function can do a comparison between 
-        current database and the database passed in as argument. If the package is 
-        missing in the current database it will be added. If the package is installed 
-        in the passed database and in the current it is not installed it will be 
-        installed with a passed database package version. If the package is installed 
-        in the passed database and it is installed in the current database but with 
-        older version the package will be upgraded to the never version. If the package 
-        is installed in the passed database and in the current it is installed but with 
-        never version - no actions are taken. If dockerd_sock parameter is passed, the 
-        migration process will use loaded images from docker library of the currently 
+        Migrate packages from old database. This function can do a comparison between
+        current database and the database passed in as argument. If the package is
+        missing in the current database it will be added. If the package is installed
+        in the passed database and in the current it is not installed it will be
+        installed with a passed database package version. If the package is installed
+        in the passed database and it is installed in the current database but with
+        older version the package will be upgraded to the never version. If the package
+        is installed in the passed database and in the current it is installed but with
+        never version - no actions are taken. If dockerd_sock parameter is passed, the
+        migration process will use loaded images from docker library of the currently
         installed image.
 
         Args:
@@ -784,7 +786,7 @@ class PackageManager:
             ref = parse_reference_expression(package_expression)
             return self.get_package_source(package_ref=ref)
         elif repository_reference:
-            repo_ref = DockerReference.parse(repository_reference)
+            repo_ref = utils.DockerReference.parse(repository_reference)
             repository = repo_ref['name']
             reference = repo_ref['tag'] or repo_ref['digest']
             reference = reference or 'latest'
@@ -815,8 +817,8 @@ class PackageManager:
                 if package_entry.default_reference is not None:
                     package_ref.reference = package_entry.default_reference
                 else:
-                    raise PackageManagerError(f'No default reference tag. '
-                                              f'Please specify the version or tag explicitly')
+                    raise PackageManagerError('No default reference tag. '
+                                              'Please specify the version or tag explicitly')
 
             return RegistrySource(package_entry.repository,
                                   package_ref.reference,
@@ -888,7 +890,7 @@ class PackageManager:
             Installed packages dictionary.
         """
 
-        return [self.get_installed_package(entry.name) 
+        return [self.get_installed_package(entry.name)
                 for entry in self.database if entry.installed]
 
     def _migrate_package_database(self, old_package_database: PackageDatabase):
@@ -948,11 +950,11 @@ class PackageManager:
                 run_command(f'systemctl {action} {name}@{npu}')
 
     def _install_cli_plugins(self, package: Package):
-        for command in ('show', 'config', 'clear'):
+        for command in SONIC_CLI_COMMANDS:
             self._install_cli_plugin(package, command)
 
     def _uninstall_cli_plugins(self, package: Package):
-        for command in ('show', 'config', 'clear'):
+        for command in SONIC_CLI_COMMANDS:
             self._uninstall_cli_plugin(package, command)
 
     def _install_cli_plugin(self, package: Package, command: str):
@@ -978,12 +980,17 @@ class PackageManager:
             PackageManager
         """
 
-        docker_api = DockerApi(docker.from_env())
+        docker_api = DockerApi(docker.from_env(), ProgressManager())
         registry_resolver = RegistryResolver()
-        return PackageManager(DockerApi(docker.from_env(), ProgressManager()),
+        metadata_resolver = MetadataResolver(docker_api, registry_resolver)
+        feature_registry = FeatureRegistry(SonicDB)
+        service_creator = ServiceCreator(feature_registry,
+                                         SonicDB)
+
+        return PackageManager(docker_api,
                               registry_resolver,
                               PackageDatabase.from_file(),
-                              MetadataResolver(docker_api, registry_resolver),
-                              ServiceCreator(FeatureRegistry(SonicDB), SonicDB),
+                              metadata_resolver,
+                              service_creator,
                               device_info,
                               filelock.FileLock(PACKAGE_MANAGER_LOCK_FILE, timeout=0))
