@@ -608,6 +608,27 @@ def _change_hostname(hostname):
         clicommon.run_command(r'sed -i "/\s{}$/d" /etc/hosts'.format(current_hostname), display_cmd=True)
         clicommon.run_command('echo "127.0.0.1 {}" >> /etc/hosts'.format(hostname), display_cmd=True)
 
+def _clear_cbf():
+    CBF_TABLE_NAMES = [
+            'DSCP_TO_FC_MAP',
+            'EXP_TO_FC_MAP']
+
+    namespace_list = [DEFAULT_NAMESPACE]
+    if multi_asic.get_num_asics() > 1:
+        namespace_list = multi_asic.get_namespaces_from_linux()
+
+    for ns in namespace_list:
+        if ns is DEFAULT_NAMESPACE:
+            config_db = ConfigDBConnector()
+        else:
+            config_db = ConfigDBConnector(
+                use_unix_socket_path=True, namespace=ns
+            )
+        config_db.connect()
+        for cbf_table in CBF_TABLE_NAMES:
+            config_db.delete_table(cbf_table)
+
+
 def _clear_qos():
     QOS_TABLE_NAMES = [
             'TC_TO_PRIORITY_GROUP_MAP',
@@ -2060,6 +2081,83 @@ def start_default(verbose):
     cmd = "pfcwd start_default"
 
     clicommon.run_command(cmd, display_cmd=verbose)
+
+#
+# 'cbf' group ('config cbf ...')
+#
+@config.group(cls=clicommon.AbbreviationGroup)
+@click.pass_context
+def cbf(ctx):
+    """CBF-related configuration tasks"""
+    pass
+
+@cbf.command('clear')
+def clear():
+    """Clear CBF configuration"""
+    log.log_info("'cbf clear' executing...")
+    _clear_cbf()
+
+@cbf.command('reload')
+@click.pass_context
+@click.option(
+    '--json-data', type=click.STRING,
+    help="json string with additional data, valid with --dry-run option"
+)
+@click.option(
+    '--dry_run', type=click.STRING,
+    help="Dry run, writes config to the given file"
+)
+def reload(ctx, dry_run, json_data):
+    """Reload CBF configuration"""
+    log.log_info("'cbf reload' executing...")
+    _clear_cbf()
+
+    _, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
+    sonic_version_file = device_info.get_sonic_version_file()
+    from_db = "-d --write-to-db"
+    if dry_run:
+        from_db = "--additional-data \'{}\'".format(json_data) if json_data else ""
+
+    namespace_list = [DEFAULT_NAMESPACE]
+    if multi_asic.get_num_asics() > 1:
+        namespace_list = multi_asic.get_namespaces_from_linux()
+
+    for ns in namespace_list:
+        if ns is DEFAULT_NAMESPACE:
+            asic_id_suffix = ""
+            config_db = ConfigDBConnector()
+        else:
+            asic_id = multi_asic.get_asic_id_from_name(ns)
+            if asic_id is None:
+                click.secho(
+                    "Command 'cbf reload' failed with invalid namespace '{}'".
+                        format(ns),
+                    fg="yellow"
+                )
+                raise click.Abort()
+            asic_id_suffix = str(asic_id)
+
+            config_db = ConfigDBConnector(
+                use_unix_socket_path=True, namespace=ns
+            )
+
+        config_db.connect()
+
+        cbf_template_file = os.path.join(hwsku_path, asic_id_suffix, "cbf.json.j2")
+        if os.path.isfile(cbf_template_file):
+            cmd_ns = "" if ns is DEFAULT_NAMESPACE else "-n {}".format(ns)
+            fname = "{}{}".format(dry_run, asic_id_suffix) if dry_run else "config-db"
+            command = "{} {} {} -t {},{} -y {}".format(
+                SONIC_CFGGEN_PATH, cmd_ns, from_db,
+                cbf_template_file, fname, sonic_version_file
+            )
+
+            # Apply the configuration
+            clicommon.run_command(command, display_cmd=True)
+        else:
+            click.secho("CBF definition template not found at {}".format(
+                cbf_template_file
+            ), fg="yellow")
 
 #
 # 'qos' group ('config qos ...')

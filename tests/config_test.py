@@ -155,7 +155,6 @@ class TestLoadMinigraph(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         print("TEARDOWN")
 
-
 class TestReloadConfig(object):
     dummy_cfg_file = os.path.join(os.sep, "tmp", "config.json")
 
@@ -228,12 +227,110 @@ class TestReloadConfig(object):
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
                 == RELOAD_YANG_CFG_OUTPUT
 
-
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         os.remove(cls.dummy_cfg_file)
         print("TEARDOWN")
+
+ 
+class TestConfigCbf(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+        import config.main
+        importlib.reload(config.main)
+
+    def test_cbf_reload_single(
+            self, get_cmd_module, setup_cbf_mock_apis,
+            setup_single_broadcom_asic
+        ):
+        (config, show) = get_cmd_module
+        runner = CliRunner()
+        output_file = os.path.join(os.sep, "tmp", "cbf_config_output.json")
+        print("Saving output in {}".format(output_file))
+        try:
+            os.remove(output_file)
+        except OSError:
+            pass
+        result = runner.invoke(
+           config.config.commands["cbf"],
+             ["reload", "--dry_run", output_file]
+        )
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        cwd = os.path.dirname(os.path.realpath(__file__))
+        expected_result = os.path.join(
+            cwd, "cbf_config_input", "config_cbf.json"
+        )
+        assert filecmp.cmp(output_file, expected_result, shallow=False)
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+
+
+class TestConfigCbfMasic(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
+        import config.main
+        importlib.reload(config.main)
+        # change to multi asic config
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_multi_asic
+        importlib.reload(mock_multi_asic)
+        dbconnector.load_namespace_config()
+
+    def test_cbf_reload_masic(
+            self, get_cmd_module, setup_cbf_mock_apis,
+            setup_multi_broadcom_masic
+    ):
+        (config, show) = get_cmd_module
+        runner = CliRunner()
+        output_file = os.path.join(os.sep, "tmp", "cbf_config_output.json")
+        print("Saving output in {}<0,1,2..>".format(output_file))
+        num_asic = device_info.get_num_npus()
+        print(num_asic)
+        for asic in range(num_asic):
+            try:
+                file = "{}{}".format(output_file, asic)
+                os.remove(file)
+            except OSError:
+                pass
+        result = runner.invoke(
+            config.config.commands["cbf"],
+            ["reload", "--dry_run", output_file]
+        )
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        cwd = os.path.dirname(os.path.realpath(__file__))
+
+        for asic in range(num_asic):
+            expected_result = os.path.join(
+                cwd, "cbf_config_input", str(asic), "config_cbf.json"
+            )
+            file = "{}{}".format(output_file, asic)
+            assert filecmp.cmp(file, expected_result, shallow=False)
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
+        # change back to single asic config
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        dbconnector.load_namespace_config()
 
 
 class TestConfigQos(object):
@@ -285,6 +382,11 @@ class TestConfigQosMasic(object):
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
         import config.main
         importlib.reload(config.main)
+        # change to multi asic config
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_multi_asic
+        importlib.reload(mock_multi_asic)
+        dbconnector.load_namespace_config()
 
     def test_qos_reload_masic(
             self, get_cmd_module, setup_qos_mock_apis,

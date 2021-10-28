@@ -75,6 +75,18 @@ def set_mock_apis():
     config._get_device_type = mock.MagicMock(return_value="ToRRouter")
 
 @pytest.fixture
+def setup_cbf_mock_apis():
+    cwd = os.path.dirname(os.path.realpath(__file__))
+    device_info.get_paths_to_platform_and_hwsku_dirs = mock.MagicMock(
+        return_value=(
+            os.path.join(cwd, "."), os.path.join(cwd, "cbf_config_input")
+        )
+    )
+    device_info.get_sonic_version_file = mock.MagicMock(
+        return_value=os.path.join(cwd, "qos_config_input/sonic_version.yml")
+    )
+
+@pytest.fixture
 def setup_qos_mock_apis():
     cwd = os.path.dirname(os.path.realpath(__file__))
     device_info.get_paths_to_platform_and_hwsku_dirs = mock.MagicMock(
