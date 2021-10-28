@@ -11,6 +11,7 @@ import jinja2 as jinja2
 from prettyprinter import pformat
 from toposort import toposort_flatten, CircularDependencyError
 
+from sonic_package_manager import utils
 from sonic_package_manager.logger import log
 from sonic_package_manager.package import Package
 from sonic_package_manager.service_creator import ETC_SONIC_PATH
@@ -468,21 +469,14 @@ class ServiceCreator:
         """
 
         init_cfg = package.manifest['package']['init-cfg']
+        if not init_cfg:
+            return
 
-        for tablename, content in init_cfg.items():
-            if not isinstance(content, dict):
-                continue
-
-            tables = self._get_tables(tablename)
-
-            for key in content:
-                for table in tables:
-                    cfg = content[key]
-                    exists, old_fvs = table.get(key)
-                    if exists:
-                        cfg.update(old_fvs)
-                    fvs = list(cfg.items())
-                    table.set(key, fvs)
+        for conn in self.sonic_db.get_connectors():
+            cfg = conn.get_config()
+            new_cfg = init_cfg.copy()
+            utils.deep_update(new_cfg, cfg)
+            conn.mod_config(new_cfg)
 
     def remove_config(self, package):
         """ Remove configuration based on init-cfg tables, so having
@@ -497,35 +491,13 @@ class ServiceCreator:
         """
 
         init_cfg = package.manifest['package']['init-cfg']
+        if not init_cfg:
+            return
 
-        for tablename, content in init_cfg.items():
-            if not isinstance(content, dict):
-                continue
-
-            tables = self._get_tables(tablename)
-
-            for key in content:
-                for table in tables:
-                    table._del(key)
-
-    def _get_tables(self, table_name):
-        """ Return swsscommon Tables for all kinds of configuration DBs """
-
-        tables = []
-
-        running_table = self.sonic_db.running_table(table_name)
-        if running_table is not None:
-            tables.append(running_table)
-
-        persistent_table = self.sonic_db.persistent_table(table_name)
-        if persistent_table is not None:
-            tables.append(persistent_table)
-
-        initial_table = self.sonic_db.initial_table(table_name)
-        if initial_table is not None:
-            tables.append(initial_table)
-
-        return tables
+        for conn in self.sonic_db.get_connectors():
+            for table in init_cfg:
+                for key in init_cfg[table]:
+                    conn.set_entry(table, key, None)
 
     def _post_operation_hook(self):
         """ Common operations executed after service is created/removed. """

@@ -6,29 +6,10 @@ import json
 import tarfile
 from typing import Dict
 
+from sonic_package_manager import utils
 from sonic_package_manager.errors import MetadataError
 from sonic_package_manager.manifest import Manifest
 from sonic_package_manager.version import Version
-
-
-def deep_update(dst: Dict, src: Dict) -> Dict:
-    """ Deep update dst dictionary with src dictionary.
-
-    Args:
-        dst: Dictionary to update
-        src: Dictionary to update with
-
-    Returns:
-        New merged dictionary.
-    """
-
-    for key, value in src.items():
-        if isinstance(value, dict):
-            node = dst.setdefault(key, {})
-            deep_update(node, value)
-        else:
-            dst[key] = value
-    return dst
 
 
 def translate_plain_to_tree(plain: Dict[str, str], sep='.') -> Dict:
@@ -62,7 +43,7 @@ def translate_plain_to_tree(plain: Dict[str, str], sep='.') -> Dict:
             continue
         namespace, key = key.split(sep, 1)
         res.setdefault(namespace, {})
-        deep_update(res[namespace], translate_plain_to_tree({key: value}))
+        utils.deep_update(res[namespace], translate_plain_to_tree({key: value}))
     return res
 
 

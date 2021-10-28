@@ -534,7 +534,6 @@ class PackageManager:
             )
 
         old_feature = old_package.manifest['service']['name']
-        new_feature = new_package.manifest['service']['name']
         old_version = old_package.manifest['package']['version']
         new_version = new_package.manifest['package']['version']
 
@@ -577,7 +576,12 @@ class PackageManager:
                 source.install(new_package)
                 exits.callback(rollback(source.uninstall, new_package))
 
-                if self.feature_registry.is_feature_enabled(old_feature):
+                feature_enabled = self.feature_registry.is_feature_enabled(old_feature)
+
+                if feature_enabled:
+                    self._systemctl_action(old_package, 'disable')
+                    exits.callback(rollback(self._systemctl_action,
+                                            old_package, 'enable'))
                     self._systemctl_action(old_package, 'stop')
                     exits.callback(rollback(self._systemctl_action,
                                             old_package, 'start'))
@@ -600,14 +604,27 @@ class PackageManager:
                     self._get_installed_packages_and(old_package))
                 )
 
-                if self.feature_registry.is_feature_enabled(new_feature):
+                # If old feature was enabled, the user should have the new feature enabled as well.
+                if feature_enabled:
+                    self._systemctl_action(new_package, 'enable')
+                    exits.callback(rollback(self._systemctl_action,
+                                            new_package, 'disable'))
                     self._systemctl_action(new_package, 'start')
                     exits.callback(rollback(self._systemctl_action,
                                             new_package, 'stop'))
 
+                # Update feature configuration after we have started new service.
+                # If we place it before the above, our service start/stop will
+                # interfere with hostcfgd in rollback path leading to a service
+                # running with new image and not the old one.
+                self.feature_registry.update(old_package.manifest, new_package.manifest)
+                exits.callback(rollback(
+                    self.feature_registry.update, new_package.manifest, old_package.manifest)
+                )
+
                 if not skip_host_plugins:
                     self._install_cli_plugins(new_package)
-                    exits.callback(rollback(self._uninstall_cli_plugin, old_package))
+                    exits.callback(rollback(self._uninstall_cli_plugin, new_package))
 
                 self.docker.rmi(old_package.image_id, force=True)
 

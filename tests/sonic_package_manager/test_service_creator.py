@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 import os
-from unittest.mock import Mock, MagicMock
+import copy
+from unittest.mock import Mock, MagicMock, call
 
 import pytest
 
@@ -112,11 +113,9 @@ def test_service_creator_with_debug_dump(sonic_fs, manifest, mock_feature_regist
 
 
 def test_service_creator_initial_config(sonic_fs, manifest, mock_feature_registry, mock_sonic_db):
-    mock_table = Mock()
-    mock_table.get = Mock(return_value=(True, (('field_2', 'original_value_2'),)))
-    mock_sonic_db.initial_table = Mock(return_value=mock_table)
-    mock_sonic_db.persistent_table = Mock(return_value=mock_table)
-    mock_sonic_db.running_table = Mock(return_value=mock_table)
+    mock_connector = Mock()
+    mock_connector.get_config = Mock(return_value={})
+    mock_sonic_db.get_connectors = Mock(return_value=[mock_connector])
 
     creator = ServiceCreator(mock_feature_registry, mock_sonic_db)
 
@@ -137,66 +136,103 @@ def test_service_creator_initial_config(sonic_fs, manifest, mock_feature_registr
     package = Package(entry, Metadata(manifest))
 
     creator.create(package)
-    mock_table.set.assert_called_with('key_a', [('field_1', 'value_1'),
-                                                ('field_2', 'original_value_2')])
+    mock_connector.mod_config.assert_called_with(
+        {
+            'TABLE_A': {
+	            'key_a': {
+	                'field_1': 'value_1',
+	                'field_2': 'value_2',
+	            },
+	        },
+	    }
+    )
 
     creator.remove(package)
-    mock_table._del.assert_called_with('key_a')
+    mock_connector.set_entry.assert_called_with('TABLE_A', 'key_a', None)
 
 
 def test_feature_registration(mock_sonic_db, manifest):
-    mock_feature_table = Mock()
-    mock_feature_table.get = Mock(return_value=(False, ()))
-    mock_sonic_db.initial_table = Mock(return_value=mock_feature_table)
-    mock_sonic_db.persistent_table = Mock(return_value=mock_feature_table)
-    mock_sonic_db.running_table = Mock(return_value=mock_feature_table)
+    mock_connector = Mock()
+    mock_connector.get_entry = Mock(return_value={})
+    mock_sonic_db.get_connectors = Mock(return_value=[mock_connector])
     feature_registry = FeatureRegistry(mock_sonic_db)
     feature_registry.register(manifest)
-    mock_feature_table.set.assert_called_with('test', [
-        ('state', 'disabled'),
-        ('auto_restart', 'enabled'),
-        ('high_mem_alert', 'disabled'),
-        ('set_owner', 'local'),
-        ('has_per_asic_scope', 'False'),
-        ('has_global_scope', 'True'),
-        ('has_timer', 'False'),
-    ])
+    mock_connector.set_entry.assert_called_with('FEATURE', 'test', {
+        'state': 'disabled',
+        'auto_restart': 'enabled',
+        'high_mem_alert': 'disabled',
+        'set_owner': 'local',
+        'has_per_asic_scope': 'False',
+        'has_global_scope': 'True',
+        'has_timer': 'False',
+    })
+
+
+def test_feature_update(mock_sonic_db, manifest):
+    curr_feature_config = {
+        'state': 'enabled',
+        'auto_restart': 'enabled',
+        'high_mem_alert': 'disabled',
+        'set_owner': 'local',
+        'has_per_asic_scope': 'False',
+        'has_global_scope': 'True',
+        'has_timer': 'False',
+    }
+    mock_connector = Mock()
+    mock_connector.get_entry = Mock(return_value=curr_feature_config)
+    mock_sonic_db.get_connectors = Mock(return_value=[mock_connector])
+    feature_registry = FeatureRegistry(mock_sonic_db)
+
+    new_manifest = copy.deepcopy(manifest)
+    new_manifest['service']['name'] = 'test_new'
+    new_manifest['service']['delayed'] = True
+
+    feature_registry.update(manifest, new_manifest)
+
+    mock_connector.set_entry.assert_has_calls([
+        call('FEATURE', 'test', None),
+        call('FEATURE', 'test_new', {
+            'state': 'enabled',
+            'auto_restart': 'enabled',
+            'high_mem_alert': 'disabled',
+            'set_owner': 'local',
+            'has_per_asic_scope': 'False',
+            'has_global_scope': 'True',
+            'has_timer': 'True',
+        }),
+    ], any_order=True)
 
 
 def test_feature_registration_with_timer(mock_sonic_db, manifest):
     manifest['service']['delayed'] = True
-    mock_feature_table = Mock()
-    mock_feature_table.get = Mock(return_value=(False, ()))
-    mock_sonic_db.initial_table = Mock(return_value=mock_feature_table)
-    mock_sonic_db.persistent_table = Mock(return_value=mock_feature_table)
-    mock_sonic_db.running_table = Mock(return_value=mock_feature_table)
+    mock_connector = Mock()
+    mock_connector.get_entry = Mock(return_value={})
+    mock_sonic_db.get_connectors = Mock(return_value=[mock_connector])
     feature_registry = FeatureRegistry(mock_sonic_db)
     feature_registry.register(manifest)
-    mock_feature_table.set.assert_called_with('test', [
-        ('state', 'disabled'),
-        ('auto_restart', 'enabled'),
-        ('high_mem_alert', 'disabled'),
-        ('set_owner', 'local'),
-        ('has_per_asic_scope', 'False'),
-        ('has_global_scope', 'True'),
-        ('has_timer', 'True'),
-    ])
+    mock_connector.set_entry.assert_called_with('FEATURE', 'test', {
+        'state': 'disabled',
+        'auto_restart': 'enabled',
+        'high_mem_alert': 'disabled',
+        'set_owner': 'local',
+        'has_per_asic_scope': 'False',
+        'has_global_scope': 'True',
+        'has_timer': 'True',
+    })
 
 
 def test_feature_registration_with_non_default_owner(mock_sonic_db, manifest):
-    mock_feature_table = Mock()
-    mock_feature_table.get = Mock(return_value=(False, ()))
-    mock_sonic_db.initial_table = Mock(return_value=mock_feature_table)
-    mock_sonic_db.persistent_table = Mock(return_value=mock_feature_table)
-    mock_sonic_db.running_table = Mock(return_value=mock_feature_table)
+    mock_connector = Mock()
+    mock_connector.get_entry = Mock(return_value={})
+    mock_sonic_db.get_connectors = Mock(return_value=[mock_connector])
     feature_registry = FeatureRegistry(mock_sonic_db)
     feature_registry.register(manifest, owner='kube')
-    mock_feature_table.set.assert_called_with('test', [
-        ('state', 'disabled'),
-        ('auto_restart', 'enabled'),
-        ('high_mem_alert', 'disabled'),
-        ('set_owner', 'kube'),
-        ('has_per_asic_scope', 'False'),
-        ('has_global_scope', 'True'),
-        ('has_timer', 'False'),
-    ])
+    mock_connector.set_entry.assert_called_with('FEATURE', 'test', {
+        'state': 'disabled',
+        'auto_restart': 'enabled',
+        'high_mem_alert': 'disabled',
+        'set_owner': 'kube',
+        'has_per_asic_scope': 'False',
+        'has_global_scope': 'True',
+        'has_timer': 'False',
+    })
