@@ -305,3 +305,18 @@ def remotemac(remote_vtep_ip, count):
       output += ('%s \n' % (str(num)))
       click.echo(output)
 
+@vxlan.command()
+@click.argument('tunnel', required=False)
+@click.option('-p', '--period')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def counters(tunnel, period, verbose):
+    """Show VxLAN counters"""
+
+    cmd = "tunnelstat -T vxlan"
+    if period is not None:
+        cmd += " -p {}".format(period)
+    if tunnel is not None:
+        cmd += " -i {}".format(tunnel)
+
+    clicommon.run_command(cmd, display_cmd=verbose)
+

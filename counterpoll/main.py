@@ -241,6 +241,39 @@ def disable():
     configdb.mod_entry("FLEX_COUNTER_TABLE", "PG_WATERMARK", fc_info)
     configdb.mod_entry("FLEX_COUNTER_TABLE", BUFFER_POOL_WATERMARK, fc_info)
 
+# Tunnel counter commands
+@cli.group()
+def tunnel():
+    """ Tunnel counter commands """
+
+@tunnel.command()
+@click.argument('poll_interval', type=click.IntRange(100, 30000))
+def interval(poll_interval):
+    """ Set tunnel counter query interval """
+    configdb = ConfigDBConnector()
+    configdb.connect()
+    tunnel_info = {}
+    tunnel_info['POLL_INTERVAL'] = poll_interval
+    configdb.mod_entry("FLEX_COUNTER_TABLE", "TUNNEL", tunnel_info)
+
+@tunnel.command()
+def enable():
+    """ Enable tunnel counter query """
+    configdb = ConfigDBConnector()
+    configdb.connect()
+    tunnel_info = {}
+    tunnel_info['FLEX_COUNTER_STATUS'] = ENABLE
+    configdb.mod_entry("FLEX_COUNTER_TABLE", "TUNNEL", tunnel_info)
+
+@tunnel.command()
+def disable():
+    """ Disable tunnel counter query """
+    configdb = ConfigDBConnector()
+    configdb.connect()
+    tunnel_info = {}
+    tunnel_info['FLEX_COUNTER_STATUS'] = DISABLE
+    configdb.mod_entry("FLEX_COUNTER_TABLE", "TUNNEL", tunnel_info)
+
 @cli.command()
 def show():
     """ Show the counter configuration """
@@ -254,6 +287,7 @@ def show():
     pg_wm_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'PG_WATERMARK')
     pg_drop_info = configdb.get_entry('FLEX_COUNTER_TABLE', PG_DROP)
     buffer_pool_wm_info = configdb.get_entry('FLEX_COUNTER_TABLE', BUFFER_POOL_WATERMARK)
+    tunnel_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'TUNNEL')
     
     header = ("Type", "Interval (in ms)", "Status")
     data = []
@@ -273,6 +307,8 @@ def show():
         data.append(['PG_DROP_STAT', pg_drop_info.get("POLL_INTERVAL", DEFLT_10_SEC), pg_drop_info.get("FLEX_COUNTER_STATUS", DISABLE)])
     if buffer_pool_wm_info:
         data.append(["BUFFER_POOL_WATERMARK_STAT", buffer_pool_wm_info.get("POLL_INTERVAL", DEFLT_10_SEC), buffer_pool_wm_info.get("FLEX_COUNTER_STATUS", DISABLE)])
+    if tunnel_info:
+        data.append(["TUNNEL_STAT", rif_info.get("POLL_INTERVAL", DEFLT_10_SEC), rif_info.get("FLEX_COUNTER_STATUS", DISABLE)])
 
     click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
 

@@ -193,6 +193,12 @@ def dropcounters():
     command = "dropstat -c clear"
     run_command(command)
 
+@cli.command()
+def tunnelcounters():
+    """Clear Tunnel counters"""
+    command = "tunnelstat -c"
+    run_command(command)
+
 #
 # 'clear watermarks
 #
