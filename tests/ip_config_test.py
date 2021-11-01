@@ -8,9 +8,7 @@ import config.main as config
 import show.main as show
 from utilities_common.db import Db
 
-ERROR_MSG = '''
-Error: ip address or mask is not valid.
-'''
+ERROR_MSG = "Error: IP address is not valid"
 
 class TestConfigIP(object):
     @classmethod
@@ -65,7 +63,7 @@ class TestConfigIP(object):
         obj = {'config_db':db.cfgdb}
         
         # config int ip add Ethernet68 10.10.10.002/24
-        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet68", "10.10.10.002/24"], obj=obj)        
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet68", "10.10.10.0002/24"], obj=obj)        
         print(result.exit_code, result.output)
         assert result.exit_code != 0
         assert ERROR_MSG in result.output
@@ -88,7 +86,21 @@ class TestConfigIP(object):
         print(result.exit_code, result.output)
         assert result.exit_code != 0
         assert ('Ethernet72', '2001:1db8:11a3:19d7:1f34:8a2e:17a0:765d/34') not in db.cfgdb.get_table('INTERFACE')
-    
+
+    def test_del_interface_case_sensitive_ipv6(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db':db.cfgdb}
+
+        obj['config_db'].set_entry('INTERFACE', ('Ethernet72', 'FC00::1/126'), {})
+        assert ('Ethernet72', 'FC00::1/126') in db.cfgdb.get_table('INTERFACE')
+
+        # config int ip remove Ethernet72 FC00::1/126
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["Ethernet72", "FC00::1/126"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+        assert ('Ethernet72', 'FC00::1/126') not in db.cfgdb.get_table('INTERFACE')
+
     def test_add_interface_invalid_ipv6(self):
         db = Db()
         runner = CliRunner()
@@ -120,14 +132,14 @@ class TestConfigIP(object):
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet68", "2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d/34"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
-        assert ('Ethernet68', '2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d/34') in db.cfgdb.get_table('INTERFACE')
-        
+        assert ('Ethernet68', '2001:db8:11a3:9d7:1f34:8a2e:7a0:765d/34') in db.cfgdb.get_table('INTERFACE')
+
         # config int ip remove Ethernet68 2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d/34
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["Ethernet68", "2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d/34"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code != 0
-        assert ('Ethernet68', '2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d/34') not in db.cfgdb.get_table('INTERFACE')
-        
+        assert ('Ethernet68', '2001:db8:11a3:9d7:1f34:8a2e:7a0:765d/34') not in db.cfgdb.get_table('INTERFACE')
+
     def test_add_del_interface_shortened_ipv6_with_leading_zeros(self):
         db = Db()
         runner = CliRunner()
@@ -137,14 +149,14 @@ class TestConfigIP(object):
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["add"], ["Ethernet68", "3000::001/64"], obj=obj)        
         print(result.exit_code, result.output)
         assert result.exit_code == 0
-        assert ('Ethernet68', '3000::001/64') in db.cfgdb.get_table('INTERFACE')
-        
+        assert ('Ethernet68', '3000::1/64') in db.cfgdb.get_table('INTERFACE')
+
         # config int ip remove Ethernet68 3000::001/64
         result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"], ["Ethernet68", "3000::001/64"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code != 0
-        assert ('Ethernet68', '3000::001/64') not in db.cfgdb.get_table('INTERFACE')
-    
+        assert ('Ethernet68', '3000::1/64') not in db.cfgdb.get_table('INTERFACE')
+
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
