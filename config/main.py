@@ -639,6 +639,7 @@ def _clear_qos():
             'MAP_PFC_PRIORITY_TO_QUEUE',
             'TC_TO_QUEUE_MAP',
             'DSCP_TO_TC_MAP',
+            'MPLS_TC_TO_TC_MAP',
             'SCHEDULER',
             'PFC_PRIORITY_TO_PRIORITY_GROUP_MAP',
             'PORT_QOS_MAP',
