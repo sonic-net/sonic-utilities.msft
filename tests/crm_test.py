@@ -53,6 +53,8 @@ snat_entry            percentage                     70                85
 dnat_entry            percentage                     70                85
 mpls_inseg            percentage                     70                85
 mpls_nexthop          percentage                     70                85
+srv6_nexthop          percentage                     70                85
+srv6_my_sid_entry     percentage                     70                85
 
 """
 
@@ -165,6 +167,22 @@ crm_show_thresholds_ipmc = """\
 Resource Name    Threshold Type      Low Threshold    High Threshold
 ---------------  ----------------  ---------------  ----------------
 ipmc_entry       percentage                     70                85
+
+"""
+
+crm_show_thresholds_srv6_my_sid_entry = """\
+
+Resource Name      Threshold Type      Low Threshold    High Threshold
+-----------------  ----------------  ---------------  ----------------
+srv6_my_sid_entry  percentage                     70                85
+
+"""
+
+crm_show_thresholds_srv6_nexthop = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+srv6_nexthop     percentage                     70                85
 
 """
 
@@ -302,6 +320,30 @@ ipmc_entry       percentage                     60                90
 
 """
 
+crm_new_show_thresholds_srv6_my_sid_entry = """\
+
+Resource Name      Threshold Type      Low Threshold    High Threshold
+-----------------  ----------------  ---------------  ----------------
+srv6_my_sid_entry  percentage                     60                90
+
+"""
+
+crm_new_show_thresholds_srv6_nexthop = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+srv6_nexthop     percentage                     60                90
+
+"""
+
+crm_new_show_thresholds_ipmc = """\
+
+Resource Name    Threshold Type      Low Threshold    High Threshold
+---------------  ----------------  ---------------  ----------------
+ipmc_entry       percentage                     60                90
+
+"""
+
 crm_show_resources_acl_group = """\
 
 Stage    Bind Point    Resource Name      Used Count    Available Count
@@ -358,6 +400,8 @@ snat_entry                       0               1024
 dnat_entry                       0               1024
 mpls_inseg                       0               1024
 mpls_nexthop                     0               1024
+srv6_nexthop                     0               1024
+srv6_my_sid_entry                0               1024
 
 
 Stage    Bind Point    Resource Name      Used Count    Available Count
@@ -505,6 +549,21 @@ ipmc_entry                  0              24576
 
 """
 
+crm_show_resources_srv6_my_sid_entry = """\
+
+Resource Name        Used Count    Available Count
+-----------------  ------------  -----------------
+srv6_my_sid_entry             0               1024
+
+"""
+
+crm_show_resources_srv6_nexthop = """\
+
+Resource Name      Used Count    Available Count
+---------------  ------------  -----------------
+srv6_nexthop                0               1024
+
+"""
 crm_multi_asic_show_resources_acl_group = """\
 
 ASIC0
@@ -603,6 +662,8 @@ snat_entry                       0               1024
 dnat_entry                       0               1024
 mpls_inseg                       0               1024
 mpls_nexthop                     0               1024
+srv6_nexthop                     0               1024
+srv6_my_sid_entry                0               1024
 
 
 ASIC1
@@ -623,6 +684,8 @@ snat_entry                       0               1024
 dnat_entry                       0               1024
 mpls_inseg                       0               1024
 mpls_nexthop                     0               1024
+srv6_nexthop                     0               1024
+srv6_my_sid_entry                0               1024
 
 
 ASIC0
@@ -936,6 +999,39 @@ ipmc_entry                  0              24576
 
 """
 
+crm_multi_asic_show_resources_srv6_my_sid_entry = """\
+
+ASIC0
+
+Resource Name        Used Count    Available Count
+-----------------  ------------  -----------------
+srv6_my_sid_entry             0               1024
+
+
+ASIC1
+
+Resource Name        Used Count    Available Count
+-----------------  ------------  -----------------
+srv6_my_sid_entry             0               1024
+
+"""
+
+crm_multi_asic_show_resources_srv6_nexthop = """\
+
+ASIC0
+
+Resource Name      Used Count    Available Count
+---------------  ------------  -----------------
+srv6_nexthop                0               1024
+
+
+ASIC1
+
+Resource Name      Used Count    Available Count
+---------------  ------------  -----------------
+srv6_nexthop                0               1024
+
+"""
 
 class TestCrm(object):
     @classmethod
@@ -1339,6 +1435,20 @@ class TestCrm(object):
         assert result.exit_code == 0
         assert result.output == crm_show_resources_ipmc
 
+    def test_crm_show_resources_srv6_my_sid_entry(self):
+        runner = CliRunner()
+        result = runner.invoke(crm.cli, ['show', 'resources', 'srv6-my-sid-entry'])
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_resources_srv6_my_sid_entry
+
+    def test_crm_show_resources_srv6_nexthop(self):
+        runner = CliRunner()
+        result = runner.invoke(crm.cli, ['show', 'resources', 'srv6-nexthop'])
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_resources_srv6_nexthop
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
@@ -1633,6 +1743,38 @@ class TestCrmMultiAsic(object):
         assert result.output == crm_new_show_thresholds_ipmc
 
 
+    def test_crm_show_thresholds_srv6_nexthop(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'srv6-nexthop'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_srv6_nexthop
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'srv6-nexthop', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'srv6-nexthop', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'srv6-nexthop'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_srv6_nexthop
+
+    def test_crm_show_thresholds_srv6_my_sid_entry(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'srv6-my-sid-entry'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_show_thresholds_srv6_my_sid_entry
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'srv6-my-sid-entry', 'high', '90'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['config', 'thresholds', 'srv6-my-sid-entry', 'low', '60'], obj=db)
+        print(sys.stderr, result.output)
+        result = runner.invoke(crm.cli, ['show', 'thresholds', 'srv6-my-sid-entry'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_new_show_thresholds_srv6_my_sid_entry
+
     def test_crm_multi_asic_show_resources_acl_group(self):
         runner = CliRunner()
         result = runner.invoke(crm.cli, ['show', 'resources', 'acl', 'group'])
@@ -1751,6 +1893,20 @@ class TestCrmMultiAsic(object):
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_multi_asic_show_resources_ipmc
+
+    def test_crm_multi_asic_show_resources_srv6_my_sid_entry(self):
+        runner = CliRunner()
+        result = runner.invoke(crm.cli, ['show', 'resources', 'srv6-my-sid-entry'])
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_multi_asic_show_resources_srv6_my_sid_entry
+
+    def test_crm_multi_asic_show_resources_srv6_nexthop(self):
+        runner = CliRunner()
+        result = runner.invoke(crm.cli, ['show', 'resources', 'srv6-nexthop'])
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        assert result.output == crm_multi_asic_show_resources_srv6_nexthop
 
 
     @classmethod

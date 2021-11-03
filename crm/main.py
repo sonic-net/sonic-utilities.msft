@@ -72,7 +72,7 @@ class Crm:
                 for res in ["ipv4_route", "ipv6_route", "ipv4_nexthop", "ipv6_nexthop", "ipv4_neighbor", "ipv6_neighbor",
                             "nexthop_group_member", "nexthop_group", "acl_table", "acl_group", "acl_entry",
                             "acl_counter", "fdb_entry", "ipmc_entry", "snat_entry", "dnat_entry", "mpls_inseg",
-                            "mpls_nexthop"]:
+                            "mpls_nexthop","srv6_nexthop", "srv6_my_sid_entry"]:
                     try:
                         data.append([res, crm_info[res + "_threshold_type"], crm_info[res + "_low_threshold"], crm_info[res + "_high_threshold"]])
                     except KeyError:
@@ -100,7 +100,7 @@ class Crm:
             if resource == 'all':
                 for res in ["ipv4_route", "ipv6_route", "ipv4_nexthop", "ipv6_nexthop", "ipv4_neighbor", "ipv6_neighbor",
                             "nexthop_group_member", "nexthop_group", "fdb_entry", "ipmc_entry", "snat_entry", "dnat_entry",
-                            "mpls_inseg", "mpls_nexthop"]:
+                            "mpls_inseg", "mpls_nexthop","srv6_nexthop", "srv6_my_sid_entry"]:
                     if 'crm_stats_' + res + "_used" in crm_stats.keys() and 'crm_stats_' + res + "_available" in crm_stats.keys():
                         data.append([res, crm_stats['crm_stats_' + res + "_used"], crm_stats['crm_stats_' + res + "_available"]])
             else:
@@ -460,6 +460,26 @@ counter.add_command(type)
 counter.add_command(low)
 counter.add_command(high)
 
+@thresholds.group()
+@click.pass_context
+def srv6_nexthop(ctx):
+    """CRM configuration for SRV6 Nexthop resource"""
+    ctx.obj["crm"].res_type = 'srv6_nexthop'
+
+srv6_nexthop.add_command(type)
+srv6_nexthop.add_command(low)
+srv6_nexthop.add_command(high)
+
+@thresholds.group()
+@click.pass_context
+def srv6_my_sid_entry(ctx):
+    """CRM configuration for SRV6 MY_SID resource"""
+    ctx.obj["crm"].res_type = 'srv6_my_sid_entry'
+
+srv6_my_sid_entry.add_command(type)
+srv6_my_sid_entry.add_command(low)
+srv6_my_sid_entry.add_command(high)
+
 @cli.group()
 @click.pass_context
 def show(ctx):
@@ -644,6 +664,24 @@ def dnat(ctx):
     elif ctx.obj["crm"].cli_mode == 'resources':
         ctx.obj["crm"].show_resources('dnat_entry')
 
+@resources.command()
+@click.pass_context
+def srv6_nexthop(ctx):
+    """Show CRM information for SRV6 Nexthop"""
+    if ctx.obj["crm"].cli_mode == 'thresholds':
+        ctx.obj["crm"].show_thresholds('srv6_nexthop')
+    elif ctx.obj["crm"].cli_mode == 'resources':
+        ctx.obj["crm"].show_resources('srv6_nexthop')
+
+@resources.command()
+@click.pass_context
+def srv6_my_sid_entry(ctx):
+    """Show CRM information for SRV6 MY_SID entry"""
+    if ctx.obj["crm"].cli_mode == 'thresholds':
+        ctx.obj["crm"].show_thresholds('srv6_my_sid_entry')
+    elif ctx.obj["crm"].cli_mode == 'resources':
+        ctx.obj["crm"].show_resources('srv6_my_sid_entry')
+
 thresholds.add_command(acl)
 thresholds.add_command(all)
 thresholds.add_command(fdb)
@@ -654,6 +692,8 @@ thresholds.add_command(nexthop)
 thresholds.add_command(ipmc)
 thresholds.add_command(snat)
 thresholds.add_command(dnat)
+thresholds.add_command(srv6_nexthop)
+thresholds.add_command(srv6_my_sid_entry)
 
 
 if __name__ == '__main__':
