@@ -8,8 +8,8 @@ from collections import defaultdict
 from swsscommon.swsscommon import ConfigDBConnector
 from .gu_common import genericUpdaterLogging
 
-
-UPDATER_CONF_FILE = "/etc/sonic/generic_config_updater.conf"
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+UPDATER_CONF_FILE = f"{SCRIPT_DIR}/generic_updater_config.conf.json"
 logger = genericUpdaterLogging.get_logger(title="Change Applier")
 
 print_to_console = False
@@ -42,6 +42,19 @@ def get_config_db():
 
 def set_config(config_db, tbl, key, data):
     config_db.set_entry(tbl, key, data)
+
+
+def prune_empty_table(data):
+    # For JSON Patch empty entries are valid
+    # With redis, when last key is removed, the table gets removed too.
+    #
+    # Hence where required, prune tables with no keys.
+    #
+    tables = list(data.keys())
+    for tbl in tables:
+        if not data[tbl]:
+            data.pop(tbl)
+    return data
 
 
 class ChangeApplier:
@@ -111,7 +124,7 @@ class ChangeApplier:
 
     def apply(self, change):
         run_data = self._get_running_config()
-        upd_data = change.apply(copy.deepcopy(run_data))
+        upd_data = prune_empty_table(change.apply(copy.deepcopy(run_data)))
         upd_keys = defaultdict(dict)
 
         for tbl in sorted(set(run_data.keys()).union(set(upd_data.keys()))):

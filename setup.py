@@ -58,6 +58,7 @@ setup(
         'watchdogutil',
     ],
     package_data={
+        'generic_config_updater': ['generic_updater_config.conf.json'],
         'show': ['aliases.ini'],
         'sonic_installer': ['aliases.ini'],
         'tests': ['acl_input/*',
