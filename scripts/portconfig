@@ -63,7 +63,7 @@ PORT_STATE_SUPPORTED_SPEEDS = "supported_speeds"
 VALID_INTERFACE_TYPE_SET = set(['CR','CR2','CR4','SR','SR2','SR4',
                                 'LR','LR4','KR','KR4','CAUI','GMII',
                                 'SFI','XLAUI','KR2','CAUI4','XAUI',
-                                'XFI','XGMII'])
+                                'XFI','XGMII', 'none'])
 
 class portconfig(object):
     """
@@ -166,7 +166,7 @@ class portconfig(object):
     def set_adv_interface_types(self, port, adv_interface_types):
         if self.verbose:
             print("Setting adv_interface_types %s on port %s" % (adv_interface_types, port))
-        
+
         if adv_interface_types != 'all':
             config_interface_type_list = [x.strip() for x in adv_interface_types.split(',')]
             config_interface_types = set(config_interface_type_list)
@@ -179,7 +179,7 @@ class portconfig(object):
                 print("Valid interface types:{}".format(','.join(VALID_INTERFACE_TYPE_SET)))
                 exit(1)
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_ADV_INTERFACE_TYPES_CONFIG_FIELD_NAME: adv_interface_types})
-    
+
     def get_supported_speeds(self, port):
         if not self.namespace:
             state_db = SonicV2Connector(host="127.0.0.1")

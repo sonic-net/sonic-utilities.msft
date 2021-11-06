@@ -17,7 +17,7 @@ sys.path.insert(0, modules_path)
 @pytest.fixture(scope='module')
 def ctx(scope='module'):
     db = Db()
-    obj = {'config_db':db.cfgdb, 'namespace': ''}  
+    obj = {'config_db':db.cfgdb, 'namespace': ''}
     yield obj
 
 
@@ -56,6 +56,7 @@ class TestConfigInterface(object):
 
     def test_config_type(self, ctx):
         self.basic_check("type", ["Ethernet0", "CR4"], ctx)
+        self.basic_check("type", ["Ethernet0", "none"], ctx)
         self.basic_check("type", ["Invalid", "CR4"], ctx, operator.ne)
         self.basic_check("type", ["Ethernet0", ""], ctx, operator.ne)
         result = self.basic_check("type", ["Ethernet0", "Invalid"], ctx, operator.ne)
