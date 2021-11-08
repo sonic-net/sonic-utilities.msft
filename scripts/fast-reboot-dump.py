@@ -319,6 +319,31 @@ def generate_default_route_entries(filename):
     with open(filename, 'w') as fp:
         json.dump(default_routes_output, fp, indent=2, separators=(',', ': '))
 
+def generate_media_config(filename):
+    db = SonicV2Connector(host='127.0.0.1')
+    db.connect(db.APPL_DB, False)   # Make one attempt only
+    media_config= []
+    port_serdes_keys = ["preemphasis", "idriver", "ipredriver", "pre1", "pre2", "pre3", "main", "post1", "post2", "post3","attn"]
+    keys = db.keys(db.APPL_DB, 'PORT_TABLE:*')
+    keys = [] if keys is None else keys
+    for key in keys:
+        entry = db.get_all(db.APPL_DB, key)
+        media_attributes = {}
+        for attr in entry.keys():
+            if attr in port_serdes_keys:
+                media_attributes[attr] = entry[attr]
+        obj = {
+          '%s' % (key) : media_attributes,
+          'OP': 'SET'
+        }
+        media_config.append(obj)
+
+    db.close(db.APPL_DB)
+
+    with open(filename, 'w') as fp:
+        json.dump(media_config, fp, indent=2, separators=(',', ': '))
+
+    return media_config
 
 def main():
     parser = argparse.ArgumentParser()
@@ -331,6 +356,7 @@ def main():
     all_available_macs, map_mac_ip_per_vlan = generate_fdb_entries(root_dir + '/fdb.json')
     neighbor_entries = generate_neighbor_entries(root_dir + '/arp.json', all_available_macs)
     generate_default_route_entries(root_dir + '/default_routes.json')
+    generate_media_config(root_dir + '/media_config.json')
     send_garp_nd(neighbor_entries, map_mac_ip_per_vlan)
     return 0
 
