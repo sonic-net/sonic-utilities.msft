@@ -165,7 +165,7 @@ def populate_fv(info, module, namespace):
             final_info[id][db_name]["tables_not_found"] = info[id][db_name]["tables_not_found"]
             for key in info[id][db_name]["keys"]:
                 if db_name is "CONFIG_FILE":
-                    fv = db_dict[db_name].get(db_name, key)
+                    fv = db_cfg_file.get(db_name, key)
                 else:
                     fv = db_conn.get_all(db_name, key)
                 final_info[id][db_name]["keys"].append({key: fv})
