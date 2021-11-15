@@ -209,6 +209,7 @@ setup(
     ],
     tests_require = [
         'pyfakefs',
+        'responses',
         'pytest',
         'mockredispy>=2.9.3',
         'deepdiff==5.2.3'

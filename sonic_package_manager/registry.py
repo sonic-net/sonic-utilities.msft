@@ -23,20 +23,21 @@ class AuthenticationService:
     """ AuthenticationService provides an authentication tokens. """
 
     @staticmethod
-    def get_token(realm, service, scope) -> str:
+    def get_token(bearer: Dict) -> str:
         """ Retrieve an authentication token.
 
         Args:
-            realm: Realm: url to request token.
-            service: service to request token for.
-            scope: scope to requests token for.
+            bearer: Bearer token.
         Returns:
             token value as a string.
         """
 
-        log.debug(f'getting authentication token: realm={realm} service={service} scope={scope}')
+        log.debug(f'getting authentication token {bearer}')
+        if 'realm' not in bearer:
+            raise AuthenticationServiceError(f'Realm is required in bearer')
 
-        response = requests.get(f'{realm}?scope={scope}&service={service}')
+        url = bearer.pop('realm')
+        response = requests.get(url, params=bearer)
         if response.status_code != requests.codes.ok:
             raise AuthenticationServiceError('Failed to retrieve token')
 
@@ -44,7 +45,7 @@ class AuthenticationService:
         token = content['token']
         expires_in = content['expires_in']
 
-        log.debug(f'authentication token for realm={realm} service={service} scope={scope}: '
+        log.debug(f'authentication token for bearer={bearer}: '
                   f'token={token} expires_in={expires_in}')
 
         return token
@@ -85,7 +86,7 @@ class Registry:
             log.debug(f'unauthorized: retrieving authentication details '
                       f'from response headers {www_authenticate_details}')
             bearer = www_authenticate.parse(www_authenticate_details)['bearer']
-            token = AuthenticationService.get_token(**bearer)
+            token = AuthenticationService.get_token(bearer)
             headers['Authorization'] = f'Bearer {token}'
             # Repeat request
             response = requests.get(url, headers=headers)
