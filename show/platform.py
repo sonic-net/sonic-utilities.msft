@@ -64,6 +64,9 @@ def summary(json):
         click.echo("Serial Number: {}".format(chassis_info['serial']))
         click.echo("Model Number: {}".format(chassis_info['model']))
         click.echo("Hardware Revision: {}".format(chassis_info['revision']))
+        switch_type = platform_info.get('switch_type')
+        if switch_type:
+            click.echo("Switch Type: {}".format(switch_type))
 
 
 # 'syseeprom' subcommand ("show platform syseeprom")
