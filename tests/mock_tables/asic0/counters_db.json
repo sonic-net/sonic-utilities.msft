@@ -1419,49 +1419,62 @@
             "oid:0x600000000063d": "SAI_ROUTER_INTERFACE_TYPE_PORT",
             "oid:0x600000000065f": "SAI_ROUTER_INTERFACE_TYPE_PORT"
     },
-    "COUNTERS:DATAACL:DEFAULT_RULE": {
-            "Bytes": "1",
-            "Packets": "2"
+    "COUNTERS:oid:0x9000000000000": {
+        "SAI_ACL_COUNTER_ATTR_PACKETS": "2",
+        "SAI_ACL_COUNTER_ATTR_BYTES": "1"
     },
-    "COUNTERS:DATAACL:RULE_1": {
-            "Bytes": "100",
-            "Packets": "101"
+    "COUNTERS:oid:0x9000000000001": {
+        "SAI_ACL_COUNTER_ATTR_PACKETS": "101",
+        "SAI_ACL_COUNTER_ATTR_BYTES": "100"
     },
-    "COUNTERS:DATAACL:RULE_2": {
-            "Bytes": "200",
-            "Packets": "201"
+    "COUNTERS:oid:0x9000000000002": {
+        "SAI_ACL_COUNTER_ATTR_PACKETS": "201",
+        "SAI_ACL_COUNTER_ATTR_BYTES": "200"
     },
-    "COUNTERS:DATAACL:RULE_3": {
-            "Bytes": "300",
-            "Packets": "301"
+    "COUNTERS:oid:0x9000000000003": {
+        "SAI_ACL_COUNTER_ATTR_PACKETS": "301",
+        "SAI_ACL_COUNTER_ATTR_BYTES": "300"
     },
-    "COUNTERS:DATAACL:RULE_4": {
-            "Bytes": "400",
-            "Packets": "401"
+    "COUNTERS:oid:0x9000000000004": {
+        "SAI_ACL_COUNTER_ATTR_PACKETS": "401",
+        "SAI_ACL_COUNTER_ATTR_BYTES": "400"
     },
-    "COUNTERS:DATAACL:RULE_05": {
-            "Bytes": "0",
-            "Packets": "0"
+    "COUNTERS:oid:0x9000000000005": {
+        "SAI_ACL_COUNTER_ATTR_PACKETS": "0",
+        "SAI_ACL_COUNTER_ATTR_BYTES": "0"
     },
-    "COUNTERS:EVERFLOW:RULE_6": {
-            "Bytes": "600",
-            "Packets": "601"
+    "COUNTERS:oid:0x9000000000006": {
+        "SAI_ACL_COUNTER_ATTR_PACKETS": "601",
+        "SAI_ACL_COUNTER_ATTR_BYTES": "600"
     },
-    "COUNTERS:DATAACL:RULE_7":{
-            "Bytes": "700",
-            "Packets": "701"
+    "COUNTERS:oid:0x9000000000007":{
+        "SAI_ACL_COUNTER_ATTR_PACKETS": "701",
+        "SAI_ACL_COUNTER_ATTR_BYTES": "700"
     },
-    "COUNTERS:EVERFLOW:RULE_08": {
-            "Bytes": "0",
-            "Packets": "0"
+    "COUNTERS:oid:0x9000000000008": {
+        "SAI_ACL_COUNTER_ATTR_PACKETS": "0",
+        "SAI_ACL_COUNTER_ATTR_BYTES": "0"
     },
-    "COUNTERS:DATAACL:RULE_9": {
-            "Bytes": "900",
-            "Packets": "901"
+    "COUNTERS:oid:0x9000000000009": {
+        "SAI_ACL_COUNTER_ATTR_PACKETS": "901",
+        "SAI_ACL_COUNTER_ATTR_BYTES": "900"
     },
-    "COUNTERS:DATAACL:RULE_10": {
-            "Bytes": "1000",
-            "Packets": "1001"
+    "COUNTERS:oid:0x900000000000a": {
+        "SAI_ACL_COUNTER_ATTR_PACKETS": "1001",
+        "SAI_ACL_COUNTER_ATTR_BYTES": "1000"
+    },
+    "ACL_COUNTER_RULE_MAP": {
+        "DATAACL:DEFAULT_RULE": "oid:0x9000000000000",
+        "DATAACL:RULE_1": "oid:0x9000000000001",
+        "DATAACL:RULE_2": "oid:0x9000000000002",
+        "DATAACL:RULE_3": "oid:0x9000000000003",
+        "DATAACL:RULE_4": "oid:0x9000000000004",
+        "DATAACL:RULE_05": "oid:0x9000000000005",
+        "EVERFLOW:RULE_6": "oid:0x9000000000006",
+        "DATAACL:RULE_7": "oid:0x9000000000007",
+        "EVERFLOW:RULE_08": "oid:0x9000000000008",
+        "DATAACL:RULE_9": "oid:0x9000000000009",
+        "DATAACL:RULE_10": "oid:0x900000000000a"
     },
     "COUNTERS:oid:0x1000000000002": {
         "SAI_PORT_STAT_IF_IN_UCAST_PKTS": "8",

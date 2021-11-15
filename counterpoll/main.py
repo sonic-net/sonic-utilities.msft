@@ -6,6 +6,7 @@ from tabulate import tabulate
 BUFFER_POOL_WATERMARK = "BUFFER_POOL_WATERMARK"
 PORT_BUFFER_DROP = "PORT_BUFFER_DROP"
 PG_DROP = "PG_DROP"
+ACL = "ACL"
 DISABLE = "disable"
 ENABLE = "enable"
 DEFLT_60_SEC= "default (60000)"
@@ -241,6 +242,45 @@ def disable():
     configdb.mod_entry("FLEX_COUNTER_TABLE", "PG_WATERMARK", fc_info)
     configdb.mod_entry("FLEX_COUNTER_TABLE", BUFFER_POOL_WATERMARK, fc_info)
 
+# ACL counter commands
+@cli.group()
+@click.pass_context
+def acl(ctx):
+    """  ACL counter commands """
+    ctx.obj = ConfigDBConnector()
+    ctx.obj.connect()
+
+@acl.command()
+@click.argument('poll_interval', type=click.IntRange(1000, 30000))
+@click.pass_context
+def interval(ctx, poll_interval):
+    """
+    Set ACL counters query interval
+    interval is between 1s and 30s.
+    """
+
+    fc_group_cfg = {}
+    fc_group_cfg['POLL_INTERVAL'] = poll_interval
+    ctx.obj.mod_entry("FLEX_COUNTER_TABLE", ACL, fc_group_cfg)
+
+@acl.command()
+@click.pass_context
+def enable(ctx):
+    """ Enable ACL counter query """
+
+    fc_group_cfg = {}
+    fc_group_cfg['FLEX_COUNTER_STATUS'] = ENABLE
+    ctx.obj.mod_entry("FLEX_COUNTER_TABLE", ACL, fc_group_cfg)
+
+@acl.command()
+@click.pass_context
+def disable(ctx):
+    """ Disable ACL counter query """
+
+    fc_group_cfg = {}
+    fc_group_cfg['FLEX_COUNTER_STATUS'] = DISABLE
+    ctx.obj.mod_entry("FLEX_COUNTER_TABLE", ACL, fc_group_cfg)
+
 # Tunnel counter commands
 @cli.group()
 def tunnel():
@@ -287,8 +327,9 @@ def show():
     pg_wm_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'PG_WATERMARK')
     pg_drop_info = configdb.get_entry('FLEX_COUNTER_TABLE', PG_DROP)
     buffer_pool_wm_info = configdb.get_entry('FLEX_COUNTER_TABLE', BUFFER_POOL_WATERMARK)
+    acl_info = configdb.get_entry('FLEX_COUNTER_TABLE', ACL)
     tunnel_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'TUNNEL')
-    
+
     header = ("Type", "Interval (in ms)", "Status")
     data = []
     if queue_info:
@@ -307,6 +348,8 @@ def show():
         data.append(['PG_DROP_STAT', pg_drop_info.get("POLL_INTERVAL", DEFLT_10_SEC), pg_drop_info.get("FLEX_COUNTER_STATUS", DISABLE)])
     if buffer_pool_wm_info:
         data.append(["BUFFER_POOL_WATERMARK_STAT", buffer_pool_wm_info.get("POLL_INTERVAL", DEFLT_10_SEC), buffer_pool_wm_info.get("FLEX_COUNTER_STATUS", DISABLE)])
+    if acl_info:
+        data.append([ACL, pg_drop_info.get("POLL_INTERVAL", DEFLT_10_SEC), acl_info.get("FLEX_COUNTER_STATUS", DISABLE)])
     if tunnel_info:
         data.append(["TUNNEL_STAT", rif_info.get("POLL_INTERVAL", DEFLT_10_SEC), rif_info.get("FLEX_COUNTER_STATUS", DISABLE)])
 

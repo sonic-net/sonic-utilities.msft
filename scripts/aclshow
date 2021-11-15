@@ -29,13 +29,15 @@ from tabulate import tabulate
 ### if we could have a SAI command to clear counters will be better, so no need to maintain
 ### counters in temp loaction for clear conter action
 COUNTER_POSITION = '/tmp/.counters_acl.p'
+COUNTERS = "COUNTERS"
+ACL_COUNTER_RULE_MAP = "ACL_COUNTER_RULE_MAP"
 
 ### acl display header
 ACL_HEADER = ["RULE NAME", "TABLE NAME", "PRIO", "PACKETS COUNT", "BYTES COUNT"]
 
-# some constants for rule properties
-PACKETS_COUNTER = "packets counter"
-BYTES_COUNTER = "bytes counter"
+COUNTER_PACKETS_ATTR = "SAI_ACL_COUNTER_ATTR_PACKETS"
+COUNTER_BYTES_ATTR = "SAI_ACL_COUNTER_ATTR_BYTES"
+
 
 class AclStat(object):
     """
@@ -91,8 +93,13 @@ class AclStat(object):
         read redis database for acl counters
         """
 
-        def lowercase_keys(dictionary):
-            return dict((k.lower(), v) for k, v in dictionary.items()) if dictionary else None
+        def get_acl_rule_counter_map():
+            """
+            Return ACL_COUNTER_RULE_MAP
+            """
+            if self.db.exists(self.db.COUNTERS_DB, ACL_COUNTER_RULE_MAP):
+                return self.db.get_all(self.db.COUNTERS_DB, ACL_COUNTER_RULE_MAP)
+            return {}
 
         def fetch_acl_tables():
             """
@@ -124,8 +131,18 @@ class AclStat(object):
             """
             Get ACL counters from the DB
             """
+            counters_db_separator = self.db.get_db_separator(self.db.COUNTERS_DB)
+            rule_to_counter_map = get_acl_rule_counter_map()
             for table, rule in self.acl_rules:
-                cnt_props = lowercase_keys(self.db.get_all(self.db.COUNTERS_DB, "COUNTERS:%s:%s" % (table, rule)))
+                self.acl_counters[table, rule] = {}
+                rule_identifier = table + counters_db_separator + rule
+                if not rule_to_counter_map:
+                    continue
+                counter_oid = rule_to_counter_map.get(rule_identifier)
+                if not counter_oid:
+                    continue
+                counters_db_key = COUNTERS + counters_db_separator + counter_oid
+                cnt_props = self.db.get_all(self.db.COUNTERS_DB, counters_db_key)
                 self.acl_counters[table, rule] = cnt_props
 
             if verboseflag:
@@ -164,8 +181,8 @@ class AclStat(object):
         header = ACL_HEADER
         aclstat = []
         for rule_key in self.acl_rules:
-            if not display_all and (self.get_counter_value(rule_key, 'packets') == '0' or \
-                    self.get_counter_value(rule_key, 'packets') == 'N/A'):
+            if not display_all and (self.get_counter_value(rule_key, COUNTER_PACKETS_ATTR) == '0' or \
+                    self.get_counter_value(rule_key, COUNTER_PACKETS_ATTR) == 'N/A'):
                 continue
             rule = self.acl_rules[rule_key]
             rule_priority = -1
@@ -174,8 +191,8 @@ class AclStat(object):
                     rule_priority = val
             line = [rule_key[1], rule_key[0],
                     rule_priority,
-                    self.get_counter_value(rule_key, 'packets'),
-                    self.get_counter_value(rule_key, 'bytes')]
+                    self.get_counter_value(rule_key, COUNTER_PACKETS_ATTR),
+                    self.get_counter_value(rule_key, COUNTER_BYTES_ATTR)]
             aclstat.append(line)
 
         # sort the list with table name first and then descending priority
