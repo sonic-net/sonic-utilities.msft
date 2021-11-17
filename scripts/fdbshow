@@ -83,7 +83,7 @@ class FdbShow(object):
         if not self.if_br_oid_map:
             return
         
-        fdb_str = self.db.keys('ASIC_DB', "ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:*")
+        fdb_str = self.db.keys(self.db.ASIC_DB, "ASIC_STATE:SAI_OBJECT_TYPE_FDB_ENTRY:*")
         if not fdb_str:
             return
 
@@ -95,7 +95,10 @@ class FdbShow(object):
             if not fdb:
                 continue
 
-            ent = self.db.get_all('ASIC_DB', s, blocking=True)
+            ent = self.db.get_all(self.db.ASIC_DB, s)
+            if not ent:
+                continue
+
             br_port_id = ent["SAI_FDB_ENTRY_ATTR_BRIDGE_PORT_ID"][oid_pfx:]
             ent_type = ent["SAI_FDB_ENTRY_ATTR_TYPE"]
             fdb_type = ['Dynamic','Static'][ent_type == "SAI_FDB_ENTRY_TYPE_STATIC"]
