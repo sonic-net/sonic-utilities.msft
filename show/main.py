@@ -1701,8 +1701,7 @@ def ztp(status, verbose):
 
 # Load plugins and register them
 helper = util_base.UtilHelper()
-for plugin in helper.load_plugins(plugins):
-    helper.register_plugin(plugin, cli)
+helper.load_and_register_plugins(plugins, cli)
 
 if __name__ == '__main__':
     cli()

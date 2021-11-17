@@ -24,6 +24,7 @@ class UtilHelper(object):
 
         for _, module_name, ispkg in iter_namespace(plugins_namespace):
             if ispkg:
+                yield from self.load_plugins(importlib.import_module(module_name))
                 continue
             log.log_debug('importing plugin: {}'.format(module_name))
             try:
@@ -82,3 +83,9 @@ class UtilHelper(object):
             return True
         else:
             return False
+
+    def load_and_register_plugins(self, plugins, cli):
+        """ Load plugins and register them """
+
+        for plugin in self.load_plugins(plugins):
+            self.register_plugin(plugin, cli)
