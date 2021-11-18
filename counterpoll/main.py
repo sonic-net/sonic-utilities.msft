@@ -204,7 +204,7 @@ def watermark():
     """ Watermark counter commands """
 
 @watermark.command()
-@click.argument('poll_interval', type=click.IntRange(1000, 30000))
+@click.argument('poll_interval', type=click.IntRange(1000, 60000))
 def interval(poll_interval):
     """ Set watermark counter query interval for both queue and PG watermarks """
     configdb = ConfigDBConnector()
