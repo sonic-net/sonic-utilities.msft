@@ -52,7 +52,17 @@ class PatchApplier:
         self.logger.log_notice("Simulating the target full config after applying the patch.")
         target_config = self.patch_wrapper.simulate_patch(patch, old_config)
 
-        # Validate target config
+        # Validate target config does not have empty tables since they do not show up in ConfigDb
+        self.logger.log_notice("Validating target config does not have empty tables, " \
+                               "since they do not show up in ConfigDb.")
+        empty_tables = self.config_wrapper.get_empty_tables(target_config)
+        if empty_tables: # if there are empty tables
+            empty_tables_txt = ", ".join(empty_tables)
+            raise ValueError("Given patch is not valid because it will result in empty tables " \
+                             "which is not allowed in ConfigDb. " \
+                            f"Table{'s' if len(empty_tables) != 1 else ''}: {empty_tables_txt}")
+
+        # Validate target config according to YANG models
         self.logger.log_notice("Validating target config according to YANG models.")
         if not(self.config_wrapper.validate_config_db_config(target_config)):
             raise ValueError(f"Given patch is not valid because it will result in an invalid config")

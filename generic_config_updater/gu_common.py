@@ -133,6 +133,14 @@ class ConfigWrapper:
         sy._cropConfigDB()
 
         return sy.jIn
+    
+    def get_empty_tables(self, config):
+        empty_tables = []
+        for key in config.keys():
+            if not(config[key]):
+                empty_tables.append(key)
+        return empty_tables
+        
 
 class DryRunConfigWrapper(ConfigWrapper):
     # TODO: implement DryRunConfigWrapper

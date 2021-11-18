@@ -573,6 +573,35 @@ class NoDependencyMoveValidator:
             refs.extend(self.path_addressing.find_ref_paths(path, config))
         return refs
 
+class NoEmptyTableMoveValidator:
+    """
+    A class to validate that a move will not result in an empty table, because empty table do not show up in ConfigDB.
+    """
+    def __init__(self, path_addressing):
+        self.path_addressing = path_addressing
+
+    def validate(self, move, diff):
+        simulated_config = move.apply(diff.current_config)
+        op_path = move.path
+
+        if op_path == "": # If updating whole file
+            tables_to_check = simulated_config.keys()
+        else:
+            tokens = self.path_addressing.get_path_tokens(op_path)
+            tables_to_check = [tokens[0]]
+
+        return self._validate_tables(tables_to_check, simulated_config)
+
+    def _validate_tables(self, tables, config):
+        for table in tables:
+            if not(self._validate_table(table, config)):
+                return False
+        return True
+
+    def _validate_table(self, table, config):
+        # the only invalid case is if table exists and is empty
+        return table not in config or config[table]
+
 class LowLevelMoveGenerator:
     """
     A class to generate the low level moves i.e. moves corresponding to differences between current/target config
@@ -969,7 +998,8 @@ class SortAlgorithmFactory:
                            FullConfigMoveValidator(self.config_wrapper),
                            NoDependencyMoveValidator(self.path_addressing, self.config_wrapper),
                            UniqueLanesMoveValidator(),
-                           CreateOnlyMoveValidator(self.path_addressing) ]
+                           CreateOnlyMoveValidator(self.path_addressing),
+                           NoEmptyTableMoveValidator(self.path_addressing)]
 
         move_wrapper = MoveWrapper(move_generators, move_extenders, move_validators)
 

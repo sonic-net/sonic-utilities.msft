@@ -19,6 +19,13 @@ class TestPatchApplier(unittest.TestCase):
         # Act and assert
         self.assertRaises(ValueError, patch_applier.apply, Files.MULTI_OPERATION_CONFIG_DB_PATCH)
 
+    def test_apply__invalid_patch_producing_empty_tables__failure(self):
+        # Arrange
+        patch_applier = self.__create_patch_applier(valid_patch_does_not_produce_empty_tables=False)
+
+        # Act and assert
+        self.assertRaises(ValueError, patch_applier.apply, Files.MULTI_OPERATION_CONFIG_DB_PATCH)
+
     def test_apply__invalid_config_db__failure(self):
         # Arrange
         patch_applier = self.__create_patch_applier(valid_config_db=False)
@@ -58,12 +65,16 @@ class TestPatchApplier(unittest.TestCase):
                                changes=None,
                                valid_patch_only_tables_with_yang_models=True,
                                valid_config_db=True,
+                               valid_patch_does_not_produce_empty_tables=True,
                                verified_same_config=True):
         config_wrapper = Mock()
         config_wrapper.get_config_db_as_json.side_effect = \
             [Files.CONFIG_DB_AS_JSON, Files.CONFIG_DB_AFTER_MULTI_PATCH]
         config_wrapper.validate_config_db_config.side_effect = \
             create_side_effect_dict({(str(Files.CONFIG_DB_AFTER_MULTI_PATCH),): valid_config_db})
+        empty_tables = [] if valid_patch_does_not_produce_empty_tables else ["AnyTable"]
+        config_wrapper.get_empty_tables.side_effect = \
+            create_side_effect_dict({(str(Files.CONFIG_DB_AFTER_MULTI_PATCH),): empty_tables})
 
         patch_wrapper = Mock()
         patch_wrapper.validate_config_db_patch_has_yang_models.side_effect = \

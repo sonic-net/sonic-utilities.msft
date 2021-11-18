@@ -1008,6 +1008,121 @@ class TestNoDependencyMoveValidator(unittest.TestCase):
     def prepare_config(self, config, patch):
         return patch.apply(config)
 
+class TestNoEmptyTableMoveValidator(unittest.TestCase):
+    def setUp(self):
+        path_addressing = ps.PathAddressing()
+        self.validator = ps.NoEmptyTableMoveValidator(path_addressing)
+
+    def test_validate__no_changes__success(self):
+        # Arrange
+        current_config = {"some_table":{"key1":"value1", "key2":"value2"}}
+        target_config = {"some_table":{"key1":"value1", "key2":"value22"}}
+        diff = ps.Diff(current_config, target_config)
+        move = ps.JsonMove(diff, OperationType.REPLACE, ["some_table", "key1"], ["some_table", "key1"])
+
+        # Act and assert
+        self.assertTrue(self.validator.validate(move, diff))
+
+    def test_validate__change_but_no_empty_table__success(self):
+        # Arrange
+        current_config = {"some_table":{"key1":"value1", "key2":"value2"}}
+        target_config = {"some_table":{"key1":"value1", "key2":"value22"}}
+        diff = ps.Diff(current_config, target_config)
+        move = ps.JsonMove(diff, OperationType.REPLACE, ["some_table", "key2"], ["some_table", "key2"])
+
+        # Act and assert
+        self.assertTrue(self.validator.validate(move, diff))
+
+    def test_validate__single_empty_table__failure(self):
+        # Arrange
+        current_config = {"some_table":{"key1":"value1", "key2":"value2"}}
+        target_config = {"some_table":{}}
+        diff = ps.Diff(current_config, target_config)
+        move = ps.JsonMove(diff, OperationType.REPLACE, ["some_table"], ["some_table"])
+
+        # Act and assert
+        self.assertFalse(self.validator.validate(move, diff))
+
+    def test_validate__whole_config_replace_single_empty_table__failure(self):
+        # Arrange
+        current_config = {"some_table":{"key1":"value1", "key2":"value2"}}
+        target_config = {"some_table":{}}
+        diff = ps.Diff(current_config, target_config)
+        move = ps.JsonMove(diff, OperationType.REPLACE, [], [])
+
+        # Act and assert
+        self.assertFalse(self.validator.validate(move, diff))
+
+    def test_validate__whole_config_replace_mix_of_empty_and_non_empty__failure(self):
+        # Arrange
+        current_config = {"some_table":{"key1":"value1"}, "other_table":{"key2":"value2"}}
+        target_config = {"some_table":{"key1":"value1"}, "other_table":{}}
+        diff = ps.Diff(current_config, target_config)
+        move = ps.JsonMove(diff, OperationType.REPLACE, [], [])
+
+        # Act and assert
+        self.assertFalse(self.validator.validate(move, diff))
+
+    def test_validate__whole_config_multiple_empty_tables__failure(self):
+        # Arrange
+        current_config = {"some_table":{"key1":"value1"}, "other_table":{"key2":"value2"}}
+        target_config = {"some_table":{}, "other_table":{}}
+        diff = ps.Diff(current_config, target_config)
+        move = ps.JsonMove(diff, OperationType.REPLACE, [], [])
+
+        # Act and assert
+        self.assertFalse(self.validator.validate(move, diff))
+
+    def test_validate__remove_key_empties_a_table__failure(self):
+        # Arrange
+        current_config = {"some_table":{"key1":"value1"}, "other_table":{"key2":"value2"}}
+        target_config = {"some_table":{"key1":"value1"}, "other_table":{}}
+        diff = ps.Diff(current_config, target_config)
+        move = ps.JsonMove(diff, OperationType.REMOVE, ["other_table", "key2"], [])
+
+        # Act and assert
+        self.assertFalse(self.validator.validate(move, diff))
+
+    def test_validate__remove_key_but_table_has_other_keys__success(self):
+        # Arrange
+        current_config = {"some_table":{"key1":"value1"}, "other_table":{"key2":"value2", "key3":"value3"}}
+        target_config = {"some_table":{"key1":"value1"}, "other_table":{"key3":"value3"}}
+        diff = ps.Diff(current_config, target_config)
+        move = ps.JsonMove(diff, OperationType.REMOVE, ["other_table", "key2"], [])
+
+        # Act and assert
+        self.assertTrue(self.validator.validate(move, diff))
+
+    def test_validate__remove_whole_table__success(self):
+        # Arrange
+        current_config = {"some_table":{"key1":"value1"}, "other_table":{"key2":"value2"}}
+        target_config = {"some_table":{"key1":"value1"}}
+        diff = ps.Diff(current_config, target_config)
+        move = ps.JsonMove(diff, OperationType.REMOVE, ["other_table"], [])
+
+        # Act and assert
+        self.assertTrue(self.validator.validate(move, diff))
+
+    def test_validate__add_empty_table__failure(self):
+        # Arrange
+        current_config = {"some_table":{"key1":"value1"}, "other_table":{"key2":"value2"}}
+        target_config = {"new_table":{}}
+        diff = ps.Diff(current_config, target_config)
+        move = ps.JsonMove(diff, OperationType.ADD, ["new_table"], ["new_table"])
+
+        # Act and assert
+        self.assertFalse(self.validator.validate(move, diff))
+
+    def test_validate__add_non_empty_table__success(self):
+        # Arrange
+        current_config = {"some_table":{"key1":"value1"}, "other_table":{"key2":"value2"}}
+        target_config = {"new_table":{"key3":"value3"}}
+        diff = ps.Diff(current_config, target_config)
+        move = ps.JsonMove(diff, OperationType.ADD, ["new_table"], ["new_table"])
+
+        # Act and assert
+        self.assertTrue(self.validator.validate(move, diff))
+
 class TestLowLevelMoveGenerator(unittest.TestCase):
     def setUp(self):
         path_addressing = PathAddressing()
@@ -1566,7 +1681,8 @@ class TestSortAlgorithmFactory(unittest.TestCase):
                               ps.FullConfigMoveValidator,
                               ps.NoDependencyMoveValidator,
                               ps.UniqueLanesMoveValidator,
-                              ps.CreateOnlyMoveValidator]
+                              ps.CreateOnlyMoveValidator,
+                              ps.NoEmptyTableMoveValidator]
 
         # Act
         sorter = factory.create(algo)
@@ -1712,13 +1828,34 @@ class TestPatchSorter(unittest.TestCase):
                             {"op":"replace", "path":"/CRM/Config/acl_counter_low_threshold", "value":"60"}],
                     cc_ops=[{"op":"replace", "path":"", "value":Files.CONFIG_DB_WITH_CRM}])
 
+    def test_sort__modify_items_result_in_empty_table__failure(self):
+        # Emptying a table
+        self.assertRaises(GenericConfigUpdaterError,
+                          self.verify,
+                          cc_ops=[{"op":"replace", "path":"", "value":Files.SIMPLE_CONFIG_DB_INC_DEPS}],
+                          tc_ops=[{"op":"replace", "path":"", "value":Files.SIMPLE_CONFIG_DB_INC_DEPS},
+                                  {"op":"replace", "path":"/ACL_TABLE", "value":{}}])
+        # Adding an empty table
+        self.assertRaises(GenericConfigUpdaterError,
+                          self.verify,
+                          cc_ops=[{"op":"replace", "path":"", "value":Files.ANY_CONFIG_DB}],
+                          tc_ops=[{"op":"replace", "path":"", "value":Files.ANY_CONFIG_DB},
+                                  {"op":"add", "path":"/VLAN", "value":{}}])
+        # Emptying multiple tables
+        self.assertRaises(GenericConfigUpdaterError,
+                          self.verify,
+                          cc_ops=[{"op":"replace", "path":"", "value":Files.SIMPLE_CONFIG_DB_INC_DEPS}],
+                          tc_ops=[{"op":"replace", "path":"", "value":Files.SIMPLE_CONFIG_DB_INC_DEPS},
+                                  {"op":"replace", "path":"/ACL_TABLE", "value":{}},
+                                  {"op":"replace", "path":"/PORT", "value":{}}])
+
     def verify(self, cc_ops=[], tc_ops=[]):
         # Arrange
         config_wrapper=ConfigWrapper()
         target_config=jsonpatch.JsonPatch(tc_ops).apply(Files.CROPPED_CONFIG_DB_AS_JSON)
         current_config=jsonpatch.JsonPatch(cc_ops).apply(Files.CROPPED_CONFIG_DB_AS_JSON)
         patch=jsonpatch.make_patch(current_config, target_config)
-        
+
         # Act
         actual = self.create_patch_sorter(current_config).sort(patch)
 
