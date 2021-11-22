@@ -1,5 +1,6 @@
 import json
 import fnmatch
+import copy
 from abc import ABC, abstractmethod
 from dump.helper import verbose_print
 from swsscommon.swsscommon import SonicV2Connector, SonicDBConfig
@@ -344,3 +345,85 @@ class MatchEngine:
         if not filtered_keys:
             return self.__display_error(EXCEP_DICT["NO_ENTRIES"])
         return self.__fill_template(src, req, filtered_keys, template)
+
+
+class MatchRequestOptimizer():
+    """
+    A Stateful Wrapper which reduces the number of calls to redis by caching the keys
+    The Cache saves all the fv-pairs for a key
+    Caching would only happen when the "key_pattern" is an absolute key and is not a glob-style pattern
+    """
+
+    def __init__(self, m_engine):
+        self.__key_cache = {}
+        self.m_engine = m_engine
+
+    def __mutate_request(self, req):
+        """
+        Mutate the Request to fetch all the fv pairs, regardless of the orignal request
+        Save the return_fields and just_keys args of original request
+        """
+        fv_requested = []
+        ret_just_keys = req.just_keys
+        fv_requested = copy.deepcopy(req.return_fields)
+        if ret_just_keys:
+            req.just_keys = False
+            req.return_fields = []
+        return req, fv_requested, ret_just_keys
+
+    def __mutate_response(self, ret, fv_requested, ret_just_keys):
+        """
+        Mutate the Response based on what was originally asked.
+        """
+        if not ret_just_keys:
+            return ret
+        new_ret = {"error": "", "keys": [], "return_values": {}}
+        for key_fv in ret["keys"]:
+            if isinstance(key_fv, dict):
+                keys = key_fv.keys()
+                new_ret["keys"].extend(keys)
+                for key in keys:
+                    new_ret["return_values"][key] = {}
+                    for field in fv_requested:
+                        new_ret["return_values"][key][field] = key_fv[key][field]
+        return new_ret
+
+    def __fill_cache(self, ret):
+        """
+        Fill the cache with all the fv-pairs
+        """
+        for key_fv in ret["keys"]:
+            keys = key_fv.keys()
+            for key in keys:
+                self.__key_cache[key] = key_fv[key]
+
+    def __fetch_from_cache(self, key, req):
+        """
+        Cache will have all the fv-pairs of the requested key
+        Response will be tailored based on what was asked
+        """
+        new_ret = {"error": "", "keys": [], "return_values": {}}
+        if not req.just_keys:
+            new_ret["keys"].append(self.__key_cache[key])
+        else:
+            new_ret["keys"].append(key)
+            if req.return_fields:
+                new_ret["return_values"][key] = {}
+                for field in req.return_fields:
+                    new_ret["return_values"][key][field] = self.__key_cache[key][field]
+        return new_ret
+
+    def fetch(self, req_orig):
+        req = copy.deepcopy(req_orig)
+        key = req.table + ":" + req.key_pattern
+        if key in self.__key_cache:
+            verbose_print("Cache Hit for Key: {}".format(key))
+            return self.__fetch_from_cache(key, req)
+        else:
+            verbose_print("Cache Miss for Key: {}".format(key))
+            req, fv_requested, ret_just_keys = self.__mutate_request(req)
+            ret = self.m_engine.fetch(req)
+            if ret["error"]:
+                return ret
+            self.__fill_cache(ret)
+            return self.__mutate_response(ret, fv_requested, ret_just_keys)
