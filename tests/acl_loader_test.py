@@ -35,7 +35,7 @@ class TestAclLoader(object):
             "mirror_egress_action": "everflow0"
         }
 
-        # switch capability taken from mock_tables/state_db.json SWITCH_CAPABILITY table
+        # switch capability taken from mock_tables/state_db.json ACL_STAGE_CAPABILITY_TABLE table
         assert acl_loader.validate_actions("EVERFLOW", ingress_mirror_rule_props)
         assert not acl_loader.validate_actions("EVERFLOW", egress_mirror_rule_props)
 
@@ -50,7 +50,7 @@ class TestAclLoader(object):
             "PACKET_ACTION": "DROP"
         }
 
-        # switch capability taken from mock_tables/state_db.json SWITCH_CAPABILITY table
+        # switch capability taken from mock_tables/state_db.json ACL_STAGE_CAPABILITY_TABLE table
         assert acl_loader.validate_actions("DATAACL", forward_packet_action)
         assert not acl_loader.validate_actions("DATAACL", drop_packet_action)
 

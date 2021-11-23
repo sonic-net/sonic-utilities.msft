@@ -78,7 +78,8 @@ class AclLoader(object):
     POLICER = "POLICER"
     SESSION_PREFIX = "everflow"
     SWITCH_CAPABILITY_TABLE = "SWITCH_CAPABILITY"
-    ACL_ACTIONS_CAPABILITY_FIELD = "ACL_ACTIONS"
+    ACL_STAGE_CAPABILITY_TABLE = "ACL_STAGE_CAPABILITY_TABLE"
+    ACL_ACTIONS_CAPABILITY_FIELD = "action_list"
     ACL_ACTION_CAPABILITY_FIELD = "ACL_ACTION"
 
     min_priority = 1
@@ -402,16 +403,18 @@ class AclLoader(object):
             # Same information should be there in all state DB's
             # as it is static information about switch capability
             namespace_statedb = list(self.per_npu_statedb.values())[0]
-            capability = namespace_statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
+            aclcapability = namespace_statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(self.ACL_STAGE_CAPABILITY_TABLE, stage.upper()))
+            switchcapability = namespace_statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
         else:
-            capability = self.statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
+            aclcapability = self.statedb.get_all(self.statedb.STATE_DB, "{}|{}".format(self.ACL_STAGE_CAPABILITY_TABLE, stage.upper()))
+            switchcapability = self.statedb.get_all(self.statedb.STATE_DB, "{}|switch".format(self.SWITCH_CAPABILITY_TABLE))
         for action_key in dict(action_props):
-            key = "{}|{}".format(self.ACL_ACTIONS_CAPABILITY_FIELD, stage.upper())
-            if key not in capability:
+            action_list_key = self.ACL_ACTIONS_CAPABILITY_FIELD
+            if action_list_key not in aclcapability:
                 del action_props[action_key]
                 continue
 
-            values = capability[key].split(",")
+            values = aclcapability[action_list_key].split(",")
             if action_key.upper() not in values:
                 del action_props[action_key]
                 continue
@@ -420,11 +423,11 @@ class AclLoader(object):
                 # Check if action_value is supported
                 action_value = action_props[action_key]
                 key = "{}|{}".format(self.ACL_ACTION_CAPABILITY_FIELD, action_key.upper())
-                if key not in capability:
+                if key not in switchcapability:
                     del action_props[action_key]
                     continue
 
-                if action_value not in capability[key]:
+                if action_value not in switchcapability[key]:
                     del action_props[action_key]
                     continue
 

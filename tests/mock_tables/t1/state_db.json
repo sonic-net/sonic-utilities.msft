@@ -6114,17 +6114,31 @@
   }, 
   "SWITCH_CAPABILITY|switch": {
     "expireat": 1602454497.423883, 
-    "ttl": -0.001, 
-    "type": "hash", 
+    "ttl": -0.001,
+    "type": "hash",
     "value": {
-      "ACL_ACTIONS|EGRESS": "PACKET_ACTION", 
-      "ACL_ACTIONS|INGRESS": "PACKET_ACTION,MIRROR_INGRESS_ACTION", 
-      "ACL_ACTION|PACKET_ACTION": "DROP,FORWARD", 
-      "MAX_NEXTHOP_GROUP_COUNT": "512", 
-      "MIRROR": "true", 
-      "MIRRORV6": "true"
+      "MAX_NEXTHOP_GROUP_COUNT": "512",
+      "MIRROR": "true",
+      "MIRRORV6": "true",
+      "PACKET_ACTION": "DROP,FORWARD"
     }
   }, 
+  "ACL_STAGE_CAPABILITY_TABLE|EGRESS": {
+    "expireat": 1602454497.423883,
+    "ttl": -0.001,
+    "type": "hash",
+    "value": {
+      "action_list": "PACKET_ACTION,MIRROR_INGRESS_ACTION"
+    }
+  },
+  "ACL_STAGE_CAPABILITY_TABLE|INGRESS": {
+    "expireat": 1602454497.423883,
+    "ttl": -0.001,
+    "type": "hash",
+    "value": {
+      "action_list": "PACKET_ACTION"
+    }
+  },
   "TRANSCEIVER_DOM_SENSOR|Ethernet0": {
     "expireat": 1602454497.4302251, 
     "ttl": -0.001, 
