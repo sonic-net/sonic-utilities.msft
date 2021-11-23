@@ -4855,9 +4855,11 @@ When user specifies the optional argument "-n" or "--no-service-restart", this c
 running on the device. One use case for this option is during boot time when config-setup service loads existing old configuration and there is no services
 running on the device.
 
+When user specifies the optional argument "-f" or "--force", this command ignores the system sanity checks. By default a list of sanity checks are performed and if one of the checks fail, the command will not execute. The sanity checks include ensuring the system status is not starting, all the essential services are up and swss is in ready state.
+
 - Usage:
   ```
-  config reload [-y|--yes] [-l|--load-sysinfo] [<filename>] [-n|--no-service-restart]
+  config reload [-y|--yes] [-l|--load-sysinfo] [<filename>] [-n|--no-service-restart] [-f|--force]
   ```
 
 - Example:
@@ -4878,6 +4880,19 @@ running on the device.
   Running command: systemctl restart hostname-config
   Running command: systemctl restart interfaces-config
   Timeout, server 10.11.162.42 not responding.
+  ```
+  When some sanity checks fail below error messages can be seen
+  ```
+  admin@sonic:~$ sudo config reload -y
+  System is not up. Retry later or use -f to avoid system checks
+  ```
+  ```
+  admin@sonic:~$ sudo config reload -y
+  Relevant services are not up. Retry later or use -f to avoid system checks
+  ```
+  ```
+  admin@sonic:~$ sudo config reload -y
+  SwSS container is not ready. Retry later or use -f to avoid system checks
   ```
 
 
