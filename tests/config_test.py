@@ -21,8 +21,8 @@ import config.main as config
 load_minigraph_command_output="""\
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen -H -m --write-to-db
-Running command: pfcwd start_default
 Running command: config qos reload --no-dynamic-buffer
+Running command: pfcwd start_default
 Restarting SONiC target ...
 Reloading Monit configuration ...
 Please note setting loaded from minigraph will be lost after system reboot. To preserve setting, run `config save`.
