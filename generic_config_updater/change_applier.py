@@ -9,29 +9,27 @@ from swsscommon.swsscommon import ConfigDBConnector
 from .gu_common import genericUpdaterLogging
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-UPDATER_CONF_FILE = f"{SCRIPT_DIR}/generic_updater_config.conf.json"
+UPDATER_CONF_FILE = f"{SCRIPT_DIR}/generic_config_updater.conf.json"
 logger = genericUpdaterLogging.get_logger(title="Change Applier")
 
 print_to_console = False
-print_to_stdout = False
 
-def set_print_options(to_console=False, to_stdout=False):
-    global print_to_console, print_to_stdout
+def set_verbose(verbose=False):
+    global print_to_console, logger
 
-    print_to_console = to_console
-    print_to_stdout = to_stdout
+    print_to_console = verbose
+    if verbose:
+        logger.set_min_log_priority_debug()
+    else:
+        logger.set_min_log_priority_notice()
 
 
 def log_debug(m):
-    logger.log_debug(m, print_to_console)
-    if print_to_stdout:
-        print(m)
+    logger.log(logger.LOG_PRIORITY_DEBUG, m, print_to_console)
 
 
 def log_error(m):
-    logger.log_error(m, print_to_console)
-    if print_to_stdout:
-        print(m)
+    logger.log(logger.LOG_PRIORITY_ERROR, m, print_to_console)
 
 
 def get_config_db():
