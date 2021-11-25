@@ -28,6 +28,8 @@
 * [ARP & NDP](#arp--ndp)
   * [ARP show commands](#arp-show-commands)
   * [NDP show commands](#ndp-show-commands)
+* [BFD](#bfd)
+  * [BFD show commands](#bfd-show-commands)
 * [BGP](#bgp)
   * [BGP show commands](#bgp-show-commands)
   * [BGP config commands](#bgp-config-commands)
@@ -1546,6 +1548,45 @@ This command displays either all the IPv6 neighbor mac addresses, or for a parti
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#arp--ndp)
 
+## BFD
+
+### BFD show commands
+
+**show bfd summary**
+
+This command displays the state and key parameters of all BFD sessions.
+
+- Usage:
+  ```
+  show bgp summary
+  ```
+- Example:
+  ```
+  >> show bfd summary
+  Total number of BFD sessions: 3
+  Peer Addr    Interface    Vrf      State    Type          Local Addr      TX Interval    RX Interval    Multiplier  Multihop
+  -----------  -----------  -------  -------  ------------  ------------  -------------  -------------  ------------  ----------
+  10.0.1.1     default      default  DOWN     async_active  10.0.0.1                300            500             3  true
+  10.0.2.1     Ethernet12   default  UP       async_active  10.0.0.1                200            600             3  false
+  2000::10:1   default      default  UP       async_active  2000::1                 100            700             3  false
+  ```
+
+**show bfd peer**
+
+This command displays the state and key parameters of all BFD sessions that match an IP address.
+
+- Usage:
+  ```
+  show bgp peer <peer-ip>
+  ```
+- Example:
+  ```
+  >> show bfd peer 10.0.1.1
+  Total number of BFD sessions for peer IP 10.0.1.1: 1
+  Peer Addr    Interface    Vrf      State    Type          Local Addr      TX Interval    RX Interval    Multiplier  Multihop
+  -----------  -----------  -------  -------  ------------  ------------  -------------  -------------  ------------  ----------
+  10.0.1.1     default      default  DOWN     async_active  10.0.0.1                300            500             3  true
+  ```
 
 ## BGP
 

@@ -1701,6 +1701,67 @@ def ztp(status, verbose):
        cmd = cmd + " --verbose"
     run_command(cmd, display_cmd=verbose)
 
+
+#
+# 'bfd' group ("show bfd ...")
+#
+@cli.group(cls=clicommon.AliasedGroup)
+def bfd():
+    """Show details of the bfd sessions"""
+    pass
+
+# 'summary' subcommand ("show bfd summary")
+@bfd.command()
+@clicommon.pass_db
+def summary(db):
+    """Show bfd session information"""
+    bfd_headers = ["Peer Addr", "Interface", "Vrf", "State", "Type", "Local Addr",
+                "TX Interval", "RX Interval", "Multiplier", "Multihop"]
+
+    bfd_keys = db.db.keys(db.db.STATE_DB, "BFD_SESSION_TABLE|*")
+
+    click.echo("Total number of BFD sessions: {}".format(0 if bfd_keys is None else len(bfd_keys)))
+
+    bfd_body = []
+    if bfd_keys is not None:
+        for key in bfd_keys:
+            key_values = key.split('|')
+            values = db.db.get_all(db.db.STATE_DB, key)
+            bfd_body.append([key_values[3], key_values[2], key_values[1], values["state"], values["type"], values["local_addr"],
+                                values["tx_interval"], values["rx_interval"], values["multiplier"], values["multihop"]])
+
+    click.echo(tabulate(bfd_body, bfd_headers))
+
+
+# 'peer' subcommand ("show bfd peer ...")
+@bfd.command()
+@clicommon.pass_db
+@click.argument('peer_ip', required=True)
+def peer(db, peer_ip):
+    """Show bfd session information for BFD peer"""
+    bfd_headers = ["Peer Addr", "Interface", "Vrf", "State", "Type", "Local Addr",
+                "TX Interval", "RX Interval", "Multiplier", "Multihop"]
+
+    bfd_keys = db.db.keys(db.db.STATE_DB, "BFD_SESSION_TABLE|*|{}".format(peer_ip))
+    delimiter = db.db.get_db_separator(db.db.STATE_DB)
+
+    if bfd_keys is None or len(bfd_keys) == 0:
+        click.echo("No BFD sessions found for peer IP {}".format(peer_ip))
+        return
+
+    click.echo("Total number of BFD sessions for peer IP {}: {}".format(peer_ip, len(bfd_keys)))
+
+    bfd_body = []
+    if bfd_keys is not None:
+        for key in bfd_keys:
+            key_values = key.split(delimiter)
+            values = db.db.get_all(db.db.STATE_DB, key)
+            bfd_body.append([key_values[3], key_values[2], key_values[1], values.get("state"), values.get("type"), values.get("local_addr"),
+                                values.get("tx_interval"), values.get("rx_interval"), values.get("multiplier"), values.get("multihop")])
+
+    click.echo(tabulate(bfd_body, bfd_headers))
+
+
 # Load plugins and register them
 helper = util_base.UtilHelper()
 helper.load_and_register_plugins(plugins, cli)
