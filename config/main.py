@@ -5948,7 +5948,7 @@ def rate():
 
 @rate.command()
 @click.argument('interval', metavar='<interval>', type=click.IntRange(min=1, max=1000), required=True)
-@click.argument('rates_type', type=click.Choice(['all', 'port', 'rif']), default='all')
+@click.argument('rates_type', type=click.Choice(['all', 'port', 'rif', 'flowcnt-trap']), default='all')
 def smoothing_interval(interval, rates_type):
     """Set rates smoothing interval """
     counters_db = swsssdk.SonicV2Connector()
@@ -5962,6 +5962,9 @@ def smoothing_interval(interval, rates_type):
     if rates_type in ['rif', 'all']:
         counters_db.set('COUNTERS_DB', 'RATES:RIF', 'RIF_SMOOTH_INTERVAL', interval)
         counters_db.set('COUNTERS_DB', 'RATES:RIF', 'RIF_ALPHA', alpha)
+    if rates_type in ['flowcnt-trap', 'all']:
+        counters_db.set('COUNTERS_DB', 'RATES:TRAP', 'TRAP_SMOOTH_INTERVAL', interval)
+        counters_db.set('COUNTERS_DB', 'RATES:TRAP', 'TRAP_ALPHA', alpha)
 
 
 # Load plugins and register them

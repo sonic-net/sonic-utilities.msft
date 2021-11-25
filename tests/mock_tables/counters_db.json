@@ -2030,5 +2030,15 @@
         "crm_stats_acl_entry_used":"0",
         "crm_stats_acl_counter_available":"1280",
         "crm_stats_acl_entry_available":"1024"
+    },
+    "COUNTERS_TRAP_NAME_MAP":{
+        "dhcp": "oid:0x1500000000034e"
+    },
+    "COUNTERS:oid:0x1500000000034e":{
+        "SAI_COUNTER_STAT_PACKETS": 100,
+        "SAI_COUNTER_STAT_BYTES": 2000
+    },
+    "RATES:oid:0x1500000000034e":{
+        "RX_PPS": 50.25
     }
 }

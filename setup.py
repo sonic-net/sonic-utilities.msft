@@ -101,6 +101,7 @@ setup(
         'scripts/fast-reboot-dump.py',
         'scripts/fdbclear',
         'scripts/fdbshow',
+        'scripts/flow_counters_stat',
         'scripts/gearboxutil',
         'scripts/generate_dump',
         'scripts/generate_shutdown_order.py',

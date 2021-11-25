@@ -3,7 +3,6 @@ import json
 import os
 import pytest
 import sys
-import time
 from click.testing import CliRunner
 from shutil import copyfile
 from utilities_common.db import Db
@@ -27,6 +26,7 @@ QUEUE_WATERMARK_STAT               10000  enable
 PG_WATERMARK_STAT                  10000  enable
 PG_DROP_STAT                       10000  enable
 ACL                                10000  enable
+FLOW_CNT_TRAP_STAT                 10000  enable
 """
 
 class TestCounterpoll(object):
@@ -142,6 +142,42 @@ class TestCounterpoll(object):
 
         table = db.cfgdb.get_table("FLEX_COUNTER_TABLE")
         assert test_interval == table["ACL"]["POLL_INTERVAL"]
+
+    @pytest.mark.parametrize("status", ["disable", "enable"])
+    def test_update_trap_counter_status(self, status):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(counterpoll.cli.commands["flowcnt-trap"].commands[status], [], obj=db.cfgdb)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+
+        table = db.cfgdb.get_table('FLEX_COUNTER_TABLE')
+        assert status == table["FLOW_CNT_TRAP"]["FLEX_COUNTER_STATUS"]
+
+    def test_update_trap_counter_interval(self):
+        runner = CliRunner()
+        db = Db()
+        test_interval = "20000"
+
+        result = runner.invoke(counterpoll.cli.commands["flowcnt-trap"].commands["interval"], [test_interval], obj=db.cfgdb)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+
+        table = db.cfgdb.get_table('FLEX_COUNTER_TABLE')
+        assert test_interval == table["FLOW_CNT_TRAP"]["POLL_INTERVAL"]
+
+        test_interval = "500"
+        result = runner.invoke(counterpoll.cli.commands["flowcnt-trap"].commands["interval"], [test_interval], obj=db.cfgdb)
+        expected = "Invalid value for \"POLL_INTERVAL\": 500 is not in the valid range of 1000 to 30000."
+        assert result.exit_code == 2
+        assert expected in result.output
+
+        test_interval = "40000"
+        result = runner.invoke(counterpoll.cli.commands["flowcnt-trap"].commands["interval"], [test_interval], obj=db.cfgdb)
+        expected = "Invalid value for \"POLL_INTERVAL\": 40000 is not in the valid range of 1000 to 30000."
+        assert result.exit_code == 2
+        assert expected in result.output
 
     @classmethod
     def teardown_class(cls):

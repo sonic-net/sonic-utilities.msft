@@ -40,6 +40,7 @@ from . import chassis_modules
 from . import dropcounters
 from . import feature
 from . import fgnhg
+from . import flow_counters
 from . import gearbox
 from . import interfaces
 from . import kdump
@@ -178,6 +179,7 @@ cli.add_command(chassis_modules.chassis)
 cli.add_command(dropcounters.dropcounters)
 cli.add_command(feature.feature)
 cli.add_command(fgnhg.fgnhg)
+cli.add_command(flow_counters.flowcnt_trap)
 cli.add_command(kdump.kdump)
 cli.add_command(interfaces.interfaces)
 cli.add_command(kdump.kdump)
