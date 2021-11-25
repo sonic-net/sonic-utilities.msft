@@ -25,6 +25,8 @@ LOG_SSD_HEALTH="/usr/local/bin/log_ssd_health"
 PLATFORM_FWUTIL_AU_REBOOT_HANDLE="platform_fw_au_reboot_handle"
 SSD_FW_UPDATE="ssd-fw-upgrade"
 TAG_LATEST=yes
+DETACH=no
+LOG_PATH="/var/log/${REBOOT_TYPE}.txt"
 
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
@@ -73,13 +75,14 @@ function showHelpAndExit()
     echo "    -s    : strict mode: do not proceed without:"
     echo "            - control plane assistant IP list."
     echo "    -t    : Don't tag the current kube images as latest"
+    echo "    -D    : detached mode - closing terminal will not cause stopping reboot"
 
     exit "${EXIT_SUCCESS}"
 }
 
 function parseOptions()
 {
-    while getopts "vfidh?rkxc:s" opt; do
+    while getopts "vfidh?rkxc:sD" opt; do #TODO "t" is missing
         case ${opt} in
             h|\? )
                 showHelpAndExit
@@ -113,6 +116,9 @@ function parseOptions()
                 ;;
             t )
                 TAG_LATEST=no
+                ;;
+            D )
+                DETACH=yes
                 ;;
         esac
     done
@@ -487,7 +493,17 @@ then
     exit "${EXIT_FAILURE}"
 fi
 
+
+# re-run the script in background mode with detaching from the terminal session
+if [[ x"${DETACH}" == x"yes" && x"${ALREADY_DETACHED}" == x"" ]]; then
+   echo "Detaching the process from the terminal session. Redirecting output to ${LOG_PATH}."
+   ALREADY_DETACHED=yes $0 "$@" &>$LOG_PATH & disown %%
+   exit $?
+fi
+
+
 check_conflict_boot_in_fw_update
+
 
 sonic_asic_type=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 

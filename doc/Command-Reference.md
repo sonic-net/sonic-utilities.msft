@@ -8944,7 +8944,7 @@ This command requires root privilege.
 
 - Usage:
   ```
-  warm-reboot [-h|-?|-v|-f|-r|-k|-x|-c <control plane assistant IP list>|-s]
+  warm-reboot [-h|-?|-v|-f|-r|-k|-x|-c <control plane assistant IP list>|-s|-D]
   ```
 
 - Parameters:
@@ -8958,6 +8958,7 @@ This command requires root privilege.
     -c    : specify control plane assistant IP list
     -s    : strict mode: do not proceed without:
             - control plane assistant IP list.
+    -D    : detached mode - closing terminal will not cause stopping reboot
   ```
 
 - Example:
