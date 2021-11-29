@@ -76,13 +76,16 @@ class TestMellanoxBufferMigrator(object):
         dbconnector.dedicated_dbs['STATE_DB'] = None
         dbconnector.dedicated_dbs['APPL_DB'] = None
 
-    def check_config_db(self, result, expected):
-        for table in self.config_db_tables_to_verify:
+    def check_config_db(self, result, expected, tables_to_verify=None):
+        if not tables_to_verify:
+            tables_to_verify = self.config_db_tables_to_verify
+        for table in tables_to_verify:
             assert result.get_table(table) == expected.get_table(table)
 
     def check_appl_db(self, result, expected):
         for table in self.appl_db_tables_to_verify:
             keys = expected.keys(expected.APPL_DB, table)
+            assert keys == result.keys(result.APPL_DB, table)
             if keys is None:
                 continue
             for key in keys:
@@ -195,6 +198,29 @@ class TestMellanoxBufferMigrator(object):
         input_config_db = 'non-default-config-input'
         input_appl_db = 'non-default-input'
         self.mellanox_buffer_migrator_warm_reboot_runner(input_config_db, input_appl_db, expected_config_db, expected_appl_db, False)
+
+    @pytest.mark.parametrize('buffer_model', ['traditional', 'dynamic'])
+    @pytest.mark.parametrize('ingress_pools', ['double-pools', 'single-pool'])
+    def test_mellanox_buffer_reclaiming(self, buffer_model, ingress_pools):
+        device_info.get_sonic_version_info = get_sonic_version_info_mlnx
+        db_before_migrate = 'reclaiming-buffer-' + buffer_model + '-' + ingress_pools + '-input'
+        db_after_migrate = 'reclaiming-buffer-' + buffer_model + '-' + ingress_pools + '-expected'
+
+        db = self.mock_dedicated_config_db(db_before_migrate)
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        expected_db = self.mock_dedicated_config_db(db_after_migrate)
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_2_0_3')
+        tables_to_verify = self.config_db_tables_to_verify
+        tables_to_verify.extend(['BUFFER_QUEUE', 'BUFFER_PORT_INGRESS_PROFILE_LIST', 'BUFFER_PORT_EGRESS_PROFILE_LIST'])
+        self.check_config_db(dbmgtr.configDB, expected_db.cfgdb, tables_to_verify)
+
+    def test_mellanox_buffer_reclaiming_warm_reboot(self):
+        device_info.get_sonic_version_info = get_sonic_version_info_mlnx
+        input_db_name = 'reclaiming-buffer-warmreboot-input'
+        expected_db_name = 'reclaiming-buffer-warmreboot-expected'
+        self.mellanox_buffer_migrator_warm_reboot_runner(input_db_name, input_db_name, expected_db_name,expected_db_name, True)
 
 
 class TestAutoNegMigrator(object):

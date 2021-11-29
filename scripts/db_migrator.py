@@ -44,7 +44,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_2_0_3'
+        self.CURRENT_VERSION = 'version_2_0_4'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -76,7 +76,7 @@ class DBMigrator():
 
         if asic_type == "mellanox":
             from mellanox_buffer_migrator import MellanoxBufferMigrator
-            self.mellanox_buffer_migrator = MellanoxBufferMigrator(self.configDB)
+            self.mellanox_buffer_migrator = MellanoxBufferMigrator(self.configDB, self.appDB, self.stateDB)
 
     def migrate_pfc_wd_table(self):
         '''
@@ -617,9 +617,19 @@ class DBMigrator():
 
     def version_2_0_3(self):
         """
-        Current latest version. Nothing to do here.
+        Version 2_0_3
         """
         log.log_info('Handling version_2_0_3')
+        if self.asic_type == "mellanox":
+            self.mellanox_buffer_migrator.mlnx_reclaiming_unused_buffer()
+        self.set_version('version_2_0_4')
+        return 'version_2_0_4'
+
+    def version_2_0_4(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log.log_info('Handling version_2_0_4')
         return None
 
     def get_version(self):

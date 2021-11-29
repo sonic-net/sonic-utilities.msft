@@ -747,7 +747,8 @@
         "alias": "etp1",
         "pfc_asym": "off",
         "speed": "100000",
-        "description": "etp1"
+        "description": "etp1",
+        "admin_status": "up"
     },
     "PORT|Ethernet4": {
         "lanes": "4,5,6,7",
@@ -996,7 +997,8 @@
         "alias": "etp26",
         "pfc_asym": "off",
         "speed": "100000",
-        "description": "etp26"
+        "description": "etp26",
+        "admin_status": "up"
     },
     "PORT|Ethernet104": {
         "lanes": "104,105,106,107",
@@ -1005,7 +1007,8 @@
         "alias": "etp27",
         "pfc_asym": "off",
         "speed": "100000",
-        "description": "etp27"
+        "description": "etp27",
+        "admin_status": "up"
     },
     "PORT|Ethernet108": {
         "lanes": "108,109,110,111",
@@ -1014,7 +1017,8 @@
         "alias": "etp28",
         "pfc_asym": "off",
         "speed": "100000",
-        "description": "etp28"
+        "description": "etp28",
+        "admin_status": "up"
     },
     "PORT|Ethernet112": {
         "lanes": "112,113,114,115",

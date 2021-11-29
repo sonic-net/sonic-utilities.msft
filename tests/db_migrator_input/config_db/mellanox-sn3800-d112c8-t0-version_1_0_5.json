@@ -994,7 +994,8 @@
         "alias": "etp1a",
         "pfc_asym": "off",
         "speed": "10000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet2": {
         "index": "0",
@@ -1268,7 +1269,8 @@
         "alias": "etp15a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet58": {
         "index": "14",
@@ -1278,7 +1280,8 @@
         "alias": "etp15b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet60": {
         "index": "15",
@@ -1288,7 +1291,8 @@
         "alias": "etp16",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet64": {
         "index": "16",
@@ -1342,7 +1346,8 @@
         "alias": "etp19a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet74": {
         "index": "18",
@@ -1352,7 +1357,8 @@
         "alias": "etp19b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet76": {
         "index": "19",
@@ -1362,7 +1368,8 @@
         "alias": "etp20",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet80": {
         "index": "20",
@@ -1372,7 +1379,8 @@
         "alias": "etp21a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet82": {
         "index": "20",
@@ -1382,7 +1390,8 @@
         "alias": "etp21b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet84": {
         "index": "21",
@@ -1392,7 +1401,8 @@
         "alias": "etp22a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet86": {
         "index": "21",
@@ -1402,7 +1412,8 @@
         "alias": "etp22b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet88": {
         "index": "22",
@@ -1412,7 +1423,8 @@
         "alias": "etp23a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet90": {
         "index": "22",
@@ -1422,7 +1434,8 @@
         "alias": "etp23b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet92": {
         "index": "23",
@@ -1432,7 +1445,8 @@
         "alias": "etp24",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet96": {
         "index": "24",
@@ -1442,7 +1456,8 @@
         "alias": "etp25",
         "pfc_asym": "off",
         "speed": "100000",
-        "fec": "rs"
+        "fec": "rs",
+        "admin_status": "up"
     },
     "PORT|Ethernet100": {
         "index": "25",
@@ -1452,7 +1467,8 @@
         "alias": "etp26",
         "pfc_asym": "off",
         "speed": "100000",
-        "fec": "rs"
+        "fec": "rs",
+        "admin_status": "up"
     },
     "PORT|Ethernet104": {
         "index": "26",
@@ -1462,7 +1478,8 @@
         "alias": "etp27a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet106": {
         "index": "26",
@@ -1472,7 +1489,8 @@
         "alias": "etp27b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet108": {
         "index": "27",
@@ -1482,7 +1500,8 @@
         "alias": "etp28",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet112": {
         "index": "28",
@@ -1492,7 +1511,8 @@
         "alias": "etp29",
         "pfc_asym": "off",
         "speed": "100000",
-        "fec": "rs"
+        "fec": "rs",
+        "admin_status": "up"
     },
     "PORT|Ethernet116": {
         "index": "29",
@@ -1502,7 +1522,8 @@
         "alias": "etp30",
         "pfc_asym": "off",
         "speed": "100000",
-        "fec": "rs"
+        "fec": "rs",
+        "admin_status": "up"
     },
     "PORT|Ethernet120": {
         "index": "30",
@@ -1512,7 +1533,8 @@
         "alias": "etp31a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet122": {
         "index": "30",
@@ -1522,7 +1544,8 @@
         "alias": "etp31b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet124": {
         "index": "31",
@@ -1532,7 +1555,8 @@
         "alias": "etp32",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet128": {
         "index": "32",
@@ -1542,7 +1566,8 @@
         "alias": "etp33",
         "pfc_asym": "off",
         "speed": "100000",
-        "fec": "rs"
+        "fec": "rs",
+        "admin_status": "up"
     },
     "PORT|Ethernet132": {
         "index": "33",
@@ -1552,7 +1577,8 @@
         "alias": "etp34",
         "pfc_asym": "off",
         "speed": "100000",
-        "fec": "rs"
+        "fec": "rs",
+        "admin_status": "up"
     },
     "PORT|Ethernet136": {
         "index": "34",
@@ -1562,7 +1588,8 @@
         "alias": "etp35a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet138": {
         "index": "34",
@@ -1572,7 +1599,8 @@
         "alias": "etp35b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet140": {
         "index": "35",
@@ -1582,7 +1610,8 @@
         "alias": "etp36",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet144": {
         "index": "36",
@@ -1592,7 +1621,8 @@
         "alias": "etp37",
         "pfc_asym": "off",
         "speed": "100000",
-        "fec": "rs"
+        "fec": "rs",
+        "admin_status": "up"
     },
     "PORT|Ethernet148": {
         "index": "37",
@@ -1602,7 +1632,8 @@
         "alias": "etp38",
         "pfc_asym": "off",
         "speed": "100000",
-        "fec": "rs"
+        "fec": "rs",
+        "admin_status": "up"
     },
     "PORT|Ethernet152": {
         "index": "38",
@@ -1612,7 +1643,8 @@
         "alias": "etp39a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet154": {
         "index": "38",
@@ -1622,7 +1654,8 @@
         "alias": "etp39b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet156": {
         "index": "39",
@@ -1632,7 +1665,8 @@
         "alias": "etp40",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet160": {
         "index": "40",
@@ -1642,7 +1676,8 @@
         "alias": "etp41a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet162": {
         "index": "40",
@@ -1652,7 +1687,8 @@
         "alias": "etp41b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet164": {
         "index": "41",
@@ -1662,7 +1698,8 @@
         "alias": "etp42a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet166": {
         "index": "41",
@@ -1672,7 +1709,8 @@
         "alias": "etp42b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet168": {
         "index": "42",
@@ -1682,7 +1720,8 @@
         "alias": "etp43a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet170": {
         "index": "42",
@@ -1692,7 +1731,8 @@
         "alias": "etp43b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet172": {
         "index": "43",
@@ -1702,7 +1742,8 @@
         "alias": "etp44",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet176": {
         "index": "44",
@@ -1712,7 +1753,8 @@
         "alias": "etp45a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet178": {
         "index": "44",
@@ -1722,7 +1764,8 @@
         "alias": "etp45b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet180": {
         "index": "45",
@@ -1732,7 +1775,8 @@
         "alias": "etp46a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet182": {
         "index": "45",
@@ -1742,7 +1786,8 @@
         "alias": "etp46b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet184": {
         "index": "46",
@@ -1752,7 +1797,8 @@
         "alias": "etp47a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet186": {
         "index": "46",
@@ -1762,7 +1808,8 @@
         "alias": "etp47b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet188": {
         "index": "47",
@@ -1772,7 +1819,8 @@
         "alias": "etp48",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet192": {
         "index": "48",
@@ -1782,7 +1830,8 @@
         "alias": "etp49a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet196": {
         "index": "49",
@@ -1792,7 +1841,8 @@
         "alias": "etp50a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet198": {
         "index": "49",
@@ -1802,7 +1852,8 @@
         "alias": "etp50b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet200": {
         "index": "50",
@@ -1812,7 +1863,8 @@
         "alias": "etp51a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet204": {
         "index": "51",
@@ -1822,7 +1874,8 @@
         "alias": "etp52",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet208": {
         "index": "52",
@@ -1832,7 +1885,8 @@
         "alias": "etp53a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet212": {
         "index": "53",
@@ -1842,7 +1896,8 @@
         "alias": "etp54a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet214": {
         "index": "53",
@@ -1852,7 +1907,8 @@
         "alias": "etp54b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet216": {
         "index": "54",
@@ -1862,7 +1918,8 @@
         "alias": "etp55a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet220": {
         "index": "55",
@@ -1872,7 +1929,8 @@
         "alias": "etp56",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet224": {
         "index": "56",
@@ -1882,7 +1940,8 @@
         "alias": "etp57a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet228": {
         "index": "57",
@@ -1892,7 +1951,8 @@
         "alias": "etp58a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet230": {
         "index": "57",
@@ -1902,7 +1962,8 @@
         "alias": "etp58b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet232": {
         "index": "58",
@@ -1912,7 +1973,8 @@
         "alias": "etp59a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet236": {
         "index": "59",
@@ -1922,7 +1984,8 @@
         "alias": "etp60",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet240": {
         "index": "60",
@@ -1932,7 +1995,8 @@
         "alias": "etp61a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet244": {
         "index": "61",
@@ -1942,7 +2006,8 @@
         "alias": "etp62a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet246": {
         "index": "61",
@@ -1952,7 +2017,8 @@
         "alias": "etp62b",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet248": {
         "index": "62",
@@ -1962,7 +2028,8 @@
         "alias": "etp63a",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "PORT|Ethernet252": {
         "index": "63",
@@ -1972,7 +2039,8 @@
         "alias": "etp64",
         "pfc_asym": "off",
         "speed": "50000",
-        "fec": "none"
+        "fec": "none",
+        "admin_status": "up"
     },
     "VERSIONS|DATABASE": {
         "VERSION": "version_1_0_5"

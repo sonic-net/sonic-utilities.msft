@@ -756,7 +756,8 @@
         "alias": "etp1",
         "pfc_asym": "off",
         "speed": "10000",
-        "fec": "rs"
+        "fec": "rs",
+        "admin_status": "up"
     },
     "PORT|Ethernet4": {
         "index": "2",
@@ -1024,7 +1025,8 @@
         "alias": "etp26",
         "pfc_asym": "off",
         "speed": "100000",
-        "fec": "rs"
+        "fec": "rs",
+        "admin_status": "up"
     },
     "PORT|Ethernet104": {
         "index": "27",
@@ -1034,7 +1036,8 @@
         "alias": "etp27",
         "pfc_asym": "off",
         "speed": "100000",
-        "fec": "rs"
+        "fec": "rs",
+        "admin_status": "up"
     },
     "PORT|Ethernet108": {
         "index": "28",
@@ -1044,7 +1047,8 @@
         "alias": "etp28",
         "pfc_asym": "off",
         "speed": "100000",
-        "fec": "rs"
+        "fec": "rs",
+        "admin_status": "up"
     },
     "PORT|Ethernet112": {
         "index": "29",

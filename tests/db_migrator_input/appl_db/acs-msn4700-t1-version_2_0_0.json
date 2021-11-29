@@ -712,13 +712,6 @@
         "pool": "[BUFFER_POOL_TABLE:ingress_lossless_pool]",
         "size": "124928"
     },
-    "BUFFER_PROFILE_TABLE:pg_lossless_400000_300m_profile": {
-        "xon": "37888",
-        "dynamic_th": "0",
-        "xoff": "373760",
-        "pool": "[BUFFER_POOL_TABLE:ingress_lossless_pool]",
-        "size": "420864"
-    },
     "BUFFER_PROFILE_TABLE:q_lossy_profile": {
         "dynamic_th": "3",
         "pool": "[BUFFER_POOL_TABLE:egress_lossy_pool]",

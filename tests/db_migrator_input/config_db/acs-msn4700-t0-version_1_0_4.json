@@ -762,7 +762,8 @@
         "mtu": "9100",
         "alias": "etp1",
         "pfc_asym": "off",
-        "speed": "10000"
+        "speed": "10000",
+        "admin_status": "up"
     },
     "PORT|Ethernet8": {
         "index": "2",
@@ -1011,7 +1012,8 @@
         "mtu": "9100",
         "alias": "etp26",
         "pfc_asym": "off",
-        "speed": "400000"
+        "speed": "400000",
+        "admin_status": "up"
     },
     "PORT|Ethernet208": {
         "index": "27",
@@ -1020,7 +1022,8 @@
         "mtu": "9100",
         "alias": "etp27",
         "pfc_asym": "off",
-        "speed": "400000"
+        "speed": "400000",
+        "admin_status": "up"
     },
     "PORT|Ethernet216": {
         "index": "28",
@@ -1029,7 +1032,8 @@
         "mtu": "9100",
         "alias": "etp28",
         "pfc_asym": "off",
-        "speed": "400000"
+        "speed": "400000",
+        "admin_status": "up"
     },
     "PORT|Ethernet224": {
         "index": "29",
