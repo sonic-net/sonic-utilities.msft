@@ -53,6 +53,9 @@
 * [Feature](#feature)
   * [Feature show commands](#feature-show-commands)
   * [Feature config commands](#feature-config-commands)
+* [Flow Counters](#flow-counters)
+  * [Flow Counters show commands](#flow-counters-show-commands)
+  * [Flow Counters clear commands](#flow-counters-clear-commands)
 * [Gearbox](#gearbox)
   * [Gearbox show commands](#gearbox-show-commands)
 * [Interfaces](#interfaces)
@@ -3066,6 +3069,58 @@ commands are don't care and will not update state/auto-restart value.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#feature)
 
+## Flow Counters
+
+This section explains all the Flow Counters show commands and clear commands that are supported in SONiC. Flow counters are usually used for debugging, troubleshooting and performance enhancement processes. Flow counters supports case like:
+
+  - Host interface traps (number of received traps per Trap ID)
+
+### Flow Counters show commands
+
+**show flowcnt-trap stats**
+
+This command is used to show the current statistics for the registered host interface traps. 
+
+Because clear (see below) is handled on a per-user basis different users may see different counts.
+
+- Usage:
+  ```
+  show flowcnt-trap stats
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show flowcnt-trap stats
+  Trap Name    Packets    Bytes      PPS
+  ---------  ---------  -------  -------
+       dhcp        100    2,000  50.25/s
+
+  For multi-ASIC:
+  admin@sonic:~$ show flowcnt-trap stats
+  ASIC ID    Trap Name    Packets    Bytes      PPS
+  -------  -----------  ---------  -------  -------
+    asic0         dhcp        100    2,000  50.25/s
+    asic1         dhcp        200    3,000  45.25/s
+  ```
+
+### Flow Counters clear commands
+
+**sonic-clear flowcnt-trap**
+
+This command is used to clear the current statistics for the registered host interface traps. This is done on a per-user basis.
+
+- Usage:
+  ```
+  sonic-clear flowcnt-trap
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear flowcnt-trap
+  Trap Flow Counters were successfully cleared
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#flow-counters)
 ## Gearbox
 
 This section explains all the Gearbox PHY show commands that are supported in SONiC.
