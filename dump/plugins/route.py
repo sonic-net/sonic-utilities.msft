@@ -53,7 +53,6 @@ class Route(Executor):
         4) CLASS_BASED_NEXT_HOP_GROUP_TABLE
         5) NEXTHOP_GROUP_TABLE
         """
-        self.ret_temp = {}
         self.ns = ''
         self.dest_net = ''
         self.nh_id = ''
@@ -82,14 +81,6 @@ class Route(Executor):
         # ASIC DB - KEYS dependent on NEXT HOP ID
         self.init_asic_nh()
         return self.ret_temp
-
-    def add_to_ret_template(self, table, db, keys, err, add_to_tables_not_found=True):
-        if not err and keys:
-            self.ret_temp[db]["keys"].extend(keys)
-            return keys
-        elif add_to_tables_not_found:
-            self.ret_temp[db]["tables_not_found"].extend([table])
-        return []
 
     def init_route_config_info(self):
         req = MatchRequest(db="CONFIG_DB", table="STATIC_ROUTE", key_pattern=self.dest_net, ns=self.ns)

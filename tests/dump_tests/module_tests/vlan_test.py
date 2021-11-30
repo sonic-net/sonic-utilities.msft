@@ -4,7 +4,7 @@ import unittest
 import pytest
 from deepdiff import DeepDiff
 from mock import patch
-from dump.helper import create_template_dict, sort_lists
+from dump.helper import create_template_dict, sort_lists, populate_mock
 from dump.plugins.vlan import Vlan
 from dump.plugins.vlan_member import Vlan_Member
 from dump.match_infra import MatchEngine, ConnectionPool
@@ -25,6 +25,7 @@ dedicated_dbs['APPL_DB'] = os.path.join(vlan_files_path, "appl_db.json")
 dedicated_dbs['ASIC_DB'] = os.path.join(vlan_files_path, "asic_db.json")
 dedicated_dbs['STATE_DB'] = os.path.join(vlan_files_path, "state_db.json")
 
+
 def verbosity_setup():
     print("SETUP")
     os.environ["VERBOSE"] = "1"
@@ -32,16 +33,6 @@ def verbosity_setup():
     print("TEARDOWN")
     os.environ["VERBOSE"] = "0"
 
-def populate_mock(db, db_names):
-    for db_name in db_names:
-        db.connect(db_name)
-        # Delete any default data
-        db.delete_all_by_pattern(db_name, "*")
-        with open(dedicated_dbs[db_name]) as f:
-            mock_json = json.load(f)
-        for key in mock_json:
-            for field, value in mock_json[key].items():
-                db.set(db_name, key, field, value)
 
 @pytest.fixture(scope="class", autouse=True)
 def match_engine():
@@ -53,7 +44,7 @@ def match_engine():
     # popualate the db with mock data
     db_names = list(dedicated_dbs.keys())
     try:
-        populate_mock(db, db_names)
+        populate_mock(db, db_names, dedicated_dbs)
     except Exception as e:
         assert False, "Mock initialization failed: " + str(e)
 

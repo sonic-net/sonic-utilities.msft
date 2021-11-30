@@ -30,27 +30,18 @@ class Vlan(Executor):
     def init_vlan_config_info(self, vlan_name):
         req = MatchRequest(db="CONFIG_DB", table="VLAN", key_pattern=vlan_name, ns=self.ns)
         ret = self.match_engine.fetch(req)
-        if not ret["error"] and len(ret["keys"]) != 0:
-            self.ret_temp[req.db]["keys"] = ret["keys"]
-        else:
-            self.ret_temp[req.db]["tables_not_found"] = [req.table]
+        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
     
     def init_vlan_appl_info(self, vlan_name):
         req = MatchRequest(db="APPL_DB", table="VLAN_TABLE", key_pattern=vlan_name, ns=self.ns)
         ret = self.match_engine.fetch(req)
-        if not ret["error"] and len(ret["keys"]) != 0:
-            self.ret_temp[req.db]["keys"] = ret["keys"]
-        else:
-            self.ret_temp[req.db]["tables_not_found"] = [req.table]
+        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
         
     def init_state_vlan_info(self, vlan_name):
         req = MatchRequest(db="STATE_DB", table="VLAN_TABLE", key_pattern=vlan_name, ns=self.ns)
         ret = self.match_engine.fetch(req)
-        if not ret["error"] and len(ret["keys"]) != 0:
-            self.ret_temp[req.db]["keys"] = ret["keys"]
-        else:
-            self.ret_temp[req.db]["tables_not_found"] = [req.table]
-    
+        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
+
     def init_asic_vlan_info(self, vlan_name):
         # Convert 'Vlanxxx' to 'xxx'
         if vlan_name[0:4] != "Vlan" or not vlan_name[4:].isnumeric():
@@ -62,8 +53,4 @@ class Vlan(Executor):
         req = MatchRequest(db="ASIC_DB", table="ASIC_STATE:SAI_OBJECT_TYPE_VLAN", key_pattern="*", field="SAI_VLAN_ATTR_VLAN_ID", 
                            value=str(vlan_num), ns=self.ns)
         ret = self.match_engine.fetch(req)
-        if not ret["error"] and len(ret["keys"]) != 0:
-            self.ret_temp[req.db]["keys"] = ret["keys"]
-        else:
-            self.ret_temp[req.db]["tables_not_found"] = [req.table]
-    
+        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])

@@ -29,14 +29,6 @@ class Port(Executor):
         self.init_state_port_info(port_name)
         return self.ret_temp
 
-    def add_to_ret_template(self, table, db, keys, err):
-        if not err and keys:
-            self.ret_temp[db]["keys"].extend(keys)
-            return True
-        else:
-            self.ret_temp[db]["tables_not_found"].extend([table])
-            return False
-
     def init_port_config_info(self, port_name):
         req = MatchRequest(db="CONFIG_DB", table="PORT", key_pattern=port_name, ns=self.ns)
         ret = self.match_engine.fetch(req)

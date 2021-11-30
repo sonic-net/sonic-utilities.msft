@@ -71,7 +71,6 @@ class Copp(Executor):
         self.trap_group = ""
         self.trap_id = ""
         self.ns = ""
-        self.ret_temp = {}
 
     def fetch_all_trap_ids(self, ret):
         traps = []
@@ -108,17 +107,11 @@ class Copp(Executor):
     def handle_state_db(self):
         req = MatchRequest(db="STATE_DB", table="COPP_TRAP_TABLE", key_pattern=self.copp_trap_cfg_key)
         ret = self.match_engine.fetch(req)
-        if not ret["error"] and len(ret["keys"]) > 0:
-            self.ret_temp["STATE_DB"]["keys"].append(ret["keys"][0])
-        else:
-            self.ret_temp["STATE_DB"]["tables_not_found"].append("COPP_TRAP_TABLE")
+        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
 
         req = MatchRequest(db="STATE_DB", table="COPP_GROUP_TABLE", key_pattern=self.trap_group)
         ret = self.match_engine.fetch(req)
-        if not ret["error"] and len(ret["keys"]) > 0:
-            self.ret_temp["STATE_DB"]["keys"].append(ret["keys"][0])
-        else:
-            self.ret_temp["STATE_DB"]["tables_not_found"].append("COPP_GROUP_TABLE")
+        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
 
     def handle_appl_db(self):
         req = MatchRequest(db="APPL_DB", table=APP_COPP_TABLE_NAME, key_pattern="*", field="trap_ids",
@@ -207,8 +200,7 @@ class Copp(Executor):
             return
         req = MatchRequest(db="ASIC_DB", table=ASIC_POLICER_OBJ, key_pattern=policer_sai_obj, ns=self.ns)
         ret = self.match_engine.fetch(req)
-        if not ret["error"] and len(ret["keys"]) > 0:
-            self.ret_temp["ASIC_DB"]["keys"].append(ret["keys"][0])
+        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"], False)
 
     def __get_asic_queue_obj(self, queue_sai_obj):
         # Not adding tp tables_not_found because of the type of reason specified for policer obj
@@ -216,8 +208,7 @@ class Copp(Executor):
             return
         req = MatchRequest(db="ASIC_DB", table=ASIC_QUEUE_OBJ, field="SAI_QUEUE_ATTR_INDEX", value=queue_sai_obj, ns=self.ns)
         ret = self.match_engine.fetch(req)
-        if not ret["error"] and len(ret["keys"]) > 0:
-            self.ret_temp["ASIC_DB"]["keys"].append(ret["keys"][0])
+        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"], False)
 
     def __get_asic_hostif_entry_obj(self, sai_trap_key):
         # Not adding tp tables_not_found because of the type of reason specified for policer obj
@@ -231,9 +222,9 @@ class Copp(Executor):
         req = MatchRequest(db="ASIC_DB", table=ASIC_HOSTIF_TABLE_ENTRY, field="SAI_HOSTIF_TABLE_ENTRY_ATTR_TRAP_ID",
                            value=sai_trap_vid, return_fields=["SAI_HOSTIF_TABLE_ENTRY_ATTR_HOST_IF"], ns=self.ns)
         ret = self.match_engine.fetch(req)
+        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"], False)
         if not ret["error"] and len(ret["keys"]) > 0:
             sai_hostif_table_entry_key = ret["keys"][0]
-            self.ret_temp["ASIC_DB"]["keys"].append(sai_hostif_table_entry_key)
             sai_hostif_vid = ret["return_values"][sai_hostif_table_entry_key]["SAI_HOSTIF_TABLE_ENTRY_ATTR_HOST_IF"]
             return sai_hostif_vid
 
@@ -243,8 +234,7 @@ class Copp(Executor):
             return
         req = MatchRequest(db="ASIC_DB", table=ASIC_HOSTIF, key_pattern=sai_hostif_vid, ns=self.ns)
         ret = self.match_engine.fetch(req)
-        if not ret["error"] and len(ret["keys"]) > 0:
-            self.ret_temp["ASIC_DB"]["keys"].append(ret["keys"][0])
+        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"], False)
 
      # When the user writes config to CONFIG_DB, that takes precedence over default config
     def handle_user_and_default_config(self):

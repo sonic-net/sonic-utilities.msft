@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, json
 
 def create_template_dict(dbs):
     """ Generate a Template which will be returned by Executor Classes """
@@ -33,3 +33,15 @@ def sort_lists(ret_template):
             if isinstance(ret_template[db][key], list):
                 ret_template[db][key].sort()
     return ret_template
+
+
+def populate_mock(db, db_names, dedicated_dbs):
+    for db_name in db_names:
+        db.connect(db_name)
+        # Delete any default data
+        db.delete_all_by_pattern(db_name, "*")
+        with open(dedicated_dbs[db_name]) as f:
+            mock_json = json.load(f)
+        for key in mock_json:
+            for field, value in mock_json[key].items():
+                db.set(db_name, key, field, value)

@@ -49,20 +49,12 @@ class Vlan_Member(Executor):
     def init_vlan_member_appl_info(self, vlan_name, member_name):
         req = MatchRequest(db="APPL_DB", table="VLAN_MEMBER_TABLE", key_pattern=vlan_name+':'+member_name+"*", ns=self.ns)
         ret = self.match_engine.fetch(req)
-        if not ret["error"] and len(ret["keys"]) != 0:
-            for mem in ret["keys"]:
-                self.ret_temp[req.db]["keys"].append(mem)
-        else:
-            self.ret_temp[req.db]["tables_not_found"].append(req.table)
+        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
         
     def init_state_vlan_member_info(self, vlan_name, member_name):
         req = MatchRequest(db="STATE_DB", table="VLAN_MEMBER_TABLE", key_pattern=vlan_name+'|'+member_name+"*", ns=self.ns)
         ret = self.match_engine.fetch(req)
-        if not ret["error"] and len(ret["keys"]) != 0:
-            for mem in ret["keys"]:
-                self.ret_temp[req.db]["keys"].append(mem)
-        else:
-            self.ret_temp[req.db]["tables_not_found"].append(req.table)
+        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
 
     def init_asic_vlan_member_info(self, vlan_name, member_name):
         
@@ -140,5 +132,3 @@ class Vlan_Member(Executor):
         else:
             self.ret_temp["ASIC_DB"]["tables_not_found"].append("ASIC_STATE:SAI_OBJECT_TYPE_VLAN_MEMBER")
             self.ret_temp["ASIC_DB"]["tables_not_found"].append("ASIC_STATE:SAI_OBJECT_TYPE_BRIDGE_PORT")
-        
-

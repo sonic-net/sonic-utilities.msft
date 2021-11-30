@@ -16,6 +16,7 @@ class Executor(ABC):
             self.match_engine = MatchEngine(None)
         else:
             self.match_engine = match_engine
+        self.ret_temp = {}
 
     @abstractmethod
     def execute(self, params):
@@ -24,3 +25,14 @@ class Executor(ABC):
     @abstractmethod
     def get_all_args(self, ns):
         pass
+    
+    def add_to_ret_template(self, table, db, keys, err, add_to_tables_not_found=True):
+        if db not in self.ret_temp:
+            return []
+
+        if not err and keys:
+            self.ret_temp[db]["keys"].extend(keys)
+            return keys
+        elif add_to_tables_not_found:
+            self.ret_temp[db]["tables_not_found"].extend([table])
+        return []

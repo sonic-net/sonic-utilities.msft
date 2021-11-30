@@ -11,7 +11,6 @@ class Vxlan_tunnel(Executor):
 
     def __init__(self, match_engine=None):
         super().__init__(match_engine)
-        self.ret_temp = {}
         self.ns = ''
         self.src_ip = ''
         self.dst_ip = ''
@@ -36,14 +35,6 @@ class Vxlan_tunnel(Executor):
         self.init_asic_vxlan_tunnel_term_info()
         self.init_state_vxlan_tunnel_info(vxlan_tunnel_name)
         return self.ret_temp
-
-    def add_to_ret_template(self, table, db, keys, err):
-        if not err and keys:
-            self.ret_temp[db]["keys"].extend(keys)
-            return True
-        else:
-            self.ret_temp[db]["tables_not_found"].extend([table])
-            return False
 
     def init_vxlan_tunnel_config_info(self, vxlan_tunnel_name):
         req = MatchRequest(db="CONFIG_DB", table="VXLAN_TUNNEL", key_pattern=vxlan_tunnel_name, ns=self.ns)

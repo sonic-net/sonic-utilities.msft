@@ -11,7 +11,6 @@ class Evpn(Executor):
 
     def __init__(self, match_engine=None):
         super().__init__(match_engine)
-        self.ret_temp = {}
         self.ns = ''
         self.remote_ip = ''
         self.vlan = ''
@@ -40,14 +39,6 @@ class Evpn(Executor):
         self.init_asic_evpn_term_info()
         self.init_state_evpn_info(evpn_name)
         return self.ret_temp
-
-    def add_to_ret_template(self, table, db, keys, err):
-        if not err and keys:
-            self.ret_temp[db]["keys"].extend(keys)
-            return True
-        else:
-            self.ret_temp[db]["tables_not_found"].extend([table])
-            return False
 
     def init_evpn_appl_info(self, evpn_name):
         req = MatchRequest(db="APPL_DB", table="VXLAN_REMOTE_VNI_TABLE", key_pattern=evpn_name, ns=self.ns)
