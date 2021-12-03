@@ -136,7 +136,12 @@
         "speed": "100000"
     },
     "INTF_TABLE:Ethernet0.10": {
-        "admin_status": "up"
+        "admin_status": "up",
+        "vlan": "10"
+    },
+    "INTF_TABLE:Eth32.10": {
+        "admin_status": "up",
+        "vlan": "100"
     },
     "_GEARBOX_TABLE:phy:1": {
         "name": "sesto-1",

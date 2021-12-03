@@ -10,6 +10,7 @@ from tabulate import tabulate
 from utilities_common import constants
 from utilities_common import multi_asic as multi_asic_util
 from utilities_common.intf_filter import parse_interface_in_filter
+from sonic_py_common.interface import get_intf_longname
 
 # mock the redis for unit test purposes #
 try:
@@ -313,12 +314,12 @@ def appl_db_portchannel_status_get(appl_db, config_db, po_name, status_type, por
 def appl_db_sub_intf_status_get(appl_db, config_db, front_panel_ports_list, portchannel_speed_dict, sub_intf_name, status_type):
     sub_intf_sep_idx = sub_intf_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
     if sub_intf_sep_idx != -1:
-        parent_port_name = sub_intf_name[:sub_intf_sep_idx]
-        vlan_id = sub_intf_name[sub_intf_sep_idx + 1:]
+        parent_port_name = get_intf_longname(sub_intf_name[:sub_intf_sep_idx])
 
         full_intf_table_name = "INTF_TABLE" + ":" + sub_intf_name
 
         if status_type == "vlan":
+            vlan_id = appl_db.get(appl_db.APPL_DB, full_intf_table_name, status_type)
             return vlan_id
 
         if status_type == "admin_status":

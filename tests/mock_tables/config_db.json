@@ -373,6 +373,10 @@
     "VLAN_SUB_INTERFACE|Ethernet0.10": {
         "admin_status": "up"
     },
+    "VLAN_SUB_INTERFACE|Eth32.10": {
+        "admin_status": "up",
+        "vlan": "100"
+    },
     "ACL_RULE|NULL_ROUTE_V4|DEFAULT_RULE": {
         "PACKET_ACTION": "DROP",
         "PRIORITY": "1"

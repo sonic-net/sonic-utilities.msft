@@ -136,6 +136,9 @@
   * [Startup Configuration](#startup-configuration)
   * [Running Configuration](#running-configuration)
 * [Static routing](#static-routing)
+* [Subinterfaces](#subinterfaces)
+  * [Subinterfaces Show Commands](#subinterfaces-show-commands)
+  * [Subinterfaces Config Commands](#subinterfaces-config-commands)
 * [Syslog](#syslog)
   * [Syslog config commands](#syslog-config-commands)
 * [System State](#system-state)
@@ -391,6 +394,7 @@ This command displays the full list of show commands available in the software; 
     runningconfiguration  Show current running configuration...
     services              Show all daemon services
     startupconfiguration  Show startup configuration information
+    subinterfaces         Show details of the sub port interfaces
     system-memory         Show memory information
     tacacs                Show TACACS+ configuration
     techsupport           Gather information for troubleshooting
@@ -8128,6 +8132,60 @@ This sub-section explains of command is used to show current routes.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#static-routing)
 
+## Subinterfaces 
+
+### Subinterfaces Show Commands
+
+**show subinterfaces status**
+
+This command displays all the subinterfaces that are configured on the device and its current status.
+
+- Usage:
+```
+show subinterfaces status
+```
+
+- Example:
+```
+admin@sonic:~$ show subinterfaces status
+Sub port interface    Speed    MTU    Vlan    Admin                 Type
+------------------  -------  -----  ------  -------  -------------------
+     Eth64.10          100G   9100    100       up  dot1q-encapsulation
+     Ethernet0.100     100G   9100    100       up  dot1q-encapsulation
+```
+
+### Subinterfaces Config Commands
+
+This sub-section explains how to configure subinterfaces.
+
+**config subinterface**
+
+- Usage:
+```
+config subinterface (add | del) <subinterface_name> [vlan <1-4094>]
+```
+
+- Example (Create the subinterfces with name "Ethernet0.100"):
+```
+admin@sonic:~$ sudo config subinterface add Ethernet0.100
+```
+
+- Example (Create the subinterfces with name "Eth64.100"):
+```
+admin@sonic:~$ sudo config subinterface add Eth64.100 100
+```
+
+- Example (Delete the subinterfces with name "Ethernet0.100"):
+```
+admin@sonic:~$ sudo config subinterface del Ethernet0.100
+```
+
+- Example (Delete the subinterfces with name "Eth64.100"):
+```
+admin@sonic:~$ sudo config subinterface del Eth64.100 100
+```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#static-routing)
 
 ## Syslog
 
