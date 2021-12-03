@@ -1358,16 +1358,32 @@ def show_run_snmp(db, ctx):
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def syslog(verbose):
-    """Show Syslog running configuration"""
+    """Show Syslog running configuration
+    To match below cases(port is optional):
+    *.* @IPv4:port
+    *.* @@IPv4:port
+    *.* @[IPv4]:port
+    *.* @@[IPv4]:port
+    *.* @[IPv6]:port
+    *.* @@[IPv6]:port
+    """
     syslog_servers = []
     syslog_dict = {}
+    re_ipv4_1 = re.compile(r'^\*\.\* @{1,2}(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d+)?')
+    re_ipv4_2 = re.compile(r'^\*\.\* @{1,2}\[(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\](:\d+)?')
+    re_ipv6 = re.compile(r'^\*\.\* @{1,2}\[([0-9a-fA-F:.]+)\](:\d+)?')
     with open("/etc/rsyslog.conf") as syslog_file:
         data = syslog_file.readlines()
     for line in data:
-        if line.startswith("*.* @"):
-            line = line.split(":")
-            server = line[0][5:]
-            syslog_servers.append(server)
+        if re_ipv4_1.match(line):
+            server =  re_ipv4_1.match(line).group(1)
+        elif re_ipv4_2.match(line):
+            server =  re_ipv4_2.match(line).group(1)
+        elif re_ipv6.match(line):
+            server =  re_ipv6.match(line).group(1)
+        else:
+            continue
+        syslog_servers.append("[{}]".format(server))
     syslog_dict['Syslog Servers'] = syslog_servers
     print(tabulate(syslog_dict, headers=list(syslog_dict.keys()), tablefmt="simple", stralign='left', missingval=""))
 
