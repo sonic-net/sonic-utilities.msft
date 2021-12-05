@@ -109,12 +109,12 @@ class portconfig(object):
     def set_speed(self, port, speed):
         if self.verbose:
             print("Setting speed %s on port %s" % (speed, port))
-        supported_speeds_str = self.get_supported_speeds(port)
-        if supported_speeds_str:
-            if supported_speeds_str.find(str(speed)) == -1:
-                print('Invalid speed specified: {}'.format(speed))
-                print('Valid speeds:{}'.format(supported_speeds_str))
-                exit(1)
+        supported_speeds_str = self.get_supported_speeds(port) or ''
+        supported_speeds = [int(s) for s in supported_speeds_str.split(',') if s]
+        if supported_speeds and int(speed) not in supported_speeds:
+            print('Invalid speed specified: {}'.format(speed))
+            print('Valid speeds:{}'.format(supported_speeds_str))
+            exit(1)
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_SPEED_CONFIG_FIELD_NAME: speed})
 
     def set_fec(self, port, fec):
