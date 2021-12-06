@@ -1,7 +1,7 @@
 {
     "TRANSCEIVER_INFO|Ethernet0": {
         "type": "QSFP28 or later",
-        "hardware_rev": "AC",
+        "vendor_rev": "AC",
         "serial": "MT1706FT02064",
         "manufacturer": "Mellanox",
         "model": "MFA1A00-C003",
@@ -19,7 +19,7 @@
     },
     "TRANSCEIVER_INFO|Ethernet12": {
         "type": "QSFP28 or later",
-        "hardware_rev": "AC",
+        "vendor_rev": "AC",
         "serial": "MT1706FT02064",
         "manufacturer": "Credo",
         "model": "CACL1X321P2PA1MS",
@@ -69,7 +69,7 @@
     },
     "TRANSCEIVER_INFO|Ethernet8": {
         "type": "QSFP-DD Double Density 8X Pluggable Transceiver",
-        "hardware_rev": "2A",
+        "vendor_rev": "2A",
         "serial": "INKAO2900002A",
         "manufacturer": "INNOLIGHT",
         "model": "C-DQ8FNM010-N00",

@@ -1,7 +1,7 @@
 {
     "TRANSCEIVER_INFO|Ethernet0": {
         "type": "QSFP28 or later",
-        "hardware_rev": "AC",
+        "vendor_rev": "AC",
         "serial": "MT1706FT02064",
         "manufacturer": "Mellanox",
         "model": "MFA1A00-C003",

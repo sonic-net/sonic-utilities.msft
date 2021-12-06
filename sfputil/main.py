@@ -39,7 +39,7 @@ QSFP_DATA_MAP = {
     'vendor_oui': 'Vendor OUI',
     'vendor_date': 'Vendor Date Code(YYYY-MM-DD Lot)',
     'manufacturer': 'Vendor Name',
-    'hardware_rev': 'Vendor Rev',
+    'vendor_rev': 'Vendor Rev',
     'serial': 'Vendor SN',
     'type': 'Identifier',
     'ext_identifier': 'Extended Identifier',

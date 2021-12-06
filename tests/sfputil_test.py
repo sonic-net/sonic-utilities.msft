@@ -83,7 +83,7 @@ class TestSfputil(object):
             'type_abbrv_name': 'QSFP28',
             'manufacturer': 'Mellanox',
             'model': 'MCP1600-C003',
-            'hardware_rev': 'A2',
+            'vendor_rev': 'A2',
             'serial': 'MT1636VS10561',
             'vendor_oui': '00-02-c9',
             'vendor_date': '2016-07-18',
