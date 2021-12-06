@@ -5,7 +5,7 @@ import click
 import netifaces
 import pyroute2
 from natsort import natsorted
-from sonic_py_common import multi_asic
+from sonic_py_common import multi_asic, device_info
 from utilities_common import constants
 from utilities_common.general import load_db_config
 
@@ -23,6 +23,9 @@ class MultiAsic(object):
         self.current_namespace = None
         self.is_multi_asic = multi_asic.is_multi_asic()
         self.db = db
+
+    def get_display_option(self):
+        return self.display_option
 
     def is_object_internal(self, object_type, cli_object):
         '''
@@ -46,9 +49,9 @@ class MultiAsic(object):
         returns false, if the cli option is all or if it the platform is single ASIC.
 
         '''
-        if not self.is_multi_asic:
+        if not self.is_multi_asic and not device_info.is_chassis():
             return False
-        if self.display_option == constants.DISPLAY_ALL:
+        if self.get_display_option() == constants.DISPLAY_ALL:
             return False
         return self.is_object_internal(object_type, cli_object)
 
@@ -59,7 +62,7 @@ class MultiAsic(object):
         else:
             namespaces = multi_asic.get_all_namespaces()
             if self.namespace_option is None:
-                if self.display_option == constants.DISPLAY_ALL:
+                if self.get_display_option() == constants.DISPLAY_ALL:
                     ns_list = namespaces['front_ns'] + namespaces['back_ns']
                 else:
                     ns_list = namespaces['front_ns']
@@ -80,14 +83,14 @@ def multi_asic_ns_choices():
 
 
 def multi_asic_display_choices():
-    if not multi_asic.is_multi_asic():
+    if not multi_asic.is_multi_asic() and not device_info.is_chassis():
         return [constants.DISPLAY_ALL]
     else:
         return [constants.DISPLAY_ALL, constants.DISPLAY_EXTERNAL]
 
 
 def multi_asic_display_default_option():
-    if not multi_asic.is_multi_asic():
+    if not multi_asic.is_multi_asic() and not device_info.is_chassis():
         return constants.DISPLAY_ALL
     else:
         return constants.DISPLAY_EXTERNAL

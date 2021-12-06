@@ -4,7 +4,6 @@ import re
 import sys
 from unittest import mock
 
-
 import pytest
 from sonic_py_common import device_info, multi_asic
 from swsscommon.swsscommon import ConfigDBConnector
@@ -127,10 +126,35 @@ def setup_multi_broadcom_masic():
 
 
 @pytest.fixture
+def setup_single_bgp_instance_chassis(request):
+    import utilities_common.bgp_util as bgp_util
+
+    def mock_show_bgp_summary(
+        vtysh_cmd, bgp_namespace, vtysh_shell_cmd=constants.RVTYSH_COMMAND
+    ):
+        if os.path.isfile(bgp_mocked_json):
+            with open(bgp_mocked_json) as json_data:
+                mock_frr_data = json_data.read()
+            return mock_frr_data
+        return ""
+
+    if request.param == 'v4':
+        bgp_mocked_json = os.path.join(
+            test_path, 'mock_tables', 'ipv4_bgp_summary_chassis.json')
+    elif request.param == 'v6':
+        bgp_mocked_json = os.path.join(
+            test_path, 'mock_tables', 'ipv6_bgp_summary_chassis.json')
+
+    bgp_util.run_bgp_command = mock.MagicMock(
+        return_value=mock_show_bgp_summary("", ""))
+
+
+@pytest.fixture
 def setup_t1_topo():
     dbconnector.topo = "t1"
     yield
     dbconnector.topo = None
+
 
 @pytest.fixture
 def setup_single_bgp_instance(request):
@@ -151,7 +175,7 @@ def setup_single_bgp_instance(request):
                 mock_frr_data = json_data.read()
             return mock_frr_data
         return ""
-    
+
     def mock_run_bgp_command_for_static(vtysh_cmd, bgp_namespace="", vtysh_shell_cmd=constants.RVTYSH_COMMAND):
         if vtysh_cmd == "show ip route vrf all static":
             return config_int_ip_common.show_ip_route_with_static_expected_output
@@ -176,7 +200,7 @@ def setup_single_bgp_instance(request):
         else:
             return ""
 
-            
+
     if any ([request.param == 'ipv6_route_err', request.param == 'ip_route',\
              request.param == 'ip_specific_route', request.param == 'ip_special_route',\
              request.param == 'ipv6_route', request.param == 'ipv6_specific_route']):
@@ -248,7 +272,7 @@ def setup_multi_asic_bgp_instance(request):
         if m_asic_json_file.startswith('bgp_v4_network') or \
             m_asic_json_file.startswith('bgp_v6_network'):
             return mock_show_bgp_network_multi_asic(m_asic_json_file)
-        
+
         if m_asic_json_file.startswith('bgp_v4_neighbor') or \
             m_asic_json_file.startswith('bgp_v6_neighbor'):
             return mock_show_bgp_neighbor_multi_asic(m_asic_json_file, bgp_namespace)

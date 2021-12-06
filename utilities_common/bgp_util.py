@@ -97,6 +97,8 @@ def get_bgp_neighbors_dict(namespace=multi_asic.DEFAULT_NAMESPACE):
     static_neighbors = get_neighbor_dict_from_table(config_db, 'BGP_NEIGHBOR')
     static_internal_neighbors = get_neighbor_dict_from_table(config_db, 'BGP_INTERNAL_NEIGHBOR')
     static_neighbors.update(static_internal_neighbors)
+    static_internal_neighbors = get_neighbor_dict_from_table(config_db, 'BGP_VOQ_CHASSIS_NEIGHBOR')
+    static_neighbors.update(static_internal_neighbors)
     bgp_monitors = get_neighbor_dict_from_table(config_db, 'BGP_MONITORS')
     static_neighbors.update(bgp_monitors)
     dynamic_neighbors = get_dynamic_neighbor_subnet(config_db)

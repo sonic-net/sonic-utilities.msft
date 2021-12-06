@@ -4,6 +4,12 @@ import pytest
 
 from click.testing import CliRunner
 
+from utilities_common import multi_asic
+from utilities_common import constants
+
+from unittest.mock import patch
+
+from sonic_py_common import device_info
 show_bgp_summary_v4 = """\
 
 IPv4 Unicast Summary:
@@ -91,6 +97,117 @@ Try "summary --help" for help.
 Error: bgp summary from bgp container not in json format
 """
 
+show_bgp_summary_v4_chassis = """\
+
+IPv4 Unicast Summary:
+BGP router identifier 10.3.147.15, local AS number 65100 vrf-id 0
+BGP table version 21464
+RIB entries 25783, using 4950336 bytes of memory
+Peers 23, using 501768 KiB of memory
+Peer groups 3, using 192 bytes of memory
+
+
+Neighbhor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down      State/PfxRcd  NeighborName
+-----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
+10.0.0.1       4  65200       4632      11028         0      0       0  00:18:31             8514  ARISTA01T2
+10.0.0.9       4  65202       4632      11029         0      0       0  00:18:33             8514  ARISTA05T2
+10.0.0.13      4  65203       4632      11028         0      0       0  00:18:33             8514  ARISTA07T2
+10.0.0.17      4  65204       4631      11028         0      0       0  00:18:31             8514  ARISTA09T2
+10.0.0.21      4  65205       4632      11031         0      0       0  00:18:33             8514  ARISTA11T2
+10.0.0.25      4  65206       4632      11031         0      0       0  00:18:33             8514  ARISTA13T2
+10.0.0.29      4  65207       4632      11028         0      0       0  00:18:31             8514  ARISTA15T2
+10.0.0.33      4  65208       4633      11029         0      0       0  00:18:33             8514  ARISTA01T0
+10.0.0.37      4  65210       4632      11028         0      0       0  00:18:32             8514  ARISTA03T0
+10.0.0.39      4  65211       4629       6767         0      0       0  00:18:22             8514  ARISTA04T0
+10.0.0.41      4  65212       4632      11028         0      0       0  00:18:32             8514  ARISTA05T0
+10.0.0.43      4  65213       4629       6767         0      0       0  00:18:23             8514  ARISTA06T0
+10.0.0.45      4  65214       4633      11029         0      0       0  00:18:33             8514  ARISTA07T0
+10.0.0.47      4  65215       4629       6767         0      0       0  00:18:23             8514  ARISTA08T0
+10.0.0.49      4  65216       4633      11029         0      0       0  00:18:35             8514  ARISTA09T0
+10.0.0.51      4  65217       4633      11029         0      0       0  00:18:33             8514  ARISTA10T0
+10.0.0.53      4  65218       4632      11029         0      0       0  00:18:35             8514  ARISTA11T0
+10.0.0.55      4  65219       4632      11029         0      0       0  00:18:33             8514  ARISTA12T0
+10.0.0.57      4  65220       4632      11029         0      0       0  00:18:35             8514  ARISTA13T0
+10.0.0.59      4  65221       4632      11029         0      0       0  00:18:33             8514  ARISTA14T0
+
+Total number of neighbors 20
+"""
+
+show_bgp_summary_v6_chassis = """\
+
+IPv6 Unicast Summary:
+BGP router identifier 10.3.147.15, local AS number 65100 vrf-id 0
+BGP table version 12971
+RIB entries 25783, using 4950336 bytes of memory
+Peers 23, using 501768 KiB of memory
+Peer groups 3, using 192 bytes of memory
+
+
+Neighbhor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down      State/PfxRcd  NeighborName
+-----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  --------------
+fc00::1a       4  65203       4438       6578         0      0       0  00:08:57             8514  ARISTA07T2
+fc00::2        4  65200       4439       6578         0      0       0  00:08:56             8513  ARISTA01T2
+fc00::2a       4  65205       4439       6578         0      0       0  00:08:57             8514  ARISTA11T2
+fc00::3a       4  65207       4439       6578         0      0       0  00:08:57             8514  ARISTA15T2
+fc00::4a       4  65210       4439       6579         0      0       0  00:08:59             8514  ARISTA03T0
+fc00::4e       4  65211       4440       6579         0      0       0  00:09:00             8514  ARISTA04T0
+fc00::5a       4  65214       4440       6579         0      0       0  00:09:00             8514  ARISTA07T0
+fc00::5e       4  65215       4438       6576         0      0       0  00:08:50             8514  ARISTA08T0
+fc00::6a       4  65218       4441       6580         0      0       0  00:09:01             8514  ARISTA11T0
+fc00::6e       4  65219       4442       6580         0      0       0  00:09:01             8514  ARISTA12T0
+fc00::7a       4  65222       4441       6580         0      0       0  00:09:01             8514  ARISTA15T0
+fc00::12       4  65202       4438       6578         0      0       0  00:08:57             8514  ARISTA05T2
+fc00::22       4  65204       4438       6578         0      0       0  00:08:57             8514  ARISTA09T2
+fc00::32       4  65206       4438       6578         0      0       0  00:08:57             8514  ARISTA13T2
+fc00::42       4  65208       4442       6580         0      0       0  00:09:01             8514  ARISTA01T0
+fc00::52       4  65212       4439       6579         0      0       0  00:08:59             8514  ARISTA05T0
+fc00::56       4  65213       4439       6579         0      0       0  00:08:59             8514  ARISTA06T0
+fc00::62       4  65216       4438       6576         0      0       0  00:08:50             8514  ARISTA09T0
+fc00::66       4  65217       4442       6580         0      0       0  00:09:01             8514  ARISTA10T0
+fc00::72       4  65220       4441       6580         0      0       0  00:09:01             8514  ARISTA13T0
+
+Total number of neighbors 20
+"""
+
+show_bgp_summary_v4_all_chassis = """\
+
+IPv4 Unicast Summary:
+BGP router identifier 10.3.147.15, local AS number 65100 vrf-id 0
+BGP table version 21464
+RIB entries 25783, using 4950336 bytes of memory
+Peers 23, using 501768 KiB of memory
+Peer groups 3, using 192 bytes of memory
+
+
+Neighbhor      V     AS    MsgRcvd    MsgSent    TblVer    InQ    OutQ  Up/Down    State/PfxRcd    NeighborName
+-----------  ---  -----  ---------  ---------  --------  -----  ------  ---------  --------------  ------------------
+3.3.3.6        4  65100          0          0         0      0       0  never      Connect         str2-chassis-lc6-1
+3.3.3.7        4  65100        808     178891         0      0       0  00:17:47   1458            str2-chassis-lc7-1
+10.0.0.1       4  65200       4632      11028         0      0       0  00:18:31   8514            ARISTA01T2
+10.0.0.9       4  65202       4632      11029         0      0       0  00:18:33   8514            ARISTA05T2
+10.0.0.13      4  65203       4632      11028         0      0       0  00:18:33   8514            ARISTA07T2
+10.0.0.17      4  65204       4631      11028         0      0       0  00:18:31   8514            ARISTA09T2
+10.0.0.21      4  65205       4632      11031         0      0       0  00:18:33   8514            ARISTA11T2
+10.0.0.25      4  65206       4632      11031         0      0       0  00:18:33   8514            ARISTA13T2
+10.0.0.29      4  65207       4632      11028         0      0       0  00:18:31   8514            ARISTA15T2
+10.0.0.33      4  65208       4633      11029         0      0       0  00:18:33   8514            ARISTA01T0
+10.0.0.37      4  65210       4632      11028         0      0       0  00:18:32   8514            ARISTA03T0
+10.0.0.39      4  65211       4629       6767         0      0       0  00:18:22   8514            ARISTA04T0
+10.0.0.41      4  65212       4632      11028         0      0       0  00:18:32   8514            ARISTA05T0
+10.0.0.43      4  65213       4629       6767         0      0       0  00:18:23   8514            ARISTA06T0
+10.0.0.45      4  65214       4633      11029         0      0       0  00:18:33   8514            ARISTA07T0
+10.0.0.47      4  65215       4629       6767         0      0       0  00:18:23   8514            ARISTA08T0
+10.0.0.49      4  65216       4633      11029         0      0       0  00:18:35   8514            ARISTA09T0
+10.0.0.51      4  65217       4633      11029         0      0       0  00:18:33   8514            ARISTA10T0
+10.0.0.53      4  65218       4632      11029         0      0       0  00:18:35   8514            ARISTA11T0
+10.0.0.55      4  65219       4632      11029         0      0       0  00:18:33   8514            ARISTA12T0
+10.0.0.57      4  65220       4632      11029         0      0       0  00:18:35   8514            ARISTA13T0
+10.0.0.59      4  65221       4632      11029         0      0       0  00:18:33   8514            ARISTA14T0
+10.0.0.61      4  65222       4633      11029         0      0       0  00:18:33   8514            INT_NEIGH0
+
+Total number of neighbors 23
+"""
+
 
 class TestBgpCommands(object):
     @classmethod
@@ -139,3 +256,66 @@ class TestBgpCommands(object):
         print("{}".format(result.output))
         assert result.exit_code == 2
         assert result.output == show_error_invalid_json
+
+    def display_external(self):
+        return constants.DISPLAY_EXTERNAL
+
+    def display_all(self):
+        return constants.DISPLAY_ALL
+
+    @pytest.mark.parametrize(
+        'setup_single_bgp_instance_chassis', ['v4'],
+        indirect=['setup_single_bgp_instance_chassis']
+    )
+    @patch.object(multi_asic.MultiAsic, 'get_display_option', display_external)
+    @patch('sonic_py_common.device_info.get_platform_info')
+    def test_bgp_summary_v4_chassis(
+        self, mock_is_chassis, setup_bgp_commands,
+        setup_single_bgp_instance_chassis
+    ):
+        mock_is_chassis.return_value = {'switch_type': 'voq'}
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ip"].commands["bgp"].commands["summary"], [])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_bgp_summary_v4_chassis
+
+    @pytest.mark.parametrize(
+        'setup_single_bgp_instance_chassis', ['v6'],
+        indirect=['setup_single_bgp_instance_chassis']
+    )
+    @patch.object(multi_asic.MultiAsic, 'get_display_option', display_external)
+    @patch('sonic_py_common.device_info.get_platform_info')
+    def test_bgp_summary_v6_chassis(
+        self, mock_is_chassis, setup_bgp_commands,
+        setup_single_bgp_instance_chassis
+    ):
+        mock_is_chassis.return_value = {'switch_type': 'voq'}
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ipv6"].commands["bgp"].commands["summary"], [])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_bgp_summary_v6_chassis
+
+    @pytest.mark.parametrize(
+        'setup_single_bgp_instance_chassis', ['v4'],
+        indirect=['setup_single_bgp_instance_chassis']
+    )
+    @patch.object(multi_asic.MultiAsic, 'get_display_option', display_all)
+    @patch('sonic_py_common.device_info.get_platform_info')
+    def test_bgp_summary_v4_all_chassis(
+        self, mock_is_chassis, setup_bgp_commands,
+        setup_single_bgp_instance_chassis
+    ):
+        mock_is_chassis.return_value = {'switch_type': 'voq'}
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ip"].commands["bgp"].commands["summary"], [])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_bgp_summary_v4_all_chassis

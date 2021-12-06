@@ -1533,6 +1533,26 @@
         "nhopself": "0",
         "rrclient": "0"
     },
+    "BGP_VOQ_CHASSIS_NEIGHBOR|3.3.3.6": {
+        "admin_status": "up",
+        "asn": "65100",
+        "holdtime": "0",
+        "keepalive": "0",
+        "local_addr": "3.3.3.3",
+        "name": "str2-chassis-lc6-1",
+        "nhopself": "0",
+        "rrclient": "0"
+    },
+    "BGP_VOQ_CHASSIS_NEIGHBOR|3.3.3.7": {
+        "admin_status": "up",
+        "asn": "65100",
+        "holdtime": "0",
+        "keepalive": "0",
+        "local_addr": "3.3.3.3",
+        "name": "str2-chassis-lc7-1",
+        "nhopself": "0",
+        "rrclient": "0"
+    },
     "FLEX_COUNTER_TABLE|QUEUE": {
             "POLL_INTERVAL": "10000",
             "FLEX_COUNTER_STATUS": "enable"
