@@ -22,7 +22,7 @@ def handle_techsupport_creation_event(dump_name, db):
     file_path = os.path.join(TS_DIR, dump_name)
     if not verify_recent_file_creation(file_path):
         return
-    _ , num_bytes = get_stats(os.path.join(TS_DIR, TS_PTRN))
+    _ , num_bytes = get_stats(os.path.join(TS_DIR, TS_PTRN_GLOB))
 
     if db.get(CFG_DB, AUTO_TS, CFG_STATE) != "enabled":
         msg = "techsupport_cleanup is disabled. No cleanup is performed. current size occupied : {}"
@@ -40,7 +40,7 @@ def handle_techsupport_creation_event(dump_name, db):
         syslog.syslog(syslog.LOG_NOTICE, msg.format(pretty_size(num_bytes)))
         return
 
-    removed_files = cleanup_process(max_ts, TS_PTRN, TS_DIR)
+    removed_files = cleanup_process(max_ts, TS_PTRN_GLOB, TS_DIR)
     clean_state_db_entries(removed_files, db)
 
 

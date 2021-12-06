@@ -8,6 +8,7 @@ import os
 import time
 import argparse
 import syslog
+import re
 from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.auto_techsupport_helper import *
 
@@ -54,7 +55,6 @@ class CriticalProcCoreDumpHandle():
         self.db = db
         self.proc_mp = {}
         self.core_ts_map = {}
-        self.curr_ts_list = []
 
     def handle_core_dump_creation_event(self):
         file_path = os.path.join(CORE_DUMP_DIR, self.core_name)
@@ -93,7 +93,7 @@ class CriticalProcCoreDumpHandle():
             since_cfg = self.get_since_arg()
             new_file = self.invoke_ts_cmd(since_cfg)
             if new_file:
-                self.write_to_state_db(int(time.time()), new_file[0])
+                self.write_to_state_db(int(time.time()), new_file)
 
     def write_to_state_db(self, timestamp, ts_dump):
         name = strip_ts_ext(ts_dump)
@@ -111,26 +111,33 @@ class CriticalProcCoreDumpHandle():
             return since_cfg
         return SINCE_DEFAULT
 
+    def parse_ts_dump_name(self, ts_stdout):
+        """ Figure out the ts_dump name from the techsupport stdout """
+        matches = re.findall(TS_PTRN, ts_stdout)
+        if matches:
+            return matches[-1]
+        syslog.syslog(syslog.LOG_ERR, "stdout of the 'show techsupport' cmd doesn't have the dump name")
+        return ""
+
     def invoke_ts_cmd(self, since_cfg):
         since_cfg = "'" + since_cfg + "'"
-        cmd  = " ".join(["show", "techsupport", "--since", since_cfg])
-        rc, _, stderr = subprocess_exec(["show", "techsupport", "--since", since_cfg], env=ENV_VAR)
+        cmd_opts = ["show", "techsupport", "--silent", "--since", since_cfg]
+        cmd  = " ".join(cmd_opts)
+        rc, stdout, stderr = subprocess_exec(cmd_opts, env=ENV_VAR)
         if not rc:
             syslog.syslog(syslog.LOG_ERR, "show techsupport failed with exit code {}, stderr:{}".format(rc, stderr))
-        new_list = get_ts_dumps(True)
-        diff = list(set(new_list).difference(set(self.curr_ts_list)))
-        self.curr_ts_list = new_list
-        if not diff:
+        new_dump = self.parse_ts_dump_name(stdout)
+        if not new_dump:
             syslog.syslog(syslog.LOG_ERR, "{} was run, but no techsupport dump is found".format(cmd))
         else:
-            syslog.syslog(syslog.LOG_INFO, "{} is successful, {} is created".format(cmd, diff))
-        return diff
+            syslog.syslog(syslog.LOG_INFO, "{} is successful, {} is created".format(cmd, new_dump))
+        return new_dump
 
     def verify_rate_limit_intervals(self, global_cooloff, container_cooloff):
         """Verify both the global and per-proc rate_limit_intervals have passed"""
-        self.curr_ts_list = get_ts_dumps(True)
-        if global_cooloff and self.curr_ts_list:
-            last_ts_dump_creation = os.path.getmtime(self.curr_ts_list[-1])
+        curr_ts_list = get_ts_dumps(True)
+        if global_cooloff and curr_ts_list:
+            last_ts_dump_creation = os.path.getmtime(curr_ts_list[-1])
             if time.time() - last_ts_dump_creation < global_cooloff:
                 msg = "Global rate_limit_interval period has not passed. Techsupport Invocation is skipped. Core: {}"
                 syslog.syslog(syslog.LOG_INFO, msg.format(self.core_name))

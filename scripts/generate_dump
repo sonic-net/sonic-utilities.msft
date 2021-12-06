@@ -1339,8 +1339,7 @@ main() {
     fi
 
     # Invoke the TechSupport Cleanup Hook
-    setsid $(echo > /tmp/techsupport_cleanup.log;
-             python3 /usr/local/bin/techsupport_cleanup.py ${TARFILE} &>> /tmp/techsupport_cleanup.log) &
+    setsid python3 /usr/local/bin/techsupport_cleanup.py ${TARFILE} &> /tmp/techsupport_cleanup.log &
 
     echo ${TARFILE}
     
