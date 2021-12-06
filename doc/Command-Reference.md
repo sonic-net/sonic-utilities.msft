@@ -6,6 +6,7 @@
 * [Introduction](#introduction)
 * [Basic Tasks](#basic-tasks)
   * [SSH Login](#ssh-login)
+  * [Show Management Interface](#show-management-interface)
   * [Configuring Management Interface](#configuring-management-interface)
 * [Getting Help](#getting-help)
   * [Help for Config Commands](#help-for-config-commands)
@@ -88,6 +89,7 @@
   * [Loading Management Configuration](#loading-management-configuration)
   * [Saving Configuration to a File for Persistence](saving-configuration-to-a-file-for-persistence)
  * [Loopback Interfaces](#loopback-interfaces)
+    * [Loopback show commands](#loopback-show-commands)
     * [Loopback config commands](#loopback-config-commands)
 * [VRF Configuration](#vrf-configuration)
     * [VRF show commands](#vrf-show-commands)
@@ -253,6 +255,10 @@ Refer the following section for configuring the IP address for management interf
 By default, login takes the user to the default prompt from which all the show commands can be executed.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#basic-tasks)
+
+### Show Management Interface
+
+Please check [show ip interfaces](#show-ip-interfaces)
 
 ### Configuring Management Interface
 
@@ -4267,7 +4273,7 @@ This sub-section explains the various IP protocol specific show commands that ar
 4) prefix-list
 5) protocol
 
-**show ip route**
+#### show ip route
 
 This command displays either all the route entries from the routing table or a specific route.
 
@@ -4322,7 +4328,7 @@ This command displays either all the route entries from the routing table or a s
        * directly connected, Loopback11
    ```
 
-**show ip interfaces**
+#### show ip interfaces
 
 This command displays the details about all the Layer3 IP interfaces in the device for which IP address has been assigned.
 The type of interfaces include the following.
@@ -4357,7 +4363,7 @@ The type of interfaces include the following.
   lo                              127.0.0.1/8           up/up           N/A              N/A
   ```
 
-**show ip protocol**
+#### show ip protocol
 
 This command displays the route-map that is configured for the routing protocol.
 Refer the routing stack [Quagga Command Reference](https://www.quagga.net/docs/quagga.pdf) or [FRR Command Reference](https://buildmedia.readthedocs.org/media/pdf/frrouting/latest/frrouting.pdf) to know more about this command.
@@ -5046,7 +5052,11 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#loadin
 
 ## Loopback Interfaces
 
-### Loopback Config commands
+### Loopback show commands
+
+Please check [show ip interfaces](#show-ip-interfaces)
+
+### Loopback config commands
 
 This sub-section explains how to create and delete loopback interfaces.
 
