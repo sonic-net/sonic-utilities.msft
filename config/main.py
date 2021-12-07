@@ -906,9 +906,15 @@ def cli_sroute_to_config(ctx, command_str, strict_nh = True):
     try:
         ipaddress.ip_network(ip_prefix)
         if 'nexthop' in config_entry:
-            nh = config_entry['nexthop'].split(',')
-            for ip in nh:
-                ipaddress.ip_address(ip)
+            nh_list = config_entry['nexthop'].split(',')
+            for nh in nh_list:
+                # Nexthop to portchannel
+                if nh.startswith('PortChannel'):
+                    config_db = ctx.obj['config_db']
+                    if not nh in config_db.get_keys('PORTCHANNEL'):
+                        ctx.fail("portchannel does not exist.")
+                else:
+                    ipaddress.ip_address(nh)
     except ValueError:
         ctx.fail("ip address is not valid.")
 

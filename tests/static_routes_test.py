@@ -25,6 +25,9 @@ Error: Not found {} in {}
 ERROR_INVALID_IP = '''
 Error: ip address is not valid.
 '''
+ERROR_INVALID_PORTCHANNEL = '''
+Error: portchannel does not exist.
+'''
 
 
 class TestStaticRoutes(object):
@@ -50,6 +53,17 @@ class TestStaticRoutes(object):
         ["prefix", "1.2.3.4/32", "nexthop", "30.0.0.5"], obj=obj)
         print(result.exit_code, result.output)
         assert not '1.2.3.4/32' in db.cfgdb.get_table('STATIC_ROUTE')
+
+    def test_invalid_portchannel_static_route(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db':db.cfgdb}
+
+        # config route add prefix 1.2.3.4/32 nexthop PortChannel0101
+        result = runner.invoke(config.config.commands["route"].commands["add"], \
+        ["prefix", "1.2.3.4/32", "nexthop", "PortChannel0101"], obj=obj)
+        print(result.exit_code, result.output)
+        assert ERROR_INVALID_PORTCHANNEL in result.output
 
     def test_static_route_invalid_prefix_ip(self):
         db = Db()
