@@ -1,6 +1,7 @@
 import sys
 import os
 from unittest import mock
+from unittest.mock import MagicMock, patch
 
 from .mock_tables import dbconnector
 
@@ -189,3 +190,54 @@ class TestSfputil(object):
         expected_output_ethernet0 = expected_output[:1]
         output = sfputil.fetch_error_status_from_state_db('Ethernet0', db.db)
         assert output == expected_output_ethernet0
+
+    @patch('sfputil.main.platform_chassis')
+    @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    def test_show_firmware_version(self, mock_chassis):
+        mock_sfp = MagicMock()
+        mock_api = MagicMock()
+        mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
+        mock_sfp.get_presence.return_value = True
+        mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
+        mock_api.get_module_fw_info.return_value = {'info' : ""}
+        runner = CliRunner()
+        result = runner.invoke(sfputil.cli.commands['show'].commands['fwversion'], ["Ethernet0"])
+        assert result.exit_code == 0
+
+    @patch('sfputil.main.platform_chassis')
+    @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    def test_unlock_firmware(self, mock_chassis):
+        mock_sfp = MagicMock()
+        mock_api = MagicMock()
+        mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
+        mock_sfp.get_presence.return_value = True
+        mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
+        mock_api.cdb_enter_host_password.return_value = 0
+        runner = CliRunner()
+        result = runner.invoke(sfputil.cli.commands['firmware'].commands['unlock'], ["Ethernet0"])
+        assert result.exit_code == 0
+
+
+    @patch('sfputil.main.platform_chassis')
+    @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    def test_run_firmwre(self, mock_chassis):
+        mock_sfp = MagicMock()
+        mock_api = MagicMock()
+        mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
+        mock_sfp.get_presence.return_value = True
+        mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
+        mock_api.cdb_run_firmware.return_value = 1
+        status = sfputil.run_firmware("Ethernet0", 1)
+        assert status == 1
+
+    @patch('sfputil.main.platform_chassis')
+    @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    def test_commit_firmwre(self, mock_chassis):
+        mock_sfp = MagicMock()
+        mock_api = MagicMock()
+        mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
+        mock_sfp.get_presence.return_value = True
+        mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
+        mock_api.cdb_commit_firmware.return_value = 1
+        status = sfputil.commit_firmware("Ethernet0")
+        assert status == 1
