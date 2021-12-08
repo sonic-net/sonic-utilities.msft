@@ -181,6 +181,39 @@ class TestConfigWrapper(unittest.TestCase):
         # Assert
         self.assertCountEqual(["another_table", "yet_another_table"], empty_tables)
 
+    def test_remove_empty_tables__no_empty_tables__returns_whole_config(self):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+        config = {"any_table": {"key": "value"}}
+
+        # Act
+        actual = config_wrapper.remove_empty_tables(config)
+
+        # Assert
+        self.assertDictEqual({"any_table": {"key": "value"}}, actual)
+
+    def test_remove_empty_tables__single_empty_tables__returns_config_without_empty_table(self):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+        config = {"any_table": {"key": "value"}, "another_table":{}}
+
+        # Act
+        actual = config_wrapper.remove_empty_tables(config)
+
+        # Assert
+        self.assertDictEqual({"any_table": {"key": "value"}}, actual)
+
+    def test_remove_empty_tables__multiple_empty_tables__returns_config_without_empty_tables(self):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+        config = {"any_table": {"key": "value"}, "another_table":{}, "yet_another_table":{}}
+
+        # Act
+        actual = config_wrapper.remove_empty_tables(config)
+
+        # Assert
+        self.assertDictEqual({"any_table": {"key": "value"}}, actual)
+
 class TestPatchWrapper(unittest.TestCase):
     def setUp(self):
         self.config_wrapper_mock = gu_common.ConfigWrapper()
@@ -666,3 +699,41 @@ class TestPathAddressing(unittest.TestCase):
               path="/PORTCHANNEL_INTERFACE/PortChannel0001|1.1.1.1~124",
               config=Files.CONFIG_DB_WITH_PORTCHANNEL_INTERFACE)
 
+    def test_has_path(self):
+        def check(config, path, expected):
+            actual=self.path_addressing.has_path(config, path)
+            self.assertEqual(expected, actual)
+
+        check(config={},
+              path="",
+              expected=True)
+        check(config={"TABLE":{}},
+              path="",
+              expected=True)
+        check(config={},
+              path="/TABLE",
+              expected=False)
+        check(config={"TABLE":{}},
+              path="/ANOTHER_TABLE",
+              expected=False)
+        check(config={"TABLE":{}},
+              path="/ANOTHER_TABLE",
+              expected=False)
+        check(config={"TABLE":{"key1":{"key11":{"key111":"value111"}}}},
+              path="/TABLE/key1/key11/key111",
+              expected=True)
+        check(config={"TABLE":{"key1":{"key11":{"key111":"value111"}}}},
+              path="/TABLE/key1",
+              expected=True)
+        check(config={"TABLE":{"key1":{"key11":{"key111":"value111"}}}},
+              path="/TABLE/key1/key1",
+              expected=False)
+        check(config={"ANOTHER_TABLE": {}, "TABLE":{"key1":{"key11":{"key111":"value111"}}}},
+              path="/TABLE/key1/key11",
+              expected=True)
+        check(config={"ANOTHER_TABLE": {}, "TABLE":{"key1":{"key11":{"key111":[1,2,3,4,5]}}}},
+              path="/TABLE/key1/key11/key111/4",
+              expected=True)
+        check(config={"ANOTHER_TABLE": {}, "TABLE":{"key1":{"key11":{"key111":[1,2,3,4,5]}}}},
+              path="/TABLE/key1/key11/key111/5",
+              expected=False)

@@ -1865,3 +1865,358 @@ class TestPatchSorter(unittest.TestCase):
             simulated_config = move.apply(simulated_config)
             self.assertTrue(config_wrapper.validate_config_db_config(simulated_config))
         self.assertEqual(target_config, simulated_config)
+
+class TestChangeWrapper(unittest.TestCase):
+    def setUp(self):
+        config_splitter = ps.ConfigSplitter(ConfigWrapper(), [])
+        self.wrapper = ps.ChangeWrapper(PatchWrapper(), config_splitter)
+
+    def test_adjust_changes(self):
+        def check(changes, assumed, remaining, expected):
+            actual = self.wrapper.adjust_changes(changes, assumed, remaining)
+            self.assertEqual(len(expected), len(actual))
+
+            for idx in range(len(expected)):
+                self.assertCountEqual(expected[idx].patch, actual[idx].patch, f"JsonChange idx {idx} did not match")
+
+        check([], {}, {}, [])
+        # Add table to empty config
+        check(changes=[JsonChange(jsonpatch.JsonPatch([{"op":"add", "path":"/TABLE1", "value":{}}]))],
+              assumed={},
+              remaining={},
+              expected=[JsonChange(jsonpatch.JsonPatch([{"op":"add", "path":"/TABLE1", "value":{}}]))])
+        # Add table, while tables exist in assumed and remaining
+        check(changes=[JsonChange(jsonpatch.JsonPatch([{"op":"add", "path":"/TABLE3", "value":{}}]))],
+              assumed={"TABLE1":{}},
+              remaining={"TABLE2":{}},
+              expected=[JsonChange(jsonpatch.JsonPatch([{"op":"add", "path":"/TABLE3", "value":{}}]))])
+        # Add table with single field, while table has multiple fields in remaining
+        check(changes=[JsonChange(jsonpatch.JsonPatch([{"op":"add", "path":"/TABLE3", "value":{"key3":"value3"}}]))],
+              assumed={"TABLE1":{}},
+              remaining={"TABLE2":{}, "TABLE3":{"key1":"value1", "key2":"value2"}},
+              expected=[JsonChange(jsonpatch.JsonPatch([{"op":"add", "path":"/TABLE3/key3", "value":"value3"}]))])
+        # Remove table to empty the config
+        check(changes=[JsonChange(jsonpatch.JsonPatch([{"op":"remove", "path":"/TABLE1"}]))],
+              assumed={"TABLE1":{}},
+              remaining={},
+              expected=[JsonChange(jsonpatch.JsonPatch([{"op":"remove", "path":"/TABLE1"}]))])
+        # Remove table, while other tables exist in assumed and remaining
+        check(changes=[JsonChange(jsonpatch.JsonPatch([{"op":"remove", "path":"/TABLE3"}]))],
+              assumed={"TABLE1":{}, "TABLE3":{}},
+              remaining={"TABLE2":{}},
+              expected=[JsonChange(jsonpatch.JsonPatch([{"op":"remove", "path":"/TABLE3"}]))])
+        # Remove table with single field, while table has multiple fields in remaining
+        check(changes=[JsonChange(jsonpatch.JsonPatch([{"op":"remove", "path":"/TABLE3"}]))],
+              assumed={"TABLE1":{}, "TABLE3":{"key3":"value3"}},
+              remaining={"TABLE2":{}, "TABLE3":{"key1":"value1", "key2":"value2"}},
+              expected=[JsonChange(jsonpatch.JsonPatch([{"op":"remove", "path":"/TABLE3/key3"}]))])
+        # Change that does nothing
+        check(changes=[JsonChange(jsonpatch.JsonPatch([{"op":"replace", "path":"/TABLE1", "value":{}}]))],
+              assumed={"TABLE1":{}},
+              remaining={},
+              expected=[JsonChange(jsonpatch.JsonPatch([]))])
+        # Replace table that exist in remaining
+        check(changes=[JsonChange(jsonpatch.JsonPatch(
+                      [{"op":"replace", "path":"/TABLE2", "value":{"key3":"value3", "key4":"value4"}}]))],
+              assumed={"TABLE1":{}, "TABLE2":{}},
+              remaining={"TABLE2":{"key1":"value1", "key2":"value2"}},
+              expected=[JsonChange(jsonpatch.JsonPatch(
+                        [{"op":"add", "path":"/TABLE2/key3", "value":"value3"},
+                         {"op":"add", "path":"/TABLE2/key4", "value":"value4"}]))])
+        # Multiple changes
+        check(changes=[JsonChange(jsonpatch.JsonPatch([{"op":"replace", "path":"/TABLE1", "value":{}}])),
+                       JsonChange(jsonpatch.JsonPatch([{"op":"add", "path":"/TABLE3", "value":{"key34":"value34"}}])),
+                       JsonChange(jsonpatch.JsonPatch([{"op":"replace", "path":"/TABLE3", "value":{}}])),
+                       JsonChange(jsonpatch.JsonPatch([{"op":"add", "path":"/TABLE3/key33", "value":"value33"}])),
+                       JsonChange(jsonpatch.JsonPatch([{"op":"remove", "path":"/TABLE3"}]))],
+              assumed={"TABLE1":{},"TABLE3":{}},
+              remaining={"TABLE3":{"key31":"value31", "key32":"value32"}},
+              expected=[JsonChange(jsonpatch.JsonPatch([])),
+                        JsonChange(jsonpatch.JsonPatch([{"op":"add", "path":"/TABLE3/key34", "value":"value34"}])),
+                        JsonChange(jsonpatch.JsonPatch([{"op":"remove", "path":"/TABLE3/key34"}])),
+                        JsonChange(jsonpatch.JsonPatch([{"op":"add", "path":"/TABLE3/key33", "value":"value33"}])),
+                        JsonChange(jsonpatch.JsonPatch([{"op":"remove", "path":"/TABLE3/key33"}]))])
+
+class TestConfigSplitter(unittest.TestCase):
+    def test_split_yang_non_yang_distinct_field_path(self):
+        def check(config, expected_yang, expected_non_yang, ignore_paths_list=[], ignore_tables_without_yang=False):
+            config_wrapper = ConfigWrapper()
+            inner_config_splitters = []
+            if ignore_tables_without_yang:
+                inner_config_splitters.append(ps.TablesWithoutYangConfigSplitter(config_wrapper))
+            if ignore_paths_list:
+                inner_config_splitters.append(ps.IgnorePathsFromYangConfigSplitter(ignore_paths_list, config_wrapper))
+
+            # ConfigWrapper() loads yang models from YANG_DIR
+            splitter = ps.ConfigSplitter(ConfigWrapper(), inner_config_splitters)
+            actual_yang, actual_non_yang = splitter.split_yang_non_yang_distinct_field_path(config)
+
+            self.assertDictEqual(expected_yang, actual_yang)
+            self.assertDictEqual(expected_non_yang, actual_non_yang)
+
+        # test no flags
+        check({}, {}, {})
+        check(config={"ACL_TABLE":{"key1":"value1"}, "NON_YANG":{"key2":"value2"}, "VLAN":{"key31":"value31"}, "ANOTHER_NON_YANG":{"key41":"value41"}},
+              expected_yang={"ACL_TABLE":{"key1":"value1"}, "VLAN":{"key31":"value31"}, "NON_YANG":{"key2":"value2"}, "ANOTHER_NON_YANG":{"key41":"value41"}},
+              expected_non_yang={})
+
+        # test ignore_tables_without_yang
+        check({}, {}, {}, [], True)
+        self.assertRaises(ValueError, check, {"ACL_TABLE":{}}, {"ACL_TABLE":{}}, {}, [], True) # ACL_TABLE has YANG model
+        check({"ACL_TABLE":{"key1":"value1"}}, {"ACL_TABLE":{"key1":"value1"}}, {}, [], True)
+        self.assertRaises(ValueError, check, {"ACL_TABLE":{}, "NON_YANG":{}}, {"ACL_TABLE":{}}, {"NON_YANG":{}},[], True)
+        check(config={"ACL_TABLE":{"key1":"value1"}, "NON_YANG":{"key2":"value2"}, "VLAN":{"key31":"value31"}, "ANOTHER_NON_YANG":{"key41":"value41"}},
+              expected_yang={"ACL_TABLE":{"key1":"value1"}, "VLAN":{"key31":"value31"}},
+              expected_non_yang={"NON_YANG":{"key2":"value2"}, "ANOTHER_NON_YANG":{"key41":"value41"}},
+              ignore_tables_without_yang=True)
+
+        # test ignore_paths_list
+        check({}, {}, {}, [""])
+        self.assertRaises(ValueError, check, {"ACL_TABLE":{}}, {"ACL_TABLE":{}}, {}, ["/VLAN"]) # VLAN has YANG model
+        self.assertRaises(ValueError, check, {"ACL_TABLE":{}}, {}, {"ACL_TABLE":{}}, ["/ACL_TABLE"])
+        check({"ACL_TABLE":{"key1":"value1"}}, {}, {"ACL_TABLE":{"key1":"value1"}}, ["/ACL_TABLE"])
+        check({"ACL_TABLE":{"key1":"value1"}}, {}, {"ACL_TABLE":{"key1":"value1"}}, ["/ACL_TABLE/key1"])
+        check(config={"NON_YANG":{"key1":"value1"},"ACL_TABLE":{"key2":"value2"}},
+              expected_yang={"NON_YANG":{"key1":"value1"}},
+              expected_non_yang={"ACL_TABLE":{"key2":"value2"}},
+              ignore_paths_list= ["/ACL_TABLE"])
+        check(config={"ACL_TABLE":{"key1":"value1"}, "VLAN":{"key31":"value31"}, "NON_YANG":{"key2":"value2"}, "ANOTHER_NON_YANG":{"key41":"value41"}},
+              expected_yang={"NON_YANG":{"key2":"value2"}, "ANOTHER_NON_YANG":{"key41":"value41"}},
+              expected_non_yang={"ACL_TABLE":{"key1":"value1"}, "VLAN":{"key31":"value31"}},
+              ignore_paths_list=["/VLAN/key31", "/ACL_TABLE"])
+        check(config={"ACL_TABLE":{"key1":"value1"}, "NON_YANG":{"key2":"value2"}, "VLAN":{"key31":"value31"}, "ANOTHER_NON_YANG":{"key41":"value41"}},
+              expected_yang={},
+              expected_non_yang={"ACL_TABLE":{"key1":"value1"}, "VLAN":{"key31":"value31"}, "NON_YANG":{"key2":"value2"}, "ANOTHER_NON_YANG":{"key41":"value41"}},
+              ignore_paths_list=["/VLAN/key31", "", "/ACL_TABLE"])
+
+        # test ignore_paths_list and ignore_tables_without_yang
+        check({}, {}, {}, [""])
+        self.assertRaises(ValueError, check, {"ACL_TABLE":{}}, {"ACL_TABLE":{}}, {}, ["/VLAN"], True) # VLAN has YANG model
+        self.assertRaises(ValueError, check, {"ACL_TABLE":{}}, {}, {"ACL_TABLE":{}}, ["/ACL_TABLE"], True)
+        check({"ACL_TABLE":{"key1":"value1"}}, {}, {"ACL_TABLE":{"key1":"value1"}}, ["/ACL_TABLE"], True)
+        check({"ACL_TABLE":{"key1":"value1"}}, {}, {"ACL_TABLE":{"key1":"value1"}}, ["/ACL_TABLE/key1"], True)
+        check(config={"NON_YANG":{"key1":"value1"},"ACL_TABLE":{"key2":"value2"}},
+              expected_yang={},
+              expected_non_yang={"NON_YANG":{"key1":"value1"},"ACL_TABLE":{"key2":"value2"}},
+              ignore_paths_list= ["/ACL_TABLE"],
+              ignore_tables_without_yang=True)
+        check(config={"ACL_TABLE":{"key1":"value1"}, "NON_YANG":{"key2":"value2"}, "VLAN":{"key31":"value31"}, "ANOTHER_NON_YANG":{"key41":"value41"}},
+              expected_yang={},
+              expected_non_yang={"ACL_TABLE":{"key1":"value1"}, "VLAN":{"key31":"value31"}, "NON_YANG":{"key2":"value2"}, "ANOTHER_NON_YANG":{"key41":"value41"}},
+              ignore_paths_list=["/VLAN/key31", "/ACL_TABLE"],
+              ignore_tables_without_yang=True)
+        check(config={"ACL_TABLE":{"key1":"value1"}, "NON_YANG":{"key2":"value2"}, "VLAN":{"key31":"value31"}, "ANOTHER_NON_YANG":{"key41":"value41"}},
+              expected_yang={},
+              expected_non_yang={"ACL_TABLE":{"key1":"value1"}, "VLAN":{"key31":"value31"}, "NON_YANG":{"key2":"value2"}, "ANOTHER_NON_YANG":{"key41":"value41"}},
+              ignore_paths_list=["/VLAN/key31", "", "/ACL_TABLE"],
+              ignore_tables_without_yang=True)
+
+    def test_merge_configs_with_distinct_field_path(self):
+        def check(config1, config2, expected=None):
+            splitter = ps.ConfigSplitter(ConfigWrapper(), [])
+
+            # merging config1 and config2
+            actual = splitter.merge_configs_with_distinct_field_path(config1, config2)
+            self.assertDictEqual(expected, actual)
+
+            # merging config2 and config1 - should be the same result
+            actual = splitter.merge_configs_with_distinct_field_path(config2, config1)
+            self.assertDictEqual(expected, actual)
+
+        check({}, {}, {})
+        check({"TABLE1":{}}, {}, {"TABLE1":{}})
+        check({"TABLE1":{}}, {"TABLE2": {}}, {"TABLE1":{}, "TABLE2":{}})
+        check({"TABLE1":{"key1": "value1"}}, {}, {"TABLE1":{"key1": "value1"}})
+        check({"TABLE1":{"key1": "value1"}}, {"TABLE1":{}}, {"TABLE1":{"key1": "value1"}})
+        check({"TABLE1":{"key1": "value1"}},
+              {"TABLE1":{"key2": "value2"}},
+              {"TABLE1":{"key1": "value1", "key2": "value2"}})
+        # keys the same
+        self.assertRaises(ValueError, check, {"TABLE1":{"key1": "value1"}}, {"TABLE1":{"key1": "value2"}})
+
+class TestNonStrictPatchSorter(unittest.TestCase):
+    def test_sort__invalid_yang_covered_config__failure(self):
+        # Arrange
+        sorter = self.__create_patch_sorter(valid_yang_covered_config=False)
+
+        # Act and assert
+        self.assertRaises(ValueError, sorter.sort, Files.MULTI_OPERATION_CONFIG_DB_PATCH)
+
+    def test_sort__invalid_yang_covered_config_patch_updating_tables_without_yang__failure(self):
+        # Arrange
+        sorter = self.__create_patch_sorter(valid_patch_only_tables_with_yang_models=False)
+
+        # Act and assert
+        self.assertRaises(ValueError, sorter.sort, Files.MULTI_OPERATION_CONFIG_DB_PATCH)
+
+    def test_sort__no_errors_algorithm_specified__calls_inner_patch_sorter(self):
+        # Arrange
+        patch = Mock()
+        algorithm = Mock()
+        non_yang_changes = [Mock()]
+        yang_changes = [Mock(), Mock()]
+        expected = non_yang_changes + yang_changes
+        sorter = self.__create_patch_sorter(patch, algorithm, non_yang_changes, yang_changes)
+
+        # Act
+        actual = sorter.sort(patch, algorithm)
+
+        # Assert
+        self.assertListEqual(expected, actual)
+
+    def test_sort__no_errors_algorithm_not_specified__calls_inner_patch_sorter(self):
+        # Arrange
+        patch = Mock()
+        non_yang_changes = [Mock()]
+        yang_changes = [Mock(), Mock()]
+        expected = non_yang_changes + yang_changes
+        sorter = self.__create_patch_sorter(patch, None, non_yang_changes, yang_changes)
+
+        # Act
+        actual = sorter.sort(patch)
+
+        # Assert
+        self.assertListEqual(expected, actual)
+
+    def __create_patch_sorter(self,
+                              patch=None,
+                              any_algorithm=None,
+                              any_adjusted_changes_non_yang=None,
+                              any_adjusted_changes_yang=None,
+                              valid_yang_covered_config=True,
+                              valid_patch_only_tables_with_yang_models=True):
+        ignore_paths_list = Mock()
+        config_wrapper = Mock()
+        patch_wrapper = Mock()
+        inner_patch_sorter = Mock()
+        change_wrapper = Mock()
+        config_splitter = Mock()
+
+        patch = patch if patch else Mock()
+        any_algorithm = any_algorithm if any_algorithm else ps.Algorithm.DFS
+        any_current_config = Mock()
+        any_target_config = Mock()
+        any_current_config_yang = Mock()
+        any_current_config_non_yang = Mock()
+        any_target_config_yang = Mock()
+        any_target_config_non_yang = Mock()
+        any_patch_non_yang = jsonpatch.JsonPatch([{"op":"add", "path":"/NON_YANG_TABLE", "value":{}}])
+        any_patch_yang = Mock()
+        any_changes_yang = [Mock()]
+        any_changes_non_yang = [JsonChange(any_patch_non_yang)]
+
+        config_wrapper.get_config_db_as_json.side_effect = \
+            [any_current_config]
+
+        patch_wrapper.simulate_patch.side_effect = \
+            create_side_effect_dict(
+                {(str(patch), str(any_current_config)):
+                    any_target_config})
+
+        config_splitter.split_yang_non_yang_distinct_field_path.side_effect = \
+            create_side_effect_dict(
+                {(str(any_current_config),): (any_current_config_yang, any_current_config_non_yang),
+                 (str(any_target_config),): (any_target_config_yang, any_target_config_non_yang)})
+
+        config_wrapper.validate_config_db_config.side_effect = \
+            create_side_effect_dict({(str(any_target_config_yang),): valid_yang_covered_config})
+
+        patch_wrapper.generate_patch.side_effect = \
+            create_side_effect_dict(
+                {(str(any_current_config_non_yang), str(any_target_config_non_yang)): any_patch_non_yang,
+                 (str(any_current_config_yang), str(any_target_config_yang)): any_patch_yang})
+
+        patch_wrapper.validate_config_db_patch_has_yang_models.side_effect = \
+            create_side_effect_dict(
+                {(str(any_patch_yang),): valid_patch_only_tables_with_yang_models})
+
+        inner_patch_sorter.sort.side_effect = \
+            create_side_effect_dict(
+                {(str(any_patch_yang), str(any_algorithm), str(any_current_config_yang)): any_changes_yang})
+
+        change_wrapper.adjust_changes.side_effect = \
+            create_side_effect_dict(
+                {(str(any_changes_non_yang), str(any_current_config_non_yang), str(any_current_config_yang)): any_adjusted_changes_non_yang,
+                 (str(any_changes_yang), str(any_current_config_yang), str(any_target_config_non_yang)): any_adjusted_changes_yang})
+
+        return ps.NonStrictPatchSorter(config_wrapper, patch_wrapper, config_splitter, change_wrapper, inner_patch_sorter)
+
+class TestStrictPatchSorter(unittest.TestCase):
+    def test_sort__patch_updating_tables_without_yang__failure(self):
+        # Arrange
+        patch = Mock()
+        sorter = self.__create_patch_sorter(patch, valid_patch_only_tables_with_yang_models=False)
+
+        # Act and assert
+        self.assertRaises(ValueError, sorter.sort, patch)
+
+    def test_sort__target_config_not_valid_according_to_yang__failure(self):
+        # Arrange
+        patch = Mock()
+        sorter = self.__create_patch_sorter(patch, valid_config_db=False)
+
+        # Act and assert
+        self.assertRaises(ValueError, sorter.sort, patch)
+
+    def test_sort__no_errors_algorithm_specified__calls_inner_patch_sorter(self):
+        # Arrange
+        patch = Mock()
+        algorithm = Mock()
+        changes = [Mock(), Mock(), Mock()]
+        sorter = self.__create_patch_sorter(patch, algorithm, changes)
+
+        # Act
+        actual = sorter.sort(patch, algorithm)
+
+        # Assert
+        self.assertListEqual(changes, actual)
+
+    def test_sort__no_errors_algorithm_not_specified__calls_inner_patch_sorter(self):
+        # Arrange
+        patch = Mock()
+        changes = [Mock(), Mock(), Mock()]
+        sorter = self.__create_patch_sorter(patch, None, changes)
+
+        # Act
+        actual = sorter.sort(patch)
+
+        # Assert
+        self.assertListEqual(changes, actual)
+
+    def __create_patch_sorter(self,
+                              patch=None,
+                              algorithm=None,
+                              changes=None,
+                              valid_patch_only_tables_with_yang_models=True,
+                              valid_config_db=True):
+        config_wrapper = Mock()
+        patch_wrapper = Mock()
+        inner_patch_sorter = Mock()
+
+        any_current_config = Mock()
+        any_target_config = Mock()
+        patch = patch if patch else Mock()
+        algorithm = algorithm if algorithm else ps.Algorithm.DFS
+
+        config_wrapper.get_config_db_as_json.side_effect = \
+            [any_current_config, any_target_config]
+
+        patch_wrapper.simulate_patch.side_effect = \
+            create_side_effect_dict(
+                {(str(patch), str(any_current_config)):
+                    any_target_config})
+
+        patch_wrapper.validate_config_db_patch_has_yang_models.side_effect = \
+            create_side_effect_dict(
+                {(str(patch),): valid_patch_only_tables_with_yang_models})
+
+        config_wrapper.validate_config_db_config.side_effect = \
+            create_side_effect_dict(
+                {(str(any_target_config),): valid_config_db})
+
+
+        inner_patch_sorter.sort.side_effect = \
+            create_side_effect_dict(
+                {(str(patch), str(algorithm)): changes})
+
+        return ps.StrictPatchSorter(config_wrapper, patch_wrapper, inner_patch_sorter)

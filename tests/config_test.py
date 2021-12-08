@@ -474,7 +474,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
         # Arrange
         expected_exit_code = 0
         expected_output = "Patch applied successfully"
-        expected_call_with_default_values = mock.call(self.any_patch, ConfigFormat.CONFIGDB, False, False)
+        expected_call_with_default_values = mock.call(self.any_patch, ConfigFormat.CONFIGDB, False, False, False, ())
         mock_generic_updater = mock.Mock()
         with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
             with mock.patch('builtins.open', mock.mock_open(read_data=self.any_patch_as_text)):
@@ -492,7 +492,9 @@ class TestGenericUpdateCommands(unittest.TestCase):
         # Arrange
         expected_exit_code = 0
         expected_output = "Patch applied successfully"
-        expected_call_with_non_default_values = mock.call(self.any_patch, ConfigFormat.SONICYANG, True, True)
+        expected_ignore_path_tuple = ('/ANY_TABLE', '/ANY_OTHER_TABLE/ANY_FIELD', '')
+        expected_call_with_non_default_values = \
+            mock.call(self.any_patch, ConfigFormat.SONICYANG, True, True, True, expected_ignore_path_tuple)
         mock_generic_updater = mock.Mock()
         with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
             with mock.patch('builtins.open', mock.mock_open(read_data=self.any_patch_as_text)):
@@ -502,6 +504,10 @@ class TestGenericUpdateCommands(unittest.TestCase):
                                             [self.any_path,
                                              "--format", ConfigFormat.SONICYANG.name,
                                              "--dry-run",
+                                             "--ignore-non-yang-tables",
+                                             "--ignore-path", "/ANY_TABLE",
+                                             "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                             "--ignore-path", "",
                                              "--verbose"],
                                             catch_exceptions=False)
 
@@ -532,13 +538,19 @@ class TestGenericUpdateCommands(unittest.TestCase):
     def test_apply_patch__optional_parameters_passed_correctly(self):
         self.validate_apply_patch_optional_parameter(
             ["--format", ConfigFormat.SONICYANG.name],
-            mock.call(self.any_patch, ConfigFormat.SONICYANG, False, False))
+            mock.call(self.any_patch, ConfigFormat.SONICYANG, False, False, False, ()))
         self.validate_apply_patch_optional_parameter(
             ["--verbose"],
-            mock.call(self.any_patch, ConfigFormat.CONFIGDB, True, False))
+            mock.call(self.any_patch, ConfigFormat.CONFIGDB, True, False, False, ()))
         self.validate_apply_patch_optional_parameter(
             ["--dry-run"],
-            mock.call(self.any_patch, ConfigFormat.CONFIGDB, False, True))
+            mock.call(self.any_patch, ConfigFormat.CONFIGDB, False, True, False, ()))
+        self.validate_apply_patch_optional_parameter(
+            ["--ignore-non-yang-tables"],
+            mock.call(self.any_patch, ConfigFormat.CONFIGDB, False, False, True, ()))
+        self.validate_apply_patch_optional_parameter(
+            ["--ignore-path", "/ANY_TABLE"],
+            mock.call(self.any_patch, ConfigFormat.CONFIGDB, False, False, False, ("/ANY_TABLE",)))
 
     def validate_apply_patch_optional_parameter(self, param_args, expected_call):
         # Arrange
@@ -587,7 +599,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
         # Arrange
         expected_exit_code = 0
         expected_output = "Config replaced successfully"
-        expected_call_with_default_values = mock.call(self.any_target_config, ConfigFormat.CONFIGDB, False, False)
+        expected_call_with_default_values = mock.call(self.any_target_config, ConfigFormat.CONFIGDB, False, False, False, ())
         mock_generic_updater = mock.Mock()
         with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
             with mock.patch('builtins.open', mock.mock_open(read_data=self.any_target_config_as_text)):
@@ -605,7 +617,9 @@ class TestGenericUpdateCommands(unittest.TestCase):
         # Arrange
         expected_exit_code = 0
         expected_output = "Config replaced successfully"
-        expected_call_with_non_default_values = mock.call(self.any_target_config, ConfigFormat.SONICYANG, True, True)
+        expected_ignore_path_tuple = ('/ANY_TABLE', '/ANY_OTHER_TABLE/ANY_FIELD', '')
+        expected_call_with_non_default_values = \
+            mock.call(self.any_target_config, ConfigFormat.SONICYANG, True, True, True, expected_ignore_path_tuple)
         mock_generic_updater = mock.Mock()
         with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
             with mock.patch('builtins.open', mock.mock_open(read_data=self.any_target_config_as_text)):
@@ -615,6 +629,10 @@ class TestGenericUpdateCommands(unittest.TestCase):
                                             [self.any_path,
                                              "--format", ConfigFormat.SONICYANG.name,
                                              "--dry-run",
+                                             "--ignore-non-yang-tables",
+                                             "--ignore-path", "/ANY_TABLE",
+                                             "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                             "--ignore-path", "",
                                              "--verbose"],
                                             catch_exceptions=False)
 
@@ -645,13 +663,19 @@ class TestGenericUpdateCommands(unittest.TestCase):
     def test_replace__optional_parameters_passed_correctly(self):
         self.validate_replace_optional_parameter(
             ["--format", ConfigFormat.SONICYANG.name],
-            mock.call(self.any_target_config, ConfigFormat.SONICYANG, False, False))
+            mock.call(self.any_target_config, ConfigFormat.SONICYANG, False, False, False, ()))
         self.validate_replace_optional_parameter(
             ["--verbose"],
-            mock.call(self.any_target_config, ConfigFormat.CONFIGDB, True, False))
+            mock.call(self.any_target_config, ConfigFormat.CONFIGDB, True, False, False, ()))
         self.validate_replace_optional_parameter(
             ["--dry-run"],
-            mock.call(self.any_target_config, ConfigFormat.CONFIGDB, False, True))
+            mock.call(self.any_target_config, ConfigFormat.CONFIGDB, False, True, False, ()))
+        self.validate_replace_optional_parameter(
+            ["--ignore-non-yang-tables"],
+            mock.call(self.any_target_config, ConfigFormat.CONFIGDB, False, False, True, ()))
+        self.validate_replace_optional_parameter(
+            ["--ignore-path", "/ANY_TABLE"],
+            mock.call(self.any_target_config, ConfigFormat.CONFIGDB, False, False, False, ("/ANY_TABLE",)))
 
     def validate_replace_optional_parameter(self, param_args, expected_call):
         # Arrange
@@ -700,7 +724,7 @@ class TestGenericUpdateCommands(unittest.TestCase):
         # Arrange
         expected_exit_code = 0
         expected_output = "Config rolled back successfully"
-        expected_call_with_default_values = mock.call(self.any_checkpoint_name, False, False)
+        expected_call_with_default_values = mock.call(self.any_checkpoint_name, False, False, False, ())
         mock_generic_updater = mock.Mock()
         with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
             # Act
@@ -716,7 +740,9 @@ class TestGenericUpdateCommands(unittest.TestCase):
         # Arrange
         expected_exit_code = 0
         expected_output = "Config rolled back successfully"
-        expected_call_with_non_default_values = mock.call(self.any_checkpoint_name, True, True)
+        expected_ignore_path_tuple = ('/ANY_TABLE', '/ANY_OTHER_TABLE/ANY_FIELD', '')
+        expected_call_with_non_default_values = \
+            mock.call(self.any_checkpoint_name, True, True, True, expected_ignore_path_tuple)
         mock_generic_updater = mock.Mock()
         with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
 
@@ -724,6 +750,10 @@ class TestGenericUpdateCommands(unittest.TestCase):
             result = self.runner.invoke(config.config.commands["rollback"],
                                         [self.any_checkpoint_name,
                                             "--dry-run",
+                                            "--ignore-non-yang-tables",
+                                            "--ignore-path", "/ANY_TABLE",
+                                            "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                            "--ignore-path", "",
                                             "--verbose"],
                                         catch_exceptions=False)
 
@@ -753,10 +783,16 @@ class TestGenericUpdateCommands(unittest.TestCase):
     def test_rollback__optional_parameters_passed_correctly(self):
         self.validate_rollback_optional_parameter(
             ["--verbose"],
-            mock.call(self.any_checkpoint_name, True, False))
+            mock.call(self.any_checkpoint_name, True, False, False, ()))
         self.validate_rollback_optional_parameter(
             ["--dry-run"],
-            mock.call(self.any_checkpoint_name, False, True))
+            mock.call(self.any_checkpoint_name, False, True, False, ()))
+        self.validate_rollback_optional_parameter(
+            ["--ignore-non-yang-tables"],
+            mock.call(self.any_checkpoint_name, False, False, True, ()))
+        self.validate_rollback_optional_parameter(
+            ["--ignore-path", "/ACL_TABLE"],
+            mock.call(self.any_checkpoint_name, False, False, False, ("/ACL_TABLE",)))
 
     def validate_rollback_optional_parameter(self, param_args, expected_call):
         # Arrange

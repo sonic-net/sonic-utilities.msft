@@ -28,6 +28,9 @@ class JsonChange:
     def apply(self, config):
         return self.patch.apply(config)
 
+    def __repr__(self):
+        return str(self)
+
     def __str__(self):
         return f'{self.patch}'
 
@@ -141,6 +144,12 @@ class ConfigWrapper:
                 empty_tables.append(key)
         return empty_tables
         
+    def remove_empty_tables(self, config):
+        config_with_non_empty_tables = {}
+        for table in config:
+            if config[table]:
+                config_with_non_empty_tables[table] = copy.deepcopy(config[table])
+        return config_with_non_empty_tables
 
 class DryRunConfigWrapper(ConfigWrapper):
     # TODO: implement DryRunConfigWrapper
@@ -235,6 +244,9 @@ class PathAddressing:
 
     def create_path(self, tokens):
         return JsonPointer.from_parts(tokens).path
+
+    def has_path(self, doc, path):
+        return JsonPointer(path).get(doc, default=None) is not None
 
     def get_xpath_tokens(self, xpath):
         """

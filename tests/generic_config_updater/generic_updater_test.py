@@ -6,29 +6,16 @@ from unittest.mock import MagicMock, Mock, call
 from .gutest_helpers import create_side_effect_dict, Files
 
 import generic_config_updater.generic_updater as gu
+import generic_config_updater.patch_sorter as ps
 
 # import sys
 # sys.path.insert(0,'../../generic_config_updater')
 # import generic_updater as gu
 
 class TestPatchApplier(unittest.TestCase):
-    def test_apply__invalid_patch_updating_tables_without_yang_models__failure(self):
-        # Arrange
-        patch_applier = self.__create_patch_applier(valid_patch_only_tables_with_yang_models=False)
-
-        # Act and assert
-        self.assertRaises(ValueError, patch_applier.apply, Files.MULTI_OPERATION_CONFIG_DB_PATCH)
-
     def test_apply__invalid_patch_producing_empty_tables__failure(self):
         # Arrange
         patch_applier = self.__create_patch_applier(valid_patch_does_not_produce_empty_tables=False)
-
-        # Act and assert
-        self.assertRaises(ValueError, patch_applier.apply, Files.MULTI_OPERATION_CONFIG_DB_PATCH)
-
-    def test_apply__invalid_config_db__failure(self):
-        # Arrange
-        patch_applier = self.__create_patch_applier(valid_config_db=False)
 
         # Act and assert
         self.assertRaises(ValueError, patch_applier.apply, Files.MULTI_OPERATION_CONFIG_DB_PATCH)
@@ -49,13 +36,9 @@ class TestPatchApplier(unittest.TestCase):
         patch_applier.apply(Files.MULTI_OPERATION_CONFIG_DB_PATCH)
 
         # Assert
-        patch_applier.patch_wrapper.validate_config_db_patch_has_yang_models.assert_has_calls(
-            [call(Files.MULTI_OPERATION_CONFIG_DB_PATCH)])
         patch_applier.config_wrapper.get_config_db_as_json.assert_has_calls([call(), call()])
         patch_applier.patch_wrapper.simulate_patch.assert_has_calls(
             [call(Files.MULTI_OPERATION_CONFIG_DB_PATCH, Files.CONFIG_DB_AS_JSON)])
-        patch_applier.config_wrapper.validate_config_db_config.assert_has_calls(
-            [call(Files.CONFIG_DB_AFTER_MULTI_PATCH)])
         patch_applier.patchsorter.sort.assert_has_calls([call(Files.MULTI_OPERATION_CONFIG_DB_PATCH)])
         patch_applier.changeapplier.apply.assert_has_calls([call(changes[0]), call(changes[1])])
         patch_applier.patch_wrapper.verify_same_json.assert_has_calls(
@@ -63,23 +46,16 @@ class TestPatchApplier(unittest.TestCase):
 
     def __create_patch_applier(self,
                                changes=None,
-                               valid_patch_only_tables_with_yang_models=True,
-                               valid_config_db=True,
                                valid_patch_does_not_produce_empty_tables=True,
                                verified_same_config=True):
         config_wrapper = Mock()
         config_wrapper.get_config_db_as_json.side_effect = \
             [Files.CONFIG_DB_AS_JSON, Files.CONFIG_DB_AFTER_MULTI_PATCH]
-        config_wrapper.validate_config_db_config.side_effect = \
-            create_side_effect_dict({(str(Files.CONFIG_DB_AFTER_MULTI_PATCH),): valid_config_db})
         empty_tables = [] if valid_patch_does_not_produce_empty_tables else ["AnyTable"]
         config_wrapper.get_empty_tables.side_effect = \
             create_side_effect_dict({(str(Files.CONFIG_DB_AFTER_MULTI_PATCH),): empty_tables})
 
         patch_wrapper = Mock()
-        patch_wrapper.validate_config_db_patch_has_yang_models.side_effect = \
-            create_side_effect_dict(
-                {(str(Files.MULTI_OPERATION_CONFIG_DB_PATCH),): valid_patch_only_tables_with_yang_models})
         patch_wrapper.simulate_patch.side_effect = \
             create_side_effect_dict(
                 {(str(Files.MULTI_OPERATION_CONFIG_DB_PATCH), str(Files.CONFIG_DB_AS_JSON)):
@@ -100,13 +76,6 @@ class TestPatchApplier(unittest.TestCase):
         return gu.PatchApplier(patchsorter, changeapplier, config_wrapper, patch_wrapper)
 
 class TestConfigReplacer(unittest.TestCase):
-    def test_replace__invalid_config_db__failure(self):
-        # Arrange
-        config_replacer = self.__create_config_replacer(valid_config_db=False)
-
-        # Act and assert
-        self.assertRaises(ValueError, config_replacer.replace, Files.CONFIG_DB_AFTER_MULTI_PATCH)
-
     def test_replace__json_not_fully_updated__failure(self):
         # Arrange
         config_replacer = self.__create_config_replacer(verified_same_config=False)
@@ -122,8 +91,6 @@ class TestConfigReplacer(unittest.TestCase):
         config_replacer.replace(Files.CONFIG_DB_AFTER_MULTI_PATCH)
 
         # Assert
-        config_replacer.config_wrapper.validate_config_db_config.assert_has_calls(
-            [call(Files.CONFIG_DB_AFTER_MULTI_PATCH)])
         config_replacer.config_wrapper.get_config_db_as_json.assert_has_calls([call(), call()])
         config_replacer.patch_wrapper.generate_patch.assert_has_calls(
             [call(Files.CONFIG_DB_AS_JSON, Files.CONFIG_DB_AFTER_MULTI_PATCH)])
@@ -131,10 +98,8 @@ class TestConfigReplacer(unittest.TestCase):
         config_replacer.patch_wrapper.verify_same_json.assert_has_calls(
             [call(Files.CONFIG_DB_AFTER_MULTI_PATCH, Files.CONFIG_DB_AFTER_MULTI_PATCH)])
 
-    def __create_config_replacer(self, changes=None, valid_config_db=True, verified_same_config=True):
+    def __create_config_replacer(self, changes=None, verified_same_config=True):
         config_wrapper = Mock()
-        config_wrapper.validate_config_db_config.side_effect = \
-            create_side_effect_dict({(str(Files.CONFIG_DB_AFTER_MULTI_PATCH),): valid_config_db})
         config_wrapper.get_config_db_as_json.side_effect = \
             [Files.CONFIG_DB_AS_JSON, Files.CONFIG_DB_AFTER_MULTI_PATCH]
 
@@ -200,13 +165,6 @@ class TestFileSystemConfigRollbacker(unittest.TestCase):
         # Assert
         self.assertTrue(os.path.isdir(self.checkpoints_dir))
         self.assertEqual(self.any_config, self.get_checkpoint(self.any_checkpoint_name))
-
-    def test_checkpoint__config_not_valid__failure(self):
-        # Arrange
-        rollbacker = self.create_rollbacker(valid_config=False)
-
-        # Act and assert
-        self.assertRaises(ValueError, rollbacker.checkpoint, self.any_checkpoint_name)
 
     def test_checkpoint__checkpoints_dir_exists__checkpoint_created(self):
         # Arrange
@@ -340,13 +298,12 @@ class TestFileSystemConfigRollbacker(unittest.TestCase):
         path=os.path.join(self.checkpoints_dir, f"{name}{self.checkpoint_ext}")
         return os.path.isfile(path)
 
-    def create_rollbacker(self, valid_config=True):
+    def create_rollbacker(self):
         replacer = Mock()
         replacer.replace.side_effect = create_side_effect_dict({(str(self.any_config),): 0})
 
         config_wrapper = Mock()
         config_wrapper.get_config_db_as_json.return_value = self.any_config
-        config_wrapper.validate_config_db_config.return_value = valid_config
 
         return gu.FileSystemConfigRollbacker(checkpoints_dir=self.checkpoints_dir,
                                              config_replacer=replacer,
@@ -356,14 +313,21 @@ class TestGenericUpdateFactory(unittest.TestCase):
     def setUp(self):
         self.any_verbose=True
         self.any_dry_run=True
+        self.any_ignore_non_yang_tables=True
+        self.any_ignore_paths=[""]
 
     def test_create_patch_applier__invalid_config_format__failure(self):
         # Arrange
         factory = gu.GenericUpdateFactory()
 
         # Act and assert
-        self.assertRaises(
-            ValueError, factory.create_patch_applier, "INVALID_FORMAT", self.any_verbose, self.any_dry_run)
+        self.assertRaises(ValueError,
+                          factory.create_patch_applier,
+                          "INVALID_FORMAT",
+                          self.any_verbose,
+                          self.any_dry_run,
+                          self.any_ignore_non_yang_tables,
+                          self.any_ignore_paths)
 
     def test_create_patch_applier__different_options(self):
         # Arrange
@@ -376,6 +340,8 @@ class TestGenericUpdateFactory(unittest.TestCase):
                     gu.ConfigFormat.CONFIGDB: None,
                 }
             },
+            {"ignore_non_yang_tables": {True: None, False: None}},
+            {"ignore_paths": {(): None, ("", "/ACL_TABLE"): None}},
         ]
 
         # Act and assert
@@ -386,8 +352,13 @@ class TestGenericUpdateFactory(unittest.TestCase):
         factory = gu.GenericUpdateFactory()
 
         # Act and assert
-        self.assertRaises(
-            ValueError, factory.create_config_replacer, "INVALID_FORMAT", self.any_verbose, self.any_dry_run)
+        self.assertRaises(ValueError,
+                          factory.create_config_replacer,
+                          "INVALID_FORMAT",
+                          self.any_verbose,
+                          self.any_dry_run,
+                          self.any_ignore_non_yang_tables,
+                          self.any_ignore_paths)
 
     def test_create_config_replacer__different_options(self):
         # Arrange
@@ -400,6 +371,8 @@ class TestGenericUpdateFactory(unittest.TestCase):
                     gu.ConfigFormat.CONFIGDB: None,
                 }
             },
+            {"ignore_non_yang_tables": {True: None, False: None}},
+            {"ignore_paths": {(): None, ("", "/ACL_TABLE"): None}},
         ]
 
         # Act and assert
@@ -409,7 +382,9 @@ class TestGenericUpdateFactory(unittest.TestCase):
         # Arrange
         options = [
             {"verbose": {True: None, False: None}},
-            {"dry_run": {True: None, False: gu.ConfigLockDecorator}}
+            {"dry_run": {True: None, False: gu.ConfigLockDecorator}},
+            {"ignore_non_yang_tables": {True: None, False: None}},
+            {"ignore_paths": {(): None, ("", "/ACL_TABLE"): None}},
         ]
 
         # Act and assert
@@ -432,7 +407,11 @@ class TestGenericUpdateFactory(unittest.TestCase):
 
     def validate_create_patch_applier(self, params, expected_decorators):
         factory = gu.GenericUpdateFactory()
-        patch_applier = factory.create_patch_applier(params["config_format"], params["verbose"], params["dry_run"])
+        patch_applier = factory.create_patch_applier(params["config_format"],
+                                                     params["verbose"],
+                                                     params["dry_run"],
+                                                     params["ignore_non_yang_tables"],
+                                                     params["ignore_paths"])
         for decorator_type in expected_decorators:
             self.assertIsInstance(patch_applier, decorator_type)
 
@@ -444,9 +423,25 @@ class TestGenericUpdateFactory(unittest.TestCase):
         else:
             self.assertIsInstance(patch_applier.config_wrapper, gu.ConfigWrapper)
 
+        if params["ignore_non_yang_tables"] or params["ignore_paths"]:
+            self.assertIsInstance(patch_applier.patchsorter, ps.NonStrictPatchSorter)
+            expected_config_splitters = []
+            if params["ignore_non_yang_tables"]:
+                expected_config_splitters.append(ps.TablesWithoutYangConfigSplitter.__name__)
+            if params["ignore_paths"]:
+                expected_config_splitters.append(ps.IgnorePathsFromYangConfigSplitter.__name__)
+            actual_config_splitters = [type(splitter).__name__ for splitter in patch_applier.patchsorter.config_splitter.inner_config_splitters]
+            self.assertCountEqual(expected_config_splitters, actual_config_splitters)
+        else:
+            self.assertIsInstance(patch_applier.patchsorter, ps.StrictPatchSorter)
+
     def validate_create_config_replacer(self, params, expected_decorators):
         factory = gu.GenericUpdateFactory()
-        config_replacer = factory.create_config_replacer(params["config_format"], params["verbose"], params["dry_run"])
+        config_replacer = factory.create_config_replacer(params["config_format"],
+                                                         params["verbose"],
+                                                         params["dry_run"],
+                                                         params["ignore_non_yang_tables"],
+                                                         params["ignore_paths"])
         for decorator_type in expected_decorators:
             self.assertIsInstance(config_replacer, decorator_type)
 
@@ -460,9 +455,22 @@ class TestGenericUpdateFactory(unittest.TestCase):
             self.assertIsInstance(config_replacer.config_wrapper, gu.ConfigWrapper)
             self.assertIsInstance(config_replacer.patch_applier.config_wrapper, gu.ConfigWrapper)
 
+        if params["ignore_non_yang_tables"] or params["ignore_paths"]:
+            self.assertIsInstance(config_replacer.patch_applier.patchsorter, ps.NonStrictPatchSorter)
+            expected_config_splitters = []
+            if params["ignore_non_yang_tables"]:
+                expected_config_splitters.append(ps.TablesWithoutYangConfigSplitter.__name__)
+            if params["ignore_paths"]:
+                expected_config_splitters.append(ps.IgnorePathsFromYangConfigSplitter.__name__)
+            actual_config_splitters = [type(splitter).__name__ for splitter in
+                    config_replacer.patch_applier.patchsorter.config_splitter.inner_config_splitters]
+            self.assertCountEqual(expected_config_splitters, actual_config_splitters)
+        else:
+            self.assertIsInstance(config_replacer.patch_applier.patchsorter, ps.StrictPatchSorter)
+
     def validate_create_config_rollbacker(self, params, expected_decorators):
         factory = gu.GenericUpdateFactory()
-        config_rollbacker = factory.create_config_rollbacker(params["verbose"], params["dry_run"])
+        config_rollbacker = factory.create_config_rollbacker(params["verbose"], params["dry_run"], params["ignore_non_yang_tables"], params["ignore_paths"])
         for decorator_type in expected_decorators:
             self.assertIsInstance(config_rollbacker, decorator_type)
 
@@ -480,6 +488,19 @@ class TestGenericUpdateFactory(unittest.TestCase):
             self.assertIsInstance(
                 config_rollbacker.config_replacer.patch_applier.config_wrapper, gu.ConfigWrapper)
 
+        if params["ignore_non_yang_tables"] or params["ignore_paths"]:
+            self.assertIsInstance(config_rollbacker.config_replacer.patch_applier.patchsorter, ps.NonStrictPatchSorter)
+            expected_config_splitters = []
+            if params["ignore_non_yang_tables"]:
+                expected_config_splitters.append(ps.TablesWithoutYangConfigSplitter.__name__)
+            if params["ignore_paths"]:
+                expected_config_splitters.append(ps.IgnorePathsFromYangConfigSplitter.__name__)
+            actual_config_splitters = [type(splitter).__name__ for splitter in
+                    config_rollbacker.config_replacer.patch_applier.patchsorter.config_splitter.inner_config_splitters]
+            self.assertCountEqual(expected_config_splitters, actual_config_splitters)
+        else:
+            self.assertIsInstance(config_rollbacker.config_replacer.patch_applier.patchsorter, ps.StrictPatchSorter)
+
 class TestGenericUpdater(unittest.TestCase):
     def setUp(self):
         self.any_checkpoint_name = "anycheckpoint"
@@ -488,6 +509,8 @@ class TestGenericUpdater(unittest.TestCase):
         self.any_config_format = gu.ConfigFormat.SONICYANG
         self.any_verbose = True
         self.any_dry_run = True
+        self.any_ignore_non_yang_tables = True
+        self.any_ignore_paths = ["", "/ACL_TABLE"]
 
     def test_apply_patch__creates_applier_and_apply(self):
         # Arrange
@@ -497,13 +520,21 @@ class TestGenericUpdater(unittest.TestCase):
         factory = Mock()
         factory.create_patch_applier.side_effect = \
             create_side_effect_dict(
-                {(str(self.any_config_format), str(self.any_verbose), str(self.any_dry_run),): patch_applier})
+                {(str(self.any_config_format),
+                  str(self.any_verbose),
+                  str(self.any_dry_run),
+                  str(self.any_ignore_non_yang_tables),
+                  str(self.any_ignore_paths)): patch_applier})
 
         generic_updater = gu.GenericUpdater(factory)
 
         # Act
-        generic_updater.apply_patch(
-            Files.SINGLE_OPERATION_SONIC_YANG_PATCH, self.any_config_format, self.any_verbose, self.any_dry_run)
+        generic_updater.apply_patch(Files.SINGLE_OPERATION_SONIC_YANG_PATCH,
+                                    self.any_config_format,
+                                    self.any_verbose,
+                                    self.any_dry_run,
+                                    self.any_ignore_non_yang_tables,
+                                    self.any_ignore_paths)
 
         # Assert
         patch_applier.apply.assert_has_calls([call(Files.SINGLE_OPERATION_SONIC_YANG_PATCH)])
@@ -516,12 +547,21 @@ class TestGenericUpdater(unittest.TestCase):
         factory = Mock()
         factory.create_config_replacer.side_effect = \
             create_side_effect_dict(
-                {(str(self.any_config_format), str(self.any_verbose), str(self.any_dry_run),): config_replacer})
+                {(str(self.any_config_format),
+                  str(self.any_verbose),
+                  str(self.any_dry_run),
+                  str(self.any_ignore_non_yang_tables),
+                  str(self.any_ignore_paths)): config_replacer})
 
         generic_updater = gu.GenericUpdater(factory)
 
         # Act
-        generic_updater.replace(Files.SONIC_YANG_AS_JSON, self.any_config_format, self.any_verbose, self.any_dry_run)
+        generic_updater.replace(Files.SONIC_YANG_AS_JSON,
+                                self.any_config_format,
+                                self.any_verbose,
+                                self.any_dry_run,
+                                self.any_ignore_non_yang_tables,
+                                self.any_ignore_paths)
 
         # Assert
         config_replacer.replace.assert_has_calls([call(Files.SONIC_YANG_AS_JSON)])
@@ -533,12 +573,19 @@ class TestGenericUpdater(unittest.TestCase):
 
         factory = Mock()
         factory.create_config_rollbacker.side_effect = \
-            create_side_effect_dict({(str(self.any_verbose), str(self.any_dry_run),): config_rollbacker})
+            create_side_effect_dict({(str(self.any_verbose),
+                                      str(self.any_dry_run),
+                                      str(self.any_ignore_non_yang_tables),
+                                      str(self.any_ignore_paths)): config_rollbacker})
 
         generic_updater = gu.GenericUpdater(factory)
 
         # Act
-        generic_updater.rollback(self.any_checkpoint_name, self.any_verbose, self.any_dry_run)
+        generic_updater.rollback(self.any_checkpoint_name,
+                                 self.any_verbose,
+                                 self.any_dry_run,
+                                 self.any_ignore_non_yang_tables,
+                                 self.any_ignore_paths)
 
         # Assert
         config_rollbacker.rollback.assert_has_calls([call(self.any_checkpoint_name)])

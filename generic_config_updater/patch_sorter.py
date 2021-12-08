@@ -3,7 +3,8 @@ import json
 import jsonpatch
 from collections import deque
 from enum import Enum
-from .gu_common import OperationWrapper, OperationType, GenericConfigUpdaterError, JsonChange, PathAddressing
+from .gu_common import OperationWrapper, OperationType, GenericConfigUpdaterError, \
+                       JsonChange, PathAddressing, genericUpdaterLogging
 
 class Diff:
     """
@@ -1014,6 +1015,253 @@ class SortAlgorithmFactory:
 
         return sorter
 
+class StrictPatchSorter:
+    def __init__(self, config_wrapper, patch_wrapper, inner_patch_sorter=None):
+        self.logger = genericUpdaterLogging.get_logger(title="Patch Sorter - Strict", print_all_to_console=True)
+        self.config_wrapper = config_wrapper
+        self.patch_wrapper = patch_wrapper
+        self.inner_patch_sorter = inner_patch_sorter if inner_patch_sorter else PatchSorter(config_wrapper, patch_wrapper)
+
+    def sort(self, patch, algorithm=Algorithm.DFS):
+        current_config = self.config_wrapper.get_config_db_as_json()
+
+        # Validate patch is only updating tables with yang models
+        self.logger.log_info("Validating patch is not making changes to tables without YANG models.")
+        if not(self.patch_wrapper.validate_config_db_patch_has_yang_models(patch)):
+            raise ValueError(f"Given patch is not valid because it has changes to tables without YANG models")
+
+        target_config = self.patch_wrapper.simulate_patch(patch, current_config)
+
+        # Validate target config
+        self.logger.log_info("Validating target config according to YANG models.")
+        if not(self.config_wrapper.validate_config_db_config(target_config)):
+            raise ValueError(f"Given patch is not valid because it will result in an invalid config")
+
+        # Generate list of changes to apply
+        self.logger.log_info("Sorting patch updates.")
+        changes = self.inner_patch_sorter.sort(patch, algorithm)
+
+        return changes
+
+class TablesWithoutYangConfigSplitter:
+    def __init__(self, config_wrapper):
+        self.config_wrapper = config_wrapper
+
+    def split_yang_non_yang_distinct_field_path(self, config):
+        config_with_yang = self.config_wrapper.crop_tables_without_yang(config)
+        config_without_yang = {}
+
+        for key in config:
+            if key not in config_with_yang:
+                config_without_yang[key] = copy.deepcopy(config[key])
+
+        return config_with_yang, config_without_yang
+
+class IgnorePathsFromYangConfigSplitter:
+    def __init__(self, ignore_paths_from_yang_list, config_wrapper):
+        self.ignore_paths_from_yang_list = ignore_paths_from_yang_list
+        self.config_wrapper = config_wrapper
+
+    def split_yang_non_yang_distinct_field_path(self, config):
+        config_with_yang = copy.deepcopy(config)
+        config_without_yang = {}
+
+        path_addressing = PathAddressing()
+        # ignore more config from config_with_yang
+        for path in self.ignore_paths_from_yang_list:
+            if not path_addressing.has_path(config_with_yang, path):
+                continue
+            if path == '': # whole config to be ignored
+                return {}, copy.deepcopy(config)
+
+            # Add to config_without_yang from config_with_yang
+            tokens = path_addressing.get_path_tokens(path)
+            add_move = JsonMove(Diff(config_without_yang, config_with_yang), OperationType.ADD, tokens, tokens)
+            config_without_yang = add_move.apply(config_without_yang)
+
+            # Remove from config_with_yang
+            remove_move = JsonMove(Diff(config_with_yang, {}), OperationType.REMOVE, tokens)
+            config_with_yang = remove_move.apply(config_with_yang)
+
+        # Splitting the config based on 'ignore_paths_from_yang_list' can result in empty tables.
+        # Remove empty tables because they are not allowed in ConfigDb
+        config_with_yang_without_empty_tables = self.config_wrapper.remove_empty_tables(config_with_yang)
+        config_without_yang_without_empty_tables = self.config_wrapper.remove_empty_tables(config_without_yang)
+        return config_with_yang_without_empty_tables, config_without_yang_without_empty_tables
+
+class ConfigSplitter:
+    def __init__(self, config_wrapper, inner_config_splitters):
+        self.config_wrapper = config_wrapper
+        self.inner_config_splitters = inner_config_splitters
+
+    def split_yang_non_yang_distinct_field_path(self, config):
+        empty_tables = self.config_wrapper.get_empty_tables(config)
+        empty_tables_txt = ", ".join(empty_tables)
+        if empty_tables:
+            raise ValueError(f"Given config has empty tables. Table{'s' if len(empty_tables) != 1 else ''}: {empty_tables_txt}")
+
+        # Start by assuming all config should be YANG covered
+        config_with_yang = copy.deepcopy(config)
+        config_without_yang = {}
+
+        for config_splitter in self.inner_config_splitters:
+            config_with_yang, additional_config_without_yang = config_splitter.split_yang_non_yang_distinct_field_path(config_with_yang)
+            config_without_yang = self.merge_configs_with_distinct_field_path(config_without_yang, additional_config_without_yang)
+
+        return config_with_yang, config_without_yang
+
+    def merge_configs_with_distinct_field_path(self, config1, config2):
+        merged_config = copy.deepcopy(config1)
+        self.__recursive_append(merged_config, config2)
+        return merged_config
+
+    def __recursive_append(self, target, additional, path=""):
+        if not isinstance(target, dict):
+            raise ValueError(f"Found a field that exist in both config1 and config2. Path: {path}")
+        for key in additional:
+            if key not in target:
+                target[key] = copy.deepcopy(additional[key])
+            else:
+                self.__recursive_append(target[key], additional[key], f"{path}/{key}")
+
+class ChangeWrapper:
+    def __init__(self, patch_wrapper, config_splitter):
+        self.patch_wrapper = patch_wrapper
+        self.config_splitter = config_splitter
+
+    def adjust_changes(self, assumed_changes, assumed_curr_config, remaining_distinct_curr_config):
+        """
+        The merging of 'assumed_curr_config' and 'remaining_distinct_curr_config' will generate the full config.
+        The list of 'assumed_changes' are applicable to 'assumed_curr_config' but they cannot be applied directly to the full config.
+        'assumed_changes' can blindly alter existing config in 'remaining_distinct_curr_config' but they should not. Check example below.
+
+        Example:
+          assumed_curr_config:
+          {
+            "ACL_TABLE":
+            {
+              "Everflow": { "type": "L3" }
+            }
+          }
+
+          remaining_distinct_curr_config:
+          {
+            "ACL_TABLE":
+            {
+              "Everflow": { "policy_desc": "some-description" }
+            }
+          }
+
+          assumed_changes (these are only applicable to assumed_curr_config):
+          {
+            [{"op":"replace", "path":"/ACL_TABLE/EVERFLOW", "value":{"type":"MIRROR"}}]
+          }
+
+          The merging of assumed_curr_config and remaining_distinct_curr_config to get the full config is:
+          {
+            "ACL_TABLE":
+            {
+              "Everflow": { "type": "L3", "policy_desc": "some-description" }
+            }
+          }
+
+          Applying changes to the merging i.e. full config will result in:
+          {
+            "ACL_TABLE":
+            {
+              "Everflow": { "type": "MIRROR" }
+            }
+          }
+
+          This is not correct, as we have deleted /ACL_TABLE/EVERFLOW/policy_desc
+          This problem happend because we used 'assumed_changes' for 'assumed_curr_config' on the full config.
+
+          The solution is to adjust the 'assumed_changes' list to be:
+          {
+            [{"op":"replace", "path":"/ACL_TABLE/EVERFLOW/type", "value":"MIRROR"}]
+          }
+
+          This method adjust the given 'assumed_changes' to be applicable to the full config.
+
+          Check unit-test for more examples.
+       """
+        adjusted_changes = []
+        assumed_curr_config = copy.deepcopy(assumed_curr_config)
+        for change in assumed_changes:
+            assumed_target_config = change.apply(assumed_curr_config)
+
+            adjusted_curr_config = self.config_splitter.merge_configs_with_distinct_field_path(assumed_curr_config, remaining_distinct_curr_config)
+            adjusted_target_config = self.config_splitter.merge_configs_with_distinct_field_path(assumed_target_config, remaining_distinct_curr_config)
+
+            adjusted_patch = self.patch_wrapper.generate_patch(adjusted_curr_config, adjusted_target_config)
+
+            adjusted_change = JsonChange(adjusted_patch)
+            adjusted_changes.append(adjusted_change)
+
+            assumed_curr_config = assumed_target_config
+
+        return adjusted_changes
+
+class NonStrictPatchSorter:
+    def __init__(self, config_wrapper, patch_wrapper, config_splitter, change_wrapper=None, patch_sorter=None):
+        self.logger = genericUpdaterLogging.get_logger(title="Patch Sorter - Non-Strict", print_all_to_console=True)
+        self.config_wrapper = config_wrapper
+        self.patch_wrapper = patch_wrapper
+        self.config_splitter = config_splitter
+        self.change_wrapper = change_wrapper if change_wrapper else ChangeWrapper(patch_wrapper, config_splitter)
+        self.inner_patch_sorter = patch_sorter if patch_sorter else PatchSorter(config_wrapper, patch_wrapper)
+
+    def sort(self, patch, algorithm=Algorithm.DFS):
+        current_config = self.config_wrapper.get_config_db_as_json()
+        target_config = self.patch_wrapper.simulate_patch(patch, current_config)
+
+        # Splitting current/target config based on YANG covered vs non-YANG covered configs
+        self.logger.log_info("Splitting current/target config based on YANG covered vs non-YANG covered configs.")
+        current_config_yang, current_config_non_yang = self.config_splitter.split_yang_non_yang_distinct_field_path(current_config)
+        target_config_yang, target_config_non_yang = self.config_splitter.split_yang_non_yang_distinct_field_path(target_config)
+
+        # Validate YANG covered target config
+        self.logger.log_info("Validating YANG covered target config according to YANG models.")
+        if not(self.config_wrapper.validate_config_db_config(target_config_yang)):
+            raise ValueError(f"Given patch is not valid because it will result in an invalid config")
+
+        # Generating changes associated with non-YANG covered configs
+        self.logger.log_info("Sorting non-YANG covered configs patch updates.")
+        non_yang_patch = self.patch_wrapper.generate_patch(current_config_non_yang, target_config_non_yang)
+        non_yang_changes = [JsonChange(non_yang_patch)] if non_yang_patch else []
+        changes_len = len(non_yang_changes)
+        self.logger.log_debug(f"The Non-YANG covered config update was sorted into {changes_len} " \
+                             f"change{'s' if changes_len != 1 else ''}{':' if changes_len > 0 else '.'}")
+        for change in non_yang_changes:
+            self.logger.log_debug(f"  * {change}")
+
+        # Regenerating patch for YANG covered configs
+        self.logger.log_info("Regenerating patch for YANG covered configs only.")
+        yang_patch = self.patch_wrapper.generate_patch(current_config_yang, target_config_yang)
+        self.logger.log_info(f"Generated patch {yang_patch}")
+
+        # Validate YANG covered config patch is only updating tables with yang models
+        self.logger.log_info("Validating YANG covered config patch is not making changes to tables without YANG models.")
+        if not(self.patch_wrapper.validate_config_db_patch_has_yang_models(yang_patch)):
+            raise ValueError(f"Given YANG covered config patch is not valid because it has changes to tables without YANG models")
+
+        # Generating changes associated with YANG covered configs
+        self.logger.log_info("Sorting YANG-covered configs patch updates.")
+        yang_changes = self.inner_patch_sorter.sort(yang_patch, algorithm, current_config_yang)
+        changes_len = len(yang_changes)
+        self.logger.log_debug(f"The YANG covered config update was sorted into {changes_len} " \
+                             f"change{'s' if changes_len != 1 else ''}{':' if changes_len > 0 else '.'}")
+        for change in yang_changes:
+            self.logger.log_debug(f"  * {change}")
+
+        # Merging non-YANG and YANG covered changes.
+        self.logger.log_info("Merging non-YANG and YANG covered changes.")
+        adjusted_non_yang_changes = self.change_wrapper.adjust_changes(non_yang_changes, current_config_non_yang, current_config_yang)
+        adjusted_yang_changes = self.change_wrapper.adjust_changes(yang_changes, current_config_yang, target_config_non_yang)
+        changes = adjusted_non_yang_changes + adjusted_yang_changes
+
+        return changes
+
 class PatchSorter:
     def __init__(self, config_wrapper, patch_wrapper, sort_algorithm_factory=None):
         self.config_wrapper = config_wrapper
@@ -1023,8 +1271,8 @@ class PatchSorter:
         self.sort_algorithm_factory = sort_algorithm_factory if sort_algorithm_factory else \
             SortAlgorithmFactory(self.operation_wrapper, config_wrapper, self.path_addressing)
 
-    def sort(self, patch, algorithm=Algorithm.DFS):
-        current_config = self.config_wrapper.get_config_db_as_json()
+    def sort(self, patch, algorithm=Algorithm.DFS, preloaded_current_config=None):
+        current_config = preloaded_current_config if preloaded_current_config else self.config_wrapper.get_config_db_as_json()
         target_config = self.patch_wrapper.simulate_patch(patch, current_config)
 
         cropped_current_config = self.config_wrapper.crop_tables_without_yang(current_config)
