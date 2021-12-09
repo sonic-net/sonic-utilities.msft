@@ -27,7 +27,7 @@ show_vxlan_vlanvnimap_output="""\
 +---------+-------+
 | Vlan200 |   200 |
 +---------+-------+
-Total count : 4 
+Total count : 4
 
 """
 
@@ -37,7 +37,7 @@ show_vxlan_vrfvnimap_output="""\
 +=======+=======+
 | Vrf1  |  1000 |
 +-------+-------+
-Total count : 1 
+Total count : 1
 
 """
 
@@ -52,7 +52,7 @@ show_vxlan_tunnel_output="""\
 +---------+-------------+-------------------+--------------+
 | 1.1.1.1 | 25.25.25.27 | EVPN              | oper_down    |
 +---------+-------------+-------------------+--------------+
-Total count : 3 
+Total count : 3
 
 """
 
@@ -66,7 +66,7 @@ show_vxlan_remotevni_output="""\
 +---------+--------------+-------+
 | Vlan200 | 25.25.25.27  |   200 |
 +---------+--------------+-------+
-Total count : 3 
+Total count : 3
 
 """
 
@@ -76,26 +76,26 @@ show_vxlan_remotevni_specific_output="""\
 +=========+==============+=======+
 | Vlan200 | 25.25.25.27  |   200 |
 +---------+--------------+-------+
-Total count : 1 
+Total count : 1
 
 """
 show_vxlan_vlanvnimap_cnt_output="""\
-Total count : 4 
+Total count : 4
 
 """
 
 show_vxlan_tunnel_cnt_output="""\
-Total count : 3 
+Total count : 3
 
 """
 
 show_vxlan_remotevni_cnt_output="""\
-Total count : 3 
+Total count : 3
 
 """
 
 show_vxlan_remotevni_specific_cnt_output="""\
-Total count : 1 
+Total count : 1
 
 """
 
