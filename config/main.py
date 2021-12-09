@@ -1421,14 +1421,16 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
         # or by default DEFAULT_CONFIG_DB_FILE. In the case of database service running in namespace,
         # the default config_db<namespaceID>.json format is used.
 
+
         config_gen_opts = ""
+        
+        if os.path.isfile(INIT_CFG_FILE):
+            config_gen_opts += " -j {} ".format(INIT_CFG_FILE)
+        
         if file_format == 'config_db':
             config_gen_opts += ' -j {} '.format(file)
         else:
             config_gen_opts += ' -Y {} '.format(file)
-
-        if os.path.isfile(INIT_CFG_FILE):
-            config_gen_opts += " -j {} ".format(INIT_CFG_FILE)
 
         if namespace is not None:
             config_gen_opts += " -n {} ".format(namespace)
