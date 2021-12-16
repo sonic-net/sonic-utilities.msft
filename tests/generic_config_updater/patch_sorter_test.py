@@ -784,13 +784,6 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
         self.validator = ps.CreateOnlyMoveValidator(ps.PathAddressing())
         self.any_diff = ps.Diff({}, {})
 
-    def test_validate__non_replace_operation__success(self):
-        # Assert
-        self.assertTrue(self.validator.validate( \
-            ps.JsonMove(self.any_diff, OperationType.ADD, [], []), self.any_diff))
-        self.assertTrue(self.validator.validate( \
-            ps.JsonMove(self.any_diff, OperationType.REMOVE, [], []), self.any_diff))
-
     def test_validate__no_create_only_field__success(self):
         current_config = {"PORT": {}}
         target_config = {"PORT": {}, "ACL_TABLE": {}}
@@ -833,7 +826,7 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
                          ["PORT"],
                          False)
 
-    def test_validate__same_create_only_field_directly_updated__failure(self):
+    def test_validate__same_create_only_field_directly_updated__success(self):
         current_config = {"PORT": {"Ethernet0":{"lanes":"65"}}}
         target_config = {"PORT": {"Ethernet0":{"lanes":"65"}}, "ACL_TABLE": {}}
         self.verify_diff(current_config,
@@ -841,7 +834,7 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
                          ["PORT", "Ethernet0", "lanes"],
                          ["PORT", "Ethernet0", "lanes"])
 
-    def test_validate__same_create_only_field_updating_parent__failure(self):
+    def test_validate__same_create_only_field_updating_parent__success(self):
         current_config = {"PORT": {"Ethernet0":{"lanes":"65"}}}
         target_config = {"PORT": {"Ethernet0":{"lanes":"65"}}, "ACL_TABLE": {}}
         self.verify_diff(current_config,
@@ -849,13 +842,69 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
                          ["PORT", "Ethernet0"],
                          ["PORT", "Ethernet0"])
 
-    def test_validate__same_create_only_field_updating_grandparent__failure(self):
+    def test_validate__same_create_only_field_updating_grandparent__success(self):
         current_config = {"PORT": {"Ethernet0":{"lanes":"65"}}}
         target_config = {"PORT": {"Ethernet0":{"lanes":"65"}}, "ACL_TABLE": {}}
         self.verify_diff(current_config,
                          target_config,
                          ["PORT"],
                          ["PORT"])
+
+    def test_validate__added_create_only_field_parent_exist__failure(self):
+        current_config = {"PORT": {"Ethernet0":{}}}
+        target_config = {"PORT": {"Ethernet0":{"lanes":"65"}}, "ACL_TABLE": {}}
+        self.verify_diff(current_config,
+                         target_config,
+                         ["PORT"],
+                         ["PORT"],
+                         expected=False)
+
+    def test_validate__added_create_only_field_parent_doesnot_exist__success(self):
+        current_config = {"PORT": {}}
+        target_config = {"PORT": {"Ethernet0":{"lanes":"65"}}, "ACL_TABLE": {}}
+        self.verify_diff(current_config,
+                         target_config,
+                         ["PORT"],
+                         ["PORT"])
+
+    def test_validate__removed_create_only_field_parent_remain__failure(self):
+        current_config = {"PORT": {"Ethernet0":{"lanes":"65"}}, "ACL_TABLE": {}}
+        target_config = {"PORT": {"Ethernet0":{}}}
+        self.verify_diff(current_config,
+                         target_config,
+                         ["PORT"],
+                         ["PORT"],
+                         expected=False)
+
+    def test_validate__removed_create_only_field_parent_doesnot_remain__success(self):
+        current_config = {"PORT": {"Ethernet0":{"lanes":"65"}}, "ACL_TABLE": {}}
+        target_config = {"PORT": {}}
+        self.verify_diff(current_config,
+                         target_config,
+                         ["PORT"],
+                         ["PORT"])
+
+    def test_hard_coded_create_only_paths(self):
+        config = {
+            "PORT": {
+                "Ethernet0":{"lanes":"65"},
+                "Ethernet1":{},
+                "Ethernet2":{"lanes":"66,67"}
+            },
+            "LOOPBACK_INTERFACE": {
+                "Loopback0":{"vrf_name":"vrf0"},
+                "Loopback1":{},
+                "Loopback2":{"vrf_name":"vrf1"},
+            }}
+        expected = [
+            "/PORT/Ethernet0/lanes",
+            "/PORT/Ethernet2/lanes",
+            "/LOOPBACK_INTERFACE/Loopback0/vrf_name",
+            "/LOOPBACK_INTERFACE/Loopback2/vrf_name"
+        ]
+        actual = self.validator._get_create_only_paths(config)
+
+        self.assertCountEqual(expected, actual)
 
     def verify_diff(self, current_config, target_config, current_config_tokens=None, target_config_tokens=None, expected=True):
         # Arrange
@@ -1737,6 +1786,26 @@ class TestPatchSorter(unittest.TestCase):
 
         # Act
         actual = self.create_patch_sorter(Files.DPB_1_SPLIT_FULL_CONFIG).sort(patch)
+
+        # Assert
+        self.assertNotEqual(None, actual)
+
+    def test_sort__adding_create_only_field__success(self):
+        # Arrange
+        patch = jsonpatch.JsonPatch([{"op":"add", "path": "/LOOPBACK_INTERFACE/Loopback0/vrf_name", "value":"Vrf_01"}])
+
+        # Act
+        actual = self.create_patch_sorter(Files.CONFIG_DB_WITH_LOOPBACK_INTERFACES).sort(patch)
+
+        # Assert
+        self.assertNotEqual(None, actual)
+
+    def test_sort__removing_create_only_field__success(self):
+        # Arrange
+        patch = jsonpatch.JsonPatch([{"op":"remove", "path": "/LOOPBACK_INTERFACE/Loopback1/vrf_name"}])
+
+        # Act
+        actual = self.create_patch_sorter(Files.CONFIG_DB_WITH_LOOPBACK_INTERFACES).sort(patch)
 
         # Assert
         self.assertNotEqual(None, actual)
