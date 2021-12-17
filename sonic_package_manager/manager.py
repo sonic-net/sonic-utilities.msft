@@ -10,10 +10,7 @@ from typing import Any, Iterable, List, Callable, Dict, Optional
 
 import docker
 import filelock
-from config import config_mgmt
 from sonic_py_common import device_info
-
-from sonic_cli_gen.generator import CliGenerator
 
 from sonic_package_manager import utils
 from sonic_package_manager.constraint import (
@@ -48,10 +45,7 @@ from sonic_package_manager.service_creator.creator import (
     run_command
 )
 from sonic_package_manager.service_creator.feature import FeatureRegistry
-from sonic_package_manager.service_creator.sonic_db import (
-    INIT_CFG_JSON,
-    SonicDB
-)
+from sonic_package_manager.service_creator.sonic_db import SonicDB
 from sonic_package_manager.service_creator.utils import in_chroot
 from sonic_package_manager.source import (
     PackageSource,
@@ -441,16 +435,13 @@ class PackageManager:
 
     @under_lock
     @opt_check
-    def uninstall(self, name: str,
-                  force: bool = False,
-                  keep_config: bool = False):
+    def uninstall(self, name: str, force=False):
         """ Uninstall SONiC Package referenced by name. The uninstallation
         can be forced if force argument is True.
 
         Args:
             name: SONiC Package name.
             force: Force the installation.
-            keep_config: Keep feature configuration in databases.
         Raises:
             PackageManagerError
         """
@@ -491,7 +482,7 @@ class PackageManager:
             self._systemctl_action(package, 'stop')
             self._systemctl_action(package, 'disable')
             self._uninstall_cli_plugins(package)
-            self.service_creator.remove(package, keep_config=keep_config)
+            self.service_creator.remove(package)
             self.service_creator.generate_shutdown_sequence_files(
                 self._get_installed_packages_except(package)
             )
@@ -1009,13 +1000,9 @@ class PackageManager:
         docker_api = DockerApi(docker.from_env(), ProgressManager())
         registry_resolver = RegistryResolver()
         metadata_resolver = MetadataResolver(docker_api, registry_resolver)
-        cfg_mgmt = config_mgmt.ConfigMgmt(source=INIT_CFG_JSON)
-        cli_generator = CliGenerator(log)
         feature_registry = FeatureRegistry(SonicDB)
         service_creator = ServiceCreator(feature_registry,
-                                         SonicDB,
-                                         cli_generator,
-                                         cfg_mgmt)
+                                         SonicDB)
 
         return PackageManager(docker_api,
                               registry_resolver,

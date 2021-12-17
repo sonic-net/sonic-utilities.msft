@@ -60,25 +60,13 @@ def manifest():
     })
 
 
-@pytest.fixture()
-def service_creator(mock_feature_registry,
-                    mock_sonic_db,
-                    mock_cli_gen,
-                    mock_config_mgmt):
-    yield ServiceCreator(
-        mock_feature_registry,
-        mock_sonic_db,
-        mock_cli_gen,
-        mock_config_mgmt
-    )
-
-
-def test_service_creator(sonic_fs, manifest, service_creator, package_manager):
+def test_service_creator(sonic_fs, manifest, package_manager, mock_feature_registry, mock_sonic_db):
+    creator = ServiceCreator(mock_feature_registry, mock_sonic_db)
     entry = PackageEntry('test', 'azure/sonic-test')
     package = Package(entry, Metadata(manifest))
     installed_packages = package_manager._get_installed_packages_and(package)
-    service_creator.create(package)
-    service_creator.generate_shutdown_sequence_files(installed_packages)
+    creator.create(package)
+    creator.generate_shutdown_sequence_files(installed_packages)
 
     assert sonic_fs.exists(os.path.join(ETC_SONIC_PATH, 'swss_dependent'))
     assert sonic_fs.exists(os.path.join(DOCKER_CTL_SCRIPT_LOCATION, 'test.sh'))
@@ -94,116 +82,73 @@ def test_service_creator(sonic_fs, manifest, service_creator, package_manager):
     assert read_file('test_reconcile') == 'test-process test-process-3'
 
 
-def test_service_creator_with_timer_unit(sonic_fs, manifest, service_creator):
+def test_service_creator_with_timer_unit(sonic_fs, manifest, mock_feature_registry, mock_sonic_db):
+    creator = ServiceCreator(mock_feature_registry, mock_sonic_db)
     entry = PackageEntry('test', 'azure/sonic-test')
     package = Package(entry, Metadata(manifest))
-    service_creator.create(package)
+    creator.create(package)
 
     assert not sonic_fs.exists(os.path.join(SYSTEMD_LOCATION, 'test.timer'))
 
     manifest['service']['delayed'] = True
     package = Package(entry, Metadata(manifest))
-    service_creator.create(package)
+    creator.create(package)
 
     assert sonic_fs.exists(os.path.join(SYSTEMD_LOCATION, 'test.timer'))
 
 
-def test_service_creator_with_debug_dump(sonic_fs, manifest, service_creator):
+def test_service_creator_with_debug_dump(sonic_fs, manifest, mock_feature_registry, mock_sonic_db):
+    creator = ServiceCreator(mock_feature_registry, mock_sonic_db)
     entry = PackageEntry('test', 'azure/sonic-test')
     package = Package(entry, Metadata(manifest))
-    service_creator.create(package)
+    creator.create(package)
 
     assert not sonic_fs.exists(os.path.join(DEBUG_DUMP_SCRIPT_LOCATION, 'test'))
 
     manifest['package']['debug-dump'] = '/some/command'
     package = Package(entry, Metadata(manifest))
-    service_creator.create(package)
+    creator.create(package)
 
     assert sonic_fs.exists(os.path.join(DEBUG_DUMP_SCRIPT_LOCATION, 'test'))
 
 
-def test_service_creator_yang(sonic_fs, manifest, mock_sonic_db,
-                              mock_config_mgmt, service_creator):
-    test_yang = 'TEST YANG'
-    test_yang_module = 'sonic-test'
-
+def test_service_creator_initial_config(sonic_fs, manifest, mock_feature_registry, mock_sonic_db):
     mock_connector = Mock()
+    mock_connector.get_config = Mock(return_value={})
     mock_sonic_db.get_connectors = Mock(return_value=[mock_connector])
-    mock_connector.get_table = Mock(return_value={'key_a': {'field_1': 'value_1'}})
-    mock_connector.get_config = Mock(return_value={
-        'TABLE_A': mock_connector.get_table('')
-    })
+
+    creator = ServiceCreator(mock_feature_registry, mock_sonic_db)
 
     entry = PackageEntry('test', 'azure/sonic-test')
-    package = Package(entry, Metadata(manifest, yang_module_str=test_yang))
-    service_creator.create(package)
+    package = Package(entry, Metadata(manifest))
+    creator.create(package)
 
-    mock_config_mgmt.add_module.assert_called_with(test_yang)
-    mock_config_mgmt.get_module_name = Mock(return_value=test_yang_module)
+    assert not sonic_fs.exists(os.path.join(DEBUG_DUMP_SCRIPT_LOCATION, 'test'))
 
     manifest['package']['init-cfg'] = {
         'TABLE_A': {
             'key_a': {
-                'field_1': 'new_value_1',
+                'field_1': 'value_1',
                 'field_2': 'value_2'
             },
         },
     }
-    package = Package(entry, Metadata(manifest, yang_module_str=test_yang))
+    package = Package(entry, Metadata(manifest))
 
-    service_creator.create(package)
-
-    mock_config_mgmt.add_module.assert_called_with(test_yang)
-
+    creator.create(package)
     mock_connector.mod_config.assert_called_with(
         {
             'TABLE_A': {
-                'key_a': {
-                    'field_1': 'value_1',
-                    'field_2': 'value_2',
-                },
-            },
-        }
+	            'key_a': {
+	                'field_1': 'value_1',
+	                'field_2': 'value_2',
+	            },
+	        },
+	    }
     )
 
-    mock_config_mgmt.sy.confDbYangMap = {
-        'TABLE_A': {'module': test_yang_module}
-    }
-
-    service_creator.remove(package)
+    creator.remove(package)
     mock_connector.set_entry.assert_called_with('TABLE_A', 'key_a', None)
-    mock_config_mgmt.remove_module.assert_called_with(test_yang_module)
-
-
-def test_service_creator_autocli(sonic_fs, manifest, mock_cli_gen,
-                                 mock_config_mgmt, service_creator):
-    test_yang = 'TEST YANG'
-    test_yang_module = 'sonic-test'
-
-    manifest['cli']['auto-generate-show'] = True
-    manifest['cli']['auto-generate-config'] = True
-
-    entry = PackageEntry('test', 'azure/sonic-test')
-    package = Package(entry, Metadata(manifest, yang_module_str=test_yang))
-    mock_config_mgmt.get_module_name = Mock(return_value=test_yang_module)
-    service_creator.create(package)
-
-    mock_cli_gen.generate_cli_plugin.assert_has_calls(
-        [
-            call('show', test_yang_module),
-            call('config', test_yang_module),
-        ],
-        any_order=True
-    )
-
-    service_creator.remove(package)
-    mock_cli_gen.remove_cli_plugin.assert_has_calls(
-        [
-            call('show', test_yang_module),
-            call('config', test_yang_module),
-        ],
-        any_order=True
-    )
 
 
 def test_feature_registration(mock_sonic_db, manifest):

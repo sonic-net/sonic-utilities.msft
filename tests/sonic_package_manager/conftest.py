@@ -7,8 +7,6 @@ from unittest.mock import Mock, MagicMock
 import pytest
 from docker_image.reference import Reference
 
-from config.config_mgmt import ConfigMgmt
-
 from sonic_package_manager.database import PackageDatabase, PackageEntry
 from sonic_package_manager.manager import DockerApi, PackageManager
 from sonic_package_manager.manifest import Manifest
@@ -64,17 +62,7 @@ def mock_service_creator():
 
 @pytest.fixture
 def mock_sonic_db():
-    yield MagicMock()
-
-
-@pytest.fixture
-def mock_config_mgmt():
-    yield MagicMock()
-
-
-@pytest.fixture
-def mock_cli_gen():
-    yield MagicMock()
+    yield Mock()
 
 
 @pytest.fixture
@@ -119,7 +107,7 @@ def fake_metadata_resolver():
                          'before': ['swss'],
                      }
             )
-            self.add('Azure/docker-test', '1.6.0', 'test-package', '1.6.0', yang='TEST')
+            self.add('Azure/docker-test', '1.6.0', 'test-package', '1.6.0')
             self.add('Azure/docker-test-2', '1.5.0', 'test-package-2', '1.5.0')
             self.add('Azure/docker-test-2', '2.0.0', 'test-package-2', '2.0.0')
             self.add('Azure/docker-test-3', 'latest', 'test-package-3', '1.6.0')
@@ -136,26 +124,23 @@ def fake_metadata_resolver():
         def from_registry(self, repository: str, reference: str):
             manifest = Manifest.marshal(self.metadata_store[repository][reference]['manifest'])
             components = self.metadata_store[repository][reference]['components']
-            yang = self.metadata_store[repository][reference]['yang']
-            return Metadata(manifest, components, yang)
+            return Metadata(manifest, components)
 
         def from_local(self, image: str):
             ref = Reference.parse(image)
             manifest = Manifest.marshal(self.metadata_store[ref['name']][ref['tag']]['manifest'])
             components = self.metadata_store[ref['name']][ref['tag']]['components']
-            yang = self.metadata_store[ref['name']][ref['tag']]['yang']
-            return Metadata(manifest, components, yang)
+            return Metadata(manifest, components)
 
         def from_tarball(self, filepath: str) -> Manifest:
             path, ref = filepath.split(':')
             manifest = Manifest.marshal(self.metadata_store[path][ref]['manifest'])
             components = self.metadata_store[path][ref]['components']
-            yang = self.metadata_store[path][ref]['yang']
-            return Metadata(manifest, components, yang)
+            return Metadata(manifest, components)
 
         def add(self, repo, reference, name, version, components=None,
                 warm_shutdown=None, fast_shutdown=None,
-                processes=None, yang=None):
+                processes=None):
             repo_dict = self.metadata_store.setdefault(repo, {})
             repo_dict[reference] = {
                 'manifest': {
@@ -172,7 +157,6 @@ def fake_metadata_resolver():
                     'processes': processes or [],
                 },
                 'components': components or {},
-                'yang': yang,
             }
 
     yield FakeMetadataResolver()
@@ -268,7 +252,7 @@ def fake_db(fake_metadata_resolver):
         description='SONiC Package Manager Test Package',
         default_reference='1.6.0',
         installed=False,
-        built_in=False,
+        built_in=False
     )
     add_package(
         content,
@@ -418,8 +402,8 @@ def sonic_fs(fs):
 
 @pytest.fixture(autouse=True)
 def patch_pkgutil():
-    with mock.patch('pkgutil.get_loader') as loader:
-        yield loader
+    with mock.patch('pkgutil.get_loader'):
+        yield
 
 
 @pytest.fixture

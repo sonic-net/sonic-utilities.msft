@@ -144,3 +144,15 @@ class FeatureRegistry:
             'has_global_scope': str(manifest['service']['host-service']),
             'has_timer': str(manifest['service']['delayed']),
         }
+
+    def _get_tables(self):
+        tables = []
+        running = self._sonic_db.running_table(FEATURE)
+        if running is not None:  # it's Ok if there is no database container running
+            tables.append(running)
+        persistent = self._sonic_db.persistent_table(FEATURE)
+        if persistent is not None:  # it's Ok if there is no config_db.json
+            tables.append(persistent)
+        tables.append(self._sonic_db.initial_table(FEATURE))  # init_cfg.json is must
+
+        return tables

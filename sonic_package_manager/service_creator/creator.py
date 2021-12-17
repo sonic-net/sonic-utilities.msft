@@ -8,23 +8,16 @@ from collections import defaultdict
 from typing import Dict, Type
 
 import jinja2 as jinja2
-from config.config_mgmt import ConfigMgmt
 from prettyprinter import pformat
 from toposort import toposort_flatten, CircularDependencyError
 
-from config.config_mgmt import sonic_cfggen
-from sonic_cli_gen.generator import CliGenerator
 from sonic_package_manager import utils
 from sonic_package_manager.logger import log
 from sonic_package_manager.package import Package
-from sonic_package_manager.service_creator import (
-    ETC_SONIC_PATH,
-    SONIC_CLI_COMMANDS,
-)
+from sonic_package_manager.service_creator import ETC_SONIC_PATH
 from sonic_package_manager.service_creator.feature import FeatureRegistry
 from sonic_package_manager.service_creator.sonic_db import SonicDB
 from sonic_package_manager.service_creator.utils import in_chroot
-
 
 SERVICE_FILE_TEMPLATE = 'sonic.service.j2'
 TIMER_UNIT_TEMPLATE = 'timer.unit.j2'
@@ -123,22 +116,16 @@ class ServiceCreator:
 
     def __init__(self,
                  feature_registry: FeatureRegistry,
-                 sonic_db: Type[SonicDB],
-                 cli_gen: CliGenerator,
-                 cfg_mgmt: ConfigMgmt):
+                 sonic_db: Type[SonicDB]):
         """ Initialize ServiceCreator with:
 
         Args:
             feature_registry: FeatureRegistry object.
             sonic_db: SonicDB interface.
-            cli_gen: CliGenerator instance.
-            cfg_mgmt: ConfigMgmt instance.
          """
 
         self.feature_registry = feature_registry
         self.sonic_db = sonic_db
-        self.cli_gen = cli_gen
-        self.cfg_mgmt = cfg_mgmt
 
     def create(self,
                package: Package,
@@ -164,27 +151,25 @@ class ServiceCreator:
             self.generate_systemd_service(package)
             self.generate_dump_script(package)
             self.generate_service_reconciliation_file(package)
-            self.install_yang_module(package)
+
             self.set_initial_config(package)
-            self.install_autogen_cli_all(package)
             self._post_operation_hook()
 
             if register_feature:
-                self.feature_registry.register(package.manifest, state, owner)
+                self.feature_registry.register(package.manifest,
+                                               state, owner)
         except (Exception, KeyboardInterrupt):
-            self.remove(package, deregister_feature=register_feature)
+            self.remove(package, register_feature)
             raise
 
     def remove(self,
                package: Package,
-               deregister_feature: bool = True,
-               keep_config: bool = False):
+               deregister_feature: bool = True):
         """ Uninstall SONiC service provided by the package.
 
         Args:
             package: Package object to uninstall.
             deregister_feature: Wether to deregister this package from FEATURE table.
-            keep_config: Whether to remove package configuration.
 
         Returns:
             None
@@ -198,16 +183,11 @@ class ServiceCreator:
         remove_if_exists(os.path.join(DEBUG_DUMP_SCRIPT_LOCATION, f'{name}'))
         remove_if_exists(os.path.join(ETC_SONIC_PATH, f'{name}_reconcile'))
         self.update_dependent_list_file(package, remove=True)
-
-        if deregister_feature and not keep_config:
-            self.remove_config(package)
-
-        self.uninstall_autogen_cli_all(package)
-        self.uninstall_yang_module(package)
         self._post_operation_hook()
 
         if deregister_feature:
             self.feature_registry.deregister(package.manifest['service']['name'])
+            self.remove_config(package)
 
     def generate_container_mgmt(self, package: Package):
         """ Generates container management script under /usr/bin/<service>.sh for package.
@@ -328,6 +308,7 @@ class ServiceCreator:
             remove: True if update for removal process.
         Returns:
             None.
+
         """
 
         name = package.manifest['service']['name']
@@ -495,11 +476,13 @@ class ServiceCreator:
             cfg = conn.get_config()
             new_cfg = init_cfg.copy()
             utils.deep_update(new_cfg, cfg)
-            self.validate_config(new_cfg)
             conn.mod_config(new_cfg)
 
     def remove_config(self, package):
-        """ Remove configuration based on package YANG module.
+        """ Remove configuration based on init-cfg tables, so having
+        init-cfg even with tables without keys might be a good idea.
+        TODO: init-cfg should be validated with yang model
+        TODO: remove config from tables known to yang model
 
         Args:
             package: Package object remove initial configuration for.
@@ -507,131 +490,14 @@ class ServiceCreator:
             None
         """
 
-        if not package.metadata.yang_module_str:
+        init_cfg = package.manifest['package']['init-cfg']
+        if not init_cfg:
             return
 
-        module_name = self.cfg_mgmt.get_module_name(package.metadata.yang_module_str)
-        for tablename, module in self.cfg_mgmt.sy.confDbYangMap.items():
-            if module.get('module') != module_name:
-                continue
-
-            for conn in self.sonic_db.get_connectors():
-                keys = conn.get_table(tablename).keys()
-                for key in keys:
-                    conn.set_entry(tablename, key, None)
-
-    def validate_config(self, config):
-        """ Validate configuration through YANG.
-
-        Args:
-            config: Config DB data.
-        Returns:
-            None.
-        Raises:
-            Exception: if config does not pass YANG validation.
-        """
-
-        config = sonic_cfggen.FormatConverter.to_serialized(config)
-        log.debug(f'validating configuration {pformat(config)}')
-        # This will raise exception if configuration is not valid.
-        # NOTE: loadData() modifies the state of ConfigMgmt instance.
-        # This is not desired for configuration validation only purpose.
-        # Although the config loaded into ConfigMgmt instance is not
-        # interesting in this application so we don't care.
-        self.cfg_mgmt.loadData(config)
-
-    def install_yang_module(self, package: Package):
-        """ Install package's yang module in the system.
-
-        Args:
-            package: Package object.
-        Returns:
-            None
-        """
-
-        if not package.metadata.yang_module_str:
-            return
-
-        self.cfg_mgmt.add_module(package.metadata.yang_module_str)
-
-    def uninstall_yang_module(self, package: Package):
-        """ Uninstall package's yang module in the system.
-
-        Args:
-            package: Package object.
-        Returns:
-            None
-        """
-
-        if not package.metadata.yang_module_str:
-            return
-
-        module_name = self.cfg_mgmt.get_module_name(package.metadata.yang_module_str)
-        self.cfg_mgmt.remove_module(module_name)
-
-    def install_autogen_cli_all(self, package: Package):
-        """ Install autogenerated CLI plugins for package.
-
-        Args:
-            package: Package
-        Returns:
-            None
-        """
-
-        for command in SONIC_CLI_COMMANDS:
-            self.install_autogen_cli(package, command)
-
-    def uninstall_autogen_cli_all(self, package: Package):
-        """ Remove autogenerated CLI plugins for package.
-
-        Args:
-            package: Package
-        Returns:
-            None
-        """
-
-        for command in SONIC_CLI_COMMANDS:
-            self.uninstall_autogen_cli(package, command)
-
-    def install_autogen_cli(self, package: Package, command: str):
-        """ Install autogenerated CLI plugins for package for particular command.
-
-        Args:
-            package: Package.
-            command: Name of command to generate CLI for.
-        Returns:
-            None
-        """
-
-        if package.metadata.yang_module_str is None:
-            return
-        if f'auto-generate-{command}' not in package.manifest['cli']:
-            return
-        if not package.manifest['cli'][f'auto-generate-{command}']:
-            return
-        module_name = self.cfg_mgmt.get_module_name(package.metadata.yang_module_str)
-        self.cli_gen.generate_cli_plugin(command, module_name)
-        log.debug(f'{command} command line interface autogenerated for {module_name}')
-
-    def uninstall_autogen_cli(self, package: Package, command: str):
-        """ Uninstall autogenerated CLI plugins for package for particular command.
-
-        Args:
-            package: Package.
-            command: Name of command to remove CLI.
-        Returns:
-            None
-        """
-
-        if package.metadata.yang_module_str is None:
-            return
-        if f'auto-generate-{command}' not in package.manifest['cli']:
-            return
-        if not package.manifest['cli'][f'auto-generate-{command}']:
-            return
-        module_name = self.cfg_mgmt.get_module_name(package.metadata.yang_module_str)
-        self.cli_gen.remove_cli_plugin(command, module_name)
-        log.debug(f'{command} command line interface removed for {module_name}')
+        for conn in self.sonic_db.get_connectors():
+            for table in init_cfg:
+                for key in init_cfg[table]:
+                    conn.set_entry(table, key, None)
 
     def _post_operation_hook(self):
         """ Common operations executed after service is created/removed. """

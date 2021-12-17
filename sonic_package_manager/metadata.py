@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 
 import json
 import tarfile
-from typing import Dict, Optional
+from typing import Dict
 
 from sonic_package_manager import utils
 from sonic_package_manager.errors import MetadataError
@@ -54,7 +54,6 @@ class Metadata:
 
     manifest: Manifest
     components: Dict[str, Version] = field(default_factory=dict)
-    yang_module_str: Optional[str] = None
 
 
 class MetadataResolver:
@@ -164,6 +163,5 @@ class MetadataResolver:
                 except ValueError as err:
                     raise MetadataError(f'Failed to parse component version: {err}')
 
-        yang_module_str = sonic_metadata.get('yang-module')
+        return Metadata(Manifest.marshal(manifest_dict), components)
 
-        return Metadata(Manifest.marshal(manifest_dict), components, yang_module_str)
