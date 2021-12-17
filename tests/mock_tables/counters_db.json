@@ -467,10 +467,10 @@
             "SAI_ROUTER_INTERFACE_STAT_OUT_PACKETS": "0"
     },
     "RATES:oid:0x1000000000012": {
-            "RX_BPS": "0",
-            "RX_PPS": "0",
-            "TX_BPS": "0",
-            "TX_PPS": "0"
+            "RX_BPS": "2.e9",
+            "RX_PPS": "247.e3",
+            "TX_BPS": "1.5e9",
+            "TX_PPS": "183.e3"
     },
     "RATES:oid:0x1000000000013": {
             "RX_BPS": "204800",
