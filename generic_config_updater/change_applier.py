@@ -55,6 +55,16 @@ def prune_empty_table(data):
     return data
 
 
+class DryRunChangeApplier:
+
+    def __init__(self, config_wrapper):
+        self.config_wrapper = config_wrapper
+
+
+    def apply(self, change):
+        self.config_wrapper.apply_change_to_config_db(change)
+
+
 class ChangeApplier:
 
     updater_conf = None

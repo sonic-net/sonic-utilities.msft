@@ -7,6 +7,7 @@ from .gutest_helpers import create_side_effect_dict, Files
 
 import generic_config_updater.generic_updater as gu
 import generic_config_updater.patch_sorter as ps
+import generic_config_updater.change_applier as ca
 
 # import sys
 # sys.path.insert(0,'../../generic_config_updater')
@@ -420,8 +421,11 @@ class TestGenericUpdateFactory(unittest.TestCase):
         self.assertIsInstance(patch_applier, gu.PatchApplier)
         if params["dry_run"]:
             self.assertIsInstance(patch_applier.config_wrapper, gu.DryRunConfigWrapper)
+            self.assertIsInstance(patch_applier.changeapplier, ca.DryRunChangeApplier)
+            self.assertIsInstance(patch_applier.changeapplier.config_wrapper, gu.DryRunConfigWrapper)
         else:
             self.assertIsInstance(patch_applier.config_wrapper, gu.ConfigWrapper)
+            self.assertIsInstance(patch_applier.changeapplier, ca.ChangeApplier)
 
         if params["ignore_non_yang_tables"] or params["ignore_paths"]:
             self.assertIsInstance(patch_applier.patchsorter, ps.NonStrictPatchSorter)
@@ -451,9 +455,12 @@ class TestGenericUpdateFactory(unittest.TestCase):
         if params["dry_run"]:
             self.assertIsInstance(config_replacer.config_wrapper, gu.DryRunConfigWrapper)
             self.assertIsInstance(config_replacer.patch_applier.config_wrapper, gu.DryRunConfigWrapper)
+            self.assertIsInstance(config_replacer.patch_applier.changeapplier, ca.DryRunChangeApplier)
+            self.assertIsInstance(config_replacer.patch_applier.changeapplier.config_wrapper, gu.DryRunConfigWrapper)
         else:
             self.assertIsInstance(config_replacer.config_wrapper, gu.ConfigWrapper)
             self.assertIsInstance(config_replacer.patch_applier.config_wrapper, gu.ConfigWrapper)
+            self.assertIsInstance(config_replacer.patch_applier.changeapplier, ca.ChangeApplier)
 
         if params["ignore_non_yang_tables"] or params["ignore_paths"]:
             self.assertIsInstance(config_replacer.patch_applier.patchsorter, ps.NonStrictPatchSorter)
@@ -482,11 +489,15 @@ class TestGenericUpdateFactory(unittest.TestCase):
             self.assertIsInstance(config_rollbacker.config_replacer.config_wrapper, gu.DryRunConfigWrapper)
             self.assertIsInstance(
                 config_rollbacker.config_replacer.patch_applier.config_wrapper, gu.DryRunConfigWrapper)
+            self.assertIsInstance(config_rollbacker.config_replacer.patch_applier.changeapplier, ca.DryRunChangeApplier)
+            self.assertIsInstance(
+                config_rollbacker.config_replacer.patch_applier.changeapplier.config_wrapper, gu.DryRunConfigWrapper)
         else:
             self.assertIsInstance(config_rollbacker.config_wrapper, gu.ConfigWrapper)
             self.assertIsInstance(config_rollbacker.config_replacer.config_wrapper, gu.ConfigWrapper)
             self.assertIsInstance(
                 config_rollbacker.config_replacer.patch_applier.config_wrapper, gu.ConfigWrapper)
+            self.assertIsInstance(config_rollbacker.config_replacer.patch_applier.changeapplier, ca.ChangeApplier)
 
         if params["ignore_non_yang_tables"] or params["ignore_paths"]:
             self.assertIsInstance(config_rollbacker.config_replacer.patch_applier.patchsorter, ps.NonStrictPatchSorter)

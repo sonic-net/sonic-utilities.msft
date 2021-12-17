@@ -7,6 +7,50 @@ from unittest.mock import MagicMock, Mock
 from .gutest_helpers import create_side_effect_dict, Files
 import generic_config_updater.gu_common as gu_common
 
+class TestDryRunConfigWrapper(unittest.TestCase):
+    def test_get_config_db_as_json__returns_imitated_config_db(self):
+        # Arrange
+        config_wrapper = gu_common.DryRunConfigWrapper(Files.CONFIG_DB_AS_JSON)
+        expected = Files.CONFIG_DB_AS_JSON
+
+        # Act
+        actual = config_wrapper.get_config_db_as_json()
+
+        # Assert
+        self.assertDictEqual(expected, actual)
+
+    def test_get_sonic_yang_as_json__returns_imitated_config_db_as_yang(self):
+        # Arrange
+        config_wrapper = gu_common.DryRunConfigWrapper(Files.CONFIG_DB_AS_JSON)
+        expected = Files.SONIC_YANG_AS_JSON
+
+        # Act
+        actual = config_wrapper.get_sonic_yang_as_json()
+
+        # Assert
+        self.assertDictEqual(expected, actual)
+
+    def test_apply_change_to_config_db__multiple_calls__changes_imitated_config_db(self):
+        # Arrange
+        imitated_config_db = Files.CONFIG_DB_AS_JSON
+        config_wrapper = gu_common.DryRunConfigWrapper(imitated_config_db)
+
+        changes = [gu_common.JsonChange(jsonpatch.JsonPatch([{'op':'remove', 'path':'/VLAN'}])),
+                   gu_common.JsonChange(jsonpatch.JsonPatch([{'op':'remove', 'path':'/ACL_TABLE'}])),
+                   gu_common.JsonChange(jsonpatch.JsonPatch([{'op':'remove', 'path':'/PORT'}]))
+                  ]
+
+        expected = imitated_config_db
+        for change in changes:
+            # Act
+            config_wrapper.apply_change_to_config_db(change)
+
+            actual = config_wrapper.get_config_db_as_json()
+            expected = change.apply(expected)
+
+            # Assert
+            self.assertDictEqual(expected, actual)
+
 class TestConfigWrapper(unittest.TestCase):
     def setUp(self):
         self.config_wrapper_mock = gu_common.ConfigWrapper()

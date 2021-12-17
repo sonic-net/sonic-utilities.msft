@@ -1164,6 +1164,10 @@ def load(filename, yes):
         log.log_info("'load' executing...")
         clicommon.run_command(command, display_cmd=True)
 
+def print_dry_run_message(dry_run):
+    if dry_run:
+        click.secho("** DRY RUN EXECUTION **", fg="yellow", underline=True)
+
 @config.command('apply-patch')
 @click.argument('patch-file-path', type=str, required=True)
 @click.option('-f', '--format', type=click.Choice([e.name for e in ConfigFormat]),
@@ -1182,6 +1186,8 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
 
        <patch-file-path>: Path to the patch file on the file-system."""
     try:
+        print_dry_run_message(dry_run)
+
         with open(patch_file_path, 'r') as fh:
             text = fh.read()
             patch_as_json = json.loads(text)
@@ -1214,6 +1220,8 @@ def replace(ctx, target_file_path, format, dry_run, ignore_non_yang_tables, igno
 
        <target-file-path>: Path to the target file on the file-system."""
     try:
+        print_dry_run_message(dry_run)
+
         with open(target_file_path, 'r') as fh:
             target_config_as_text = fh.read()
             target_config = json.loads(target_config_as_text)
@@ -1241,6 +1249,8 @@ def rollback(ctx, checkpoint_name, dry_run, ignore_non_yang_tables, ignore_path,
 
        <checkpoint-name>: The checkpoint name, use `config list-checkpoints` command to see available checkpoints."""
     try:
+        print_dry_run_message(dry_run)
+
         GenericUpdater().rollback(checkpoint_name, verbose, dry_run, ignore_non_yang_tables, ignore_path)
 
         click.secho("Config rolled back successfully.", fg="cyan", underline=True)

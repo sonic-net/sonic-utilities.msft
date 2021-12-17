@@ -5,7 +5,7 @@ from .gu_common import GenericConfigUpdaterError, ConfigWrapper, \
                        DryRunConfigWrapper, PatchWrapper, genericUpdaterLogging
 from .patch_sorter import StrictPatchSorter, NonStrictPatchSorter, ConfigSplitter, \
                           TablesWithoutYangConfigSplitter, IgnorePathsFromYangConfigSplitter
-from .change_applier import ChangeApplier
+from .change_applier import ChangeApplier, DryRunChangeApplier
 
 CHECKPOINTS_DIR = "/etc/sonic/checkpoints"
 CHECKPOINT_EXT = ".cp.json"
@@ -299,9 +299,13 @@ class GenericUpdateFactory:
     def create_patch_applier(self, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths):
         self.init_verbose_logging(verbose)
         config_wrapper = self.get_config_wrapper(dry_run)
+        change_applier = self.get_change_applier(dry_run, config_wrapper)
         patch_wrapper = PatchWrapper(config_wrapper)
         patch_sorter = self.get_patch_sorter(ignore_non_yang_tables, ignore_paths, config_wrapper, patch_wrapper)
-        patch_applier = PatchApplier(config_wrapper=config_wrapper, patchsorter=patch_sorter, patch_wrapper=patch_wrapper)
+        patch_applier = PatchApplier(config_wrapper=config_wrapper,
+                                     patchsorter=patch_sorter,
+                                     patch_wrapper=patch_wrapper,
+                                     changeapplier=change_applier)
 
         if config_format == ConfigFormat.CONFIGDB:
             pass
@@ -320,9 +324,13 @@ class GenericUpdateFactory:
         self.init_verbose_logging(verbose)
 
         config_wrapper = self.get_config_wrapper(dry_run)
+        change_applier = self.get_change_applier(dry_run, config_wrapper)
         patch_wrapper = PatchWrapper(config_wrapper)
         patch_sorter = self.get_patch_sorter(ignore_non_yang_tables, ignore_paths, config_wrapper, patch_wrapper)
-        patch_applier = PatchApplier(config_wrapper=config_wrapper, patchsorter=patch_sorter, patch_wrapper=patch_wrapper)
+        patch_applier = PatchApplier(config_wrapper=config_wrapper,
+                                     patchsorter=patch_sorter,
+                                     patch_wrapper=patch_wrapper,
+                                     changeapplier=change_applier)
 
         config_replacer = ConfigReplacer(patch_applier=patch_applier, config_wrapper=config_wrapper)
         if config_format == ConfigFormat.CONFIGDB:
@@ -342,9 +350,13 @@ class GenericUpdateFactory:
         self.init_verbose_logging(verbose)
 
         config_wrapper = self.get_config_wrapper(dry_run)
+        change_applier = self.get_change_applier(dry_run, config_wrapper)
         patch_wrapper = PatchWrapper(config_wrapper)
         patch_sorter = self.get_patch_sorter(ignore_non_yang_tables, ignore_paths, config_wrapper, patch_wrapper)
-        patch_applier = PatchApplier(config_wrapper=config_wrapper, patchsorter=patch_sorter, patch_wrapper=patch_wrapper)
+        patch_applier = PatchApplier(config_wrapper=config_wrapper,
+                                     patchsorter=patch_sorter,
+                                     patch_wrapper=patch_wrapper,
+                                     changeapplier=change_applier)
 
         config_replacer = ConfigReplacer(config_wrapper=config_wrapper, patch_applier=patch_applier)
         config_rollbacker = FileSystemConfigRollbacker(config_wrapper = config_wrapper, config_replacer = config_replacer)
@@ -362,6 +374,12 @@ class GenericUpdateFactory:
             return DryRunConfigWrapper()
         else:
             return ConfigWrapper()
+
+    def get_change_applier(self, dry_run, config_wrapper):
+        if dry_run:
+            return DryRunChangeApplier(config_wrapper)
+        else:
+            return ChangeApplier()
 
     def get_patch_sorter(self, ignore_non_yang_tables, ignore_paths, config_wrapper, patch_wrapper):
         if not ignore_non_yang_tables and not ignore_paths:

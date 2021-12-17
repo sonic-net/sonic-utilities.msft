@@ -4,7 +4,7 @@ import jsondiff
 import os
 import unittest
 from collections import defaultdict
-from unittest.mock import patch
+from unittest.mock import patch, Mock, call
 
 import generic_config_updater.change_applier
 import generic_config_updater.services_validator
@@ -269,4 +269,16 @@ class TestChangeApplier(unittest.TestCase):
         debug_print("all good for applier")
 
 
- 
+class TestDryRunChangeApplier(unittest.TestCase):
+    def test_apply__calls_apply_change_to_config_db(self):
+        # Arrange
+        change = Mock()
+        config_wrapper = Mock()
+        applier = generic_config_updater.change_applier.DryRunChangeApplier(config_wrapper)
+
+        # Act
+        applier.apply(change)
+
+        # Assert
+        applier.config_wrapper.apply_change_to_config_db.assert_has_calls([call(change)])
+
