@@ -5,6 +5,7 @@ REBOOT_TIME=$(date)
 REBOOT_METHOD="/sbin/kexec -e"
 LOG_SSD_HEALTH="/usr/local/bin/log_ssd_health"
 WATCHDOG_UTIL="/usr/local/bin/watchdogutil"
+UIMAGE_HDR_SIZE=64
 
 EXIT_SUCCESS=0
 EXIT_FAILURE=1
@@ -133,7 +134,7 @@ function setup_reboot_variables()
             # If initrd is a U-Boot uImage, remove the uImage header
             if file ${INITRD} | grep -q uImage; then
                 INITRD_RAW=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd-raw.img/g')
-                tail -c+65 < ${INITRD} > ${INITRD_RAW}
+                tail -c+$((${UIMAGE_HDR_SIZE}+1)) < ${INITRD} > ${INITRD_RAW}
                 INITRD=${INITRD_RAW}
             fi
         else

@@ -27,6 +27,7 @@ SSD_FW_UPDATE="ssd-fw-upgrade"
 TAG_LATEST=yes
 DETACH=no
 LOG_PATH="/var/log/${REBOOT_TYPE}.txt"
+UIMAGE_HDR_SIZE=64
 
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
@@ -327,15 +328,33 @@ function setup_reboot_variables()
             KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
             BOOT_OPTIONS="$(cat "$IMAGE_PATH/kernel-cmdline" | tr '\n' ' ') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
         fi
+        INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
     elif grep -q onie_platform= /host/machine.conf; then
-        KERNEL_OPTIONS=$(cat /host/grub/grub.cfg | sed "/$NEXT_SONIC_IMAGE'/,/}/"'!'"g" | grep linux)
-        KERNEL_IMAGE="/host$(echo $KERNEL_OPTIONS | cut -d ' ' -f 2)"
-        BOOT_OPTIONS="$(echo $KERNEL_OPTIONS | sed -e 's/\s*linux\s*/BOOT_IMAGE=/') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
+        if [ -r /host/grub/grub.cfg ]; then
+            KERNEL_OPTIONS=$(cat /host/grub/grub.cfg | sed "/$NEXT_SONIC_IMAGE'/,/}/"'!'"g" | grep linux)
+            KERNEL_IMAGE="/host$(echo $KERNEL_OPTIONS | cut -d ' ' -f 2)"
+            BOOT_OPTIONS="$(echo $KERNEL_OPTIONS | sed -e 's/\s*linux\s*/BOOT_IMAGE=/') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
+            INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
+        # Handle architectures supporting Device Tree
+        elif [ -f /sys/firmware/devicetree/base/chosen/bootargs ]; then
+            KERNEL_IMAGE="$(ls $IMAGE_PATH/boot/vmlinuz-*)"
+            BOOT_OPTIONS="$(cat /sys/firmware/devicetree/base/chosen/bootargs | sed 's/.$//') SONIC_BOOT_TYPE=${BOOT_TYPE_ARG}"
+            INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
+
+            # If initrd is a U-Boot uImage, remove the uImage header
+            if file ${INITRD} | grep -q uImage; then
+                INITRD_RAW=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd-raw.img/g')
+                tail -c+$((${UIMAGE_HDR_SIZE}+1)) < ${INITRD} > ${INITRD_RAW}
+                INITRD=${INITRD_RAW}
+            fi
+        else
+            error "Unknown ONIE platform bootloader. ${REBOOT_TYPE} is not supported."
+            exit "${EXIT_NOT_SUPPORTED}"
+        fi
     else
         error "Unknown bootloader. ${REBOOT_TYPE} is not supported."
         exit "${EXIT_NOT_SUPPORTED}"
     fi
-    INITRD=$(echo $KERNEL_IMAGE | sed 's/vmlinuz/initrd.img/g')
 }
 
 function check_docker_exec()
@@ -393,7 +412,7 @@ function reboot_pre_check()
         error "Failed to verify next image. Exit code: $INSTALLER_VERIFY_RC"
         exit ${EXIT_SONIC_INSTALLER_VERIFY_REBOOT}
     fi
-    
+
     # Make sure ASIC configuration has not changed between images
     ASIC_CONFIG_CHECK_SCRIPT="/usr/local/bin/asic_config_check"
     ASIC_CONFIG_CHECK_SUCCESS=0
