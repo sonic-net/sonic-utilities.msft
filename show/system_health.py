@@ -10,7 +10,7 @@ import utilities_common.cli as clicommon
 #
 @click.group(name='system-health', cls=clicommon.AliasedGroup)
 def system_health():
-    """SONiC command line - 'show system-health' command"""
+    """Show system-health information"""
     return
 
 @system_health.command()

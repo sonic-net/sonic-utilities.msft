@@ -381,7 +381,7 @@ This command displays the full list of show commands available in the software; 
     ipv6                  Show IPv6 commands
     kubernetes            Show kubernetes commands
     line                  Show all /dev/ttyUSB lines and their info
-    lldp                  LLDP (Link Layer Discovery Protocol)...
+    lldp                  Show LLDP information
     logging               Show system log
     mac                   Show MAC (FDB) entries
     mirror_session        Show existing everflow sessions
@@ -393,10 +393,10 @@ This command displays the full list of show commands available in the software; 
     pfc                   Show details of the priority-flow-control...
     platform              Show platform-specific hardware info
     priority-group        Show details of the PGs
-    processes             Display process information
+    processes             Show process information
     queue                 Show details of the queues
     reboot-cause          Show cause of most recent reboot
-    route-map             show route-map
+    route-map             Show route-map
     runningconfiguration  Show current running configuration...
     services              Show all daemon services
     startupconfiguration  Show startup configuration information

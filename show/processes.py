@@ -8,7 +8,7 @@ import utilities_common.cli as clicommon
 
 @click.group(cls=clicommon.AliasedGroup)
 def processes():
-    """Display process information"""
+    """Show process information"""
     pass
 
 

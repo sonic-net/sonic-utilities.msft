@@ -955,7 +955,7 @@ def link_local_mode(verbose):
 
 @cli.group(cls=clicommon.AliasedGroup)
 def lldp():
-    """LLDP (Link Layer Discovery Protocol) information"""
+    """Show LLDP information"""
     pass
 
 # Default 'lldp' command (called if no subcommands or their aliases were passed)

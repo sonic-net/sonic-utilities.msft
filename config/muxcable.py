@@ -203,7 +203,7 @@ def get_value_for_key_in_config_tbl(config_db, port, key, table):
 
 @click.group(name='muxcable', cls=clicommon.AliasedGroup)
 def muxcable():
-    """SONiC command line - 'show muxcable' command"""
+    """Show muxcable information"""
 
     if os.geteuid() != 0:
         click.echo("Root privileges are required for this operation")
