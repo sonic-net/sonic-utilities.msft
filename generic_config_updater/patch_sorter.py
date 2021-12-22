@@ -1119,21 +1119,21 @@ class IgnorePathsFromYangConfigSplitter:
     def __init__(self, ignore_paths_from_yang_list, config_wrapper):
         self.ignore_paths_from_yang_list = ignore_paths_from_yang_list
         self.config_wrapper = config_wrapper
+        self.path_addressing = PathAddressing(config_wrapper)
 
     def split_yang_non_yang_distinct_field_path(self, config):
         config_with_yang = copy.deepcopy(config)
         config_without_yang = {}
 
-        path_addressing = PathAddressing()
         # ignore more config from config_with_yang
         for path in self.ignore_paths_from_yang_list:
-            if not path_addressing.has_path(config_with_yang, path):
+            if not self.path_addressing.has_path(config_with_yang, path):
                 continue
             if path == '': # whole config to be ignored
                 return {}, copy.deepcopy(config)
 
             # Add to config_without_yang from config_with_yang
-            tokens = path_addressing.get_path_tokens(path)
+            tokens = self.path_addressing.get_path_tokens(path)
             add_move = JsonMove(Diff(config_without_yang, config_with_yang), OperationType.ADD, tokens, tokens)
             config_without_yang = add_move.apply(config_without_yang)
 
@@ -1325,7 +1325,7 @@ class PatchSorter:
         self.config_wrapper = config_wrapper
         self.patch_wrapper = patch_wrapper
         self.operation_wrapper = OperationWrapper()
-        self.path_addressing = PathAddressing()
+        self.path_addressing = PathAddressing(self.config_wrapper)
         self.sort_algorithm_factory = sort_algorithm_factory if sort_algorithm_factory else \
             SortAlgorithmFactory(self.operation_wrapper, config_wrapper, self.path_addressing)
 

@@ -43,6 +43,7 @@ class JsonChange:
 class ConfigWrapper:
     def __init__(self, yang_dir = YANG_DIR):
         self.yang_dir = YANG_DIR
+        self.sonic_yang_with_loaded_models = None
 
     def get_config_db_as_json(self):
         text = self._get_config_db_as_text()
@@ -63,8 +64,7 @@ class ConfigWrapper:
         return self.convert_config_db_to_sonic_yang(config_db_json)
 
     def convert_config_db_to_sonic_yang(self, config_db_as_json):
-        sy = sonic_yang.SonicYang(self.yang_dir)
-        sy.loadYangModel()
+        sy = self.create_sonic_yang_with_loaded_models()
 
         # Crop config_db tables that do not have sonic yang models
         cropped_config_db_as_json = self.crop_tables_without_yang(config_db_as_json)
@@ -76,8 +76,7 @@ class ConfigWrapper:
         return sonic_yang_as_json
 
     def convert_sonic_yang_to_config_db(self, sonic_yang_as_json):
-        sy = sonic_yang.SonicYang(self.yang_dir)
-        sy.loadYangModel()
+        sy = self.create_sonic_yang_with_loaded_models()
 
         # replace container of the format 'module:table' with just 'table'
         new_sonic_yang_json = {}
@@ -100,8 +99,7 @@ class ConfigWrapper:
     def validate_sonic_yang_config(self, sonic_yang_as_json):
         config_db_as_json = self.convert_sonic_yang_to_config_db(sonic_yang_as_json)
 
-        sy = sonic_yang.SonicYang(self.yang_dir)
-        sy.loadYangModel()
+        sy = self.create_sonic_yang_with_loaded_models()
 
         try:
             sy.loadData(config_db_as_json)
@@ -112,8 +110,7 @@ class ConfigWrapper:
             return False
 
     def validate_config_db_config(self, config_db_as_json):
-        sy = sonic_yang.SonicYang(self.yang_dir)
-        sy.loadYangModel()
+        sy = self.create_sonic_yang_with_loaded_models()
 
         try:
             tmp_config_db_as_json = copy.deepcopy(config_db_as_json)
@@ -126,8 +123,7 @@ class ConfigWrapper:
             return False
 
     def crop_tables_without_yang(self, config_db_as_json):
-        sy = sonic_yang.SonicYang(self.yang_dir)
-        sy.loadYangModel()
+        sy = self.create_sonic_yang_with_loaded_models()
 
         sy.jIn = copy.deepcopy(config_db_as_json)
 
@@ -150,6 +146,16 @@ class ConfigWrapper:
             if config[table]:
                 config_with_non_empty_tables[table] = copy.deepcopy(config[table])
         return config_with_non_empty_tables
+
+    # TODO: move creating copies of sonic_yang with loaded models to sonic-yang-mgmt directly
+    def create_sonic_yang_with_loaded_models(self):
+        # sonic_yang_with_loaded_models will only be initialized once the first time this method is called
+        if self.sonic_yang_with_loaded_models is None:
+            loaded_models_sy = sonic_yang.SonicYang(self.yang_dir)
+            loaded_models_sy.loadYangModel() # This call takes a long time (100s of ms) because it reads files from disk
+            self.sonic_yang_with_loaded_models = loaded_models_sy
+
+        return copy.copy(self.sonic_yang_with_loaded_models)
 
 class DryRunConfigWrapper(ConfigWrapper):
     # This class will simulate all read/write operations to ConfigDB on a virtual storage unit.
@@ -176,7 +182,7 @@ class DryRunConfigWrapper(ConfigWrapper):
 class PatchWrapper:
     def __init__(self, config_wrapper=None):
         self.config_wrapper = config_wrapper if config_wrapper is not None else ConfigWrapper()
-        self.path_addressing = PathAddressing()
+        self.path_addressing = PathAddressing(self.config_wrapper)
 
     def validate_config_db_patch_has_yang_models(self, patch):
         config_db = {}
@@ -256,6 +262,10 @@ class PathAddressing:
     """
     PATH_SEPARATOR = "/"
     XPATH_SEPARATOR = "/"
+
+    def __init__(self, config_wrapper=None):
+        self.config_wrapper = config_wrapper
+
     def get_path_tokens(self, path):
         return JsonPointer(path).parts
 
@@ -391,8 +401,7 @@ class PathAddressing:
         return self._find_leafref_paths(path, config)
 
     def _find_leafref_paths(self, path, config):
-        sy = sonic_yang.SonicYang(YANG_DIR)
-        sy.loadYangModel()
+        sy = self.config_wrapper.create_sonic_yang_with_loaded_models()
 
         sy.loadData(config)
 

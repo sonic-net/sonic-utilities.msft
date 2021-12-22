@@ -921,8 +921,8 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
 
 class TestNoDependencyMoveValidator(unittest.TestCase):
     def setUp(self):
-        path_addressing = ps.PathAddressing()
         config_wrapper = ConfigWrapper()
+        path_addressing = ps.PathAddressing(config_wrapper)
         self.validator = ps.NoDependencyMoveValidator(path_addressing, config_wrapper)
 
     def test_validate__add_full_config_has_dependencies__failure(self):
@@ -1649,7 +1649,7 @@ class TestDeleteInsteadOfReplaceMoveExtender(unittest.TestCase):
 
 class DeleteRefsMoveExtender(unittest.TestCase):
     def setUp(self):
-        self.extender = ps.DeleteRefsMoveExtender(PathAddressing())
+        self.extender = ps.DeleteRefsMoveExtender(PathAddressing(ConfigWrapper()))
 
     def test_extend__non_delete_ops__no_extended_moves(self):
         self.verify(OperationType.ADD,
@@ -1723,7 +1723,8 @@ class TestSortAlgorithmFactory(unittest.TestCase):
 
     def verify(self, algo, algo_class):
         # Arrange
-        factory = ps.SortAlgorithmFactory(OperationWrapper(), ConfigWrapper(), PathAddressing())
+        config_wrapper = ConfigWrapper()
+        factory = ps.SortAlgorithmFactory(OperationWrapper(), config_wrapper, PathAddressing(config_wrapper))
         expected_generators = [ps.LowLevelMoveGenerator]
         expected_extenders = [ps.UpperLevelMoveExtender, ps.DeleteInsteadOfReplaceMoveExtender, ps.DeleteRefsMoveExtender]
         expected_validator = [ps.DeleteWholeConfigMoveValidator,
@@ -1834,7 +1835,7 @@ class TestPatchSorter(unittest.TestCase):
         config_wrapper.get_config_db_as_json = MagicMock(return_value=config)
         patch_wrapper = PatchWrapper(config_wrapper)
         operation_wrapper = OperationWrapper()
-        path_addressing= ps.PathAddressing()
+        path_addressing= ps.PathAddressing(config_wrapper)
         sort_algorithm_factory = ps.SortAlgorithmFactory(operation_wrapper, config_wrapper, path_addressing)
 
         return ps.PatchSorter(config_wrapper, patch_wrapper, sort_algorithm_factory)
