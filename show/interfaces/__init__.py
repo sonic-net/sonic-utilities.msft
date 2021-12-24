@@ -203,6 +203,9 @@ def breakout(ctx):
             raise click.Abort()
 
         for port_name in platform_dict:
+            # Check whether port is available in `BREAKOUT_CFG` table or not
+            if  port_name not in cur_brkout_tbl:
+                continue
             cur_brkout_mode = cur_brkout_tbl[port_name]["brkout_mode"]
 
             # Update deafult breakout mode and current breakout mode to platform_dict
@@ -252,7 +255,11 @@ def currrent_mode(ctx, interface):
 
     # Show current Breakout Mode of user prompted interface
     if interface is not None:
-        body.append([interface, str(cur_brkout_tbl[interface]['brkout_mode'])])
+        # Check whether interface is available in `BREAKOUT_CFG` table or not
+        if interface in cur_brkout_tbl:
+            body.append([interface, str(cur_brkout_tbl[interface]['brkout_mode'])])
+        else:
+            body.append([interface, "Not Available"])
         click.echo(tabulate(body, header, tablefmt="grid"))
         return
 

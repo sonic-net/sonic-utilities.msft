@@ -35,6 +35,16 @@ current_mode_intf_output = ''+ \
 +-------------+-------------------------+
 """
 
+# Negetive Test
+# Expected output for 'show breakout current-mode Ethernet60'
+current_mode_intf_output_Ethernet60 = ''+ \
+"""+-------------+-------------------------+
+| Interface   | Current Breakout Mode   |
++=============+=========================+
+| Ethernet60  | Not Available           |
++-------------+-------------------------+
+"""
+
 class TestBreakout(TestCase):
     @classmethod
     def setup_class(cls):
@@ -58,6 +68,12 @@ class TestBreakout(TestCase):
         result = self.runner.invoke(show.cli.commands["interfaces"].commands["breakout"].commands["current-mode"], ["Ethernet0"], obj=self.obj)
         print(sys.stderr, result.output)
         assert result.output == current_mode_intf_output
+
+    # Negetive Test 'show interfaces  breakout current-mode Ethernet60'
+    def test_single_intf_current_mode(self):
+        result = self.runner.invoke(show.cli.commands["interfaces"].commands["breakout"].commands["current-mode"], ["Ethernet60"], obj=self.obj)
+        print(sys.stderr, result.output)
+        assert result.output == current_mode_intf_output_Ethernet60
 
     @classmethod
     def teardown_class(cls):
