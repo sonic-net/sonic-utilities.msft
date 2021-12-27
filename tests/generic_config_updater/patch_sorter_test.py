@@ -1054,6 +1054,37 @@ class TestNoDependencyMoveValidator(unittest.TestCase):
         # Act and assert
         self.assertTrue(self.validator.validate(move, diff))
 
+    def test_validate__replace_list_item_different_location_than_target_and_no_deps__true(self):
+        # Arrange
+        current_config = {
+            "VLAN": {
+                "Vlan100": {
+                    "vlanid": "100",
+                    "dhcp_servers": [
+                        "192.0.0.1",
+                        "192.0.0.2"
+                    ]
+                }
+            }
+        }
+        target_config = {
+            "VLAN": {
+                "Vlan100": {
+                    "vlanid": "100",
+                    "dhcp_servers": [
+                        "192.0.0.3"
+                    ]
+                }
+            }
+        }
+        diff = ps.Diff(current_config, target_config)
+        # the target tokens point to location 0 which exist in target_config
+        # but the replace operation is operating on location 1 in current_config
+        move = ps.JsonMove(diff, OperationType.REPLACE, ["VLAN", "Vlan100", "dhcp_servers", 1], ["VLAN", "Vlan100", "dhcp_servers", 0])
+
+        # Act and assert
+        self.assertTrue(self.validator.validate(move, diff))
+
     def prepare_config(self, config, patch):
         return patch.apply(config)
 

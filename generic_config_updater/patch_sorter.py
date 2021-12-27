@@ -551,10 +551,12 @@ class NoDependencyMoveValidator:
         simulated_config = move.apply(diff.current_config)
         deleted_paths, added_paths = self._get_paths(diff.current_config, simulated_config, [])
 
+        # For deleted paths, we check the current config has no dependencies between nodes under the removed path
         if not self._validate_paths_config(deleted_paths, diff.current_config):
             return False
 
-        if not self._validate_paths_config(added_paths, diff.target_config):
+        # For added paths, we check the simulated config has no dependencies between nodes under the added path
+        if not self._validate_paths_config(added_paths, simulated_config):
             return False
 
         return True
@@ -1020,7 +1022,7 @@ class MemoizationSorter:
         self.move_wrapper = move_wrapper
         self.mem = {}
 
-    def rec(self, diff):
+    def sort(self, diff):
         if diff.has_no_diff():
             return []
 
