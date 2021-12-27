@@ -1747,6 +1747,9 @@ class TestSortAlgorithmFactory(unittest.TestCase):
         self.assertCountEqual(expected_validator, actual_validators)
 
 class TestPatchSorter(unittest.TestCase):
+    def setUp(self):
+        self.config_wrapper = ConfigWrapper()
+
     def test_patch_sorter_success(self):
         # Format of the JSON file containing the test-cases:
         #
@@ -1762,9 +1765,7 @@ class TestPatchSorter(unittest.TestCase):
         #     .
         # }
         data = Files.PATCH_SORTER_TEST_SUCCESS
-        # TODO: Investigate issue where different runs of patch-sorter generated different but correct steps
-        #       Once investigation is complete remove the flag 'skip_exact_change_list_match'
-        skip_exact_change_list_match = True
+        skip_exact_change_list_match = False
         for test_case_name in data:
             with self.subTest(name=test_case_name):
                 self.run_single_success_case(data[test_case_name], skip_exact_change_list_match)
@@ -1787,7 +1788,7 @@ class TestPatchSorter(unittest.TestCase):
         simulated_config = current_config
         for change in actual_changes:
             simulated_config = change.apply(simulated_config)
-            self.assertTrue(ConfigWrapper().validate_config_db_config(simulated_config))
+            self.assertTrue(self.config_wrapper.validate_config_db_config(simulated_config))
         self.assertEqual(target_config, simulated_config)
 
     def test_patch_sorter_failure(self):
@@ -1831,7 +1832,7 @@ class TestPatchSorter(unittest.TestCase):
     def create_patch_sorter(self, config=None):
         if config is None:
             config=Files.CROPPED_CONFIG_DB_AS_JSON
-        config_wrapper = ConfigWrapper()
+        config_wrapper = self.config_wrapper
         config_wrapper.get_config_db_as_json = MagicMock(return_value=config)
         patch_wrapper = PatchWrapper(config_wrapper)
         operation_wrapper = OperationWrapper()

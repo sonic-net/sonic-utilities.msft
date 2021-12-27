@@ -698,7 +698,7 @@
             [
                 {
                     "op": "remove",
-                    "path": "/LOOPBACK_INTERFACE/Loopback1|2200:2::32~1128"
+                    "path": "/LOOPBACK_INTERFACE/Loopback1|20.2.0.32~132"
                 }
             ],
             [
@@ -752,7 +752,7 @@
             [
                 {
                     "op": "add",
-                    "path": "/LOOPBACK_INTERFACE/Loopback1|2200:2::32~1128",
+                    "path": "/LOOPBACK_INTERFACE/Loopback1|20.2.0.32~132",
                     "value": {}
                 }
             ]
@@ -1334,19 +1334,52 @@
             [
                 {
                     "op": "remove",
-                    "path": "/VLAN_MEMBER"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
                     "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports"
                 }
             ],
             [
                 {
                     "op": "remove",
+                    "path": "/VLAN_MEMBER"
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports",
+                    "value": [
+                        "Ethernet0"
+                    ]
+                }
+            ],
+            [
+                {
+                    "op": "remove",
+                    "path": "/ACL_TABLE"
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/ACL_TABLE",
+                    "value": {
+                        "NO-NSW-PACL-V4": {
+                            "type": "L3"
+                        }
+                    }
+                }
+            ],
+            [
+                {
+                    "op": "remove",
                     "path": "/PORT"
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/policy_desc",
+                    "value": "NO-NSW-PACL-V4"
                 }
             ],
             [
@@ -2465,26 +2498,13 @@
             [
                 {
                     "op": "remove",
-                    "path": "/LOOPBACK_INTERFACE/Loopback1|2200:2::32~1128"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
                     "path": "/LOOPBACK_INTERFACE/Loopback1|20.2.0.32~132"
                 }
             ],
             [
                 {
-                    "op": "add",
-                    "path": "/LOOPBACK_INTERFACE/Loopback1|2200:2::32~1128",
-                    "value": {}
-                }
-            ],
-            [
-                {
                     "op": "remove",
-                    "path": "/LOOPBACK_INTERFACE/Loopback0|10.1.0.32~132"
+                    "path": "/LOOPBACK_INTERFACE/Loopback1|2200:2::32~1128"
                 }
             ],
             [
@@ -2497,13 +2517,26 @@
             [
                 {
                     "op": "remove",
-                    "path": "/LOOPBACK_INTERFACE/Loopback1|2200:2::32~1128"
+                    "path": "/LOOPBACK_INTERFACE/Loopback0|10.1.0.32~132"
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/LOOPBACK_INTERFACE/Loopback1|2200:2::32~1128",
+                    "value": {}
                 }
             ],
             [
                 {
                     "op": "remove",
                     "path": "/LOOPBACK_INTERFACE/Loopback1|20.2.0.32~132"
+                }
+            ],
+            [
+                {
+                    "op": "remove",
+                    "path": "/LOOPBACK_INTERFACE/Loopback1|2200:2::32~1128"
                 }
             ],
             [
