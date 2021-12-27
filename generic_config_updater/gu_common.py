@@ -403,7 +403,9 @@ class PathAddressing:
     def _find_leafref_paths(self, path, config):
         sy = self.config_wrapper.create_sonic_yang_with_loaded_models()
 
-        sy.loadData(config)
+        tmp_config = copy.deepcopy(config)
+
+        sy.loadData(tmp_config)
 
         xpath = self.convert_path_to_xpath(path, config, sy)
 

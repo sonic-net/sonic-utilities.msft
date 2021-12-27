@@ -36,6 +36,13 @@ class Diff:
     def has_no_diff(self):
         return self.current_config == self.target_config
 
+    def __str__(self):
+        return f"""current_config: {self.current_config}
+target_config: {self.target_config}"""
+
+    def __repr__(self):
+        return str(self)
+
 class JsonMove:
     """
     A class similar to JsonPatch operation, but it allows the path to refer to non-existing middle elements.
@@ -1333,10 +1340,7 @@ class PatchSorter:
         current_config = preloaded_current_config if preloaded_current_config else self.config_wrapper.get_config_db_as_json()
         target_config = self.patch_wrapper.simulate_patch(patch, current_config)
 
-        cropped_current_config = self.config_wrapper.crop_tables_without_yang(current_config)
-        cropped_target_config = self.config_wrapper.crop_tables_without_yang(target_config)
-
-        diff = Diff(cropped_current_config, cropped_target_config)
+        diff = Diff(current_config, target_config)
 
         sort_algorithm = self.sort_algorithm_factory.create(algorithm)
         moves = sort_algorithm.sort(diff)

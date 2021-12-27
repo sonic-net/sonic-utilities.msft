@@ -1,3 +1,4 @@
+import copy
 import json
 import jsonpatch
 import sonic_yang
@@ -673,6 +674,18 @@ class TestPathAddressing(unittest.TestCase):
 
         # Assert
         self.assertEqual(expected, actual)
+
+    def test_find_ref_paths__does_not_remove_tables_without_yang(self):
+        # Arrange
+        config = Files.CONFIG_DB_AS_JSON # This has a table without yang named 'TABLE_WITHOUT_YANG'
+        any_path = ""
+        expected_config = copy.deepcopy(config)
+
+        # Act
+        self.path_addressing.find_ref_paths(any_path, config)
+
+        # Assert
+        self.assertEqual(expected_config, config)
 
     def test_convert_path_to_xpath(self):
         def check(path, xpath, config=None):

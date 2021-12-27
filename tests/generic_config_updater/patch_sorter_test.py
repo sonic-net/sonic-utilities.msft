@@ -1829,7 +1829,23 @@ class TestPatchSorter(unittest.TestCase):
             if notfound_substrings:
                 self.fail(f"Did not find the substrings {notfound_substrings} in the error: '{error}'")
 
-    def create_patch_sorter(self, config=None):
+    def test_sort__does_not_remove_tables_without_yang_unintentionally_if_generated_change_replaces_whole_config(self):
+        # Arrange
+        current_config = Files.CONFIG_DB_AS_JSON # has a table without yang named 'TABLE_WITHOUT_YANG'
+        any_patch = Files.SINGLE_OPERATION_CONFIG_DB_PATCH
+        target_config = any_patch.apply(current_config)
+        sort_algorithm = Mock()
+        sort_algorithm.sort = lambda diff: [ps.JsonMove(diff, OperationType.REPLACE, [], [])]
+        patch_sorter = self.create_patch_sorter(current_config, sort_algorithm)
+        expected = [JsonChange(jsonpatch.JsonPatch([OperationWrapper().create(OperationType.REPLACE, "", target_config)]))]
+
+        # Act
+        actual = patch_sorter.sort(any_patch)
+
+        # Assert
+        self.assertEqual(expected, actual)
+
+    def create_patch_sorter(self, config=None, sort_algorithm=None):
         if config is None:
             config=Files.CROPPED_CONFIG_DB_AS_JSON
         config_wrapper = self.config_wrapper
@@ -1838,6 +1854,8 @@ class TestPatchSorter(unittest.TestCase):
         operation_wrapper = OperationWrapper()
         path_addressing= ps.PathAddressing(config_wrapper)
         sort_algorithm_factory = ps.SortAlgorithmFactory(operation_wrapper, config_wrapper, path_addressing)
+        if sort_algorithm:
+            sort_algorithm_factory.create = MagicMock(return_value=sort_algorithm)
 
         return ps.PatchSorter(config_wrapper, patch_wrapper, sort_algorithm_factory)
 
