@@ -4110,7 +4110,7 @@ def remove_pg(ctx, interface_name, pg_map):
 @click.argument('length', metavar='<length>', required=True)
 @click.pass_context
 def cable_length(ctx, interface_name, length):
-    """Set lossless PGs for the interface"""
+    """Set interface cable length"""
     config_db = ctx.obj["config_db"]
 
     if not is_dynamic_buffer_enabled(config_db):
