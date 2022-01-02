@@ -267,7 +267,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
                 if "--since '4 days ago'" in cmd_str:
                     patcher.fs.create_file(ts_dump)
                     return 0, AUTO_TS_STDOUT + ts_dump, ""
-                elif "date --date='4 days ago'" in cmd_str:
+                elif "date --date=4 days ago" in cmd_str:
                     return 0, "", ""
                 else:
                     return 1, "", "Invalid Command"
@@ -334,7 +334,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
                     patcher.fs.create_file(ts_dump)
                     print(AUTO_TS_STDOUT + ts_dump)
                     return 0, AUTO_TS_STDOUT + ts_dump, ""
-                elif "date --date='whatever'" in cmd_str:
+                elif "date --date=whatever" in cmd_str:
                     return 1, "", "Invalid Date Format"
                 else:
                     return 1, "", ""
