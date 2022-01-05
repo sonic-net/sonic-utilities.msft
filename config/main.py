@@ -2061,7 +2061,7 @@ def start(action, restoration_time, ports, detection_time, verbose):
     Start PFC watchdog on port(s). To config all ports, use all as input.
 
     Example:
-        config pfcwd start --action drop ports all detection-time 400 --restoration-time 400
+        config pfcwd start --action drop all 400 --restoration-time 400
     """
     cmd = "pfcwd start"
 

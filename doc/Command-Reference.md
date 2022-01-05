@@ -6172,8 +6172,8 @@ This command starts PFC Watchdog
 
 - Usage:
   ```
-  config pfcwd start --action drop ports all detection-time 400 --restoration-time 400
-  config pfcwd start --action forward ports Ethernet0 Ethernet8 detection-time 400
+  config pfcwd start --action drop all 400 --restoration-time 400
+  config pfcwd start --action forward Ethernet0 Ethernet8 400
   ```
 
 **config pfcwd stop**

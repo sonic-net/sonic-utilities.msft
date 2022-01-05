@@ -455,7 +455,7 @@ class Start(object):
 
         Example:
 
-        sudo pfcwd start --action drop ports all detection-time 400 --restoration-time 400
+        sudo pfcwd start --action drop all 400 --restoration-time 400
 
         """
         PfcwdCli(db).start(

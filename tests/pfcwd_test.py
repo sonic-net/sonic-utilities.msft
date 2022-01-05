@@ -118,7 +118,7 @@ class TestPfcwd(object):
 
     @patch('pfcwd.main.os')
     def test_pfcwd_start_actions(self, mock_os):
-        # pfcwd start --action fwd --restoration-time 200 Ethernet0 200
+        # pfcwd start --action forward --restoration-time 200 Ethernet0 200
         import pfcwd.main as pfcwd
         runner = CliRunner()
         db = Db()
