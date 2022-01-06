@@ -84,6 +84,8 @@ def mock_run_command_side_effect(*args, **kwargs):
             return 'snmp.timer'
         elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
             return 'swss'
+        elif command == "systemctl is-enabled snmp.timer":
+            return 'enabled'
         else:
             return ''
 
@@ -164,7 +166,7 @@ class TestLoadMinigraph(object):
             mock_run_command.assert_any_call('systemctl reset-failed swss')
             # Verify "systemctl reset-failed" is called for services under sonic-delayed.target 
             mock_run_command.assert_any_call('systemctl reset-failed snmp')
-            assert mock_run_command.call_count == 10
+            assert mock_run_command.call_count == 11
 
     def test_load_minigraph_with_port_config_bad_format(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
