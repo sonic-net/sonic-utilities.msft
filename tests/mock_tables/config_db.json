@@ -1767,11 +1767,24 @@
         "pool": "ingress_lossless_pool",
         "headroom_type": "dynamic"
     },
+    "BUFFER_PROFILE|egress_lossless_profile": {
+        "dynamic_th": "0",
+        "pool": "egress_lossless_pool",
+        "size": "0"
+    },
+    "BUFFER_PROFILE|egress_lossy_profile": {
+        "dynamic_th": "0",
+        "pool": "egress_lossy_pool",
+        "size": "0"
+    },
     "BUFFER_PG|Ethernet0|3-4": {
         "profile": "NULL"
     },
     "BUFFER_PG|Ethernet0|0": {
         "profile": "ingress_lossy_profile"
+    },
+    "BUFFER_QUEUE|Ethernet0|3-4": {
+        "profile": "egress_lossless_profile"
     },
     "PORT_QOS_MAP|Ethernet0": {
         "pfc_enable": "3,4"

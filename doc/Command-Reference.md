@@ -2665,6 +2665,55 @@ This command is used to configure the priority groups on which lossless traffic 
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#dynamic-buffer-management)
 
+**config interface buffer queue**
+
+This command is used to configure the buffer profiles for queues.
+
+- Usage:
+
+  ```
+  config interface buffer queue add <interface_name> <queue_map> <profile>
+  config interface buffer queue set <interface_name> <queue_map> <profile>
+  config interface buffer queue remove <interface_name> <queue_map>
+  ```
+
+  The <queue_map> represents the map of queues. It can be in one of the following two forms:
+
+  - For a range of priorities, the lower bound and upper bound connected by a dash, like `3-4`
+  - For a single priority, the number, like `6`
+
+  The subcommand `add` is designed for adding a buffer profile for a group of queues. The new queue range must be disjoint with all queues with buffer profile configured.
+
+  For example, currently the buffer profile configured on queue 3-4 on port Ethernet4, to configure buffer profile on queue 4-5 will fail because it isn't disjoint with 3-4. To configure it on range 5-6 will succeed.
+
+  The `profile` parameter represents a predefined egress buffer profile to be configured on the queues.
+
+  The subcommand `set` is designed for modifying an existing group of queues.
+
+  The subcommand `remove` is designed for removing buffer profile on an existing group of queues.
+
+- Example:
+
+  To configure buffer profiles for queues on a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer queue add Ethernet0 3-4 egress_lossless_profile
+  ```
+
+  To change the profile used for queues on a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer queue set Ethernet0 3-4 new-profile
+  ```
+
+  To remove a group of queues from a port:
+
+  ```
+  admin@sonic:~$ sudo config interface buffer queue remove Ethernet0 3-4
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#dynamic-buffer-management)
+
 ### Show commands
 
 **show buffer information**

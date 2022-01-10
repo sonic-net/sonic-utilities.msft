@@ -53,6 +53,20 @@ pool           ingress_lossless_pool
 headroom_type  dynamic
 -------------  ---------------------
 
+Profile: egress_lossless_profile
+----------  --------------------
+dynamic_th  0
+pool        egress_lossless_pool
+size        0
+----------  --------------------
+
+Profile: egress_lossy_profile
+----------  -----------------
+dynamic_th  0
+pool        egress_lossy_pool
+size        0
+----------  -----------------
+
 """
 
 show_buffer_information_output="""\

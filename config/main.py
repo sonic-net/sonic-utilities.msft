@@ -3906,72 +3906,117 @@ def remove(ctx, interface_name, ip_addr):
 #
 # buffer commands and utilities
 #
-def pgmaps_check_legality(ctx, interface_name, input_pg, is_new_pg):
+def buffer_objects_map_check_legality(ctx, db, interface_name, input_map, is_new_id, is_pg):
     """
-    Tool function to check whether input_pg is legal.
+    Tool function to check whether input_map is legal.
     Three checking performed:
-    1. Whether the input_pg is legal: pgs are in range [0-7]
-    2. Whether the input_pg overlaps an existing pg in the port
+    1. Whether the input_map is legal: pgs are in range [0-7]
+    2. Whether the input_map overlaps an existing pg in the port
     """
-    config_db = ctx.obj["config_db"]
+    def _parse_object_id(idsmap):
+        """
+        Tool function to parse the idsmap
+        Args:
+            idsmap: string containing object IDs map, like 3-4 or 7
+        Return:
+            The upper and lower bound. In case the idsmap is illegal, it returns None, None
+        Example:
+            3-4 => 3, 4
+            7   => 7
+            3-  => None, None
+        """
+        try:
+            match = re.search("^([0-9]+)(-[0-9]+)?$", idsmap)
+            lower = int(match.group(1))
+            if match.group(2):
+                upper = int(match.group(2)[1:])
+            else:
+                upper = lower
+        except Exception:
+            lower, upper = None, None
+
+        return lower, upper
+
+    config_db = db.cfgdb
+    object_name = "priority group" if is_pg else "queue"
 
     try:
-        lower = int(input_pg[0])
-        upper = int(input_pg[-1])
+        # Fetch maximum object id from STATE_DB
+        state_db = db.db
+        field_name = 'max_priority_groups' if is_pg else 'max_queues'
 
-        if upper < lower or lower < 0 or upper > 7:
-            ctx.fail("PG {} is not valid.".format(input_pg))
+        _hash = 'BUFFER_MAX_PARAM_TABLE|{}'.format(interface_name)
+        buffer_max_params = state_db.get_all(state_db.STATE_DB, _hash)
+        maximum_id = int(buffer_max_params.get(field_name)) - 1
     except Exception:
-        ctx.fail("PG {} is not valid.".format(input_pg))
+        ctx.fail("Unable to fetch {} from {} in STATE_DB".format(field_name, _hash))
+
+    lower, upper = _parse_object_id(input_map)
+    if not upper or not lower or upper < lower or lower < 0 or upper > maximum_id:
+        ctx.fail("Buffer {} {} is not valid.".format(object_name, input_map))
 
     # Check overlapping.
     # To configure a new PG which is overlapping an existing one is not allowed
     # For example, to add '5-6' while '3-5' existing is illegal
-    existing_pgs = config_db.get_table("BUFFER_PG")
-    if not is_new_pg:
-        if not (interface_name, input_pg) in existing_pgs.keys():
-            ctx.fail("PG {} doesn't exist".format(input_pg))
+    existing_object_maps = config_db.get_table("BUFFER_PG" if is_pg else "BUFFER_QUEUE")
+    if not is_new_id:
+        if not (interface_name, input_map) in existing_object_maps.keys():
+            ctx.fail("Buffer {} {} doesn't exist".format(object_name, input_map))
         return
 
-    for k, v in existing_pgs.items():
-        port, existing_pg = k
+    for k, v in existing_object_maps.items():
+        port, existing_object_map = k
         if port == interface_name:
-            existing_lower = int(existing_pg[0])
-            existing_upper = int(existing_pg[-1])
+            existing_lower, existing_upper = _parse_object_id(existing_object_map)
             if existing_upper < lower or existing_lower > upper:
                 # new and existing pgs disjoint, legal
                 pass
             else:
-                ctx.fail("PG {} overlaps with existing PG {}".format(input_pg, existing_pg))
+                ctx.fail("Buffer {} {} overlaps with existing {} {}".format(object_name, input_map, object_name, existing_object_map))
 
 
-def update_pg(ctx, interface_name, pg_map, override_profile, add = True):
-    config_db = ctx.obj["config_db"]
+def update_buffer_object(db, interface_name, object_map, override_profile, is_pg, add=True):
+    config_db = db.cfgdb
+    ctx = click.get_current_context()
 
     # Check whether port is legal
     ports = config_db.get_entry("PORT", interface_name)
     if not ports:
         ctx.fail("Port {} doesn't exist".format(interface_name))
 
-    # Check whether pg_map is legal
+    buffer_table = "BUFFER_PG" if is_pg else "BUFFER_QUEUE"
+
+    # Check whether object_map is legal
     # Check whether there is other lossless profiles configured on the interface
-    pgmaps_check_legality(ctx, interface_name, pg_map, add)
+    buffer_objects_map_check_legality(ctx, db, interface_name, object_map, add, is_pg)
 
     # All checking passed
     if override_profile:
         profile_dict = config_db.get_entry("BUFFER_PROFILE", override_profile)
         if not profile_dict:
             ctx.fail("Profile {} doesn't exist".format(override_profile))
-        if not 'xoff' in profile_dict.keys() and 'size' in profile_dict.keys():
-            ctx.fail("Profile {} doesn't exist or isn't a lossless profile".format(override_profile))
-        config_db.set_entry("BUFFER_PG", (interface_name, pg_map), {"profile": override_profile})
+        pool_name = profile_dict.get("pool")
+        if not pool_name:
+            ctx.fail("Profile {} is invalid".format(override_profile))
+        pool_dict = config_db.get_entry("BUFFER_POOL", pool_name)
+        pool_dir = pool_dict.get("type")
+        expected_dir = "ingress" if is_pg else "egress"
+        if pool_dir != expected_dir:
+            ctx.fail("Type of pool {} referenced by profile {} is wrong".format(pool_name, override_profile))
+        if is_pg:
+            if not 'xoff' in profile_dict.keys() and 'size' in profile_dict.keys():
+                ctx.fail("Profile {} doesn't exist or isn't a lossless profile".format(override_profile))
+        config_db.set_entry(buffer_table, (interface_name, object_map), {"profile": override_profile})
     else:
-        config_db.set_entry("BUFFER_PG", (interface_name, pg_map), {"profile": "NULL"})
-    adjust_pfc_enable(ctx, interface_name, pg_map, True)
+        config_db.set_entry(buffer_table, (interface_name, object_map), {"profile": "NULL"})
+
+    if is_pg:
+        adjust_pfc_enable(ctx, db, interface_name, object_map, True)
 
 
-def remove_pg_on_port(ctx, interface_name, pg_map):
-    config_db = ctx.obj["config_db"]
+def remove_buffer_object_on_port(db, interface_name, buffer_object_map, is_pg=True):
+    config_db = db.cfgdb
+    ctx = click.get_current_context()
 
     # Check whether port is legal
     ports = config_db.get_entry("PORT", interface_name)
@@ -3979,30 +4024,32 @@ def remove_pg_on_port(ctx, interface_name, pg_map):
         ctx.fail("Port {} doesn't exist".format(interface_name))
 
     # Remvoe all dynamic lossless PGs on the port
-    existing_pgs = config_db.get_table("BUFFER_PG")
+    buffer_table = "BUFFER_PG" if is_pg else "BUFFER_QUEUE"
+    existing_buffer_objects = config_db.get_table(buffer_table)
     removed = False
-    for k, v in existing_pgs.items():
-        port, existing_pg = k
-        if port == interface_name and (not pg_map or pg_map == existing_pg):
-            need_to_remove = False
+    for k, v in existing_buffer_objects.items():
+        port, existing_buffer_object = k
+        if port == interface_name and (not buffer_object_map or buffer_object_map == existing_buffer_object):
             referenced_profile = v.get('profile')
             if referenced_profile and referenced_profile == 'ingress_lossy_profile':
-                if pg_map:
-                    ctx.fail("Lossy PG {} can't be removed".format(pg_map))
+                if buffer_object_map:
+                    ctx.fail("Lossy PG {} can't be removed".format(buffer_object_map))
                 else:
                     continue
-            config_db.set_entry("BUFFER_PG", (interface_name, existing_pg), None)
-            adjust_pfc_enable(ctx, interface_name, pg_map, False)
+            config_db.set_entry(buffer_table, (interface_name, existing_buffer_object), None)
+            if is_pg:
+                adjust_pfc_enable(ctx, db, interface_name, buffer_object_map, False)
             removed = True
     if not removed:
-        if pg_map:
-            ctx.fail("No specified PG {} found on port {}".format(pg_map, interface_name))
+        object_name = "lossless priority group" if is_pg else "queue"
+        if buffer_object_map:
+            ctx.fail("No specified {} {} found on port {}".format(object_name, buffer_object_map, interface_name))
         else:
-            ctx.fail("No lossless PG found on port {}".format(interface_name))
+            ctx.fail("No {} found on port {}".format(object_name, interface_name))
 
 
-def adjust_pfc_enable(ctx, interface_name, pg_map, add):
-    config_db = ctx.obj["config_db"]
+def adjust_pfc_enable(ctx, db, interface_name, pg_map, add):
+    config_db = db.cfgdb
 
     # Fetch the original pfc_enable
     qosmap = config_db.get_entry("PORT_QOS_MAP", interface_name)
@@ -4077,10 +4124,10 @@ def lossless(ctx):
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('pg_map', metavar='<pg_map>', required=True)
 @click.argument('override_profile', metavar='<override_profile>', required=False)
-@click.pass_context
-def add_pg(ctx, interface_name, pg_map, override_profile):
+@clicommon.pass_db
+def add_pg(db, interface_name, pg_map, override_profile):
     """Set lossless PGs for the interface"""
-    update_pg(ctx, interface_name, pg_map, override_profile)
+    update_buffer_object(db, interface_name, pg_map, override_profile, True)
 
 
 #
@@ -4090,10 +4137,10 @@ def add_pg(ctx, interface_name, pg_map, override_profile):
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('pg_map', metavar='<pg_map>', required=True)
 @click.argument('override_profile', metavar='<override_profile>', required=False)
-@click.pass_context
-def set_pg(ctx, interface_name, pg_map, override_profile):
+@clicommon.pass_db
+def set_pg(db, interface_name, pg_map, override_profile):
     """Set lossless PGs for the interface"""
-    update_pg(ctx, interface_name, pg_map, override_profile, False)
+    update_buffer_object(db, interface_name, pg_map, override_profile, True, False)
 
 
 #
@@ -4102,10 +4149,58 @@ def set_pg(ctx, interface_name, pg_map, override_profile):
 @lossless.command('remove')
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 @click.argument('pg_map', metavar='<pg_map', required=False)
-@click.pass_context
-def remove_pg(ctx, interface_name, pg_map):
+@clicommon.pass_db
+def remove_pg(db, interface_name, pg_map):
     """Clear lossless PGs for the interface"""
-    remove_pg_on_port(ctx, interface_name, pg_map)
+    remove_buffer_object_on_port(db, interface_name, pg_map)
+
+
+#
+# 'queue' subgroup ('config interface buffer queue ...')
+#
+@buffer.group(cls=clicommon.AbbreviationGroup)
+@click.pass_context
+def queue(ctx):
+    """Set or clear buffer configuration"""
+    pass
+
+
+#
+# 'add' subcommand
+#
+@queue.command('add')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('queue_map', metavar='<queue_map>', required=True)
+@click.argument('buffer_profile', metavar='<buffer_profile>', required=True)
+@clicommon.pass_db
+def add_queue(db, interface_name, queue_map, buffer_profile):
+    """Set lossless QUEUEs for the interface"""
+    update_buffer_object(db, interface_name, queue_map, buffer_profile, False)
+
+
+#
+# 'set' subcommand
+#
+@queue.command('set')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('queue_map', metavar='<queue_map>', required=True)
+@click.argument('buffer_profile', metavar='<buffer_profile>', required=True)
+@clicommon.pass_db
+def set_queue(db, interface_name, queue_map, buffer_profile):
+    """Set lossless QUEUEs for the interface"""
+    update_buffer_object(db, interface_name, queue_map, buffer_profile, False, False)
+
+
+#
+# 'remove' subcommand
+#
+@queue.command('remove')
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('queue_map', metavar='<queue_map>', required=False)
+@clicommon.pass_db
+def remove_queue(db, interface_name, queue_map):
+    """Clear lossless QUEUEs for the interface"""
+    remove_buffer_object_on_port(db, interface_name, queue_map, False)
 
 
 #

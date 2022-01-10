@@ -626,6 +626,10 @@
     "BUFFER_MAX_PARAM_TABLE|global": {
         "mmu_size": "13945824"
     },
+    "BUFFER_MAX_PARAM_TABLE|Ethernet0": {
+        "max_queues": "20",
+        "max_priority_groups": "8"
+    },
     "CHASSIS_MIDPLANE_TABLE|SUPERVISOR0": {
         "ip_address": "192.168.1.100",
         "access": "True"
