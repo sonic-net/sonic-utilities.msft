@@ -230,7 +230,7 @@ class FlowCounterStats(object):
                     # counter OID is changed.
                     old_values[-1] = values[-1]
                     for i in diff_column_positions:
-                        old_values[i] = 0
+                        old_values[i] = '0'
                         values[i] = ns_diff(values[i], old_values[i])
                     need_update_cache = True
                     continue
@@ -238,13 +238,13 @@ class FlowCounterStats(object):
                 has_negative_diff = False
                 for i in diff_column_positions:
                     # If any diff has negative value, set all counter values to 0 and update cache
-                    if values[i] < old_values[i]:
+                    if int(values[i]) < int(old_values[i]):
                         has_negative_diff = True
                         break
 
                 if has_negative_diff:
                     for i in diff_column_positions:
-                        old_values[i] = 0
+                        old_values[i] = '0'
                         values[i] = ns_diff(values[i], old_values[i])
                     need_update_cache = True
                     continue

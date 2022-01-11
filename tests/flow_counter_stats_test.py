@@ -132,25 +132,25 @@ class TestTrapStat:
         stats._collect = mock.MagicMock()
         old_data = {
             '': {
-                'bgp': [100, 200, 50.0, 1],
-                'bgpv6': [100, 200, 50.0, 2],
-                'lldp': [100, 200, 50.0, 3],
+                'bgp': ['100', '200', '50.0', '1'],
+                'bgpv6': ['100', '200', '50.0', '2'],
+                'lldp': ['100', '200', '50.0', '3'],
             }
         }
         stats._save(old_data)
         stats.data = {
             '': {
-                'bgp': [100, 200, 50.0, 4],
-                'bgpv6': [100, 100, 50.0, 2],
-                'lldp': [200, 300, 50.0, 3],
+                'bgp': ['100', '200', '50.0', '4'],
+                'bgpv6': ['100', '100', '50.0', '2'],
+                'lldp': ['200', '300', '50.0', '3'],
             }
         }
 
         stats._collect_and_diff()
         cached_data = stats._load()
-        assert cached_data['']['bgp'] == [0, 0, 50.0, 4]
-        assert cached_data['']['bgpv6'] == [0, 0, 50.0, 2]
-        assert cached_data['']['lldp'] == [100, 200, 50.0, 3]
+        assert cached_data['']['bgp'] == ['0', '0', '50.0', '4']
+        assert cached_data['']['bgpv6'] == ['0', '0', '50.0', '2']
+        assert cached_data['']['lldp'] == ['100', '200', '50.0', '3']
 
 
 class TestTrapStatsMultiAsic:
