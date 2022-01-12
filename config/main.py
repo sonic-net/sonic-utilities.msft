@@ -1195,7 +1195,8 @@ def print_dry_run_message(dry_run):
 @click.argument('patch-file-path', type=str, required=True)
 @click.option('-f', '--format', type=click.Choice([e.name for e in ConfigFormat]),
                default=ConfigFormat.CONFIGDB.name,
-               help='format of config of the patch is either ConfigDb(ABNF) or SonicYang')
+               help='format of config of the patch is either ConfigDb(ABNF) or SonicYang',
+               show_default=True)
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
 @click.option('-n', '--ignore-non-yang-tables', is_flag=True, default=False, help='ignore validation for tables without YANG models', hidden=True)
 @click.option('-i', '--ignore-path', multiple=True, help='ignore validation for config specified by given path which is a JsonPointer', hidden=True)
@@ -1228,7 +1229,8 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
 @click.argument('target-file-path', type=str, required=True)
 @click.option('-f', '--format', type=click.Choice([e.name for e in ConfigFormat]),
                default=ConfigFormat.CONFIGDB.name,
-               help='format of target config is either ConfigDb(ABNF) or SonicYang')
+               help='format of target config is either ConfigDb(ABNF) or SonicYang',
+               show_default=True)
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='test out the command without affecting config state')
 @click.option('-n', '--ignore-non-yang-tables', is_flag=True, default=False, help='ignore validation for tables without YANG models', hidden=True)
 @click.option('-i', '--ignore-path', multiple=True, help='ignore validation for config specified by given path which is a JsonPointer', hidden=True)
