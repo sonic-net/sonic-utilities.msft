@@ -2811,5 +2811,88 @@
                 }
             ]
         ]
+    },
+    "ADDING_LOOPBACK0_VRF_NAME__DELETES_LOOPBACK0_AND_IPS_DOES_NOT_AFFECT_OTHER_TABLES": {
+        "desc": ["Adding loopback vrf name, deletes loopback0 and the associated ips. ",
+                 "It does not affect other tables."],
+        "current_config": {
+            "CABLE_LENGTH": {
+                "AZURE": {
+                    "Ethernet0": "0m",
+                    "Ethernet100": "0m"
+                }
+            },
+            "LOOPBACK_INTERFACE": {
+                "Loopback0": {},
+                "Loopback0|10.1.0.32/32": {},
+                "Loopback0|1100:1::32/128": {}
+            },
+            "VRF": {
+                "Vrf_01": {},
+                "Vrf_02": {}
+            },
+            "PORT": {
+                "Ethernet0": {
+                    "lanes": "25,26,27,28",
+                    "speed": "10000"
+                },
+                "Ethernet100": {
+                    "lanes": "121,122,123,124",
+                    "speed": "10000"
+                }
+            }
+        },
+        "patch": [
+            {
+                "op": "add",
+                "path": "/LOOPBACK_INTERFACE/Loopback0/vrf_name",
+                "value": "Vrf_01"
+            }
+        ],
+        "expected_changes": [
+            [
+                {
+                    "op": "remove",
+                    "path": "/LOOPBACK_INTERFACE/Loopback0|10.1.0.32~132"
+                }
+            ],
+            [
+                {
+                    "op": "remove",
+                    "path": "/LOOPBACK_INTERFACE/Loopback0|1100:1::32~1128"
+                }
+            ],
+            [
+                {
+                    "op": "remove",
+                    "path": "/LOOPBACK_INTERFACE"
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/LOOPBACK_INTERFACE",
+                    "value": {
+                        "Loopback0":{
+                            "vrf_name": "Vrf_01"
+                        }
+                    }
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/LOOPBACK_INTERFACE/Loopback0|10.1.0.32~132",
+                    "value": {}
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/LOOPBACK_INTERFACE/Loopback0|1100:1::32~1128",
+                    "value": {}
+                }
+            ]
+        ]
     }
 }

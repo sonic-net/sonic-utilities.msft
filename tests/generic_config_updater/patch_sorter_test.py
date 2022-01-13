@@ -1591,6 +1591,14 @@ class TestUpperLevelMoveExtender(unittest.TestCase):
                     cc_ops=[{'op':'replace', 'path':'/VLAN/Vlan1000/dhcp_servers/1', 'value':'192.0.0.7'}],
                     ex_ops=[{'op':'replace', 'path':'', 'value':Files.CROPPED_CONFIG_DB_AS_JSON}])
 
+    def test_extend__remove_table_while_config_has_only_that_table__replace_whole_config_with_empty_config(self):
+        self.verify(OperationType.REMOVE,
+                    ["VLAN"],
+                    ["VLAN"],
+                    cc_ops=[{'op':'replace', 'path':'', 'value':{'VLAN':{}}}],
+                    tc_ops=[{'op':'replace', 'path':'', 'value':{}}],
+                    ex_ops=[{'op':'replace', 'path':'', 'value':{}}])
+
     def verify(self, op_type, ctokens, ttokens=None, cc_ops=[], tc_ops=[], ex_ops=[]):
         """
         cc_ops, tc_ops are used to build the diff object.
@@ -1649,12 +1657,12 @@ class TestDeleteInsteadOfReplaceMoveExtender(unittest.TestCase):
                     cc_ops=[{'op':'replace', 'path':'/ACL_TABLE/EVERFLOW/policy_desc', 'value':'old_desc'}],
                     ex_ops=[{'op':'remove', 'path':'/ACL_TABLE'}])
 
-    def test_extend__replace_whole_config__delete_whole_config(self):
+    def test_extend__replace_whole_config__no_moves(self):
         self.verify(OperationType.REPLACE,
                     [],
                     [],
                     cc_ops=[{'op':'replace', 'path':'/ACL_TABLE/EVERFLOW/policy_desc', 'value':'old_desc'}],
-                    ex_ops=[{'op':'remove', 'path':''}])
+                    ex_ops=[])
 
     def verify(self, op_type, ctokens, ttokens=None, cc_ops=[], tc_ops=[], ex_ops=[]):
         """

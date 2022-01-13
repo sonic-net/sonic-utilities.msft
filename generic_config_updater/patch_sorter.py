@@ -936,6 +936,10 @@ class DeleteInsteadOfReplaceMoveExtender:
         if operation_type != OperationType.REPLACE:
             return
 
+        # Cannot delete the whole config, JsonPatch lib does not support it
+        if not move.current_config_tokens:
+            return
+
         new_move = JsonMove(diff, OperationType.REMOVE, move.current_config_tokens)
 
         yield new_move
