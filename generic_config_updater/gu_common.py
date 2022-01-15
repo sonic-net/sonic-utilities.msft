@@ -423,6 +423,7 @@ class PathAddressing:
                 ref_paths.append(ref_path)
                 ref_paths_set.add(ref_path)
 
+        ref_paths.sort()
         return ref_paths
 
     def _get_inner_leaf_xpaths(self, xpath, sy):

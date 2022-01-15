@@ -639,13 +639,13 @@ class TestPathAddressing(unittest.TestCase):
         # Arrange
         path = "/PORT"
         expected = [
+            "/ACL_TABLE/DATAACL/ports/0",
+            "/ACL_TABLE/EVERFLOW/ports/0",
+            "/ACL_TABLE/EVERFLOWV6/ports/0",
+            "/ACL_TABLE/EVERFLOWV6/ports/1",
             "/ACL_TABLE/NO-NSW-PACL-V4/ports/0",
             "/VLAN_MEMBER/Vlan1000|Ethernet0",
-            "/ACL_TABLE/DATAACL/ports/0",
-            "/ACL_TABLE/EVERFLOWV6/ports/0",
             "/VLAN_MEMBER/Vlan1000|Ethernet4",
-            "/ACL_TABLE/EVERFLOW/ports/0",
-            "/ACL_TABLE/EVERFLOWV6/ports/1",
             "/VLAN_MEMBER/Vlan1000|Ethernet8"
         ]
 
@@ -659,14 +659,14 @@ class TestPathAddressing(unittest.TestCase):
         # Arrange
         path = ""
         expected = [
+            "/ACL_TABLE/DATAACL/ports/0",
+            "/ACL_TABLE/EVERFLOW/ports/0",
+            "/ACL_TABLE/EVERFLOWV6/ports/0",
+            "/ACL_TABLE/EVERFLOWV6/ports/1",
+            "/ACL_TABLE/NO-NSW-PACL-V4/ports/0",
             "/VLAN_MEMBER/Vlan1000|Ethernet0",
             "/VLAN_MEMBER/Vlan1000|Ethernet4",
             "/VLAN_MEMBER/Vlan1000|Ethernet8",
-            "/ACL_TABLE/NO-NSW-PACL-V4/ports/0",
-            "/ACL_TABLE/DATAACL/ports/0",
-            "/ACL_TABLE/EVERFLOWV6/ports/0",
-            "/ACL_TABLE/EVERFLOW/ports/0",
-            "/ACL_TABLE/EVERFLOWV6/ports/1",
         ]
 
         # Act
