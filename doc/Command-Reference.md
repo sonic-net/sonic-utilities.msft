@@ -119,8 +119,6 @@
   * [Platform Component Firmware config commands](#platform-component-firmware-config-commands)
   * [Platform Component Firmware vendor specific behaviour](#platform-component-firmware-vendor-specific-behaviour)
 * [Platform Specific Commands](#platform-specific-commands)
-  * [Mellanox Platform Specific Commands](#mellanox-platform-specific-commands)
-  * [Barefoot Platform Specific Commands](#barefoot-platform-specific-commands)
 * [PortChannels](#portchannels)
   * [PortChannel Show commands](#portchannel-show-commands)
   * [PortChannel Config commands](#portchannel-config-commands)
@@ -6585,8 +6583,6 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#platfo
 
 ## Platform Specific Commands
 
-### Mellanox Platform Specific Commands
-
 There are few commands that are platform specific. Mellanox has used this feature and implemented Mellanox specific commands as follows.
 
 **show platform mlnx sniffer**
@@ -6654,41 +6650,6 @@ In order to avoid that confirmation the -y / --yes option should be used.
   admin@sonic:~$ config platform mlnx sniffer sdk
   To change SDK sniffer status, swss service will be restarted, continue? [y/N]: y
   NOTE: In order to avoid that confirmation the -y / --yes option should be used.
-  ```
-
-### Barefoot Platform Specific Commands
-
-**show platform barefoot profile**
-
-This command displays active P4 profile and lists available ones.
-
-- Usage:
-  ```
-  show platform barefoot profile
-  ```
-
-- Example:
-  ```
-  admin@sonic:~$ show platform barefoot profile
-  Current profile: x1
-  Available profile(s):
-  x1
-  x2
-  ```
-
-**config platform barefoot profile**
-
-This command sets P4 profile.
-
-- Usage:
-  ```
-  config platform barefoot profile <p4_profile> [-y|--yes]
-  ```
-
-- Example:
-  ```
-  admin@sonic:~$ sudo config platform barefoot profile x1
-  Swss service will be restarted, continue? [y/N]: y
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#platform-specific-commands)
