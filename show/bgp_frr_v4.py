@@ -75,7 +75,7 @@ def neighbors(ipaddress, info_type, namespace):
     ns_list = multi_asic.get_namespace_list(namespace)
     output = ""
     for ns in ns_list:
-        output += bgp_util.run_bgp_command(command, ns)
+        output += bgp_util.run_bgp_show_command(command, ns)
 
     click.echo(output.rstrip('\n'))
 
@@ -125,5 +125,5 @@ def network(ipaddress, info_type, namespace):
         if info_type is not None:
             command += ' {}'.format(info_type)
 
-    output  =  bgp_util.run_bgp_command(command, namespace)
+    output  =  bgp_util.run_bgp_show_command(command, namespace)
     click.echo(output.rstrip('\n'))
