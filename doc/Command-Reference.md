@@ -8920,89 +8920,121 @@ This command displays the MAC (FDB) entries either in full or partial as given b
 1) show mac - displays the full table
 2) show mac -v <vlanid> - displays the MACs learnt on the particular VLAN ID.
 3) show mac -p <port>  - displays the MACs learnt on the particular port.
+4) show mac -a <mac-address> - display the MACs that match a specific mac-address
+5) show mac -t <type> - display the MACs that match a specific type (static/dynamic)
+6) show mac -c - display the count of MAC addresses
 
+To show the default MAC address aging time on the switch.
 
 - Usage:
   ```
-  show mac [-v <vlan_id>] [-p <port_name>]
+  show mac [-v <vlan_id>] [-p <port_name>] [-a <mac_address>] [-t <type>] [-c]
   ```
 
 - Example:
   ```
   admin@sonic:~$ show mac
-  No.    Vlan  MacAddress         Port
-  -----  ------  -----------------  -----------
-    1    1000  E2:8C:56:85:4A:CD  Ethernet192
-    2    1000  A0:1B:5E:47:C9:76  Ethernet192
-    3    1000  AA:54:EF:2C:EE:30  Ethernet192
-    4    1000  A4:3F:F2:17:A3:FC  Ethernet192
-    5    1000  0C:FC:01:72:29:91  Ethernet192
-    6    1000  48:6D:01:7E:C9:FD  Ethernet192
-    7    1000  1C:6B:7E:34:5F:A6  Ethernet192
-    8    1000  EE:81:D9:7B:93:A9  Ethernet192
-    9    1000  CC:F8:8D:BB:85:E2  Ethernet192
-   10    1000  0A:52:B3:9C:FB:6C  Ethernet192
-   11    1000  C6:E2:72:02:D1:23  Ethernet192
-   12    1000  8A:C9:5C:25:E9:28  Ethernet192
-   13    1000  5E:CD:34:E4:94:18  Ethernet192
-   14    1000  7E:49:1F:B5:91:B5  Ethernet192
-   15    1000  AE:DD:67:F3:09:5A  Ethernet192
-   16    1000  DC:2F:D1:08:4B:DE  Ethernet192
-   17    1000  50:96:23:AD:F1:65  Ethernet192
-   18    1000  C6:C9:5E:AE:24:42  Ethernet192
+  No.    Vlan  MacAddress         Port           Type
+  -----  ------  -----------------  -----------  -------
+    1    1000  E2:8C:56:85:4A:CD  Ethernet192    Dynamic
+    2    1000  A0:1B:5E:47:C9:76  Ethernet192    Dynamic
+    3    1000  AA:54:EF:2C:EE:30  Ethernet192    Dynamic
+    4    1000  A4:3F:F2:17:A3:FC  Ethernet192    Dynamic
+    5    1000  0C:FC:01:72:29:91  Ethernet192    Dynamic
+    6    1000  48:6D:01:7E:C9:FD  Ethernet192    Dynamic
+    7    1000  1C:6B:7E:34:5F:A6  Ethernet192    Dynamic
+    8    1000  EE:81:D9:7B:93:A9  Ethernet192    Dynamic
+    9    1000  CC:F8:8D:BB:85:E2  Ethernet192    Dynamic
+   10    1000  0A:52:B3:9C:FB:6C  Ethernet192    Dynamic
+   11    1000  C6:E2:72:02:D1:23  Ethernet192    Dynamic
+   12    1000  8A:C9:5C:25:E9:28  Ethernet192    Dynamic
+   13    1000  5E:CD:34:E4:94:18  Ethernet192    Dynamic
+   14    1000  7E:49:1F:B5:91:B5  Ethernet192    Dynamic
+   15    1000  AE:DD:67:F3:09:5A  Ethernet192    Dynamic
+   16    1000  DC:2F:D1:08:4B:DE  Ethernet192    Dynamic
+   17    1000  50:96:23:AD:F1:65  Ethernet192    Static
+   18    1000  C6:C9:5E:AE:24:42  Ethernet192    Static
   Total number of entries 18
   ```
 
-Optionally, you can specify a VLAN ID or interface name in order to display only that particular entries
+Optionally, you can specify a VLAN ID or interface name or type or mac-address in order to display only that particular entries
 
 - Examples:
   ```
   admin@sonic:~$ show mac -v 1000
-  No.    Vlan  MacAddress         Port
-  -----  ------  -----------------  -----------
-    1    1000  E2:8C:56:85:4A:CD  Ethernet192
-    2    1000  A0:1B:5E:47:C9:76  Ethernet192
-    3    1000  AA:54:EF:2C:EE:30  Ethernet192
-    4    1000  A4:3F:F2:17:A3:FC  Ethernet192
-    5    1000  0C:FC:01:72:29:91  Ethernet192
-    6    1000  48:6D:01:7E:C9:FD  Ethernet192
-    7    1000  1C:6B:7E:34:5F:A6  Ethernet192
-    8    1000  EE:81:D9:7B:93:A9  Ethernet192
-    9    1000  CC:F8:8D:BB:85:E2  Ethernet192
-   10    1000  0A:52:B3:9C:FB:6C  Ethernet192
-   11    1000  C6:E2:72:02:D1:23  Ethernet192
-   12    1000  8A:C9:5C:25:E9:28  Ethernet192
-   13    1000  5E:CD:34:E4:94:18  Ethernet192
-   14    1000  7E:49:1F:B5:91:B5  Ethernet192
-   15    1000  AE:DD:67:F3:09:5A  Ethernet192
-   16    1000  DC:2F:D1:08:4B:DE  Ethernet192
-   17    1000  50:96:23:AD:F1:65  Ethernet192
-   18    1000  C6:C9:5E:AE:24:42  Ethernet192
+  No.    Vlan  MacAddress         Port           Type
+  -----  ------  -----------------  -----------  -------
+    1    1000  E2:8C:56:85:4A:CD  Ethernet192    Dynamic
+    2    1000  A0:1B:5E:47:C9:76  Ethernet192    Dynamic
+    3    1000  AA:54:EF:2C:EE:30  Ethernet192    Dynamic
+    4    1000  A4:3F:F2:17:A3:FC  Ethernet192    Dynamic
+    5    1000  0C:FC:01:72:29:91  Ethernet192    Dynamic
+    6    1000  48:6D:01:7E:C9:FD  Ethernet192    Dynamic
+    7    1000  1C:6B:7E:34:5F:A6  Ethernet192    Dynamic
+    8    1000  EE:81:D9:7B:93:A9  Ethernet192    Dynamic
+    9    1000  CC:F8:8D:BB:85:E2  Ethernet192    Dynamic
+   10    1000  0A:52:B3:9C:FB:6C  Ethernet192    Dynamic
+   11    1000  C6:E2:72:02:D1:23  Ethernet192    Dynamic
+   12    1000  8A:C9:5C:25:E9:28  Ethernet192    Dynamic
+   13    1000  5E:CD:34:E4:94:18  Ethernet192    Dynamic
+   14    1000  7E:49:1F:B5:91:B5  Ethernet192    Dynamic
+   15    1000  AE:DD:67:F3:09:5A  Ethernet192    Dynamic
+   16    1000  DC:2F:D1:08:4B:DE  Ethernet192    Dynamic
+   17    1000  50:96:23:AD:F1:65  Ethernet192    Static
+   18    1000  C6:C9:5E:AE:24:42  Ethernet192    Static
   Total number of entries 18
   ```
   ```
   admin@sonic:~$ show mac -p Ethernet192
-  No.    Vlan  MacAddress         Port
-  -----  ------  -----------------  -----------
-    1    1000  E2:8C:56:85:4A:CD  Ethernet192
-    2    1000  A0:1B:5E:47:C9:76  Ethernet192
-    3    1000  AA:54:EF:2C:EE:30  Ethernet192
-    4    1000  A4:3F:F2:17:A3:FC  Ethernet192
-    5    1000  0C:FC:01:72:29:91  Ethernet192
-    6    1000  48:6D:01:7E:C9:FD  Ethernet192
-    7    1000  1C:6B:7E:34:5F:A6  Ethernet192
-    8    1000  EE:81:D9:7B:93:A9  Ethernet192
-    9    1000  CC:F8:8D:BB:85:E2  Ethernet192
-   10    1000  0A:52:B3:9C:FB:6C  Ethernet192
-   11    1000  C6:E2:72:02:D1:23  Ethernet192
-   12    1000  8A:C9:5C:25:E9:28  Ethernet192
-   13    1000  5E:CD:34:E4:94:18  Ethernet192
-   14    1000  7E:49:1F:B5:91:B5  Ethernet192
-   15    1000  AE:DD:67:F3:09:5A  Ethernet192
-   16    1000  DC:2F:D1:08:4B:DE  Ethernet192
-   17    1000  50:96:23:AD:F1:65  Ethernet192
-   18    1000  C6:C9:5E:AE:24:42  Ethernet192
+  No.    Vlan  MacAddress         Port           Type
+  -----  ------  -----------------  -----------  -------
+    1    1000  E2:8C:56:85:4A:CD  Ethernet192    Dynamic
+    2    1000  A0:1B:5E:47:C9:76  Ethernet192    Dynamic
+    3    1000  AA:54:EF:2C:EE:30  Ethernet192    Dynamic
+    4    1000  A4:3F:F2:17:A3:FC  Ethernet192    Dynamic
+    5    1000  0C:FC:01:72:29:91  Ethernet192    Dynamic
+    6    1000  48:6D:01:7E:C9:FD  Ethernet192    Dynamic
+    7    1000  1C:6B:7E:34:5F:A6  Ethernet192    Dynamic
+    8    1000  EE:81:D9:7B:93:A9  Ethernet192    Dynamic
+    9    1000  CC:F8:8D:BB:85:E2  Ethernet192    Dynamic
+   10    1000  0A:52:B3:9C:FB:6C  Ethernet192    Dynamic
+   11    1000  C6:E2:72:02:D1:23  Ethernet192    Dynamic
+   12    1000  8A:C9:5C:25:E9:28  Ethernet192    Dynamic
+   13    1000  5E:CD:34:E4:94:18  Ethernet192    Dynamic
+   14    1000  7E:49:1F:B5:91:B5  Ethernet192    Dynamic
+   15    1000  AE:DD:67:F3:09:5A  Ethernet192    Dynamic
+   16    1000  DC:2F:D1:08:4B:DE  Ethernet192    Dynamic
+   17    1000  50:96:23:AD:F1:65  Ethernet192    Static
+   18    1000  C6:C9:5E:AE:24:42  Ethernet192    Static
   Total number of entries 18
+  ```
+  ```
+  admin@sonic:~$ show mac -a E2:8C:56:85:4A:CD
+  No.    Vlan  MacAddress         Port           Type
+  -----  ------  -----------------  -----------  -------
+    1    1000  E2:8C:56:85:4A:CD  Ethernet192    Dynamic
+  Total number of entries 1
+  ```
+  ```
+  admin@sonic:~$ show mac -t Static
+  No.    Vlan  MacAddress         Port           Type
+  -----  ------  -----------------  -----------  -------
+    2    1000  50:96:23:AD:F1:65  Ethernet192    Static
+    2    1000  C6:C9:5E:AE:24:42  Ethernet192    Static
+  Total number of entries 2
+  ```
+  ```
+  admin@sonic:~$ show mac -c
+  Total number of entries 18
+  ```
+
+**show mac aging-time**
+
+This command displays the default mac aging time on the switch
+
+  ```
+  admin@sonic:~$ show mac aging-time
+  Aging time for switch is 600 seconds
   ```
 
 **sonic-clear fdb all**

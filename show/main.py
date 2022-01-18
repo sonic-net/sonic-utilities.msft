@@ -722,12 +722,19 @@ def pwm_headroom_pool():
 # 'mac' command ("show mac ...")
 #
 
-@cli.command()
+@cli.group(cls=clicommon.AliasedGroup, invoke_without_command="true")
+@click.pass_context
 @click.option('-v', '--vlan')
 @click.option('-p', '--port')
+@click.option('-a', '--address')
+@click.option('-t', '--type')
+@click.option('-c', '--count', is_flag=True)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def mac(vlan, port, verbose):
+def mac(ctx, vlan, port, address, type, count, verbose):
     """Show MAC (FDB) entries"""
+
+    if ctx.invoked_subcommand is not None:
+        return
 
     cmd = "fdbshow"
 
@@ -737,8 +744,35 @@ def mac(vlan, port, verbose):
     if port is not None:
         cmd += " -p {}".format(port)
 
+    if address is not None:
+        cmd += " -a {}".format(address)
+
+    if type is not None:
+        cmd += " -t {}".format(type)
+
+    if count:
+        cmd += " -c"
+
     run_command(cmd, display_cmd=verbose)
 
+@mac.command('aging-time')
+@click.pass_context
+def aging_time(ctx):
+    app_db = SonicV2Connector()
+    app_db.connect(app_db.APPL_DB)
+    table = "SWITCH_TABLE*"
+    keys = app_db.keys(app_db.APPL_DB, table)
+
+    if not keys:
+        click.echo("Aging time not configured for the switch")
+        return
+
+    for key in keys:
+        fdb_aging_time = app_db.get(app_db.APPL_DB, key, 'fdb_aging_time')
+        if fdb_aging_time is not None:
+            click.echo("Aging time for {} is {} seconds".format(key.split(':')[-1], fdb_aging_time))
+        else:
+            click.echo("Aging time not configured for the {}".format(key.split(':')[-1]))
 #
 # 'show route-map' command ("show route-map")
 #

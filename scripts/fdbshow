@@ -30,6 +30,7 @@ import argparse
 import json
 import sys
 import os
+import re
 
 # mock the redis for unit test purposes #
 try: # pragma: no cover
@@ -43,7 +44,9 @@ try: # pragma: no cover
                           "2": 'asic_db_def_vlan',
                           "3": 'asic_db_no_fdb',
                           "4": 'asic_db_no_bridge',
-                          "5": 'asic_db_fetch_except'}
+                          "5": 'asic_db_fetch_except',
+                          "6": 'asic_db_no_static',
+                          "7": 'asic_db_mac_case'}
         mock_db_path = os.path.join(test_path, "fdbshow_input")
         file_name = mock_variants[os.environ["FDBSHOW_MOCK"]]
         jsonfile_asic = os.path.join(mock_db_path, file_name)
@@ -53,7 +56,6 @@ try: # pragma: no cover
 except KeyError: # pragma: no cover
     pass
 
-from natsort import natsorted
 from swsssdk import port_util
 from swsscommon.swsscommon import SonicV2Connector
 from tabulate import tabulate
@@ -61,7 +63,6 @@ from tabulate import tabulate
 class FdbShow(object):
 
     HEADER = ['No.', 'Vlan', 'MacAddress', 'Port', 'Type']
-    FDB_COUNT = 0
 
     def __init__(self):
         super(FdbShow,self).__init__()
@@ -135,18 +136,7 @@ class FdbShow(object):
         return
     
     
-    def get_iter_index(self, key_value, pos=0):
-        """
-            Get the starting index of matched entry
-        """
-        if pos != 0:
-            self.bridge_mac_list = natsorted(self.bridge_mac_list, key = lambda x: x[pos])
-
-        keys = [r[pos] for r in self.bridge_mac_list]
-        return keys.index(key_value)
-
-
-    def display(self, vlan, port):
+    def display(self, vlan, port, address, entry_type, count):
         """
             Display the FDB entries for specified vlan/port.
             @todo: - PortChannel support
@@ -154,22 +144,55 @@ class FdbShow(object):
         output = []
 
         if vlan is not None:
-            vlan = int(vlan)
-            s_index = self.get_iter_index(vlan)
-            self.bridge_mac_list = [fdb for fdb in self.bridge_mac_list[s_index:]
-                                    if fdb[0] == vlan]
-        if port is not None:
-            s_index = self.get_iter_index(port, 2)
-            self.bridge_mac_list = [fdb for fdb in self.bridge_mac_list[s_index:]
-                                    if fdb[2] == port]
+            vlan_val = int(vlan)
 
-        for fdb in self.bridge_mac_list:
-            self.FDB_COUNT += 1
-            output.append([self.FDB_COUNT, fdb[0], fdb[1], fdb[2], fdb[3]])
+        if address is not None:
+            address = address.upper()
 
-        print(tabulate(output, self.HEADER))
-        print("Total number of entries {0}".format(self.FDB_COUNT))
+        if entry_type is not None:
+            entry_type = entry_type.capitalize()
 
+        self.bridge_mac_list = [fdb for fdb in self.bridge_mac_list
+                                if (vlan is None or fdb[0] == vlan_val) and
+                                   (port is None or fdb[2] == port) and
+                                   (address is None or fdb[1] == address) and
+                                   (entry_type is None or fdb[3] == entry_type)]
+
+        if not count:
+            fdb_index = 1
+            for fdb in self.bridge_mac_list:
+                output.append([fdb_index, fdb[0], fdb[1], fdb[2], fdb[3]])
+                fdb_index += 1
+            print(tabulate(output, self.HEADER))
+
+        print("Total number of entries {0}".format(len(self.bridge_mac_list)))
+
+    def validate_params(self, vlan, port, address, entry_type):
+        if vlan is not None:
+            if not vlan.isnumeric():
+                print("Error: Invalid vlan id {0}".format(vlan))
+                return False
+
+            vlan_val = int(vlan)
+            if (vlan_val not in range(1,4096)):
+                print("Error: Invalid vlan id {0}".format(vlan))
+                return False
+
+        if port is not None and port not in self.if_name_map:
+            print("Error: Invalid port {0}".format(port))
+            return False
+
+        if address is not None:
+            mac_addr_pattern ="^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$"
+            if not re.match(mac_addr_pattern, address):
+                print("Error: Invalid mac address {0}".format(address))
+                return False
+
+        if entry_type is not None and entry_type.capitalize() not in ["Static", "Dynamic"]:
+            print("Error: Invalid type {0}". format(entry_type))
+            return False
+
+        return True
 
 def main():
     
@@ -177,11 +200,17 @@ def main():
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-p', '--port', type=str, help='FDB learned on specific port: Ethernet0', default=None)
     parser.add_argument('-v', '--vlan', type=str, help='FDB learned on specific Vlan: 1001', default=None)
+    parser.add_argument('-a', '--address', type=str, help='FDB display based on specific mac address', default=None)
+    parser.add_argument('-t', '--type', type=str, help='FDB display of specific type of mac address', default=None)
+    parser.add_argument('-c', '--count', action='store_true', help='FDB display count of mac address')
     args = parser.parse_args()
 
     try:
         fdb = FdbShow()
-        fdb.display(args.vlan, args.port)
+        if not fdb.validate_params(args.vlan, args.port, args.address, args.type):
+           sys.exit(1)
+
+        fdb.display(args.vlan, args.port, args.address, args.type, args.count)
     except Exception as e:
         print(str(e))
         sys.exit(1)
