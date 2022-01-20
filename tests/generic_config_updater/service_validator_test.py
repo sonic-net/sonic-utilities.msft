@@ -67,7 +67,6 @@ test_rsyslog_fail = [
         { "cmd": "systemctl restart rsyslog", "rc": 1 },         # rsyslog restart; fails
         { "cmd": "systemctl reset-failed rsyslog", "rc": 1 },    # reset; failure here just logs
         { "cmd": "systemctl restart rsyslog", "rc": 1 },         # restart again; fails
-        { "cmd": "sleep 10s", "rc": 0 },                         # sleep; rc ignored
         { "cmd": "systemctl restart rsyslog", "rc": 1 },         # restart again; fails
     ]
 

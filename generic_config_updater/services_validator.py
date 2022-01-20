@@ -1,4 +1,5 @@
 import os
+import time
 from .gu_common import genericUpdaterLogging
 
 logger = genericUpdaterLogging.get_logger(title="Service Validator")
@@ -33,7 +34,7 @@ def _service_restart(svc_name):
             logger.log(logger.LOG_PRIORITY_ERROR,
                     f"Restart failed for {svc_name} rc={rc} after reset; Pause for 10s & retry",
                     print_to_console)
-            os.system("sleep 10s")
+            time.sleep(10)
             rc = os.system(f"systemctl restart {svc_name}")
 
     if rc == 0:
