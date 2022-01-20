@@ -2,7 +2,8 @@ import os
 import sys
 import unittest
 import pytest
-from dump.match_infra import MatchEngine, EXCEP_DICT, MatchRequest
+from dump.match_infra import MatchEngine, EXCEP_DICT, MatchRequest, MatchRequestOptimizer
+from unittest.mock import MagicMock
 from deepdiff import DeepDiff
 from importlib import reload
 
@@ -248,3 +249,40 @@ class TestNonDefaultNameSpace(unittest.TestCase):
         assert ret["error"] == ""
         assert len(ret["keys"]) == 1
         assert "PORT|Ethernet-BP256" in ret["keys"]
+
+class TestMatchEngineOptimizer(unittest.TestCase):
+
+    def test_caching(self):
+        rv = {"COPP_GROUP|queue4_group2": {"trap_action": "copy", "trap_priority": "4", "queue": "4", "meter_type": "packets", "mode": "sr_tcm", "cir": "600", "cbs": "600", "red_action": "drop"}}
+        template = {"error": "", "keys": [rv], "return_values": {}}
+        m_engine = MatchEngine()
+        m_engine.fetch = MagicMock(return_value=template)
+        m_engine_optim = MatchRequestOptimizer(m_engine)
+        req = MatchRequest(db="CONFIG_DB", table="COPP_GROUP", key_pattern="queue4*", field="red_action", value="drop")
+        ret = m_engine_optim.fetch(req)
+        assert ret["error"] == ""
+        assert len(ret["keys"]) == 1
+        assert "COPP_GROUP|queue4_group2" in ret["keys"]
+
+        req = MatchRequest(db="CONFIG_DB", table="COPP_GROUP", key_pattern="queue4_group2")
+        ret = m_engine_optim.fetch(req)
+        assert ret["error"] == ""
+        assert len(ret["keys"]) == 1
+        assert "COPP_GROUP|queue4_group2" in ret["keys"]
+
+        assert m_engine.fetch.call_count == 1
+
+    def test_missing_field(self):
+        rv = {"COPP_GROUP|queue4_group2": {"trap_action": "copy", "trap_priority": "4", "queue": "4", "meter_type": "packets", "mode": "sr_tcm", "cir": "600", "cbs": "600", "red_action": "drop"}}
+        template = {"error": "", "keys": [rv], "return_values": {}}
+        m_engine = MatchEngine()
+        m_engine.fetch = MagicMock(return_value=template)
+        m_engine_optim = MatchRequestOptimizer(m_engine)
+        req = MatchRequest(db="CONFIG_DB", table="COPP_GROUP", key_pattern="queue4*", field="red_action", value="drop", return_fields=["whatever"])
+        ret = m_engine_optim.fetch(req)
+        assert ret["error"] == ""
+        assert len(ret["keys"]) == 1
+        assert "COPP_GROUP|queue4_group2" in ret["keys"]
+        # missing filed should not cause an excpetion in the optimizer
+        assert "whatever" in ret["return_values"]["COPP_GROUP|queue4_group2"]
+        assert not  ret["return_values"]["COPP_GROUP|queue4_group2"]["whatever"]
