@@ -393,11 +393,23 @@ class CreateOnlyMoveValidator:
         self.create_only_patterns = [
             ["PORT", "*", "lanes"],
             ["LOOPBACK_INTERFACE", "*", "vrf_name"],
+            ["BGP_NEIGHBOR", "*", "holdtime"],
+            ["BGP_NEIGHBOR", "*", "keepalive"],
+            ["BGP_NEIGHBOR", "*", "name"],
+            ["BGP_NEIGHBOR", "*", "asn"],
+            ["BGP_NEIGHBOR", "*", "local_addr"],
+            ["BGP_NEIGHBOR", "*", "nhopself"],
+            ["BGP_NEIGHBOR", "*", "rrclient"],
         ]
 
     def validate(self, move, diff):
         simulated_config = move.apply(diff.current_config)
-        paths = set(list(self._get_create_only_paths(diff.current_config)) + list(self._get_create_only_paths(simulated_config)))
+        # get create-only paths from current config, simulated config and also target config
+        # simulated config is the result of the move
+        # target config is the final config
+        paths = set(list(self._get_create_only_paths(diff.current_config)) +
+                    list(self._get_create_only_paths(simulated_config)) +
+                    list(self._get_create_only_paths(diff.target_config)))
 
         for path in paths:
             tokens = self.path_addressing.get_path_tokens(path)
@@ -408,7 +420,27 @@ class CreateOnlyMoveValidator:
             if self._value_removed_but_parent_remain(tokens, diff.current_config, simulated_config):
                 return False
 
+            # if parent of create-only field is added, create-only field should be the same as target
+            # i.e. if field is deleted in target, it should be deleted in the move, or
+            #      if field is present in target, it should be present in the move
+            if self._parent_added_child_not_as_target(tokens, diff.current_config, simulated_config, diff.target_config):
+                return False
+
         return True
+
+    def _parent_added_child_not_as_target(self, tokens, current_config, simulated_config, target_config):
+        # if parent is not added, return false
+        if not self._exist_only_in_first(tokens[:-1], simulated_config, current_config):
+            return False
+
+        child_path = self.path_addressing.create_path(tokens)
+
+        # if child is in target, check if child is not in simulated
+        if self.path_addressing.has_path(target_config, child_path):
+            return not self.path_addressing.has_path(simulated_config, child_path)
+        else:
+            # if child is not in target, check if child is in simulated
+            return self.path_addressing.has_path(simulated_config, child_path)
 
     def _get_create_only_paths(self, config):
         for pattern in self.create_only_patterns:
@@ -472,20 +504,9 @@ class CreateOnlyMoveValidator:
         return True
 
     def _exist_only_in_first(self, tokens, first_config_ptr, second_config_ptr):
-        for token in tokens:
-            mod_token = int(token) if isinstance(first_config_ptr, list) else token
-
-            if mod_token not in second_config_ptr:
-                return True
-
-            if mod_token not in first_config_ptr:
-                return False
-
-            first_config_ptr = first_config_ptr[mod_token]
-            second_config_ptr = second_config_ptr[mod_token]
-
-        # tokens exist in both
-        return False
+        path = self.path_addressing.create_path(tokens)
+        return self.path_addressing.has_path(first_config_ptr, path) and \
+               not self.path_addressing.has_path(second_config_ptr, path)
 
 class NoDependencyMoveValidator:
     """

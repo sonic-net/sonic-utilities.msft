@@ -2894,5 +2894,85 @@
                 }
             ]
         ]
+    },
+    "ADDING_BGP_NEIGHBORS": {
+        "current_config": {
+            "BGP_NEIGHBOR": {
+                "10.0.0.57": {
+                    "admin_status": "up",
+                    "asn": "64600",
+                    "holdtime": "10",
+                    "keepalive": "3",
+                    "local_addr": "10.0.0.56",
+                    "name": "ARISTA01T1",
+                    "nhopself": "0",
+                    "rrclient": "0"
+                }
+            }
+        },
+        "patch": [
+            {
+                "op": "add",
+                "path": "/BGP_NEIGHBOR/10.0.0.59",
+                "value": {
+                    "admin_status": "up",
+                    "asn": "64600",
+                    "holdtime": "10",
+                    "keepalive": "3",
+                    "local_addr": "10.0.0.58",
+                    "name": "ARISTA02T1",
+                    "nhopself": "0",
+                    "rrclient": "0"
+                }
+            },
+            {
+                "op": "add",
+                "path": "/BGP_NEIGHBOR/10.0.0.61",
+                "value": {
+                    "admin_status": "up",
+                    "asn": "64600",
+                    "holdtime": "10",
+                    "keepalive": "3",
+                    "local_addr": "10.0.0.60",
+                    "name": "ARISTA03T1",
+                    "nhopself": "0",
+                    "rrclient": "0"
+                }
+            }
+        ],
+        "expected_changes": [
+            [
+                {
+                    "op": "add",
+                    "path": "/BGP_NEIGHBOR/10.0.0.59",
+                    "value": {
+                        "admin_status": "up",
+                        "asn": "64600",
+                        "holdtime": "10",
+                        "keepalive": "3",
+                        "local_addr": "10.0.0.58",
+                        "name": "ARISTA02T1",
+                        "nhopself": "0",
+                        "rrclient": "0"
+                    }
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/BGP_NEIGHBOR/10.0.0.61",
+                    "value": {
+                        "admin_status": "up",
+                        "asn": "64600",
+                        "holdtime": "10",
+                        "keepalive": "3",
+                        "local_addr": "10.0.0.60",
+                        "name": "ARISTA03T1",
+                        "nhopself": "0",
+                        "rrclient": "0"
+                    }
+                }
+            ]
+        ]
     }
 }

@@ -884,6 +884,31 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
                          ["PORT"],
                          ["PORT"])
 
+    def test_validate__parent_added_with_all_create_only_field_that_target_has__success(self):
+        added_parent_value = {
+            "admin_status": "up",
+            "asn": "64600", # <== create-only field
+            "holdtime": "50", # <== create-only field
+        }
+        self.verify_parent_adding(added_parent_value, True)
+
+    def test_validate__parent_added_with_create_only_field_but_target_does_not_have_the_field__failure(self):
+        added_parent_value = {
+            "admin_status": "up",
+            "asn": "64600", # <== create-only field
+            "holdtime": "50", # <== create-only field
+            "rrclient": "1", # <== create-only field but not in target-config
+        }
+        self.verify_parent_adding(added_parent_value, False)
+
+    def test_validate__parent_added_without_create_only_field_but_target_have_the_field__failure(self):
+        added_parent_value = {
+            "admin_status": "up",
+            "asn": "64600", # <== create-only field
+            # Not adding: "holdtime": "50"
+        }
+        self.verify_parent_adding(added_parent_value, False)
+
     def test_hard_coded_create_only_paths(self):
         config = {
             "PORT": {
@@ -895,16 +920,58 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
                 "Loopback0":{"vrf_name":"vrf0"},
                 "Loopback1":{},
                 "Loopback2":{"vrf_name":"vrf1"},
-            }}
+            },
+            "BGP_NEIGHBOR": {
+                "10.0.0.57": {
+                    "admin_status": "up",
+                    "asn": "64600",
+                    "holdtime": "10",
+                    "keepalive": "3",
+                    "local_addr": "10.0.0.56",
+                    "name": "ARISTA01T1",
+                    "nhopself": "0",
+                    "rrclient": "0"
+                }
+            }
+        }
         expected = [
             "/PORT/Ethernet0/lanes",
             "/PORT/Ethernet2/lanes",
             "/LOOPBACK_INTERFACE/Loopback0/vrf_name",
-            "/LOOPBACK_INTERFACE/Loopback2/vrf_name"
+            "/LOOPBACK_INTERFACE/Loopback2/vrf_name",
+            "/BGP_NEIGHBOR/10.0.0.57/asn",
+            "/BGP_NEIGHBOR/10.0.0.57/holdtime",
+            "/BGP_NEIGHBOR/10.0.0.57/keepalive",
+            "/BGP_NEIGHBOR/10.0.0.57/local_addr",
+            "/BGP_NEIGHBOR/10.0.0.57/name",
+            "/BGP_NEIGHBOR/10.0.0.57/nhopself",
+            "/BGP_NEIGHBOR/10.0.0.57/rrclient",
         ]
+
         actual = self.validator._get_create_only_paths(config)
 
         self.assertCountEqual(expected, actual)
+
+    def verify_parent_adding(self, added_parent_value, expected):
+        current_config = {
+            "BGP_NEIGHBOR": {}
+        }
+
+        target_config = {
+            "BGP_NEIGHBOR": {
+                "10.0.0.57": {
+                    "admin_status": "up",
+                    "asn": "64600",
+                    "holdtime": "50",
+                }
+            }
+        }
+        diff = ps.Diff(current_config, target_config)
+        move = ps.JsonMove.from_operation({"op":"add", "path":"/BGP_NEIGHBOR/10.0.0.57", "value": added_parent_value})
+
+        actual = self.validator.validate(move, diff)
+
+        self.assertEqual(expected, actual)
 
     def verify_diff(self, current_config, target_config, current_config_tokens=None, target_config_tokens=None, expected=True):
         # Arrange
