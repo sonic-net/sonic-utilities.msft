@@ -43,10 +43,7 @@ from sonic_package_manager.progress import ProgressManager
 from sonic_package_manager.reference import PackageReference
 from sonic_package_manager.registry import RegistryResolver
 from sonic_package_manager.service_creator import SONIC_CLI_COMMANDS
-from sonic_package_manager.service_creator.creator import (
-    ServiceCreator,
-    run_command
-)
+from sonic_package_manager.service_creator.creator import ServiceCreator
 from sonic_package_manager.service_creator.feature import FeatureRegistry
 from sonic_package_manager.service_creator.sonic_db import (
     INIT_CFG_JSON,
@@ -302,6 +299,7 @@ class PackageManager:
         self.database = database
         self.metadata_resolver = metadata_resolver
         self.service_creator = service_creator
+        self.sonic_db = service_creator.sonic_db
         self.feature_registry = service_creator.feature_registry
         self.is_multi_npu = device_information.is_multi_npu()
         self.num_npus = device_information.get_num_npus()
@@ -479,17 +477,7 @@ class PackageManager:
         # After all checks are passed we proceed to actual uninstallation
 
         try:
-            # Stop and disable the service.
-            # First to make sure we are not uninstalling
-            # package before the service has fully stopped
-            # since "config feature state" command is not blocking.
-            # Second, we make sure the service is in disabled state
-            # so that after reinstall and enablement hostcfgd will enable
-            # it and start it.
-            # TODO: once there is a way to block till hostcfgd will stop
-            # the service, replace it with new approach.
-            self._systemctl_action(package, 'stop')
-            self._systemctl_action(package, 'disable')
+            self._stop_feature(package)
             self._uninstall_cli_plugins(package)
             self.service_creator.remove(package, keep_config=keep_config)
             self.service_creator.generate_shutdown_sequence_files(
@@ -588,12 +576,8 @@ class PackageManager:
                 feature_enabled = self.feature_registry.is_feature_enabled(old_feature)
 
                 if feature_enabled:
-                    self._systemctl_action(old_package, 'disable')
-                    exits.callback(rollback(self._systemctl_action,
-                                            old_package, 'enable'))
-                    self._systemctl_action(old_package, 'stop')
-                    exits.callback(rollback(self._systemctl_action,
-                                            old_package, 'start'))
+                    self._stop_feature(old_package)
+                    exits.callback(rollback(self._start_feature, old_package))
 
                 self.service_creator.remove(old_package, **service_remove_opts)
                 exits.callback(rollback(self.service_creator.create, old_package,
@@ -613,23 +597,15 @@ class PackageManager:
                     self._get_installed_packages_and(old_package))
                 )
 
-                # If old feature was enabled, the user should have the new feature enabled as well.
-                if feature_enabled:
-                    self._systemctl_action(new_package, 'enable')
-                    exits.callback(rollback(self._systemctl_action,
-                                            new_package, 'disable'))
-                    self._systemctl_action(new_package, 'start')
-                    exits.callback(rollback(self._systemctl_action,
-                                            new_package, 'stop'))
-
-                # Update feature configuration after we have started new service.
-                # If we place it before the above, our service start/stop will
-                # interfere with hostcfgd in rollback path leading to a service
-                # running with new image and not the old one.
                 self.feature_registry.update(old_package.manifest, new_package.manifest)
                 exits.callback(rollback(
                     self.feature_registry.update, new_package.manifest, old_package.manifest)
                 )
+
+                # If old feature was enabled, the user should have the new feature enabled as well.
+                if feature_enabled:
+                    self._start_feature(new_package)
+                    exits.callback(rollback(self._stop_feature, new_package))
 
                 if not skip_host_plugins:
                     self._install_cli_plugins(new_package)
@@ -947,33 +923,50 @@ class PackageManager:
         packages.pop(package.name)
         return packages
 
-    # TODO: Replace with "config feature" command.
-    # The problem with current "config feature" command
-    # is that it is asynchronous, thus can't be used
-    # for package upgrade purposes where we need to wait
-    # till service stops before upgrading docker image.
-    # It would be really handy if we could just call
-    # something like: "config feature state <name> <state> --wait"
-    # instead of operating on systemd service since
-    # this is basically a duplicated code from "hostcfgd".
-    def _systemctl_action(self, package: Package, action: str):
-        """ Execute systemctl action for a service supporting
-        multi-asic services. """
+    def _start_feature(self, package: Package, block: bool = True):
+        """ Starts the feature and blocks till operation is finished if
+        block argument is set to True.
 
-        name = package.manifest['service']['name']
-        host_service = package.manifest['service']['host-service']
-        asic_service = package.manifest['service']['asic-service']
-        single_instance = host_service or (asic_service and not self.is_multi_npu)
-        multi_instance = asic_service and self.is_multi_npu
+        Args:
+            package: Package object of the feature that will be started.
+            block: Whether to block for operation completion.
+        """
+
+        self._set_feature_state(package, 'enabled', block)
+
+    def _stop_feature(self, package: Package, block: bool = True):
+        """ Stops the feature and blocks till operation is finished if
+        block argument is set to True.
+
+        Args:
+            package: Package object of the feature that will be stopped.
+            block: Whether to block for operation completion.
+        """
+
+        self._set_feature_state(package, 'disabled', block)
+
+    def _set_feature_state(self, package: Package, state: str, block: bool = True):
+        """ Sets the feature state and blocks till operation is finished if
+        block argument is set to True.
+
+        Args:
+            package: Package object of the feature that will be stopped.
+            state: Feature state to set.
+            block: Whether to block for operation completion.
+        """
 
         if in_chroot():
             return
 
-        if single_instance:
-            run_command(f'systemctl {action} {name}')
-        if multi_instance:
-            for npu in range(self.num_npus):
-                run_command(f'systemctl {action} {name}@{npu}')
+        # import from here otherwise this import will fail when executing
+        # sonic-package-manager from chroot environment as "config" package
+        # tries accessing database at import time.
+        from config.feature import set_feature_state
+
+        feature_name = package.manifest['service']['name']
+        log.info('{} {}'.format(state.replace('ed', 'ing').capitalize(), feature_name))
+        cfgdb_clients = {'': self.sonic_db.get_running_db_connector()}
+        set_feature_state(cfgdb_clients, feature_name, state, block)
 
     def _install_cli_plugins(self, package: Package):
         for command in SONIC_CLI_COMMANDS:

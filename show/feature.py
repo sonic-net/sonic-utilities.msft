@@ -62,9 +62,10 @@ def feature_status(db, feature_name):
     if feature_name:
         key = "FEATURE|{}".format(feature_name)
         if feature_name in cfg_table:
-            data = cfg_table[feature_name]
+            data = {}
             if keys and (key in keys):
-                data.update(dbconn.get_all(dbconn.STATE_DB, key))
+                data = dbconn.get_all(dbconn.STATE_DB, key)
+            data.update(cfg_table[feature_name])
             ordered_data.append(data)
             fields = set(data.keys())
             names.append(feature_name)
@@ -73,10 +74,11 @@ def feature_status(db, feature_name):
             sys.exit(1)
     else:
         for name in natsorted(cfg_table.keys()):
-            data = cfg_table[name]
+            data = {}
             key = "FEATURE|{}".format(name)
             if keys and (key in keys):
-                data.update(dbconn.get_all(dbconn.STATE_DB, key))
+                data = dbconn.get_all(dbconn.STATE_DB, key)
+            data.update(cfg_table[name])
 
             fields = fields | set(data.keys())
             ordered_data.append(data)

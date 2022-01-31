@@ -1,8 +1,13 @@
 import importlib
+import pytest
+
+from unittest import mock
+from contextlib import ExitStack
 
 from click.testing import CliRunner
 
 from utilities_common.db import Db
+from swsscommon import swsscommon
 
 show_feature_status_output="""\
 Feature     State           AutoRestart     SetOwner
@@ -282,6 +287,24 @@ class TestFeature(object):
         assert result.exit_code == 0
         assert result.output == show_feature_bgp_disabled_status_output
 
+    @pytest.mark.parametrize("actual_state,rc", [("disabled", 0), ("failed", 1)])
+    def test_config_bgp_feature_state_blocking(self, get_cmd_module, actual_state, rc):
+        (config, show) = get_cmd_module
+        db = Db()
+        runner = CliRunner()
+        with ExitStack() as es:
+            es.enter_context(mock.patch("swsscommon.swsscommon.DBConnector"))
+            mock_select = mock.Mock()
+            es.enter_context(mock.patch("swsscommon.swsscommon.Select", return_value=mock_select))
+            mock_tbl = mock.Mock()
+            es.enter_context(mock.patch("swsscommon.swsscommon.SubscriberStateTable", return_value=mock_tbl))
+            mock_select.select = mock.Mock(return_value=(swsscommon.Select.OBJECT, mock_tbl))
+            mock_tbl.pop = mock.Mock(return_value=("bgp", "", [("state", actual_state)]));
+            result = runner.invoke(config.config.commands["feature"].commands["state"], ["bgp", "disabled", "--block"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == rc
+
     def test_config_snmp_feature_owner(self, get_cmd_module):
         (config, show) = get_cmd_module
         db = Db()
@@ -478,8 +501,8 @@ class TestFeatureMultiAsic(object):
         print(result.exit_code)
         assert result.exit_code == 0
         assert result.output == show_feature_bgp_autorestart_output
- 
- 
+
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
