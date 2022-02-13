@@ -41,6 +41,7 @@ jobs:
       artifact: sonic-swss-pytests
       runVersion: 'latestFromBranch'
       runBranch: 'refs/heads/master'
+      allowPartiallySucceededBuilds: true
     displayName: "Download sonic swss pytests"
 
   - checkout: self
