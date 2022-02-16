@@ -2497,13 +2497,13 @@ def add_snmp_agent_address(ctx, agentip, port, vrf):
         ipaddresses = netifaces.ifaddresses(intf)
         if ip_family[ip.version] in ipaddresses:
             for ipaddr in ipaddresses[ip_family[ip.version]]:
-                if agentip == ipaddr['addr']:
+                if agentip.lower() == ipaddr['addr'].lower():
                     found = 1
-                    break;
+                    break
         if found == 1:
-            break;
+            break
     else:
-        click.echo("IP addfress is not available")
+        click.echo("IP address is not available")
         return
 
     key = agentip+'|'
