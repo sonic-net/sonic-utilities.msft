@@ -29,6 +29,7 @@ jobs:
       runVersion: 'latestFromBranch'
       runBranch: 'refs/heads/master'
       allowPartiallySucceededBuilds: true
+      allowFailedBuilds: true
     displayName: "Download docker-sonic-vs artifact"
 
   - script: |
