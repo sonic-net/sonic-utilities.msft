@@ -24,6 +24,10 @@ def add_vlan(db, vid):
         ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
     vlan = 'Vlan{}'.format(vid)
+    
+    if vid == 1:
+        ctx.fail("{} is default VLAN".format(vlan))
+    
     if clicommon.check_if_vlanid_exist(db.cfgdb, vlan):
         ctx.fail("{} already exists".format(vlan))
 
