@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import jsonpatch
 import unittest
 from unittest.mock import MagicMock, Mock
@@ -669,6 +670,84 @@ class TestMoveWrapper(unittest.TestCase):
         # Assert
         self.assertIs(self.any_diff, actual)
 
+class TestRequiredValueIdentifier(unittest.TestCase):
+    def test_hard_coded_required_value_data(self):
+        identifier = ps.RequiredValueIdentifier(PathAddressing())
+        config = {
+            "BUFFER_PG": {
+                "Ethernet4|0": {
+                    "profile": "ingress_lossy_profile"
+                },
+                "Ethernet8|3-4": {
+                    "profile": "pg_lossless_40000_40m_profile"
+                }
+            },
+            "BUFFER_QUEUE": {
+                "Ethernet0|5-6": {
+                    "profile": "egress_lossless_profile"
+                },
+                "Ethernet4|1": {
+                    "profile": "egress_lossy_profile"
+                }
+            },
+            "QUEUE": {
+                "Ethernet4|2": {
+                    "scheduler": "scheduler.0"
+                },
+                "Ethernet4|7-8": {
+                    "scheduler": "scheduler.0"
+                }
+            },
+            "BUFFER_PORT_INGRESS_PROFILE_LIST": {
+                "Ethernet0": {
+                    "profile_list": ["ingress_lossy_profile"]
+                },
+                "Ethernet4": {
+                    "profile_list": ["ingress_lossy_profile"]
+                },
+            },
+            "BUFFER_PORT_EGRESS_PROFILE_LIST": {
+                "Ethernet4": {
+                    "profile_list": ["egress_lossless_profile", "egress_lossy_profile"]
+                },
+                "Ethernet8": {
+                    "profile_list": ["ingress_lossy_profile"]
+                },
+            },
+            "PORT_QOS_MAP": {
+                "Ethernet4": {
+                    "dscp_to_tc_map": "AZURE",
+                    "pfc_enable": "3,4",
+                    "pfc_to_queue_map": "AZURE",
+                    "tc_to_pg_map": "AZURE",
+                    "tc_to_queue_map": "AZURE"
+                },
+                "Ethernet12": {
+                    "dscp_to_tc_map": "AZURE",
+                    "pfc_enable": "3,4",
+                    "pfc_to_queue_map": "AZURE",
+                    "tc_to_pg_map": "AZURE",
+                    "tc_to_queue_map": "AZURE"
+                },
+            },
+            "PORT": {
+                "Ethernet4": {}
+            }
+        }
+        expected = OrderedDict([
+            ('/BUFFER_PG/Ethernet4|0', [('/PORT/Ethernet4/admin_status', 'down')]),
+            ('/BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet4', [('/PORT/Ethernet4/admin_status', 'down')]),
+            ('/BUFFER_PORT_INGRESS_PROFILE_LIST/Ethernet4', [('/PORT/Ethernet4/admin_status', 'down')]),
+            ('/BUFFER_QUEUE/Ethernet4|1', [('/PORT/Ethernet4/admin_status', 'down')]),
+            ('/PORT_QOS_MAP/Ethernet4', [('/PORT/Ethernet4/admin_status', 'down')]),
+            ('/QUEUE/Ethernet4|2', [('/PORT/Ethernet4/admin_status', 'down')]),
+            ('/QUEUE/Ethernet4|7-8', [('/PORT/Ethernet4/admin_status', 'down')]),
+        ])
+
+        actual = identifier.get_required_value_data([config])
+
+        self.assertEqual(expected, actual)
+
 class TestDeleteWholeConfigMoveValidator(unittest.TestCase):
     def setUp(self):
         self.operation_wrapper = OperationWrapper()
@@ -1270,6 +1349,472 @@ class TestNoEmptyTableMoveValidator(unittest.TestCase):
         # Act and assert
         self.assertTrue(self.validator.validate(move, diff))
 
+class TestRequiredValueMoveValidator(unittest.TestCase):
+    def setUp(self):
+        self.operation_wrapper = OperationWrapper()
+        path_addressing = PathAddressing()
+        self.validator = ps.RequiredValueMoveValidator(path_addressing)
+        self.validator.identifier.settings[0]["requiring_filter"] = ps.JsonPointerFilter([
+                ["BUFFER_PG", "@|*"],
+                ["PORT", "@", "mtu"]
+            ],
+            path_addressing)
+
+    def test_validate__critical_port_change(self):
+        # Each test format:
+        #   "<test-name>": {
+        #       "expected": "<True|False>",
+        #       "config": <config>,
+        #       "move": <move>,
+        #       "target_config": <OPTIONAL> <target-config-if-different-than-applying-move-to-config>
+        #   }
+        # Each test is testing different flag of:
+        #  - port-up: if port is up or not in current_config
+        #  - status-changing: if admin_status is changing from any state to another
+        #  - under-port: if the port-critical config is under port
+        #  - port-exist: if the port already exist in current_config
+        test_cases = self._get_critical_port_change_test_cases()
+        for test_case_name in test_cases:
+            with self.subTest(name=test_case_name):
+                self._run_single_test(test_cases[test_case_name])
+
+    def _run_single_test(self, test_case):
+        # Arrange
+        expected = test_case['expected']
+        current_config = test_case['config']
+        move = test_case['move']
+        target_config = test_case.get('target_config', move.apply(current_config))
+        diff = ps.Diff(current_config, target_config)
+
+        # Act and Assert
+        self.assertEqual(expected, self.validator.validate(move, diff))
+
+    def _get_critical_port_change_test_cases(self):
+        # port-up  status-changing  under-port  port-exist  verdict
+        # 1        1                1           1           0
+        # 1        1                1           0           invalid - port cannot be up while it does not exist
+        # 1        1                0           1           0
+        # 1        1                0           0           invalid - port cannot be up while it does not exist
+        # 1        0                1           1           0
+        # 1        0                1           0           invalid - port cannot be up while it does not exist
+        # 1        0                0           1           0
+        # 1        0                0           0           invalid - port cannot be up while it does not exist
+        # 0        1                1           1           0
+        # 0        1                1           0           0    can be 1?
+        # 0        1                0           1           0
+        # 0        1                0           0           0
+        # 0        0                1           1           1
+        # 0        0                1           0           1
+        # 0        0                0           1           1
+        # 0        0                0           0           invalid - port does not exist anyway
+        return {
+            "PORT_UP__STATUS_CHANGING__UNDER_PORT__PORT_EXIST": {
+                "expected": False,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op": "replace",
+                    "path": "/PORT/Ethernet4",
+                    "value": { # only admin_status and mtu are different
+                        "admin_status": "down", # <== status changing
+                        "alias": "fortyGigE0/4",
+                        "description": "Servers0:eth0",
+                        "index": "1",
+                        "lanes": "29,30,31,32",
+                        "mtu": "9000", # <== critical config under port
+                        "pfc_asym": "off",
+                        "speed": "40000"
+                    }
+                })
+            },
+            # cannot test "port-up, status-changing, under-port, not port-exist"
+            #   because if port does not exist, it cannot be admin up
+            "PORT_UP__STATUS_CHANGING__NOT_UNDER_PORT__PORT_EXIST": {
+                "expected": False,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op": "replace",
+                    "path": "",
+                    "value": self._apply_operations(Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                            [
+                                # status-changing
+                                {"op":"replace", "path":"/PORT/Ethernet4/admin_status", "value": "down"},
+                                # port-critical config is not under port
+                                {"op":"replace", "path":"/BUFFER_PG/Ethernet4|0/profile", "value": "egress_lossy_profile"},
+                            ])
+                })
+            },
+            # cannot test "port-up, status-changing, not under-port, not port-exist"
+            #   because if port does not exist, it cannot be admin up
+            "PORT_UP__NOT_STATUS_CHANGING__UNDER_PORT__PORT_EXIST": {
+                "expected": False,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op": "replace",
+                    "path": "/PORT/Ethernet4/mtu",
+                    "value": "9000"
+                })
+            },
+            # cannot test "port-up, not status-changing, under-port, not port-exist"
+            #   because if port does not exist, it cannot be admin up
+            "PORT_UP__NOT_STATUS_CHANGING__NOT_UNDER_PORT__PORT_EXIST": {
+                "expected": False,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op":"replace",
+                    "path":"/BUFFER_PG/Ethernet4|0/profile",
+                    "value": "egress_lossy_profile"
+                })
+            },
+            # cannot test "port-up, not status-changing, not under-port, not port-exist"
+            #   because if port does not exist, it cannot be admin up
+            "NOT_PORT_UP__STATUS_CHANGING__UNDER_PORT__PORT_EXIST": {
+                "expected": False,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op": "add",
+                    "path": "/PORT/Ethernet12",
+                    "value": {
+                        "admin_status": "up", # <== status changing
+                        "alias": "fortyGigE0/12",
+                        "description": "Servers2:eth0",
+                        "index": "3",
+                        "lanes": "37,38,39,40",
+                        "mtu": "9000", # <== critical config under port
+                        "pfc_asym": "off",
+                        "speed": "40000"
+                    }
+                })
+            },
+            "NOT_PORT_UP__STATUS_CHANGING__UNDER_PORT__NOT_PORT_EXIST": {
+                "expected": False,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op": "add",
+                    "path": "/PORT/Ethernet20",
+                    "value": {
+                        "admin_status": "up", # <== status-changing from not-existing i.e "down" to "up"
+                        "alias": "fortyGigE0/20",
+                        "description": "Servers4:eth0",
+                        "index": "5",
+                        "mtu": "9100",  # <== critical config under port
+                        "lanes": "45,46,47,48",
+                        "pfc_asym": "off",
+                        "speed": "40000"
+                    }
+                })
+            },
+            "NOT_PORT_UP__STATUS_CHANGING__NOT_UNDER_PORT__PORT_EXIST": {
+                "expected": False,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op": "replace",
+                    "path": "",
+                    "value": self._apply_operations(Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                        [
+                            # status-changing
+                            {"op":"replace", "path":"/PORT/Ethernet12/admin_status", "value": "up"},
+                            # port-critical config is not under port
+                            {"op":"replace", "path":"/BUFFER_PG/Ethernet4|0/profile", "value": "egress_lossy_profile"},
+                        ]
+                    )
+                })
+            },
+            "NOT_PORT_UP__STATUS_CHANGING__NOT_UNDER_PORT__NOT_PORT_EXIST": {
+                "expected": False,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op": "replace",
+                    "path": "",
+                    "value": self._apply_operations(Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                        [
+                            # status-changing
+                            {
+                                "op":"add",
+                                "path":"/PORT/Ethernet20",
+                                "value": {
+                                    "admin_status": "up", # <== status-changing from not-existing i.e. "down" to "up"
+                                    "alias": "fortyGigE0/20",
+                                    "description": "Servers4:eth0",
+                                    "index": "5",
+                                    "lanes": "45,46,47,48",
+                                    "pfc_asym": "off",
+                                    "speed": "40000"
+                                }
+                            },
+                            # port-critical config is not under port
+                            {
+                                "op":"add",
+                                "path":"/BUFFER_PG/Ethernet20|0",
+                                "value": {
+                                    "profile": "ingress_lossy_profile"
+                                }
+                            },
+                        ]
+                    )
+                })
+            },
+            "NOT_PORT_UP__NOT_STATUS_CHANGING__UNDER_PORT__PORT_EXIST": {
+                "expected": True,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op": "replace",
+                    "path": "/PORT/Ethernet12/mtu",
+                    "value": "9000"
+                })
+            },
+            "NOT_PORT_UP__NOT_STATUS_CHANGING__UNDER_PORT__NOT_PORT_EXIST": {
+                "expected": True,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op": "add",
+                    "path": "/PORT/Ethernet20",
+                    "value": {
+                        "alias": "fortyGigE0/20",
+                        "description": "Servers4:eth0",
+                        "index": "5",
+                        "mtu": "9100",  # <== critical config under port
+                        "lanes": "45,46,47,48",
+                        "pfc_asym": "off",
+                        "speed": "40000"
+                    }
+                })
+            },
+            "NOT_PORT_UP__NOT_STATUS_CHANGING__NOT_UNDER_PORT__PORT_EXIST": {
+                "expected": True,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op":"replace",
+                    "path":"/BUFFER_PG/Ethernet12|0/profile",
+                    "value": "egress_lossy_profile"
+                })
+            },
+            # cannot test "not port-up, not status-changing, not under-port, not port-exist"
+            #   because if port does not exist, it cannot be admin up
+
+            # The following set of cases check validation failure when a move is turning a port admin up, while still
+            # some critical changes not included at all in the move
+            "NOT_PORT_UP__STATUS_CHANGING__UNDER_PORT__PORT_EXIST__NOT_ALL_CRITICAL_CHANGES_INCLUDED": {
+                "expected": False,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "target_config": self._apply_operations(Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                    [
+                        # The following critical change is not part of the move below.
+                        {"op": "replace", "path": "/PORT/Ethernet12/mtu", "value": "9000"}
+                    ]),
+                "move": ps.JsonMove.from_operation({"op":"replace", "path":"/PORT/Ethernet12/admin_status", "value": "up"})
+            },
+            "NOT_PORT_UP__STATUS_CHANGING__UNDER_PORT__NOT_PORT_EXIST__NOT_ALL_CRITICAL_CHANGES_INCLUDED": {
+                "expected": False,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "target_config": self._apply_operations(Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                    [
+                        {
+                            "op": "add",
+                            "path": "/PORT/Ethernet20",
+                            "value": {
+                                "admin_status": "up", # <== status-changing from not-existing i.e "down" to "up"
+                                "alias": "fortyGigE0/20",
+                                "description": "Servers4:eth0",
+                                "index": "5",
+                                "mtu": "9100",  # <== critical config under port which is not part of the move below
+                                "lanes": "45,46,47,48",
+                                "pfc_asym": "off",
+                                "speed": "40000"
+                            }
+                        }
+                    ]),
+                "move": ps.JsonMove.from_operation({
+                    "op": "add",
+                    "path": "/PORT/Ethernet20",
+                    "value": {
+                        "admin_status": "up", # <== status-changing from not-existing i.e "down" to "up"
+                        "alias": "fortyGigE0/20",
+                        "description": "Servers4:eth0",
+                        "index": "5",
+                        # "mtu": "9100", # <== critical change is left out
+                        "lanes": "45,46,47,48",
+                        "pfc_asym": "off",
+                        "speed": "40000"
+                    }
+                })
+            },
+            "NOT_PORT_UP__STATUS_CHANGING__NOT_UNDER_PORT__PORT_EXIST__NOT_ALL_CRITICAL_CHANGES_INCLUDED": {
+                "expected": False,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "target_config": self._apply_operations(Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                    [
+                        # The following critical change is not part of the move below
+                        {"op":"replace", "path":"/BUFFER_PG/Ethernet12|0/profile", "value": "egress_lossy_profile"},
+                    ]),
+                "move": ps.JsonMove.from_operation({"op":"replace", "path":"/PORT/Ethernet12/admin_status", "value": "up"})
+            },
+            "NOT_PORT_UP__STATUS_CHANGING__NOT_UNDER_PORT__NOT_PORT_EXIST__NOT_ALL_CRITICAL_CHANGES_INCLUDED": {
+                "expected": False,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "target_config": self._apply_operations(Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                    [
+                        {
+                            "op":"add",
+                            "path":"/BUFFER_PG/Ethernet20|0",
+                            "value": {
+                                "profile": "ingress_lossy_profile"
+                            }
+                        },
+                        {
+                            "op": "add",
+                            "path": "/PORT/Ethernet20",
+                            "value": {
+                                "admin_status": "up", # <== status-changing from not-existing i.e "down" to "up"
+                                "alias": "fortyGigE0/20",
+                                "description": "Servers4:eth0",
+                                "index": "5",
+                                "lanes": "45,46,47,48",
+                                "pfc_asym": "off",
+                                "speed": "40000"
+                            }
+                        }
+                    ]),
+                "move": ps.JsonMove.from_operation({
+                    "op": "add",
+                    "path": "/PORT/Ethernet20",
+                    "value": {
+                        "admin_status": "up", # <== status-changing from not-existing i.e "down" to "up"
+                        "alias": "fortyGigE0/20",
+                        "description": "Servers4:eth0",
+                        "index": "5",
+                        # "mtu": "9100", # <== critical change is left out
+                        "lanes": "45,46,47,48",
+                        "pfc_asym": "off",
+                        "speed": "40000"
+                    }
+                })
+            },
+            # Additional cases trying different operation to port-critical config i.e. REPLACE, REMOVE, ADD
+            "PORT_UP__NOT_STATUS_CHANGING__UNDER_PORT__PORT_EXIST__REMOVE": {
+                "expected": False,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op": "remove",
+                    "path": "/PORT/Ethernet4/mtu"
+                })
+            },
+            "PORT_UP__NOT_STATUS_CHANGING__UNDER_PORT__PORT_EXIST__ADD": {
+                "expected": False,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op": "add",
+                    "path": "/PORT/Ethernet8/mtu",
+                    "value": "9000"
+                })
+            },
+            "PORT_UP__NOT_STATUS_CHANGING__NOT_UNDER_PORT__PORT_EXIST__REMOVE": {
+                "expected": False,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op":"remove",
+                    "path":"/BUFFER_PG/Ethernet4|0/profile"
+                })
+            },
+            "PORT_UP__NOT_STATUS_CHANGING__NOT_UNDER_PORT__PORT_EXIST__ADD": {
+                "expected": False,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op":"add",
+                    "path":"/BUFFER_PG/Ethernet8|0",
+                    "value":{
+                        "profile": "ingress_lossy_profile"
+                    }
+                })
+            },
+            "NOT_PORT_UP__NOT_STATUS_CHANGING__UNDER_PORT__PORT_EXIST__REMOVE": {
+                "expected": True,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op": "remove",
+                    "path": "/PORT/Ethernet12/mtu"
+                })
+            },
+            "NOT_PORT_UP__NOT_STATUS_CHANGING__UNDER_PORT__PORT_EXIST__ADD": {
+                "expected": True,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op": "add",
+                    "path": "/PORT/Ethernet16/mtu",
+                    "value": "9000"
+                })
+            },
+            "NOT_PORT_UP__NOT_STATUS_CHANGING__NOT_UNDER_PORT__PORT_EXIST__REMOVE": {
+                "expected": True,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op":"remove",
+                    "path":"/BUFFER_PG/Ethernet12|0"
+                })
+            },
+            "NOT_PORT_UP__NOT_STATUS_CHANGING__NOT_UNDER_PORT__PORT_EXIST__ADD": {
+                "expected": True,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op":"add",
+                    "path":"/BUFFER_PG/Ethernet16|0",
+                    "value": {
+                        "profile": "ingress_lossy_profile"
+                    }
+                })
+            },
+        }
+
+    def test_validate__no_critical_port_changes(self):
+        # Each test format:
+        #   "<test-name>": {
+        #       "expected": "<True|False>",
+        #       "config": <config>,
+        #       "move": <move>,
+        #       "target_config": <OPTIONAL> <target-config-if-different-than-applying-move-to-config>
+        #   }
+        # Each test is testing different flag of:
+        #  - port-up: if port is up or not in current_config
+        #  - status-changing: if admin_status is changing from any state to another
+        #  - under-port: if the port-critical config is under port
+        #  - port-exist: if the port already exist in current_config
+        test_cases = self._get_no_critical_port_change_test_cases()
+        for test_case_name in test_cases:
+            with self.subTest(name=test_case_name):
+                self._run_single_test(test_cases[test_case_name])
+
+    def _get_no_critical_port_change_test_cases(self):
+        return {
+            "REPLACE_NON_CRITICAL_CONFIG": {
+                "expected": True,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op": "replace",
+                    "path": "/PORT/Ethernet4/description",
+                    "value": "desc4"
+                })
+            },
+            "REMOVE_NON_CRITICAL_CONFIG": {
+                "expected": True,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op": "remove",
+                    "path": "/PORT/Ethernet4/description"
+                })
+            },
+            "ADD_NON_CRITICAL_CONFIG": {
+                "expected": True,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({
+                    "op": "add",
+                    "path": "/PORT/Ethernet8/description",
+                    "value": "desc8"
+                })
+            },
+        }
+
+    def _apply_operations(self, config, operations):
+        return jsonpatch.JsonPatch(operations).apply(config)
+
 class TestLowLevelMoveGenerator(unittest.TestCase):
     def setUp(self):
         path_addressing = PathAddressing()
@@ -1521,6 +2066,405 @@ class TestLowLevelMoveGenerator(unittest.TestCase):
             target_config = tc_patch.apply(target_config)
 
         return ps.Diff(current_config, target_config)
+
+class TestRequiredValueMoveExtender(unittest.TestCase):
+    def setUp(self):
+        path_addressing = PathAddressing()
+        self.extender = ps.RequiredValueMoveExtender(path_addressing, OperationWrapper())
+        self.extender.identifier.settings[0]["requiring_filter"] = ps.JsonPointerFilter([
+                ["BUFFER_PG", "@|*"],
+                ["PORT", "@", "mtu"]
+            ],
+            path_addressing)
+
+    def test_extend__remove_whole_config__no_extended_moves(self):
+        # Arrange
+        move = ps.JsonMove.from_operation({"op":"remove", "path":""})
+        diff = ps.Diff(Files.ANY_CONFIG_DB, Files.ANY_OTHER_CONFIG_DB)
+        expected = []
+
+        # Act
+        actual = self.extender.extend(move, diff)
+
+        # Assert
+        self._verify_moves(expected, actual)
+
+    def test_extend__port_up_and_no_critical_move__no_extended_moves(self):
+        # Arrange
+        move = ps.JsonMove.from_operation({"op":"replace", "path":"/PORT/Ethernet4/description", "value":"desc4"})
+        current_config = Files.CONFIG_DB_WITH_PORT_CRITICAL
+        target_config = move.apply(current_config)
+        diff = ps.Diff(current_config, target_config)
+        expected = []
+
+        # Act
+        actual = self.extender.extend(move, diff)
+
+        # Assert
+        self._verify_moves(expected, actual)
+
+    def test_extend__port_up_and_critical_move__turn_admin_status_down(self):
+        # Arrange
+        move = ps.JsonMove.from_operation({"op":"replace", "path":"/PORT/Ethernet4/mtu", "value":"9000"})
+        current_config = Files.CONFIG_DB_WITH_PORT_CRITICAL
+        target_config = move.apply(current_config)
+        diff = ps.Diff(current_config, target_config)
+        expected = [{"op":"replace", "path":"/PORT/Ethernet4/admin_status", "value":"down"}]
+
+        # Act
+        actual = self.extender.extend(move, diff)
+
+        # Assert
+        self._verify_moves(expected, actual)
+
+    def test_extend__port_turn_up_and_no_critical_move__no_extended_moves(self):
+        # Arrange
+        move = ps.JsonMove.from_operation({"op":"replace", "path":"/PORT/Ethernet12/admin_status", "value":"up"})
+        current_config = Files.CONFIG_DB_WITH_PORT_CRITICAL
+        target_config = move.apply(current_config)
+        diff = ps.Diff(current_config, target_config)
+        expected = []
+
+        # Act
+        actual = self.extender.extend(move, diff)
+
+        # Assert
+        self._verify_moves(expected, actual)
+
+    def test_extend__port_turn_up_and_critical_move__flip_to_turn_down(self):
+        # Arrange
+        move = ps.JsonMove.from_operation({
+            "op":"replace",
+            "path":"/PORT/Ethernet12",
+            "value":{
+                "admin_status": "up", # <== Turn admin_status up
+                "alias": "fortyGigE0/12",
+                "description": "Servers2:eth0",
+                "index": "3",
+                "lanes": "37,38,39,40",
+                "mtu": "9000", # <== Critical move
+                "pfc_asym": "off",
+                "speed": "40000"
+            },
+        })
+        current_config = Files.CONFIG_DB_WITH_PORT_CRITICAL
+        target_config = move.apply(current_config)
+        diff = ps.Diff(current_config, target_config)
+        expected = [{
+            "op":"replace",
+            "path":"/PORT/Ethernet12",
+            "value":{
+                "admin_status": "down", # <== Leave admin_status as down
+                "alias": "fortyGigE0/12",
+                "description": "Servers2:eth0",
+                "index": "3",
+                "lanes": "37,38,39,40",
+                "mtu": "9000", # <== Critical move
+                "pfc_asym": "off",
+                "speed": "40000"
+            },
+        }]
+
+        # Act
+        actual = self.extender.extend(move, diff)
+
+        # Assert
+        self._verify_moves(expected, actual)
+
+    def test_extend__multi_port_turn_up_and_critical_move__multi_flip_to_turn_down(self):
+        # Arrange
+        current_config = Files.CONFIG_DB_WITH_PORT_CRITICAL
+        target_config = self._apply_operations(Files.CONFIG_DB_WITH_PORT_CRITICAL, [
+            {"op":"replace", "path":"/PORT/Ethernet12/admin_status", "value":"up"},
+            {"op":"add", "path":"/PORT/Ethernet16/admin_status", "value":"up"},
+            {"op":"add", "path":"/PORT/Ethernet12/mtu", "value":"9000"},
+            # Will not be part of the move, only in the final target config
+            {"op":"add", "path":"/PORT/Ethernet16/mtu", "value":"9000"}, 
+        ])
+        move = ps.JsonMove.from_operation({
+            "op":"replace",
+            "path":"/PORT",
+            # Following value is for the PORT part of the config
+            "value": self._apply_operations(Files.CONFIG_DB_WITH_PORT_CRITICAL["PORT"], [
+                {"op":"replace", "path":"/Ethernet12/admin_status", "value":"up"},
+                {"op":"add", "path":"/Ethernet16/admin_status", "value":"up"},
+                {"op":"add", "path":"/Ethernet12/mtu", "value":"9000"},
+            ])
+        })
+        diff = ps.Diff(current_config, target_config)
+        expected = [{
+            "op":"replace",
+            "path":"/PORT",
+            # Following value is for the PORT part of the config
+            "value": self._apply_operations(Files.CONFIG_DB_WITH_PORT_CRITICAL["PORT"], [
+                {"op":"replace", "path":"/Ethernet12/admin_status", "value":"down"},
+                {"op":"add", "path":"/Ethernet16/admin_status", "value":"down"},
+                {"op":"add", "path":"/Ethernet12/mtu", "value":"9000"},
+            ])
+        }]
+
+        # Act
+        actual = self.extender.extend(move, diff)
+
+        # Assert
+        self._verify_moves(expected, actual)
+
+    def test_extend__multiple_changes__multiple_extend_moves(self):
+        # Arrange
+        current_config = Files.CONFIG_DB_WITH_PORT_CRITICAL
+        target_config = self._apply_operations(Files.CONFIG_DB_WITH_PORT_CRITICAL, [
+            {"op":"replace", "path":"/BUFFER_PG/Ethernet4|0/profile", "value": "egress_lossy_profile"},
+            {"op": "add", "path": "/PORT/Ethernet8/mtu", "value": "9000"},
+            {
+                "op": "add",
+                "path": "/PORT/Ethernet20", # <== adding a non-existing port
+                "value": {
+                    "admin_status": "up", # <== status-changing from not-existing i.e "down" to "up"
+                    "alias": "fortyGigE0/20",
+                    "description": "Servers4:eth0",
+                    "index": "5",
+                    "mtu": "9100",  # <== critical config under port
+                    "lanes": "45,46,47,48",
+                    "pfc_asym": "off",
+                    "speed": "40000"
+                }
+            },
+            {"op":"replace", "path":"/PORT/Ethernet12/admin_status", "value":"up"},
+            {"op":"add", "path":"/PORT/Ethernet16/admin_status", "value":"up"},
+            {"op":"add", "path":"/PORT/Ethernet12/mtu", "value":"9000"},
+            # Will not be part of the move, only in the final target config
+            {"op":"add", "path":"/PORT/Ethernet16/mtu", "value":"9000"}, 
+        ])
+        move = ps.JsonMove.from_operation({
+            "op":"replace",
+            "path":"",
+            "value": self._apply_operations(Files.CONFIG_DB_WITH_PORT_CRITICAL, [
+                {"op":"replace", "path":"/BUFFER_PG/Ethernet4|0/profile", "value": "egress_lossy_profile"},
+                {"op": "add", "path": "/PORT/Ethernet8/mtu", "value": "9000"},
+                {
+                    "op": "add",
+                    "path": "/PORT/Ethernet20", # <== adding a non-existing port
+                    "value": {
+                        "admin_status": "up", # <== status-changing from not-existing i.e "down" to "up"
+                        "alias": "fortyGigE0/20",
+                        "description": "Servers4:eth0",
+                        "index": "5",
+                        "mtu": "9100",  # <== critical config under port
+                        "lanes": "45,46,47,48",
+                        "pfc_asym": "off",
+                        "speed": "40000"
+                    }
+                },
+                {"op":"replace", "path":"/PORT/Ethernet12/admin_status", "value":"up"},
+                {"op":"add", "path":"/PORT/Ethernet16/admin_status", "value":"up"},
+                {"op":"add", "path":"/PORT/Ethernet12/mtu", "value":"9000"},
+            ])
+        })
+        diff = ps.Diff(current_config, target_config)
+        expected = [
+            {"op":"replace", "path":"/PORT/Ethernet4/admin_status", "value":"down"},
+            {"op":"replace", "path":"/PORT/Ethernet8/admin_status", "value":"down"},
+            {
+                "op":"replace",
+                "path":"",
+                "value": self._apply_operations(Files.CONFIG_DB_WITH_PORT_CRITICAL, [
+                    {"op":"replace", "path":"/BUFFER_PG/Ethernet4|0/profile", "value": "egress_lossy_profile"},
+                    {"op": "add", "path": "/PORT/Ethernet8/mtu", "value": "9000"},
+                    {
+                        "op": "add",
+                        "path": "/PORT/Ethernet20", # <== adding a non-existing port
+                        "value": {
+                            "admin_status": "down", # <== flipping to down admin_status
+                            "alias": "fortyGigE0/20",
+                            "description": "Servers4:eth0",
+                            "index": "5",
+                            "mtu": "9100",  # <== critical config under port
+                            "lanes": "45,46,47,48",
+                            "pfc_asym": "off",
+                            "speed": "40000"
+                        }
+                    },
+                    {"op":"replace", "path":"/PORT/Ethernet12/admin_status", "value":"down"},
+                    {"op":"add", "path":"/PORT/Ethernet16/admin_status", "value":"down"},
+                    {"op":"add", "path":"/PORT/Ethernet12/mtu", "value":"9000"},
+                ])
+            }
+        ]
+
+        # Act
+        actual = self.extender.extend(move, diff)
+
+        # Assert
+        self._verify_moves(expected, actual)
+
+    def _verify_moves(self, ex_ops, moves):
+        moves_ops = [list(move.patch)[0] for move in moves]
+        self.assertCountEqual(ex_ops, moves_ops)
+
+    def _apply_operations(self, config, operations):
+        return jsonpatch.JsonPatch(operations).apply(config)
+
+    def test_flip(self):
+        test_cases = {
+            "ADD_ADMIN_STATUS": {
+                "move": ps.JsonMove.from_operation({"op":"add", "path":"/PORT/Ethernet200/admin_status", "value": "up"}),
+                "port_names": ["Ethernet200"],
+                "expected": ps.JsonMove.from_operation({"op":"add", "path":"/PORT/Ethernet200/admin_status", "value": "down"})
+            },
+            "ADD_ETHERNET": {
+                "move": ps.JsonMove.from_operation({"op":"add", "path":"/PORT/Ethernet200", "value": {
+                    "admin_status": "up",
+                }}),
+                "port_names": ["Ethernet200"],
+                "expected": ps.JsonMove.from_operation({"op":"add", "path":"/PORT/Ethernet200", "value": {
+                    "admin_status": "down",
+                }})
+            },
+            "ADD_ETHERNET_NO_ADMIN_STATUS": {
+                "move": ps.JsonMove.from_operation({"op":"add", "path":"/PORT/Ethernet200", "value": {
+                    "admin_status": "up",
+                }}),
+                "port_names": ["Ethernet200"],
+                "expected": ps.JsonMove.from_operation({"op":"add", "path":"/PORT/Ethernet200", "value": {
+                    "admin_status": "down",
+                }})
+            },
+            "ADD_PORT": {
+                "move": ps.JsonMove.from_operation({"op":"add", "path":"/PORT", "value": {
+                    "Ethernet200":{
+                        "admin_status": "up",
+                    }
+                }}),
+                "port_names": ["Ethernet200"],
+                "expected": ps.JsonMove.from_operation({"op":"add", "path":"/PORT", "value": {
+                    "Ethernet200":{
+                        "admin_status": "down",
+                    }
+                }})
+            },
+            "ADD_WHOLE_CONFIG": {
+                "move": ps.JsonMove.from_operation({"op":"add", "path":"", "value": {
+                    "PORT": {
+                        "Ethernet200": {
+                            "admin_status": "up",
+                        }
+                    }
+                }}),
+                "port_names": ["Ethernet200"],
+                "expected": ps.JsonMove.from_operation({"op":"add", "path":"", "value": {
+                    "PORT": {
+                        "Ethernet200":{
+                            "admin_status": "down",
+                        }
+                    }
+                }}),
+            },
+            "ADD_WHOLE_CONFIG_NO_ADMIN_STATUS": {
+                "move": ps.JsonMove.from_operation({"op":"add", "path":"", "value": {
+                    "PORT": {
+                        "Ethernet200": {
+                        }
+                    }
+                }}),
+                "port_names": ["Ethernet200"],
+                "expected": ps.JsonMove.from_operation({"op":"add", "path":"", "value": {
+                    "PORT": {
+                        "Ethernet200":{
+                            "admin_status": "down",
+                        }
+                    }
+                }}),
+            },
+            "REPLACE_ADMIN_STATUS": {
+                "move": ps.JsonMove.from_operation({"op":"replace", "path":"/PORT/Ethernet200/admin_status", "value": "up"}),
+                "port_names": ["Ethernet200"],
+                "expected": ps.JsonMove.from_operation({"op":"replace", "path":"/PORT/Ethernet200/admin_status", "value": "down"})
+            },
+            "REPLACE_ETHERNET": {
+                "move": ps.JsonMove.from_operation({"op":"replace", "path":"/PORT/Ethernet200", "value": {
+                    "admin_status": "up",
+                }}),
+                "port_names": ["Ethernet200"],
+                "expected": ps.JsonMove.from_operation({"op":"replace", "path":"/PORT/Ethernet200", "value": {
+                    "admin_status": "down",
+                }})
+            },
+            "REPLACE_PORT": {
+                "move": ps.JsonMove.from_operation({"op":"replace", "path":"/PORT", "value": {
+                    "Ethernet200":{
+                        "admin_status": "up",
+                    }
+                }}),
+                "port_names": ["Ethernet200"],
+                "expected": ps.JsonMove.from_operation({"op":"replace", "path":"/PORT", "value": {
+                    "Ethernet200":{
+                        "admin_status": "down",
+                    }
+                }})
+            },
+            "REPLACE_WHOLE_CONFIG": {
+                "move": ps.JsonMove.from_operation({"op":"replace", "path":"", "value": {
+                    "PORT": {
+                        "Ethernet200": {
+                            "admin_status": "up",
+                        }
+                    }
+                }}),
+                "port_names": ["Ethernet200"],
+                "expected": ps.JsonMove.from_operation({"op":"replace", "path":"", "value": {
+                    "PORT": {
+                        "Ethernet200":{
+                            "admin_status": "down",
+                        }
+                    }
+                }}),
+            },
+            "MULTIPLE_PORTS" :{
+                "move": ps.JsonMove.from_operation({"op":"replace", "path":"", "value": {
+                    "PORT": {
+                        "Ethernet200": {
+                            "admin_status": "up",
+                        },
+                        "Ethernet300": {
+                            "admin_status": "down",
+                        },
+                        "Ethernet400": {
+                            "admin_status": "up",
+                        },
+                        "Ethernet500": {
+                        },
+                    }
+                }}),
+                "port_names": ["Ethernet200", "Ethernet300", "Ethernet400", "Ethernet500"],
+                "expected": ps.JsonMove.from_operation({"op":"replace", "path":"", "value": {
+                    "PORT": {
+                        "Ethernet200": {
+                            "admin_status": "down",
+                        },
+                        "Ethernet300": {
+                            "admin_status": "down",
+                        },
+                        "Ethernet400": {
+                            "admin_status": "down",
+                        },
+                        "Ethernet500": {
+                            "admin_status": "down",
+                        },
+                    }
+                }}),
+            },
+        }
+
+        for test_case_name, test_case in test_cases.items():
+            with self.subTest(name=test_case_name):
+                move = test_case["move"]
+                port_names = test_case["port_names"]
+                expected = test_case["expected"]
+
+                path_value_tuples = [(f"/PORT/{port_name}/admin_status", "down") for port_name in port_names]
+
+                actual = self.extender._flip(move, path_value_tuples)
+                self.assertEqual(expected, actual)
 
 class TestUpperLevelMoveExtender(unittest.TestCase):
     def setUp(self):
@@ -1832,12 +2776,16 @@ class TestSortAlgorithmFactory(unittest.TestCase):
         config_wrapper = ConfigWrapper()
         factory = ps.SortAlgorithmFactory(OperationWrapper(), config_wrapper, PathAddressing(config_wrapper))
         expected_generators = [ps.LowLevelMoveGenerator]
-        expected_extenders = [ps.UpperLevelMoveExtender, ps.DeleteInsteadOfReplaceMoveExtender, ps.DeleteRefsMoveExtender]
+        expected_extenders = [ps.RequiredValueMoveExtender,
+                              ps.UpperLevelMoveExtender,
+                              ps.DeleteInsteadOfReplaceMoveExtender,
+                              ps.DeleteRefsMoveExtender]
         expected_validator = [ps.DeleteWholeConfigMoveValidator,
                               ps.FullConfigMoveValidator,
                               ps.NoDependencyMoveValidator,
                               ps.UniqueLanesMoveValidator,
                               ps.CreateOnlyMoveValidator,
+                              ps.RequiredValueMoveValidator,
                               ps.NoEmptyTableMoveValidator]
 
         # Act
@@ -1873,6 +2821,9 @@ class TestPatchSorter(unittest.TestCase):
         data = Files.PATCH_SORTER_TEST_SUCCESS
         skip_exact_change_list_match = False
         for test_case_name in data:
+            # Skipping ADD RACK case until fixing issue https://github.com/Azure/sonic-utilities/issues/2034
+            if test_case_name == "ADD_RACK":
+                continue
             with self.subTest(name=test_case_name):
                 self.run_single_success_case(data[test_case_name], skip_exact_change_list_match)
 
