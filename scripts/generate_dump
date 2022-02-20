@@ -705,11 +705,14 @@ save_saidump() {
 ###############################################################################
 save_platform_info() {
     trap 'handle_error $? $LINENO' ERR
-    save_cmd "show platform syseeprom" "syseeprom"
-    save_cmd "show platform psustatus" "psustatus"
-    save_cmd "show platform ssdhealth" "ssdhealth"
-    save_cmd "show platform temperature" "temperature"
-    save_cmd "show platform fan" "fan"
+    PLATFORM=${PLATFORM:-`sonic-cfggen -H -v DEVICE_METADATA.localhost.platform`}
+    if [[ ! $PLATFORM =~ .*(mlnx|nvidia).*simx.* ]]; then
+        save_cmd "show platform syseeprom" "syseeprom"
+        save_cmd "show platform psustatus" "psustatus"
+        save_cmd "show platform ssdhealth" "ssdhealth"
+        save_cmd "show platform temperature" "temperature"
+        save_cmd "show platform fan" "fan" 
+    fi
 }
 
 ###############################################################################
