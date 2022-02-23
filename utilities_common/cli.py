@@ -10,7 +10,7 @@ import json
 import netaddr
 
 from natsort import natsorted
-from sonic_py_common import multi_asic, device_info
+from sonic_py_common import multi_asic
 from utilities_common.db import Db
 from utilities_common.general import load_db_config
 
@@ -131,8 +131,6 @@ class InterfaceAliasConverter(object):
 
 
         if not self.port_dict:
-            if not device_info.is_supervisor():
-                click.echo(message="Configuration database contains no ports")
             self.port_dict = {}
 
         for port_name in self.port_dict:

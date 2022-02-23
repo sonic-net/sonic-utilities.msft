@@ -293,7 +293,7 @@ class TestInterfaces(object):
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
         assert result.output == show_interfaces_portchannel_in_alias_mode_output
-        
+       
     @mock.patch('sonic_py_common.multi_asic.get_port_table', mock.MagicMock(return_value={}))
     def test_supervisor_show_interfaces_alias_etp1_with_waring(self):
         runner = CliRunner()
@@ -303,8 +303,7 @@ class TestInterfaces(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Configuration database contains no ports" in result.output
-        
+
     @mock.patch('sonic_py_common.multi_asic.get_port_table', mock.MagicMock(return_value={}))
     @mock.patch('sonic_py_common.device_info.is_supervisor', mock.MagicMock(return_value=True))
     def test_supervisor_show_interfaces_alias_etp1_without_waring(self):
@@ -315,8 +314,7 @@ class TestInterfaces(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Configuration database contains no ports" not in result.output
-        
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
