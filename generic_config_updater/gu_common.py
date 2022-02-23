@@ -366,6 +366,9 @@ class PathAddressing:
 
         return f"{PathAddressing.XPATH_SEPARATOR}{PathAddressing.XPATH_SEPARATOR.join(str(t) for t in tokens)}"
 
+    def _create_sonic_yang_with_loaded_models(self):
+        return self.config_wrapper.create_sonic_yang_with_loaded_models()
+
     def find_ref_paths(self, path, config):
         """
         Finds the paths referencing any line under the given 'path' within the given 'config'.
@@ -407,7 +410,7 @@ class PathAddressing:
         return self._find_leafref_paths(path, config)
 
     def _find_leafref_paths(self, path, config):
-        sy = self.config_wrapper.create_sonic_yang_with_loaded_models()
+        sy = self._create_sonic_yang_with_loaded_models()
 
         tmp_config = copy.deepcopy(config)
 
@@ -553,6 +556,13 @@ class PathAddressing:
             #   /module-name:container/leaf-list[.='val']
             # Source: Check examples in https://netopeer.liberouter.org/doc/libyang/master/html/howto_x_path.html
             return [f"{token}[.='{value}']"]
+        
+        # checking 'uses' statement
+        if not isinstance(config[token], list): # leaf-list under uses is not supported yet in sonic_yang
+            table = path_tokens[0]
+            uses_leaf_model = self._get_uses_leaf_model(model, table, token)
+            if uses_leaf_model:
+                return [token]
 
         raise ValueError(f"Path token not found.\n  model: {model}\n  token_index: {token_index}\n  " + \
                          f"path_tokens: {path_tokens}\n  config: {config}")
@@ -719,6 +729,13 @@ class PathAddressing:
             list_idx = list_config.index(leaf_list_value)
             return [leaf_list_name, list_idx]
 
+        # checking 'uses' statement
+        if not isinstance(config[leaf_list_name], list):  # leaf-list under uses is not supported yet in sonic_yang
+            table = xpath_tokens[1]
+            uses_leaf_model = self._get_uses_leaf_model(model, table, token)
+            if uses_leaf_model:
+                return [token]
+
         raise ValueError(f"Xpath token not found.\n  model: {model}\n  token_index: {token_index}\n  " + \
                          f"xpath_tokens: {xpath_tokens}\n  config: {config}")
 
@@ -751,6 +768,45 @@ class PathAddressing:
             for submodel in model:
                 if submodel['@name'] == name:
                     return submodel
+
+        return None
+
+    def _get_uses_leaf_model(self, model, table, token):
+        """
+          Getting leaf model in uses model matching the given token.
+        """
+        uses_s = model.get('uses')
+        if not uses_s:
+            return None
+
+        # a model can be a single dict or a list of dictionaries, unify to a list of dictionaries
+        if not isinstance(uses_s, list):
+            uses_s = [uses_s]
+
+        sy = self._create_sonic_yang_with_loaded_models()
+        # find yang module for current table
+        table_module = sy.confDbYangMap[table]['yangModule']
+        # uses Example: "@name": "bgpcmn:sonic-bgp-cmn"
+        for uses in uses_s:
+            if not isinstance(uses, dict):
+                raise GenericConfigUpdaterError(f"'uses' is expected to be a dictionary found '{type(uses)}'.\n" \
+                                                f"  uses: {uses}\n  model: {model}\n  table: {table}\n  token: {token}")
+
+            # Assume ':'  means reference to another module
+            if ':' in uses['@name']:
+                name_parts = uses['@name'].split(':')
+                prefix = name_parts[0].strip()
+                uses_module_name = sy._findYangModuleFromPrefix(prefix, table_module)
+                grouping = name_parts[-1].strip()
+            else:
+                uses_module_name = table_module['@name']
+                grouping = uses['@name']
+
+            leafs = sy.preProcessedYang['grouping'][uses_module_name][grouping]
+
+            leaf_model = self._get_model(leafs, token)
+            if leaf_model:
+                return leaf_model
 
         return None
 
