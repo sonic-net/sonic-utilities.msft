@@ -1083,3 +1083,73 @@ def metrics(db, port, json_output):
             headers = ['PORT', 'EVENT', 'TIME']
 
             click.echo(tabulate(print_data, headers=headers))
+
+@muxcable.command()
+@click.argument('port', metavar='<port_name>', required=True, default=None)
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
+@clicommon.pass_db
+def packetloss(db, port, json_output):
+    """show muxcable packetloss <port>"""
+
+    port = platform_sfputil_helper.get_interface_name(port, db)
+
+    pckloss_table_keys = {}
+    per_npu_statedb = {}
+    pckloss_dict = {}
+
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+
+        per_npu_statedb[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=True, namespace=namespace)
+        per_npu_statedb[asic_id].connect(per_npu_statedb[asic_id].STATE_DB)
+
+        pckloss_table_keys[asic_id] = per_npu_statedb[asic_id].keys(
+            per_npu_statedb[asic_id].STATE_DB, 'LINK_PROBE_STATS|*')
+
+    if port is not None:
+
+        logical_port_list = platform_sfputil_helper.get_logical_list()
+
+        if port not in logical_port_list:
+            port_name = platform_sfputil_helper.get_interface_alias(port, db)
+            click.echo(("ERR: Not a valid logical port for muxcable firmware {}".format(port_name)))
+            sys.exit(CONFIG_FAIL)
+
+        asic_index = None
+        if platform_sfputil is not None:
+            asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
+            if asic_index is None:
+                # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+                # is fully mocked
+                import sonic_platform_base.sonic_sfp.sfputilhelper
+                asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+                if asic_index is None:
+                    port_name = platform_sfputil_helper.get_interface_alias(port, db)
+                    click.echo("Got invalid asic index for port {}, cant retreive pck loss info".format(port_name))
+
+        pckloss_dict[asic_index] = per_npu_statedb[asic_index].get_all(
+            per_npu_statedb[asic_index].STATE_DB, 'LINK_PROBE_STATS|{}'.format(port))
+
+        ordered_dict = OrderedDict(sorted(pckloss_dict[asic_index].items(), key=itemgetter(1)))
+        if json_output:
+            click.echo("{}".format(json.dumps(ordered_dict, indent=4)))
+        else:
+            print_count = []
+            print_event = []
+            for key, val in ordered_dict.items():
+                print_port_data = []
+                port = platform_sfputil_helper.get_interface_alias(port, db)
+                print_port_data.append(port)
+                print_port_data.append(key)
+                print_port_data.append(val)
+                if "count" in key: 
+                    print_count.append(print_port_data)
+                else:
+                    print_event.append(print_port_data)
+
+            count_headers = ['PORT', 'COUNT', 'VALUE']
+            event_headers = ['PORT', 'EVENT', 'TIME']
+
+            click.echo(tabulate(print_count, headers=count_headers))
+            click.echo(tabulate(print_event, headers=event_headers))
