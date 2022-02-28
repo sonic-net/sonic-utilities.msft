@@ -375,13 +375,13 @@ def show():
     if rif_info:
         data.append(["RIF_STAT", rif_info.get("POLL_INTERVAL", DEFLT_1_SEC), rif_info.get("FLEX_COUNTER_STATUS", DISABLE)])
     if queue_wm_info:
-        data.append(["QUEUE_WATERMARK_STAT", queue_wm_info.get("POLL_INTERVAL", DEFLT_10_SEC), queue_wm_info.get("FLEX_COUNTER_STATUS", DISABLE)])
+        data.append(["QUEUE_WATERMARK_STAT", queue_wm_info.get("POLL_INTERVAL", DEFLT_60_SEC), queue_wm_info.get("FLEX_COUNTER_STATUS", DISABLE)])
     if pg_wm_info:
-        data.append(["PG_WATERMARK_STAT", pg_wm_info.get("POLL_INTERVAL", DEFLT_10_SEC), pg_wm_info.get("FLEX_COUNTER_STATUS", DISABLE)])
+        data.append(["PG_WATERMARK_STAT", pg_wm_info.get("POLL_INTERVAL", DEFLT_60_SEC), pg_wm_info.get("FLEX_COUNTER_STATUS", DISABLE)])
     if pg_drop_info:
         data.append(['PG_DROP_STAT', pg_drop_info.get("POLL_INTERVAL", DEFLT_10_SEC), pg_drop_info.get("FLEX_COUNTER_STATUS", DISABLE)])
     if buffer_pool_wm_info:
-        data.append(["BUFFER_POOL_WATERMARK_STAT", buffer_pool_wm_info.get("POLL_INTERVAL", DEFLT_10_SEC), buffer_pool_wm_info.get("FLEX_COUNTER_STATUS", DISABLE)])
+        data.append(["BUFFER_POOL_WATERMARK_STAT", buffer_pool_wm_info.get("POLL_INTERVAL", DEFLT_60_SEC), buffer_pool_wm_info.get("FLEX_COUNTER_STATUS", DISABLE)])
     if acl_info:
         data.append([ACL, pg_drop_info.get("POLL_INTERVAL", DEFLT_10_SEC), acl_info.get("FLEX_COUNTER_STATUS", DISABLE)])
     if tunnel_info:

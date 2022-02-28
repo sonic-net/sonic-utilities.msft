@@ -17,16 +17,16 @@ from .mock_tables import dbconnector
 
 import counterpoll.main as counterpoll
 
-expected_counterpoll_show = """Type                    Interval (in ms)  Status
+expected_counterpoll_show = """Type                  Interval (in ms)    Status
 --------------------  ------------------  --------
-QUEUE_STAT                         10000  enable
-PORT_STAT                           1000  enable
-PORT_BUFFER_DROP                   60000  enable
-QUEUE_WATERMARK_STAT               10000  enable
-PG_WATERMARK_STAT                  10000  enable
-PG_DROP_STAT                       10000  enable
-ACL                                10000  enable
-FLOW_CNT_TRAP_STAT                 10000  enable
+QUEUE_STAT            10000               enable
+PORT_STAT             1000                enable
+PORT_BUFFER_DROP      60000               enable
+QUEUE_WATERMARK_STAT  default (60000)     enable
+PG_WATERMARK_STAT     default (60000)     enable
+PG_DROP_STAT          10000               enable
+ACL                   10000               enable
+FLOW_CNT_TRAP_STAT    10000               enable
 """
 
 class TestCounterpoll(object):
