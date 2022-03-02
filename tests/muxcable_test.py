@@ -25,9 +25,9 @@ import show.main as show
 
 
 tabular_data_status_output_expected = """\
-PORT        STATUS    HEALTH
-----------  --------  ---------
-Ethernet0   active    healthy
+PORT        STATUS    HEALTH     LAST_SWITCHOVER_TIME
+----------  --------  ---------  ---------------------------
+Ethernet0   active    healthy    2021-May-13 10:01:15.696728
 Ethernet4   standby   healthy
 Ethernet8   standby   unhealthy
 Ethernet12  unknown   unhealthy
@@ -36,9 +36,9 @@ Ethernet32  active    healthy
 """
 
 tabular_data_status_output_expected_alias = """\
-PORT    STATUS    HEALTH
-------  --------  ---------
-etp1    active    healthy
+PORT    STATUS    HEALTH     LAST_SWITCHOVER_TIME
+------  --------  ---------  ---------------------------
+etp1    active    healthy    2021-May-13 10:01:15.696728
 etp2    standby   healthy
 etp3    standby   unhealthy
 etp4    unknown   unhealthy
@@ -51,27 +51,33 @@ json_data_status_output_expected = """\
     "MUX_CABLE": {
         "Ethernet0": {
             "STATUS": "active",
-            "HEALTH": "healthy"
+            "HEALTH": "healthy",
+            "LAST_SWITCHOVER_TIME": "2021-May-13 10:01:15.696728"
         },
         "Ethernet4": {
             "STATUS": "standby",
-            "HEALTH": "healthy"
+            "HEALTH": "healthy",
+            "LAST_SWITCHOVER_TIME": ""
         },
         "Ethernet8": {
             "STATUS": "standby",
-            "HEALTH": "unhealthy"
+            "HEALTH": "unhealthy",
+            "LAST_SWITCHOVER_TIME": ""
         },
         "Ethernet12": {
             "STATUS": "unknown",
-            "HEALTH": "unhealthy"
+            "HEALTH": "unhealthy",
+            "LAST_SWITCHOVER_TIME": ""
         },
         "Ethernet16": {
             "STATUS": "standby",
-            "HEALTH": "healthy"
+            "HEALTH": "healthy",
+            "LAST_SWITCHOVER_TIME": ""
         },
         "Ethernet32": {
             "STATUS": "active",
-            "HEALTH": "healthy"
+            "HEALTH": "healthy",
+            "LAST_SWITCHOVER_TIME": ""
         }
     }
 }
@@ -82,27 +88,33 @@ json_data_status_output_expected_alias = """\
     "MUX_CABLE": {
         "etp1": {
             "STATUS": "active",
-            "HEALTH": "healthy"
+            "HEALTH": "healthy",
+            "LAST_SWITCHOVER_TIME": "2021-May-13 10:01:15.696728"
         },
         "etp2": {
             "STATUS": "standby",
-            "HEALTH": "healthy"
+            "HEALTH": "healthy",
+            "LAST_SWITCHOVER_TIME": ""
         },
         "etp3": {
             "STATUS": "standby",
-            "HEALTH": "unhealthy"
+            "HEALTH": "unhealthy",
+            "LAST_SWITCHOVER_TIME": ""
         },
         "etp4": {
             "STATUS": "unknown",
-            "HEALTH": "unhealthy"
+            "HEALTH": "unhealthy",
+            "LAST_SWITCHOVER_TIME": ""
         },
         "etp5": {
             "STATUS": "standby",
-            "HEALTH": "healthy"
+            "HEALTH": "healthy",
+            "LAST_SWITCHOVER_TIME": ""
         },
         "etp9": {
             "STATUS": "active",
-            "HEALTH": "healthy"
+            "HEALTH": "healthy",
+            "LAST_SWITCHOVER_TIME": ""
         }
     }
 }
