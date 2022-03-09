@@ -125,19 +125,3 @@ stages:
     - publish: '$(System.DefaultWorkingDirectory)/dist/'
       artifact: wheels
       displayName: "Publish Python wheels"
-
-- stage: BuildDocker
-  dependsOn: Build
-  condition: succeeded('Build')
-  jobs:
-  - template: .azure-pipelines/build-docker-sonic-vs-template.yml
-    parameters:
-      artifact_name: docker-sonic-vs
-
-- stage: Test
-  dependsOn: BuildDocker
-  condition: succeeded('BuildDocker')
-  jobs:
-  - template: .azure-pipelines/test-docker-sonic-vs-template.yml
-    parameters:
-      log_artifact_name: log
