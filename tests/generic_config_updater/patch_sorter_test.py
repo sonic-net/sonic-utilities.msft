@@ -1011,6 +1011,28 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
                     "nhopself": "0",
                     "rrclient": "0"
                 }
+            },
+            "BGP_PEER_RANGE": {
+                "BGPSLBPassive": {
+                    "ip_range": [
+                        "10.255.0.0/25"
+                    ],
+                    "name": "BGPSLBPassive",
+                    "peer_asn": "65543",
+                    "src_address": "10.1.0.32"
+                }
+            },
+            "BGP_MONITORS": {
+                "5.6.7.8": {
+                    "admin_status": "up",
+                    "asn": "65000",
+                    "holdtime": "180",
+                    "keepalive": "60",
+                    "local_addr": "10.0.0.11",
+                    "name": "BGPMonitor",
+                    "nhopself": "0",
+                    "rrclient": "0"
+                }
             }
         }
         expected = [
@@ -1025,6 +1047,17 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
             "/BGP_NEIGHBOR/10.0.0.57/name",
             "/BGP_NEIGHBOR/10.0.0.57/nhopself",
             "/BGP_NEIGHBOR/10.0.0.57/rrclient",
+            "/BGP_PEER_RANGE/BGPSLBPassive/ip_range",
+            "/BGP_PEER_RANGE/BGPSLBPassive/name",
+            "/BGP_PEER_RANGE/BGPSLBPassive/peer_asn",
+            "/BGP_PEER_RANGE/BGPSLBPassive/src_address",
+            "/BGP_MONITORS/5.6.7.8/asn",
+            "/BGP_MONITORS/5.6.7.8/holdtime",
+            "/BGP_MONITORS/5.6.7.8/keepalive",
+            "/BGP_MONITORS/5.6.7.8/local_addr",
+            "/BGP_MONITORS/5.6.7.8/name",
+            "/BGP_MONITORS/5.6.7.8/nhopself",
+            "/BGP_MONITORS/5.6.7.8/rrclient",
         ]
 
         actual = self.validator._get_create_only_paths(config)

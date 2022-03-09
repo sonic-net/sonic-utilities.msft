@@ -581,6 +581,14 @@ class CreateOnlyMoveValidator:
                 ["BGP_NEIGHBOR", "*", "local_addr"],
                 ["BGP_NEIGHBOR", "*", "nhopself"],
                 ["BGP_NEIGHBOR", "*", "rrclient"],
+                ["BGP_PEER_RANGE", "*", "*"],
+                ["BGP_MONITORS", "*", "holdtime"],
+                ["BGP_MONITORS", "*", "keepalive"],
+                ["BGP_MONITORS", "*", "name"],
+                ["BGP_MONITORS", "*", "asn"],
+                ["BGP_MONITORS", "*", "local_addr"],
+                ["BGP_MONITORS", "*", "nhopself"],
+                ["BGP_MONITORS", "*", "rrclient"],
             ],
             path_addressing)
 
