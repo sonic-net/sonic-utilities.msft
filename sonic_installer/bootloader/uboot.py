@@ -4,6 +4,7 @@ Bootloader implementation for uboot based platforms
 
 import platform
 import subprocess
+import os
 
 import click
 
