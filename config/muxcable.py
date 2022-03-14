@@ -29,8 +29,18 @@ VENDOR_MODEL_REGEX = re.compile(r"CAC\w{3}321P2P\w{2}MS")
 
 # Helper functions
 
+
 def db_connect(db_name, namespace=EMPTY_NAMESPACE):
     return swsscommon.DBConnector(db_name, REDIS_TIMEOUT_MSECS, True, namespace)
+
+
+target_dict = { "NIC":"0",
+                "TORA":"1",
+                "TORB":"2",
+                "LOCAL":"3"}
+
+def parse_target(target):
+    return target_dict.get(target, None)
 
 def get_value_for_key_in_dict(mdict, port, key, table_name):
     value = mdict.get(key, None)
@@ -38,6 +48,7 @@ def get_value_for_key_in_dict(mdict, port, key, table_name):
         click.echo("could not retrieve key {} value for port {} inside table {}".format(key, port, table_name))
         sys.exit(CONFIG_FAIL)
     return value
+
 
 def delete_all_keys_in_db_table(db_type, table_name):
 
@@ -55,13 +66,13 @@ def delete_all_keys_in_db_table(db_type, table_name):
             table[asic_id]._del(key)
 
 
-def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_name, rsp_table_name, port, cmd_timeout_secs, arg=None):
+def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_name, cmd_arg_table_name, rsp_table_name, port, cmd_timeout_secs, param_dict=None, arg=None):
 
     res_dict = {}
     state_db, appl_db = {}, {}
     firmware_rsp_tbl, firmware_rsp_tbl_keys = {}, {}
     firmware_rsp_sub_tbl = {}
-    firmware_cmd_tbl = {}
+    firmware_cmd_tbl, firmware_cmd_arg_tbl = {}, {}
 
     CMD_TIMEOUT_SECS = cmd_timeout_secs
 
@@ -74,6 +85,8 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
         state_db[asic_id] = db_connect("STATE_DB", namespace)
         appl_db[asic_id] = db_connect("APPL_DB", namespace)
         firmware_cmd_tbl[asic_id] = swsscommon.Table(appl_db[asic_id], cmd_table_name)
+        if cmd_arg_table_name is not None:
+            firmware_cmd_arg_tbl[asic_id] = swsscommon.Table(appl_db[asic_id], cmd_arg_table_name)
         firmware_rsp_sub_tbl[asic_id] = swsscommon.SubscriberStateTable(state_db[asic_id], rsp_table_name)
         firmware_rsp_tbl[asic_id] = swsscommon.Table(state_db[asic_id], rsp_table_name)
         firmware_rsp_tbl_keys[asic_id] = firmware_rsp_tbl[asic_id].getKeys()
@@ -108,6 +121,11 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
         cmd_arg = "null"
     else:
         cmd_arg = str(arg)
+
+    if param_dict is not None:
+        for key, value in param_dict.items():
+            fvs = swsscommon.FieldValuePairs([(str(key), str(value))])
+            firmware_cmd_arg_tbl[asic_index].set(port, fvs)
 
     fvs = swsscommon.FieldValuePairs([(cmd_name, cmd_arg)])
     firmware_cmd_tbl[asic_index].set(port, fvs)
@@ -161,7 +179,6 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
                 # check if xcvrd got a probe command
                 result = fvp_dict[rsp_name]
 
-
                 if result == exp_rsp:
                     res_dict[1] = result
                     res_dict[0] = 0
@@ -186,6 +203,7 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
 
     return res_dict
 
+
 def get_value_for_key_in_config_tbl(config_db, port, key, table):
     info_dict = {}
     info_dict = config_db.get_entry(table, port)
@@ -200,6 +218,7 @@ def get_value_for_key_in_config_tbl(config_db, port, key, table):
 #
 # 'muxcable' command ("config muxcable")
 #
+
 
 @click.group(name='muxcable', cls=clicommon.AliasedGroup)
 def muxcable():
@@ -416,35 +435,96 @@ def prbs():
 
 
 @prbs.command()
-@click.argument('port', required=True, default=None, type=click.INT)
-@click.argument('target', required=True, default=None, type=click.INT)
+@click.argument('port', required=True, default=None)
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
 @click.argument('mode_value', required=True, default=None, type=click.INT)
-@click.argument('lane_map', required=True, default=None, type=click.INT)
-def enable(port, target, mode_value, lane_map):
-    """Enable PRBS mode on a port"""
+@click.argument('lane_mask', required=True, default=None, type=click.INT)
+@click.argument('prbs_direction', metavar='<PRBS_DIRECTION> PRBS_DIRECTION_BOTH = 0 PRBS_DIRECTION_GENERATOR = 1 PRBS_DIRECTION_CHECKER = 2', required=False, default="0", type=click.Choice(["0", "1", "2"]))
+@clicommon.pass_db
+def enable(db, port, target, mode_value, lane_mask, prbs_direction):
+    """Enable PRBS mode on a port args port target mode_value lane_mask prbs_direction
+       example sudo config mux prbs enable Ethernet48 0 3 3 0
+    """
 
-    import sonic_y_cable.y_cable
-    res = sonic_y_cable.y_cable.enable_prbs_mode(port, target, mode_value, lane_map)
-    if res != True:
-        click.echo("PRBS config unsuccesful")
-        sys.exit(CONFIG_FAIL)
-    click.echo("PRBS config sucessful")
-    sys.exit(CONFIG_SUCCESSFUL)
+    port = platform_sfputil_helper.get_interface_name(port, db)
+
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD")
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_PRBS_RSP")
+
+    if port is not None:
+        click.confirm(('Muxcable at port {} will be changed to PRBS mode {} state; disable traffic Continue?'.format(
+            port, mode_value)), abort=True)
+
+        res_dict = {}
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+        param_dict = {}
+        target = parse_target(target)
+        param_dict["target"] = target
+        param_dict["mode_value"] = mode_value
+        param_dict["lane_mask"] = lane_mask
+        param_dict["direction"] = prbs_direction
+
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "config_prbs", "status", "True", "XCVRD_CONFIG_PRBS_CMD", "XCVRD_CONFIG_PRBS_CMD_ARG", "XCVRD_CONFIG_PRBS_RSP", port, 30, param_dict, "enable")
+
+        rc = res_dict[0]
+
+        port = platform_sfputil_helper.get_interface_alias(port, db)
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD")
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_PRBS_RSP")
+
+        if rc == 0:
+            click.echo("Success in PRBS mode port {} to {}".format(port, mode_value))
+        else:
+            click.echo("ERR: Unable to set PRBS mode port {} to {}".format(port, mode_value))
+            sys.exit(CONFIG_FAIL)
 
 
 @prbs.command()
-@click.argument('port', required=True, default=None, type=click.INT)
-@click.argument('target', required=True, default=None, type=click.INT)
-def disable(port, target):
-    """Disable PRBS mode on a port"""
+@click.argument('port', required=True, default=None)
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
+@click.argument('prbs_direction',  metavar='<PRBS_DIRECTION> PRBS_DIRECTION_BOTH = 0 PRBS_DIRECTION_GENERATOR = 1 PRBS_DIRECTION_CHECKER = 2', required=False, default="0", type=click.Choice(["0", "1", "2"]))
+@clicommon.pass_db
+def disable(db, port, target, prbs_direction):
+    """Disable PRBS mode on a port
+       example sudo config mux prbs disable Ethernet48 0
+    """
+    port = platform_sfputil_helper.get_interface_name(port, db)
 
-    import sonic_y_cable.y_cable
-    res = sonic_y_cable.y_cable.disable_prbs_mode(port, target)
-    if res != True:
-        click.echo("PRBS disable unsuccesful")
-        sys.exit(CONFIG_FAIL)
-    click.echo("PRBS disable sucessful")
-    sys.exit(CONFIG_SUCCESSFUL)
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD")
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_PRBS_RSP")
+
+    if port is not None:
+        click.confirm(('Muxcable at port {} will be changed to disable PRBS mode {} target; disable traffic Continue?'.format(
+            port, target)), abort=True)
+
+        res_dict = {}
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+        param_dict = {}
+        target = parse_target(target)
+        param_dict["target"] = target
+        param_dict["direction"] = prbs_direction
+
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "config_prbs", "status", "True", "XCVRD_CONFIG_PRBS_CMD", "XCVRD_CONFIG_PRBS_CMD_ARG", "XCVRD_CONFIG_PRBS_RSP", port, 30, param_dict, "disable")
+
+        rc = res_dict[0]
+
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD")
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_PRBS_RSP")
+
+        port = platform_sfputil_helper.get_interface_alias(port, db)
+        if rc == 0:
+            click.echo("Success in disable PRBS mode port {} on target {}".format(port, target))
+        else:
+            click.echo("ERR: Unable to disable PRBS mode port {} on target {}".format(port, target))
+            sys.exit(CONFIG_FAIL)
 
 
 @muxcable.group(cls=clicommon.AbbreviationGroup)
@@ -454,34 +534,89 @@ def loopback():
 
 
 @loopback.command()
-@click.argument('port', required=True, default=None, type=click.INT)
-@click.argument('target', required=True, default=None, type=click.INT)
-@click.argument('lane_map', required=True, default=None, type=click.INT)
-def enable(port, target, lane_map):
-    """Enable loopback mode on a port"""
+@click.argument('port', required=True, default=None)
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
+@click.argument('lane_mask', required=True, default=None, type=click.INT)
+@click.argument('mode_value', required=False, metavar='<Loop mode> 1 LOOPBACK_MODE_NEAR_END 2 LOOPBACK_MODE_FAR_END', default="1", type=click.Choice(["1", "2"]))
+@clicommon.pass_db
+def enable(db, port, target, lane_mask, mode_value):
+    """Enable loopback mode on a port args port target lane_map mode_value"""
 
-    import sonic_y_cable.y_cable
-    res = sonic_y_cable.y_cable.enable_loopback_mode(port, target, lane_map)
-    if res != True:
-        click.echo("loopback config unsuccesful")
-        sys.exit(CONFIG_FAIL)
-    click.echo("loopback config sucessful")
-    sys.exit(CONFIG_SUCCESSFUL)
+    port = platform_sfputil_helper.get_interface_name(port, db)
+
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_LOOP_CMD")
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_LOOP_CMD_ARG")
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_LOOP_RSP")
+
+    if port is not None:
+        click.confirm(('Muxcable at port {} will be changed to LOOP mode {} state; disable traffic Continue?'.format(
+            port, mode_value)), abort=True)
+
+        res_dict = {}
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+        param_dict = {}
+        target = parse_target(target)
+        param_dict["target"] = target
+        param_dict["mode_value"] = mode_value
+        param_dict["lane_mask"] = lane_mask
+
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "config_loop", "status", "True", "XCVRD_CONFIG_LOOP_CMD", "XCVRD_CONFIG_LOOP_CMD_ARG", "XCVRD_CONFIG_LOOP_RSP", port, 30, param_dict, "enable")
+
+        rc = res_dict[0]
+
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_LOOP_CMD")
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_LOOP_CMD_ARG")
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_LOOP_RSP")
+
+        port = platform_sfputil_helper.get_interface_alias(port, db)
+        if rc == 0:
+            click.echo("Success in LOOP mode port {} to {}".format(port, mode_value))
+        else:
+            click.echo("ERR: Unable to set LOOP mode port {} to {}".format(port, mode_value))
+            sys.exit(CONFIG_FAIL)
 
 
 @loopback.command()
-@click.argument('port', required=True, default=None, type=click.INT)
-@click.argument('target', required=True, default=None, type=click.INT)
-def disable(port, target):
+@click.argument('port', required=True, default=None)
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
+@clicommon.pass_db
+def disable(db, port, target):
     """Disable loopback mode on a port"""
 
-    import sonic_y_cable.y_cable
-    res = sonic_y_cable.y_cable.disable_loopback_mode(port, target)
-    if res != True:
-        click.echo("loopback disable unsuccesful")
-        sys.exit(CONFIG_FAIL)
-    click.echo("loopback disable sucessful")
-    sys.exit(CONFIG_SUCCESSFUL)
+    port = platform_sfputil_helper.get_interface_name(port, db)
+
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_LOOP_CMD")
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_LOOP_CMD_ARG")
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_LOOP_RSP")
+
+    if port is not None:
+        click.confirm(('Muxcable at port {} will be changed to disable LOOP mode {} state; disable traffic Continue?'.format(
+            port, target)), abort=True)
+
+        res_dict = {}
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+        param_dict = {}
+        target = parse_target(target)
+        param_dict["target"] = target
+
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "config_loop", "status", "True", "XCVRD_CONFIG_LOOP_CMD", "XCVRD_CONFIG_LOOP_CMD_ARG", "XCVRD_CONFIG_LOOP_RSP", port, 30, param_dict, "disable")
+
+        rc = res_dict[0]
+
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_LOOP_CMD")
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_LOOP_CMD_ARG")
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_LOOP_RSP")
+
+        port = platform_sfputil_helper.get_interface_alias(port, db)
+        if rc == 0:
+            click.echo("Success in disable LOOP mode port {} to {}".format(port, target))
+        else:
+            click.echo("ERR: Unable to set disable LOOP mode port {} to {}".format(port, target))
+            sys.exit(CONFIG_FAIL)
 
 
 @muxcable.group(cls=clicommon.AbbreviationGroup)
@@ -506,9 +641,10 @@ def state(db, state, port):
         click.confirm(('Muxcable at port {} will be changed to {} state. Continue?'.format(port, state)), abort=True)
 
         res_dict = {}
-        res_dict [0] = CONFIG_FAIL
-        res_dict [1] = "unknown"
-        res_dict = update_and_get_response_for_xcvr_cmd("config","result", "True", "XCVRD_CONFIG_HWMODE_DIR_CMD", "XCVRD_CONFIG_HWMODE_DIR_RSP", port, 1, state)
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "config", "result", "True", "XCVRD_CONFIG_HWMODE_DIR_CMD", None, "XCVRD_CONFIG_HWMODE_DIR_RSP", port, 1, None, state)
 
         rc = res_dict[0]
 
@@ -554,10 +690,11 @@ def state(db, state, port):
                 continue
 
             res_dict = {}
-            res_dict [0] = CONFIG_FAIL
-            res_dict [1] = 'unknown'
+            res_dict[0] = CONFIG_FAIL
+            res_dict[1] = 'unknown'
 
-            res_dict = update_and_get_response_for_xcvr_cmd("config","result", "True", "XCVRD_CONFIG_HWMODE_DIR_CMD", "XCVRD_CONFIG_HWMODE_DIR_RSP", port, 1, state)
+            res_dict = update_and_get_response_for_xcvr_cmd(
+                "config", "result", "True", "XCVRD_CONFIG_HWMODE_DIR_CMD", None, "XCVRD_CONFIG_HWMODE_DIR_RSP", port, 1, None, state)
 
             rc = res_dict[0]
 
@@ -584,7 +721,6 @@ def setswitchmode(db, state, port):
 
     port = platform_sfputil_helper.get_interface_name(port, db)
 
-
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_HWMODE_SWMODE_CMD")
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_HWMODE_SWMODE_RSP")
 
@@ -592,10 +728,10 @@ def setswitchmode(db, state, port):
         click.confirm(('Muxcable at port {} will be changed to {} switching mode. Continue?'.format(port, state)), abort=True)
 
         res_dict = {}
-        res_dict [0] = CONFIG_FAIL
-        res_dict [1] = "unknown"
-        res_dict = update_and_get_response_for_xcvr_cmd("config", "result", "True", "XCVRD_CONFIG_HWMODE_SWMODE_CMD", "XCVRD_CONFIG_HWMODE_SWMODE_RSP", port, 1, state)
-
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "config", "result", "True", "XCVRD_CONFIG_HWMODE_SWMODE_CMD", None, "XCVRD_CONFIG_HWMODE_SWMODE_RSP", port, 1, None, state)
 
         rc = res_dict[0]
 
@@ -641,9 +777,10 @@ def setswitchmode(db, state, port):
                 continue
 
             res_dict = {}
-            res_dict [0] = CONFIG_FAIL
-            res_dict [1] = "unknown"
-            res_dict = update_and_get_response_for_xcvr_cmd("config", "result", "True", "XCVRD_CONFIG_HWMODE_SWMODE_CMD", "XCVRD_CONFIG_HWMODE_SWMODE_RSP", port, 1, state)
+            res_dict[0] = CONFIG_FAIL
+            res_dict[1] = "unknown"
+            res_dict = update_and_get_response_for_xcvr_cmd(
+                "config", "result", "True", "XCVRD_CONFIG_HWMODE_SWMODE_CMD", None, "XCVRD_CONFIG_HWMODE_SWMODE_RSP", port, 1, None, state)
 
             rc = res_dict[0]
 
@@ -682,9 +819,10 @@ def download(db, fwfile, port):
     if port is not None and port != "all":
 
         res_dict = {}
-        res_dict [0] = CONFIG_FAIL
-        res_dict [1] = "unknown"
-        res_dict = update_and_get_response_for_xcvr_cmd("download_firmware", "status", "0", "XCVRD_DOWN_FW_CMD", "XCVRD_DOWN_FW_RSP", port, 1000, fwfile)
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "download_firmware", "status", "0", "XCVRD_DOWN_FW_CMD", None, "XCVRD_DOWN_FW_RSP", port, 1000, None, fwfile)
 
         rc = res_dict[0]
 
@@ -731,9 +869,10 @@ def download(db, fwfile, port):
 
             res_dict = {}
 
-            res_dict [0] = CONFIG_FAIL
-            res_dict [1] = "unknown"
-            res_dict = update_and_get_response_for_xcvr_cmd("download_firmware", "status", "0", "XCVRD_DOWN_FW_CMD", "XCVRD_DOWN_FW_RSP", port, 1000, fwfile)
+            res_dict[0] = CONFIG_FAIL
+            res_dict[1] = "unknown"
+            res_dict = update_and_get_response_for_xcvr_cmd(
+                "download_firmware", "status", "0", "XCVRD_DOWN_FW_CMD", "XCVRD_DOWN_FW_RSP", port, 1000, fwfile)
 
             rc = res_dict[0]
 
@@ -754,21 +893,28 @@ def download(db, fwfile, port):
 @firmware.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
 @click.argument('fwfile', metavar='<firmware_file>', required=False, default=None)
+@click.option('--nonhitless', 'nonhitless', required=False, is_flag=True, type=click.BOOL)
 @clicommon.pass_db
-def activate(db, port, fwfile):
+def activate(db, port, fwfile, nonhitless):
     """Config muxcable firmware activate"""
 
     port = platform_sfputil_helper.get_interface_name(port, db)
 
     delete_all_keys_in_db_table("STATE_DB", "XCVRD_ACTI_FW_RSP")
     delete_all_keys_in_db_table("APPL_DB", "XCVRD_ACTI_FW_CMD")
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_ACTI_FW_CMD_ARG")
 
     if port is not None and port != "all":
 
         res_dict = {}
-        res_dict [0] = CONFIG_FAIL
-        res_dict [1] = "unknown"
-        res_dict = update_and_get_response_for_xcvr_cmd("activate_firmware", "status", "0", "XCVRD_ACTI_FW_CMD", "XCVRD_ACTI_FW_RSP", port, 60, fwfile)
+        param_dict = {}
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+        if nonhitless:
+            param_dict["hitless"] = "1"
+
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "activate_firmware", "status", "0", "XCVRD_ACTI_FW_CMD", "XCVRD_ACTI_FW_CMD_ARG", "XCVRD_ACTI_FW_RSP", port, 60, param_dict, fwfile)
 
         rc = res_dict[0]
 
@@ -814,12 +960,14 @@ def activate(db, port, fwfile):
 
             res_dict = {}
 
-            res_dict [0] = CONFIG_FAIL
-            res_dict [1] = "unknown"
-            res_dict = update_and_get_response_for_xcvr_cmd("activate_firmware", "status", "0", "XCVRD_ACTI_FW_CMD", "XCVRD_ACTI_FW_RSP", port, 60, fwfile)
+            res_dict[0] = CONFIG_FAIL
+            res_dict[1] = "unknown"
+            res_dict = update_and_get_response_for_xcvr_cmd(
+                "activate_firmware", "status", "0", "XCVRD_ACTI_FW_CMD", None, "XCVRD_ACTI_FW_RSP", port, 60, None, fwfile)
 
             delete_all_keys_in_db_table("STATE_DB", "XCVRD_ACTI_FW_RSP")
             delete_all_keys_in_db_table("APPL_DB", "XCVRD_ACTI_FW_CMD")
+            delete_all_keys_in_db_table("APPL_DB", "XCVRD_ACTI_FW_CMD_ARG")
 
             rc = res_dict[0]
 
@@ -849,9 +997,10 @@ def rollback(db, port, fwfile):
     if port is not None and port != "all":
 
         res_dict = {}
-        res_dict [0] = CONFIG_FAIL
-        res_dict [1] = "unknown"
-        res_dict = update_and_get_response_for_xcvr_cmd("rollback_firmware", "status", "0", "XCVRD_ROLL_FW_CMD", "XCVRD_ROLL_FW_RSP", port, 60, fwfile)
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "rollback_firmware", "status", "0", "XCVRD_ROLL_FW_CMD", None, "XCVRD_ROLL_FW_RSP", port, 60, None, fwfile)
 
         delete_all_keys_in_db_table("STATE_DB", "XCVRD_ROLL_FW_RSP")
         delete_all_keys_in_db_table("APPL_DB", "XCVRD_ROLL_FW_CMD")
@@ -897,9 +1046,10 @@ def rollback(db, port, fwfile):
 
             res_dict = {}
 
-            res_dict [0] = CONFIG_FAIL
-            res_dict [1] = "unknown"
-            res_dict = update_and_get_response_for_xcvr_cmd("rollback_firmware", "status", "0", "XCVRD_ROLL_FW_CMD", "XCVRD_ROLL_FW_RSP", port, 60, fwfile)
+            res_dict[0] = CONFIG_FAIL
+            res_dict[1] = "unknown"
+            res_dict = update_and_get_response_for_xcvr_cmd(
+                "rollback_firmware", "status", "0", "XCVRD_ROLL_FW_CMD", None, "XCVRD_ROLL_FW_RSP", port, 60, None, fwfile)
 
             delete_all_keys_in_db_table("STATE_DB", "XCVRD_ROLL_FW_RSP")
             delete_all_keys_in_db_table("APPL_DB", "XCVRD_ROLL_FW_CMD")
@@ -915,3 +1065,128 @@ def rollback(db, port, fwfile):
                 rc_exit = CONFIG_FAIL
 
         sys.exit(rc_exit)
+
+
+@muxcable.command()
+@click.argument('port', required=True, default=None)
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
+@clicommon.pass_db
+def reset(db, port, target):
+    """reset a target on the cable NIC TORA TORB Local """
+
+    port = platform_sfputil_helper.get_interface_name(port, db)
+
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD")
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_PRBS_RSP")
+
+    if port is not None:
+        click.confirm(('Muxcable at port {} will be reset; CAUTION: disable traffic Continue?'.format(port)), abort=True)
+
+        res_dict = {}
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+        param_dict = {}
+        target = parse_target(target)
+        param_dict["target"] = target
+
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "config_prbs", "status", "True", "XCVRD_CONFIG_PRBS_CMD", "XCVRD_CONFIG_PRBS_CMD_ARG", "XCVRD_CONFIG_PRBS_RSP", port, 30, param_dict, "reset")
+
+        rc = res_dict[0]
+
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD")
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_PRBS_RSP")
+
+        port = platform_sfputil_helper.get_interface_alias(port, db)
+        if rc == 0:
+            click.echo("Success in reset port {}".format(port))
+        else:
+            click.echo("ERR: Unable to reset port {}".format(port))
+            sys.exit(CONFIG_FAIL)
+
+
+@muxcable.command()
+@click.argument('port', required=True, default=None)
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
+@click.argument('mode', required=True, metavar='<mode> 0 disable 1 enable',  default=True, type=click.Choice(["0", "1"]))
+@clicommon.pass_db
+def set_anlt(db, port, target, mode):
+    """Enable anlt mode on a port args port <target> NIC TORA TORB LOCAL enable/disable 1/0"""
+
+    port = platform_sfputil_helper.get_interface_name(port, db)
+
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD")
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_PRBS_RSP")
+
+    if port is not None:
+        click.confirm(
+            ('Muxcable at port {} will be changed to enable/disable anlt mode {} state; disable traffic Continue?'.format(port, mode)), abort=True)
+
+        res_dict = {}
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+        param_dict = {}
+        target = parse_target(target)
+        param_dict["target"] = target
+        param_dict["mode"] = mode
+
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "config_prbs", "status", "True", "XCVRD_CONFIG_PRBS_CMD", "XCVRD_CONFIG_PRBS_CMD_ARG", "XCVRD_CONFIG_PRBS_RSP", port, 30, param_dict, "anlt")
+
+        rc = res_dict[0]
+
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD")
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_PRBS_RSP")
+
+        port = platform_sfputil_helper.get_interface_alias(port, db)
+        if rc == 0:
+            click.echo("Success in anlt enable/disable port {} to {}".format(port, mode))
+        else:
+            click.echo("ERR: Unable to set anlt enable/disable port {} to {}".format(port, mode))
+            sys.exit(CONFIG_FAIL)
+
+@muxcable.command()
+@click.argument('port', required=True, default=None)
+@click.argument('target', metavar='<target> NIC TORA TORB LOCAL', required=True, default=None, type=click.Choice(["NIC", "TORA", "TORB", "LOCAL"]))
+@click.argument('mode', required=True, metavar='<mode> FEC_MODE_NONE 0 FEC_MODE_RS 1 FEC_MODE_FC 2',  default=True, type=click.Choice(["0", "1", "2"]))
+@clicommon.pass_db
+def set_fec(db, port, target, mode):
+    """Enable fec mode on a port args port <target>  NIC TORA TORB LOCAL <mode_value> FEC_MODE_NONE 0 FEC_MODE_RS 1 FEC_MODE_FC 2 """
+
+    port = platform_sfputil_helper.get_interface_name(port, db)
+
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD")
+    delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
+    delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_PRBS_RSP")
+
+    if port is not None:
+        click.confirm(
+            ('Muxcable at port {} will be changed to enable/disable fec mode {} state; disable traffic Continue?'.format(port, mode)), abort=True)
+
+        res_dict = {}
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+        param_dict = {}
+        target = parse_target(target)
+        param_dict["target"] = target
+        param_dict["mode"] = mode
+
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "config_prbs", "status", "True", "XCVRD_CONFIG_PRBS_CMD", "XCVRD_CONFIG_PRBS_CMD_ARG", "XCVRD_CONFIG_PRBS_RSP", port, 30, param_dict, "fec")
+
+        rc = res_dict[0]
+
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD")
+        delete_all_keys_in_db_table("APPL_DB", "XCVRD_CONFIG_PRBS_CMD_ARG")
+        delete_all_keys_in_db_table("STATE_DB", "XCVRD_CONFIG_PRBS_RSP")
+
+        port = platform_sfputil_helper.get_interface_alias(port, db)
+        if rc == 0:
+            click.echo("Success in fec enable/disable port {} to {}".format(port, mode))
+        else:
+            click.echo("ERR: Unable to set fec enable/disable port {} to {}".format(port, mode))
+            sys.exit(CONFIG_FAIL)
