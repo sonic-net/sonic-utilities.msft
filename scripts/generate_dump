@@ -6,9 +6,14 @@
 
 set -u
 
-ERROR_TAR_FAILED=5
-ERROR_PROCFS_SAVE_FAILED=6
-ERROR_INVALID_ARGUMENT=10
+EXT_SUCCESS=0
+EXT_GENERAL=1
+EXT_LOCKFAIL=2
+EXT_RECVSIG=3
+EXT_RETRY=4
+EXT_TAR_FAILED=5
+EXT_PROCFS_SAVE_FAILED=6
+EXT_INVALID_ARGUMENT=10
 
 TAR=tar
 MKDIR=mkdir
@@ -39,21 +44,38 @@ USER=${USER:-root}
 TIMEOUT_MIN="5"
 SKIP_BCMCMD=0
 SAVE_STDERR=true
-RETURN_CODE=0
+RETURN_CODE=$EXT_SUCCESS
 DEBUG_DUMP=false
+
+# lock dirs/files
+LOCKDIR="/tmp/techsupport-lock"
+PIDFILE="${LOCKDIR}/PID"
+
+# Remove lock directory and exit, let user decide if they want to retry
+rm_lock_and_exit()
+{
+    $RM $V -rf ${LOCKDIR}
+    exit $EXT_RETRY
+}
+
+handle_exit()
+{
+    ECODE=$?
+    echo "Removing lock. Exit: $ECODE" >&2
+    $RM $V -rf ${LOCKDIR}
+}
 
 handle_signal()
 {
     echo "Generate Dump received interrupt" >&2
     $RM $V -rf $TARDIR
-    exit 1
+    exit $EXT_RECVSIG
 }
-trap 'handle_signal' SIGINT
 
 handle_error() {
     if [ "$1" != "0" ]; then
         echo "ERR: RC:-$1 observed on line $2" >&2
-        RETURN_CODE=1
+        RETURN_CODE=$EXT_GENERAL
     fi
 }
 
@@ -103,7 +125,7 @@ save_bcmcmd() {
         filepath="${filepath}.gz"
     fi
     ($TAR $V -rhf $TARFILE -C $DUMPDIR "$tarpath" \
-        || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
+        || abort "${EXT_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
         && $RM $V -rf "$filepath"
     end_t=$(date +%s%3N)
     echo "[ save_bcmcmd:$cmd ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
@@ -213,7 +235,7 @@ save_cmd() {
     fi
 
     ($TAR $V -rhf $TARFILE -C $DUMPDIR "$tarpath" \
-        || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
+        || abort "${EXT_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
         && $RM $V -rf "$filepath"
     end_t=$(date +%s%3N)
     echo "[ save_cmd:$cmd ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
@@ -766,7 +788,7 @@ save_file() {
 
     if $do_tar_append; then
         ($TAR $V -rhf $TARFILE -C $DUMPDIR "$tar_path" \
-            || abort "${ERROR_PROCFS_SAVE_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
+            || abort "${EXT_PROCFS_SAVE_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
             && $RM $V -f "$gz_path"
     fi
     end_t=$(date +%s%3N)
@@ -975,7 +997,7 @@ save_log_files() {
 
     # Append the log folder to the main tarball
     ($TAR $V -rhf $TARFILE -C $DUMPDIR ${BASE}/log \
-        || abort "${ERROR_TAR_FAILED}" "tar append operation failed. Aborting for safety") \
+        || abort "${EXT_TAR_FAILED}" "tar append operation failed. Aborting for safety") \
         && $RM $V -rf $TARDIR/log
     end_t=$(date +%s%3N)
     echo "[ TAR /var/log Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
@@ -1004,7 +1026,7 @@ save_warmboot_files() {
 
         ($TAR $V --warning=no-file-removed  -rhf $TARFILE -C $DUMPDIR --mode=+rw \
             $BASE/warmboot \
-            || abort "${ERROR_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
+            || abort "${EXT_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
             && $RM $V -rf $TARDIR
     fi
     end_t=$(date +%s%3N)
@@ -1144,11 +1166,6 @@ main() {
     trap 'handle_error $? $LINENO' ERR
     local start_t=0
     local end_t=0
-    if [ `whoami` != root ] && ! $NOOP;
-    then
-        echo "$0: must be run as root (or in sudo)" >&2
-        exit 10
-    fi
     NUM_ASICS=$(get_asic_count)
     ${CMD_PREFIX}renice +5 -p $$ >> /dev/null
     ${CMD_PREFIX}ionice -c 2 -n 5 -p $$ >> /dev/null
@@ -1174,7 +1191,7 @@ main() {
         /proc/softirqs /proc/stat /proc/swaps /proc/sysvipc /proc/timer_list \
         /proc/uptime /proc/version /proc/vmallocinfo /proc/vmstat \
         /proc/zoneinfo \
-        || abort "${ERROR_PROCFS_SAVE_FAILED}" "Proc saving operation failed. Aborting for safety."
+        || abort "${EXT_PROCFS_SAVE_FAILED}" "Proc saving operation failed. Aborting for safety."
     end_t=$(date +%s%3N)
     echo "[ Capture Proc State ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 
@@ -1307,7 +1324,7 @@ main() {
         --exclude="*/etc/ssl/certs/*" \
         --exclude="*/etc/ssl/private/*" \
         $BASE/etc \
-        || abort "${ERROR_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
+        || abort "${EXT_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
         && $RM $V -rf $TARDIR
     end_t=$(date +%s%3N)
     echo "[ TAR /etc Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
@@ -1473,7 +1490,7 @@ while getopts ":xnvhzas:t:r:d" opt; do
             ;;
         h)
             usage
-            exit 0
+            exit $EXT_SUCCESS
             ;;
         v)
             # echo commands about to be run to stderr
@@ -1501,7 +1518,7 @@ while getopts ":xnvhzas:t:r:d" opt; do
         s)
             SINCE_DATE="${OPTARG}"
             # validate date expression
-            date --date="${SINCE_DATE}" &> /dev/null || abort "${ERROR_INVALID_ARGUMENT}" "Invalid date expression passed: '${SINCE_DATE}'"
+            date --date="${SINCE_DATE}" &> /dev/null || abort "${EXT_INVALID_ARGUMENT}" "Invalid date expression passed: '${SINCE_DATE}'"
             ;;
         t)
             TIMEOUT_MIN="${OPTARG}"
@@ -1514,9 +1531,47 @@ while getopts ":xnvhzas:t:r:d" opt; do
             ;;
         /?)
             echo "Invalid option: -$OPTARG" >&2
-            exit 1
+            exit $EXT_GENERAL
             ;;
     esac
 done
 
-main
+# Check permissions before proceeding further
+if [ `whoami` != root ] && ! $NOOP;
+then
+    echo "$0: must be run as root (or in sudo)" >&2
+    exit $EXT_INVALID_ARGUMENT
+fi
+
+##
+## Attempt Locking
+##
+
+if mkdir "${LOCKDIR}" &>/dev/null; then
+    trap 'handle_exit' EXIT
+    echo "$$" > "${PIDFILE}"
+    # This handler will exit the script upon receiving these interrupts
+    # Trap configured on EXIT will be triggered by the exit from handle_signal function
+    trap 'handle_signal' SIGINT SIGHUP SIGQUIT SIGTERM
+    echo "Lock succesfully accquired and installed signal handlers"
+    # Proceed with the actual code
+    main
+else
+    # lock failed, check if the other PID is alive
+    PID_PROG="$(cat "${PIDFILE}")"
+
+    if [ $? != 0 ]; then
+        # Another instance is probably about to remove the lock or PIDfile doesn't exist
+        rm_lock_and_exit
+    fi
+
+    if ! kill -0 $PID_PROG &>/dev/null; then
+        # Lock is stale
+        echo "Removing stale lock of nonexistant PID ${PID_PROG}"
+        rm_lock_and_exit
+    else
+        # Lock is valid and the other instance is active. Exit Now
+        echo "Accquiring lock failed, PID ${PID_PROG} is active" >&2
+        exit $EXT_LOCKFAIL
+    fi
+fi
