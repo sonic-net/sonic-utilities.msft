@@ -1314,8 +1314,8 @@ main() {
         --exclude="*/etc/ssh*" \
         --exclude="*get_creds*" \
         --exclude="*snmpd.conf*" \
-        --exclude="/etc/mlnx" \
-        --exclude="/etc/mft" \
+        --exclude="*/etc/mlnx" \
+        --exclude="*/etc/mft" \
         --exclude="*/etc/sonic/*.cer" \
         --exclude="*/etc/sonic/*.crt" \
         --exclude="*/etc/sonic/*.pem" \
