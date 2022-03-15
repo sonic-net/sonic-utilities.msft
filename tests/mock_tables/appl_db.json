@@ -62,7 +62,7 @@
         "lanes": "93,94,95,96",
         "alias": "etp29",
         "description": "ARISTA01T1:Ethernet1",
-        "speed": "40000",
+        "speed": "100000",
         "oper_status": "up",
         "pfc_asym": "off",
         "mtu": "9100",

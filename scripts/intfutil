@@ -31,6 +31,7 @@ except KeyError:
 
 
 PORT_STATUS_TABLE_PREFIX = "PORT_TABLE:"
+PORT_STATE_TABLE_PREFIX = "PORT_TABLE|"
 PORT_TRANSCEIVER_TABLE_PREFIX = "TRANSCEIVER_INFO|"
 PORT_LANES_STATUS = "lanes"
 PORT_ALIAS = "alias"
@@ -148,6 +149,25 @@ def appl_db_port_status_get(appl_db, intf_name, status_type):
         status = ','.join(new_speed_list)
     return status
 
+def port_oper_speed_get(db, intf_name):
+    """
+    Get port oper speed
+    """
+    oper_speed = db.get(db.STATE_DB, PORT_STATE_TABLE_PREFIX + intf_name, PORT_SPEED)
+    if oper_speed is None or oper_speed == "N/A":
+        return appl_db_port_status_get(db, intf_name, PORT_SPEED)
+
+    return '{}G'.format(oper_speed[:-3])
+
+def port_oper_speed_get_raw(db, intf_name):
+    """
+    Get port raw speed. E.g. 100000, 50000 and so on.
+    """
+    speed = db.get(db.STATE_DB, PORT_STATE_TABLE_PREFIX + intf_name, PORT_SPEED)
+    if speed is None or speed == "N/A":
+        speed = db.get(db.APPL_DB, PORT_STATUS_TABLE_PREFIX + intf_name, PORT_SPEED)
+    return speed
+
 def state_db_port_optics_get(state_db, intf_name, type):
     """
     Get optic type info for port
@@ -257,7 +277,7 @@ def po_speed_dict(po_int_dict, appl_db):
             agg_speed_list =  []
             po_list.append(key)
             if len(value) == 1:
-                interface_speed = appl_db.get(appl_db.APPL_DB, "PORT_TABLE:" + value[0], "speed")
+                interface_speed = port_oper_speed_get_raw(appl_db, value[0])
                 if interface_speed is None:
                     # If no speed was returned, append None without format
                     po_list.append(None)
@@ -266,7 +286,7 @@ def po_speed_dict(po_int_dict, appl_db):
                     po_list.append(interface_speed)
             elif len(value) > 1:
                 for intf in value:
-                    temp_speed = appl_db.get(appl_db.APPL_DB, "PORT_TABLE:" + intf, "speed")
+                    temp_speed = port_oper_speed_get_raw(appl_db, intf)
                     temp_speed = int(temp_speed) if temp_speed else 0
                     agg_speed_list.append(temp_speed)
                     interface_speed = sum(agg_speed_list)
@@ -405,7 +425,7 @@ class IntfStatus(object):
                     if self.intf_name is None or key in intf_fs:
                         table.append((key,
                                 appl_db_port_status_get(self.db, key, PORT_LANES_STATUS),
-                                appl_db_port_status_get(self.db, key, PORT_SPEED),
+                                port_oper_speed_get(self.db, key),
                                 appl_db_port_status_get(self.db, key, PORT_MTU_STATUS),
                                 appl_db_port_status_get(self.db, key, PORT_FEC),
                                 appl_db_port_status_get(self.db, key, PORT_ALIAS),
@@ -543,7 +563,7 @@ class IntfAutoNegStatus(object):
             self.intf_name = intf_name
 
     def display_autoneg_status(self):
-        
+
         self.get_intf_autoneg_status()
 
         # Sorting and tabulating the result table.
@@ -573,7 +593,7 @@ class IntfAutoNegStatus(object):
                     autoneg_mode = 'enabled' if autoneg_mode == 'on' else 'disabled'
                 table.append((key,
                               autoneg_mode,
-                              appl_db_port_status_get(self.db, key, PORT_SPEED),
+                              port_oper_speed_get(self.db, key),
                               appl_db_port_status_get(self.db, key, PORT_ADV_SPEEDS),
                               appl_db_port_status_get(self.db, key, PORT_INTERFACE_TYPE),
                               appl_db_port_status_get(self.db, key, PORT_ADV_INTERFACE_TYPES),

@@ -32,6 +32,7 @@ except KeyError:
 # ========================== Common VOQ util logic ==========================
 
 SYSTEM_PORT_TABLE_PREFIX = swsscommon.APP_SYSTEM_PORT_TABLE_NAME + ":"
+SYSTEM_STATE_PORT_TABLE_PREFIX = swsscommon.STATE_PORT_TABLE_NAME + "|"
 SYSTEM_PORT_ID = "system_port_id"
 SYSTEM_PORT_CORE = "core_index"
 SYSTEM_PORT_CORE_PORT = "core_port_index"
@@ -95,6 +96,7 @@ def appl_db_keys_get_system_port(appl_db, system_port_name):
 
     return appl_db_keys
 
+
 def appl_db_system_port_status_get(appl_db, system_port_name, status_type):
     """
     Get the system port status
@@ -106,6 +108,19 @@ def appl_db_system_port_status_get(appl_db, system_port_name, status_type):
     if status_type == SYSTEM_PORT_SPEED and status != "N/A":
        status = '{}G'.format(status[:-3])
     return status
+
+
+def port_oper_speed_get(db, system_port_name):
+    """
+    Get port oper speed
+    """
+    full_table_id = SYSTEM_STATE_PORT_TABLE_PREFIX + system_port_name
+    oper_speed = db.get(db.STATE_DB, full_table_id, SYSTEM_PORT_SPEED)
+    if oper_speed is None or oper_speed == "N/A":
+        return appl_db_system_port_status_get(db, system_port_name, SYSTEM_PORT_SPEED)
+
+    return '{}G'.format(oper_speed[:-3])
+
 
 def chassis_app_db_keys_get_system_neigh(chassis_app_db):
     """
@@ -208,7 +223,7 @@ class SystemPortStatus(object):
                         appl_db_system_port_status_get(self.db, key, SYSTEM_PORT_SWITCH_ID),
                         appl_db_system_port_status_get(self.db, key, SYSTEM_PORT_CORE),
                         appl_db_system_port_status_get(self.db, key, SYSTEM_PORT_CORE_PORT),
-                        appl_db_system_port_status_get(self.db, key, SYSTEM_PORT_SPEED)))
+                        port_oper_speed_get(self.db, key)))
 
         return table
 
@@ -247,7 +262,7 @@ class SystemNeighStatus(object):
         i = {}
         table = []
         key = []
-        
+
         if self.ipaddress is not None:
             if not is_ipv4_address(self.ipaddress) and not is_ipv6_address(self.ipaddress):
                 print("{} is not valid ip address\n".format(self.ipaddress))
@@ -262,7 +277,7 @@ class SystemNeighStatus(object):
             nbr = key_tokens[-1].strip()
             intf = '|'.join(key_tokens[1:-1])
             key = '|'.join(key_tokens[1:])
-            if ((self.ipaddress is None or nbr in self.ipaddress) and 
+            if ((self.ipaddress is None or nbr in self.ipaddress) and
                 (self.asicname is None or self.asicname in intf)):
                 table.append((intf, nbr,
                                 chassis_app_db_system_neigh_status_get(self.db, key, SYSTEM_NEIGH_MAC),
@@ -322,8 +337,8 @@ class SystemLagStatus(object):
         for i in self.chassis_app_db_keys_system_lag:
             key_tokens = re.split('\|', i)
             key = '|'.join(key_tokens[1:])
-            if ((self.system_lag_name is None or key in intf_fs) and 
-                (self.asicname is None or self.asicname in key) and 
+            if ((self.system_lag_name is None or key in intf_fs) and
+                (self.asicname is None or self.asicname in key) and
                 (self.hostname is None or self.hostname in key)):
                 mkeys = chassis_app_db_keys_get_system_lag_member(self.db, key, '')
                 members.clear()

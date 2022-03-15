@@ -29,7 +29,7 @@ try:
     if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
         import mock_tables.mock_multi_asic
         mock_tables.dbconnector.load_namespace_config()
-           
+
 except KeyError:
     pass
 
@@ -118,6 +118,7 @@ COUNTER_TABLE_PREFIX = "COUNTERS:"
 COUNTERS_PORT_NAME_MAP = "COUNTERS_PORT_NAME_MAP"
 
 PORT_STATUS_TABLE_PREFIX = "PORT_TABLE:"
+PORT_STATE_TABLE_PREFIX = "PORT_TABLE|"
 PORT_OPER_STATUS_FIELD = "oper_status"
 PORT_ADMIN_STATUS_FIELD = "admin_status"
 PORT_STATUS_VALUE_UP = 'UP'
@@ -144,7 +145,7 @@ class Portstat(object):
     @multi_asic_util.run_on_multi_asic
     def collect_stat(self):
         """
-        Collect the statisitics from all the asics present on the 
+        Collect the statisitics from all the asics present on the
         device and store in a dict
         """
 
@@ -210,10 +211,13 @@ class Portstat(object):
             Get the port speed
         """
         # Get speed from APPL_DB
-        full_table_id = PORT_STATUS_TABLE_PREFIX + port_name
+        state_db_table_id = PORT_STATE_TABLE_PREFIX + port_name
+        app_db_table_id = PORT_STATUS_TABLE_PREFIX + port_name
         for ns in self.multi_asic.get_ns_list_based_on_options():
             self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
-            speed = self.db.get(self.db.APPL_DB, full_table_id, PORT_SPEED_FIELD)
+            speed = self.db.get(self.db.STATE_DB, state_db_table_id, PORT_SPEED_FIELD)
+            if speed is None or speed == STATUS_NA:
+                speed = self.db.get(self.db.APPL_DB, app_db_table_id, PORT_SPEED_FIELD)
             if speed is not None:
                 return int(speed)
         return STATUS_NA
@@ -227,7 +231,7 @@ class Portstat(object):
             self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
             admin_state = self.db.get(self.db.APPL_DB, full_table_id, PORT_ADMIN_STATUS_FIELD)
             oper_state = self.db.get(self.db.APPL_DB, full_table_id, PORT_OPER_STATUS_FIELD)
-            
+
             if admin_state is None or oper_state is None:
                 continue
             if admin_state.upper() == PORT_STATUS_VALUE_DOWN:
@@ -378,7 +382,7 @@ class Portstat(object):
 
             print("Time Since Counters Last Cleared............... " + str(cnstat_old_dict.get('time')))
 
- 
+
     def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, ratestat_dict, intf_list, use_json, print_all, errors_only, rates_only, detail=False):
         """
             Print the difference between two cnstat results.
@@ -528,7 +532,7 @@ Examples:
   portstat -c -t test
   portstat -t test
   portstat -d -t test
-  portstat -e 
+  portstat -e
   portstat
   portstat -r
   portstat -R
