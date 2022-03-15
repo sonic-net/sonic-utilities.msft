@@ -119,7 +119,7 @@ class TestPortChannel(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
-        assert "Error:  Ethernet0 has ip address 14.14.0.1/24 configured" in result.output
+        assert "Error:  Ethernet0 has ip address configured" in result.output
 
     def test_add_portchannel_member_which_is_member_of_vlan(self):
         runner = CliRunner()

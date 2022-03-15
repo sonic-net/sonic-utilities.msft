@@ -1790,11 +1790,11 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
         ctx.fail("{} is not present.".format(portchannel_name))
 
     # Dont allow a port to be member of port channel if it is configured with an IP address
-    for key in db.get_table('INTERFACE').keys():
-        if type(key) != tuple:
+    for key,value in db.get_table('INTERFACE').items():
+        if type(key) == tuple:
             continue
-        if key[0] == port_name:
-            ctx.fail(" {} has ip address {} configured".format(port_name, key[1]))
+        if key == port_name:
+            ctx.fail(" {} has ip address configured".format(port_name))
             return
 
     # Dont allow a port to be member of port channel if it is configured as a VLAN member
