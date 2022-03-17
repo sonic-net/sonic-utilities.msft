@@ -4,6 +4,7 @@ import os
 import sys
 import syslog
 import time
+from sonic_py_common import device_info
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -525,6 +526,7 @@ class TestRouteCheck(object):
         self.init()
         ret = 0
 
+        device_info.get_platform = MagicMock(return_value='unittest')
         set_mock(mock_table, mock_conn, mock_sel, mock_subs)
         for (i, ct_data) in test_data.items():
             do_start_test("route_test", i, ct_data)
