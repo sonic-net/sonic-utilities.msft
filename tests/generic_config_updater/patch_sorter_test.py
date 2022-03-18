@@ -1033,6 +1033,15 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
                     "nhopself": "0",
                     "rrclient": "0"
                 }
+            },
+            "MIRROR_SESSION": {
+                "mirror_session_dscp": {
+                    "dscp": "5",
+                    "dst_ip": "2.2.2.2",
+                    "src_ip": "1.1.1.1",
+                    "ttl": "32",
+                    "type": "ERSPAN"
+                }
             }
         }
         expected = [
@@ -1058,6 +1067,11 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
             "/BGP_MONITORS/5.6.7.8/name",
             "/BGP_MONITORS/5.6.7.8/nhopself",
             "/BGP_MONITORS/5.6.7.8/rrclient",
+            "/MIRROR_SESSION/mirror_session_dscp/dscp",
+            "/MIRROR_SESSION/mirror_session_dscp/dst_ip",
+            "/MIRROR_SESSION/mirror_session_dscp/src_ip",
+            "/MIRROR_SESSION/mirror_session_dscp/ttl",
+            "/MIRROR_SESSION/mirror_session_dscp/type",
         ]
 
         actual = self.validator._get_create_only_paths(config)

@@ -589,6 +589,7 @@ class CreateOnlyMoveValidator:
                 ["BGP_MONITORS", "*", "local_addr"],
                 ["BGP_MONITORS", "*", "nhopself"],
                 ["BGP_MONITORS", "*", "rrclient"],
+                ["MIRROR_SESSION", "*", "*"],
             ],
             path_addressing)
 
