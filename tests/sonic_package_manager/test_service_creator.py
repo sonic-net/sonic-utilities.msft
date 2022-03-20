@@ -131,7 +131,9 @@ def test_service_creator_yang(sonic_fs, manifest, mock_sonic_db,
     mock_sonic_db.get_connectors = Mock(return_value=[mock_connector])
     mock_connector.get_table = Mock(return_value={'key_a': {'field_1': 'value_1'}})
     mock_connector.get_config = Mock(return_value={
-        'TABLE_A': mock_connector.get_table('')
+        'TABLE_A': mock_connector.get_table(''),
+        'TABLE_B': mock_connector.get_table(''),
+        'TABLE_C': mock_connector.get_table(''),
     })
 
     entry = PackageEntry('test', 'azure/sonic-test')
@@ -155,15 +157,8 @@ def test_service_creator_yang(sonic_fs, manifest, mock_sonic_db,
 
     mock_config_mgmt.add_module.assert_called_with(test_yang)
 
-    mock_connector.mod_config.assert_called_with(
-        {
-            'TABLE_A': {
-                'key_a': {
-                    'field_1': 'value_1',
-                    'field_2': 'value_2',
-                },
-            },
-        }
+    mock_connector.mod_entry.assert_called_once_with(
+        'TABLE_A', 'key_a', {'field_1': 'value_1', 'field_2': 'value_2'}
     )
 
     mock_config_mgmt.sy.confDbYangMap = {

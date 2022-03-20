@@ -491,12 +491,22 @@ class ServiceCreator:
         if not init_cfg:
             return
 
+        def update_config_with_init_cfg(cfg, conn):
+            for table, content in init_cfg.items():
+                if not isinstance(content, dict):
+                    continue
+
+                for key, fvs in content.items():
+                    key_cfg = cfg.get(table, {}).get(key, {})
+                    key_cfg.update(fvs)
+                    conn.mod_entry(table, key, key_cfg)
+
         for conn in self.sonic_db.get_connectors():
             cfg = conn.get_config()
             new_cfg = init_cfg.copy()
             utils.deep_update(new_cfg, cfg)
             self.validate_config(new_cfg)
-            conn.mod_config(new_cfg)
+            update_config_with_init_cfg(cfg, conn)
 
     def remove_config(self, package):
         """ Remove configuration based on package YANG module.
