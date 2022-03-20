@@ -110,6 +110,9 @@
 * [NTP](#ntp)
   * [NTP show commands](#ntp-show-commands)
   * [NTP config commands](#ntp-config-commands)
+* [NVGRE](#nvgre)
+  * [NVGRE show commands](#nvgre-show-commands)
+  * [NVGRE config commands](#nvgre-config-commands)
 * [PBH](#pbh)
   * [PBH show commands](#pbh-show-commands)
   * [PBH config commands](#pbh-config-commands)
@@ -6766,6 +6769,97 @@ This command adds or deletes a member port to/from the already created portchann
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#portchannels)
+
+## NVGRE
+
+This section explains the various show commands and configuration commands available for users.
+
+### NVGRE show commands
+
+This subsection explains how to display the NVGRE configuration.
+
+**show nvgre-tunnel**
+
+This command displays the NVGRE tunnel configuration.
+
+- Usage:
+```bash
+show nvgre-tunnel
+```
+
+- Example:
+```bash
+admin@sonic:~$ show nvgre-tunnel
+TUNNEL NAME    SRC IP
+-------------  --------
+tunnel_1       10.0.0.1
+```
+
+**show nvgre-tunnel-map**
+
+This command displays the NVGRE tunnel map configuration.
+
+- Usage:
+```bash
+show nvgre-tunnel-map
+```
+
+- Example:
+```bash
+admin@sonic:~$ show nvgre-tunnel-map
+TUNNEL NAME    TUNNEL MAP NAME    VLAN ID    VSID
+-------------  -----------------  ---------  ------
+tunnel_1       Vlan1000           1000       5000
+tunnel_1       Vlan2000           2000       6000
+```
+
+### NVGRE config commands
+
+This subsection explains how to configure the NVGRE.
+
+**config nvgre-tunnel**
+
+This command is used to manage the NVGRE tunnel objects.  
+It supports add/delete operations.
+
+- Usage:
+```bash
+config nvgre-tunnel add <tunnel-name> --src-ip <source ip address>
+config nvgre-tunnel delete <tunnel-name>
+```
+
+- Parameters:
+  - _tunnel-name_: the name of the NVGRE tunnel
+  - _src-ip_: source ip address
+
+- Examples:
+```bash
+config nvgre-tunnel add 'tunnel_1' --src-ip '10.0.0.1'
+config nvgre-tunnel delete 'tunnel_1'
+```
+
+**config nvgre-tunnel-map**
+
+This command is used to manage the NVGRE tunnel map objects.  
+It supports add/delete operations.
+
+- Usage:
+```bash
+config nvgre-tunnel-map add <tunnel-name> <tunnel-map-name> --vlan-id <vlan> --vsid <virtual subnet>
+config nvgre-tunnel-map delete <tunnel-name> <tunnel-map-name>
+```
+
+- Parameters:
+  - _tunnel-name_: the name of the NVGRE tunnel
+  - _tunnel-map-name_: the name of the NVGRE tunnel map
+  - _vlan-id_: VLAN identifier
+  - _vsid_: Virtual Subnet Identifier
+
+- Examples:
+```bash
+config nvgre-tunnel-map add 'tunnel_1' 'Vlan2000' --vlan-id '2000' --vsid '6000'
+config nvgre-tunnel-map delete 'tunnel_1' 'Vlan2000'
+```
 
 ## PBH
 
