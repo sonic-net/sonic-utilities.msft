@@ -1024,6 +1024,19 @@ def validate_ipv4_address(ctx, param, ip_addr):
     except ValueError as e:
         raise click.UsageError(str(e))
 
+def validate_gre_type(ctx, _, value):
+    """A validator for validating input gre_type
+    """
+    try:
+        base = 10
+        if value.lower().startswith('0x'):
+            base = 16
+        gre_type_value = int(value, base)
+        if gre_type_value < GRE_TYPE_RANGE.min or gre_type_value > GRE_TYPE_RANGE.max:
+            raise click.UsageError("{} is not a valid GRE type".format(value))
+        return gre_type_value
+    except ValueError:
+        raise click.UsageError("{} is not a valid GRE type".format(value))
 
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
@@ -1893,7 +1906,7 @@ def mirror_session():
 @click.argument('dst_ip', metavar='<dst_ip>', callback=validate_ipv4_address, required=True)
 @click.argument('dscp', metavar='<dscp>', type=DSCP_RANGE, required=True)
 @click.argument('ttl', metavar='<ttl>', type=TTL_RANGE, required=True)
-@click.argument('gre_type', metavar='[gre_type]', type=GRE_TYPE_RANGE, required=False)
+@click.argument('gre_type', metavar='[gre_type]', callback=validate_gre_type, required=False)
 @click.argument('queue', metavar='[queue]', type=QUEUE_RANGE, required=False)
 @click.option('--policer')
 def add(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer):
@@ -1917,7 +1930,7 @@ def erspan(ctx):
 @click.argument('dst_ip', metavar='<dst_ip>', callback=validate_ipv4_address,required=True)
 @click.argument('dscp', metavar='<dscp>', type=DSCP_RANGE, required=True)
 @click.argument('ttl', metavar='<ttl>', type=TTL_RANGE, required=True)
-@click.argument('gre_type', metavar='[gre_type]', type=GRE_TYPE_RANGE, required=False)
+@click.argument('gre_type', metavar='[gre_type]', callback=validate_gre_type, required=False)
 @click.argument('queue', metavar='[queue]', type=QUEUE_RANGE, required=False)
 @click.argument('src_port', metavar='[src_port]', required=False)
 @click.argument('direction', metavar='[direction]', required=False)

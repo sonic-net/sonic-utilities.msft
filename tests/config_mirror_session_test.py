@@ -5,6 +5,7 @@ from click.testing import CliRunner
 
 ERR_MSG_IP_FAILURE = "does not appear to be an IPv4 or IPv6 network"
 ERR_MSG_IP_VERSION_FAILURE = "not a valid IPv4 address"
+ERR_MSG_GRE_TYPE_FAILURE = "not a valid GRE type"
 ERR_MSG_VALUE_FAILURE = "Invalid value for"
 
 def test_mirror_session_add():
@@ -50,7 +51,13 @@ def test_mirror_session_add():
             config.config.commands["mirror_session"].commands["add"],
             ["test_session", "1.1.1.1", "2.2.2.2", "6", "63", "65536", "100"])
     assert result.exit_code != 0
-    assert ERR_MSG_VALUE_FAILURE in result.stdout
+    assert ERR_MSG_GRE_TYPE_FAILURE in result.stdout
+
+    result = runner.invoke(
+            config.config.commands["mirror_session"].commands["add"],
+            ["test_session", "1.1.1.1", "2.2.2.2", "6", "63", "abcd", "100"])
+    assert result.exit_code != 0
+    assert ERR_MSG_GRE_TYPE_FAILURE in result.stdout
 
     # Verify invalid queue
     result = runner.invoke(
@@ -67,6 +74,11 @@ def test_mirror_session_add():
 
         mocked.assert_called_with("test_session", "100.1.1.1", "2.2.2.2", 8, 63, 10, 100, None)
 
+        result = runner.invoke(
+                config.config.commands["mirror_session"].commands["add"],
+                ["test_session", "100.1.1.1", "2.2.2.2", "8", "63", "0X1234", "100"])
+
+        mocked.assert_called_with("test_session", "100.1.1.1", "2.2.2.2", 8, 63, 0x1234, 100, None)
 
 
 def test_mirror_session_erspan_add():
@@ -112,7 +124,13 @@ def test_mirror_session_erspan_add():
             config.config.commands["mirror_session"].commands["erspan"].commands["add"],
             ["test_session", "1.1.1.1", "2.2.2.2", "6", "63", "65536", "100"])
     assert result.exit_code != 0
-    assert ERR_MSG_VALUE_FAILURE in result.stdout
+    assert ERR_MSG_GRE_TYPE_FAILURE in result.stdout
+    
+    result = runner.invoke(
+            config.config.commands["mirror_session"].commands["erspan"].commands["add"],
+            ["test_session", "1.1.1.1", "2.2.2.2", "6", "63", "abcd", "100"])
+    assert result.exit_code != 0
+    assert ERR_MSG_GRE_TYPE_FAILURE in result.stdout
 
     # Verify invalid queue
     result = runner.invoke(
@@ -128,6 +146,12 @@ def test_mirror_session_erspan_add():
                 ["test_session", "100.1.1.1", "2.2.2.2", "8", "63", "10", "100"])
 
         mocked.assert_called_with("test_session", "100.1.1.1", "2.2.2.2", 8, 63, 10, 100, None, None, None)
+
+        result = runner.invoke(
+                config.config.commands["mirror_session"].commands["erspan"].commands["add"],
+                ["test_session", "100.1.1.1", "2.2.2.2", "8", "63", "0x1234", "100"])
+
+        mocked.assert_called_with("test_session", "100.1.1.1", "2.2.2.2", 8, 63, 0x1234, 100, None, None, None)
 
 
 def test_mirror_session_span_add():
