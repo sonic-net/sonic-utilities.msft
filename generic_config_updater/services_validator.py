@@ -71,3 +71,30 @@ def vlan_validator(old_config, upd_config, keys):
     # No update to DHCP servers.
     return True
 
+def caclmgrd_validator(old_config, upd_config, keys):
+    old_acltable = old_config.get("ACL_TABLE", {})
+    upd_acltable = upd_config.get("ACL_TABLE", {})
+
+    old_cacltable = [table for table, fields in old_acltable.items()
+                     if fields.get("type", "") == "CTRLPLANE"]
+    upd_cacltable = [table for table, fields in upd_acltable.items()
+                     if fields.get("type", "") == "CTRLPLANE"]
+
+    old_aclrule = old_config.get("ACL_RULE", {})
+    upd_aclrule = upd_config.get("ACL_RULE", {})
+
+    old_caclrule = [rule for rule in old_aclrule
+                    if rule.split("|")[0] in old_cacltable]
+    upd_caclrule = [rule for rule in upd_aclrule
+                    if rule.split("|")[0] in upd_cacltable]
+
+    # Only sleep when cacl rule is changed as this will update iptable.
+    for key in set(old_caclrule).union(set(upd_caclrule)):
+        if (old_aclrule.get(key, {}) != upd_aclrule.get(key, {})):
+            # caclmgrd will update in 0.5 sec when configuration stops,
+            # we sleep 1 sec to make sure it does update.
+            time.sleep(1)
+            return True
+    # No update to ACL_RULE.
+    return True
+

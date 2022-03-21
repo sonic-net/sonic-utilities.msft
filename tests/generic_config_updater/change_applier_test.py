@@ -158,6 +158,7 @@ def system_health(old_cfg, new_cfg, keys):
     if svcs != None:
         assert svc_name in svcs
         svcs.remove(svc_name)
+    return True
 
 
 def _validate_keys(keys):
@@ -201,11 +202,13 @@ def _validate_svc(svc_name, old_cfg, new_cfg, keys):
 def acl_validate(old_cfg, new_cfg, keys):
     debug_print("acl_validate called")
     _validate_svc("acl_validate", old_cfg, new_cfg, keys)
+    return True
 
 
 def vlan_validate(old_cfg, new_cfg, keys):
     debug_print("vlan_validate called")
     _validate_svc("vlan_validate", old_cfg, new_cfg, keys)
+    return True
 
 
 class TestChangeApplier(unittest.TestCase):

@@ -107,7 +107,7 @@ class ChangeApplier:
 
         for cmd in lst_cmds:
             ret = self._invoke_cmd(cmd, old_cfg, upd_cfg, keys)
-            if ret:
+            if not ret:
                 log_error("service invoked: {} failed with ret={}".format(cmd, ret))
                 return ret
             log_debug("service invoked: {}".format(cmd))
