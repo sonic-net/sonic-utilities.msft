@@ -854,6 +854,19 @@ def protocol(verbose):
     cmd = 'sudo {} -c "show ip protocol"'.format(constants.RVTYSH_COMMAND)
     run_command(cmd, display_cmd=verbose)
 
+#
+# 'fib' subcommand ("show ip fib")
+#
+@ip.command()
+@click.argument('ipaddress', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def fib(ipaddress, verbose):
+    """Show IP FIB table"""
+    cmd = "fibshow -4"
+    if ipaddress is not None:
+        cmd += " -ip {}".format(ipaddress)
+    run_command(cmd, display_cmd=verbose)
+
 
 #
 # 'ipv6' group ("show ipv6 ...")
@@ -982,6 +995,19 @@ def link_local_mode(verbose):
                     body.append([port, 'Disabled'])
 
     click.echo(tabulate(body, header, tablefmt="grid"))
+
+#
+# 'fib' subcommand ("show ipv6 fib")
+#
+@ipv6.command()
+@click.argument('ipaddress', required=False)
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def fib(ipaddress, verbose):
+    """Show IP FIB table"""
+    cmd = "fibshow -6"
+    if ipaddress is not None:
+        cmd += " -ip {}".format(ipaddress)
+    run_command(cmd, display_cmd=verbose)
 
 #
 # 'lldp' group ("show lldp ...")

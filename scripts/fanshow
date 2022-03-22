@@ -65,7 +65,6 @@ class FanShow(object):
 
             presence = data_dict[PRESENCE_FIELD_NAME].lower()
             presence = 'Present' if presence == 'true' else 'Not Present'
-            
             status = data_dict[STATUS_FIELD_NAME]
             status_lower = status.lower()
             if status_lower == 'true':
@@ -73,9 +72,8 @@ class FanShow(object):
             elif status_lower == 'false':
                 status = 'Not OK'
 
-            table.append((data_dict[DRAWER_FIELD_NAME], data_dict[LED_STATUS_FIELD_NAME], name, speed, data_dict[DIRECTION_FIELD_NAME], presence, status, 
+            table.append((data_dict[DRAWER_FIELD_NAME], data_dict[LED_STATUS_FIELD_NAME], name, speed, data_dict[DIRECTION_FIELD_NAME], presence, status,
                           data_dict[TIMESTAMP_FIELD_NAME]))
-        
         if table:
             print(tabulate(table, header, tablefmt='simple', stralign='right'))
         else:
