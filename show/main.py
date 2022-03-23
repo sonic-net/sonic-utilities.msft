@@ -14,6 +14,7 @@ from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
 from utilities_common import util_base
 from utilities_common.db import Db
+from datetime import datetime
 import utilities_common.constants as constants
 from utilities_common.general import load_db_config
 
@@ -1083,9 +1084,11 @@ def version(verbose):
     version_info = device_info.get_sonic_version_info()
     platform_info = device_info.get_platform_info()
     chassis_info = platform.get_chassis_info()
-    
+
     sys_uptime_cmd = "uptime"
     sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+
+    sys_date = datetime.now()
 
     click.echo("\nSONiC Software Version: SONiC.{}".format(version_info['build_version']))
     click.echo("Distribution: Debian {}".format(version_info['debian_version']))
@@ -1101,6 +1104,7 @@ def version(verbose):
     click.echo("Model Number: {}".format(chassis_info['model']))
     click.echo("Hardware Revision: {}".format(chassis_info['revision']))
     click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
+    click.echo("Date: {}".format(sys_date.strftime("%a %d %b %Y %X")))
     click.echo("\nDocker images:")
     cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
     p = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE)
@@ -1158,7 +1162,7 @@ def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop,
 
     if since:
         cmd += " -s '{}'".format(since)
-    
+
     if debug_dump:
         cmd += " -d "
 
@@ -1263,7 +1267,7 @@ def snmp(ctx, db):
 
 # ("show runningconfiguration snmp community")
 @snmp.command('community')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def community(db, json_output):
@@ -1284,7 +1288,7 @@ def community(db, json_output):
 
 # ("show runningconfiguration snmp contact")
 @snmp.command('contact')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def contact(db, json_output):
@@ -1312,7 +1316,7 @@ def contact(db, json_output):
 
 # ("show runningconfiguration snmp location")
 @snmp.command('location')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def location(db, json_output):
@@ -1339,13 +1343,13 @@ def location(db, json_output):
 
 # ("show runningconfiguration snmp user")
 @snmp.command('user')
-@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, 
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL,
               help="Display the output in JSON format")
 @clicommon.pass_db
 def users(db, json_output):
     """show SNMP running configuration user"""
     snmp_users = db.cfgdb.get_table('SNMP_USER')
-    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type", 
+    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type",
                         "Encryption Password"]
     snmp_user_body = []
     if json_output:
@@ -1358,7 +1362,7 @@ def users(db, json_output):
             snmp_user_encryption_type = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_TYPE', 'Null')
             snmp_user_encryption_password = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_PASSWORD', 'Null')
             snmp_user_type = snmp_users[snmp_user].get('SNMP_USER_TYPE', 'Null')
-            snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type, 
+            snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type,
                                    snmp_user_auth_password, snmp_user_encryption_type, snmp_user_encryption_password])
         click.echo(tabulate(natsorted(snmp_user_body), snmp_user_header))
 
@@ -1375,7 +1379,7 @@ def show_run_snmp(db, ctx):
     snmp_contact_body = []
     snmp_comm_header = ["Community String", "Community Type"]
     snmp_comm_body = []
-    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type", 
+    snmp_user_header = ['User', "Permission Type", "Type", "Auth Type", "Auth Password", "Encryption Type",
                         "Encryption Password"]
     snmp_user_body = []
     try:
@@ -1409,7 +1413,7 @@ def show_run_snmp(db, ctx):
         snmp_user_encryption_type = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_TYPE', 'Null')
         snmp_user_encryption_password = snmp_users[snmp_user].get('SNMP_USER_ENCRYPTION_PASSWORD', 'Null')
         snmp_user_type = snmp_users[snmp_user].get('SNMP_USER_TYPE', 'Null')
-        snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type, 
+        snmp_user_body.append([snmp_user, snmp_user_permissions_type, snmp_user_type, snmp_user_auth_type,
                                snmp_user_auth_password, snmp_user_encryption_type, snmp_user_encryption_password])
     click.echo(tabulate(natsorted(snmp_user_body), snmp_user_header))
 

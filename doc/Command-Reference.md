@@ -480,6 +480,7 @@ This command displays relevant information as the SONiC and Linux kernel version
   Model Number: MSN2700-CS2FO
   Hardware Rev: A1
   Uptime: 14:40:15 up 3 min,  1 user,  load average: 1.26, 1.45, 0.66
+  Date: Fri 22 Mar 2019 14:40:15
 
   Docker images:
   REPOSITORY                 TAG                 IMAGE ID            SIZE
