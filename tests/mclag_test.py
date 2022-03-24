@@ -42,6 +42,9 @@ MCLAG_INVALID_KEEPALIVE_TIMER_UBOUND  = "61"
 MCLAG_INVALID_SESSION_TMOUT_LBOUND  = "2"
 MCLAG_INVALID_SESSION_TMOUT_UBOUND  = "4000"
 
+MCLAG_VALID_PEER_LINK_PORT = "Ethernet0"
+MCLAG_VALID_PEER_LINK_PORTCHANNEL = "PortChannel1000"
+
 MCLAG_INVALID_MCLAG_MEMBER  = "Ethernet4"
 MCLAG_INVALID_PORTCHANNEL1  = "portchannel" 
 MCLAG_INVALID_PORTCHANNEL2  = "PortChannelabcd" 
@@ -141,6 +144,23 @@ class TestMclag(object):
         # add mclag with invalid peer ip mcast
         result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_INVALID_PEER_IP2, MCLAG_PEER_LINK], obj=obj)
         assert result.exit_code != 0, "mclag invalid peer ip mcast test caase with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
+
+    def test_add_mclag_with_valid_peer_link(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # add mclag with valid port peer link
+        result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_VALID_PEER_LINK_PORT], obj=obj)
+        assert result.exit_code == 0, "mclag valid peer link test case with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
+
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # add mclag with valid portchannel peer link
+        result = runner.invoke(config.config.commands["mclag"].commands["add"], [MCLAG_DOMAIN_ID, MCLAG_SRC_IP, MCLAG_PEER_IP, MCLAG_VALID_PEER_LINK_PORTCHANNEL], obj=obj)
+        assert result.exit_code == 0, "mclag valid peer link test case with code {}:{} Output:{}".format(type(result.exit_code), result.exit_code, result.output)
 
     def test_add_mclag_with_invalid_peer_link(self):
         runner = CliRunner()
