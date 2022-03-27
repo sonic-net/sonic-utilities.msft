@@ -88,6 +88,10 @@ module sonic-device_metadata {
                     type uint32;
                 }
 
+                leaf non_existing_field {
+                    type uint32;
+                }
+
                 leaf type {
                     type string {
                         length 1..255;

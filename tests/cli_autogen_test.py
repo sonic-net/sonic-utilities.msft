@@ -109,6 +109,18 @@ class TestCliAutogen:
         assert result.exit_code == SUCCESS
         assert result.output == show_cmd_output.show_device_metadata_localhost_changed_buffer_model
 
+    def test_config_device_metadata_non_existing_field(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = mock_db_path
+        db = Db()
+        runner = CliRunner()
+
+        result = runner.invoke(
+            config_main.config.commands['device-metadata'].commands['localhost'].commands['non-existing-field'], ['12'], obj=db
+        )
+
+        logger.debug("\n" + result.output)
+        logger.debug(result.exit_code)
+        assert result.exit_code == SUCCESS
 
     @pytest.mark.parametrize("parameter,value", [
         ('default-bgp-status', INVALID_VALUE),

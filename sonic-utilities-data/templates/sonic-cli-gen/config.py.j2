@@ -102,7 +102,7 @@ def update_entry_validated(db, table, key, data, create_if_not_exists=False):
 
     entry_changed = False
     for attr, value in data.items():
-        if value == cfg[table][key][attr]:
+        if value == cfg[table][key].get(attr):
             continue
         entry_changed = True
         if value is None:
