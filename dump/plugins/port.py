@@ -1,5 +1,6 @@
 from dump.match_infra import MatchRequest
 from dump.helper import create_template_dict
+from dump.match_helper import fetch_port_oid
 from .executor import Executor
 
 
@@ -45,18 +46,8 @@ class Port(Executor):
         self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
 
     def init_asic_hostif_info(self, port_name):
-        req = MatchRequest(db="ASIC_DB", table="ASIC_STATE:SAI_OBJECT_TYPE_HOSTIF", key_pattern="*", field="SAI_HOSTIF_ATTR_NAME",
-                           value=port_name, return_fields=["SAI_HOSTIF_ATTR_OBJ_ID"], ns=self.ns)
-        ret = self.match_engine.fetch(req)
-        asic_port_obj_id = ""
-
-        if not ret["error"] and len(ret["keys"]) != 0:
-            self.ret_temp[req.db]["keys"] = ret["keys"]
-            sai_hostif_obj_key = ret["keys"][-1]
-            if sai_hostif_obj_key in ret["return_values"] and "SAI_HOSTIF_ATTR_OBJ_ID" in ret["return_values"][sai_hostif_obj_key]:
-                asic_port_obj_id = ret["return_values"][sai_hostif_obj_key]["SAI_HOSTIF_ATTR_OBJ_ID"]
-        else:
-            self.ret_temp[req.db]["tables_not_found"] = [req.table]
+        req, asic_port_obj_id, ret = fetch_port_oid(self.match_engine, port_name, self.ns)
+        self.add_to_ret_template(req.table, req.db, ret["keys"], ret["error"])
         return asic_port_obj_id
 
     def init_asic_port_info(self, asic_port_obj_id):
