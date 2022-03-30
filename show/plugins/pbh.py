@@ -93,7 +93,7 @@ def PBH_HASH_FIELD(db):
 
     body = []
 
-    table = db.cfgdb.get_table(pbh_hash_field_tbl_name)
+    table = db.cfgdb_pipe.get_table(pbh_hash_field_tbl_name)
     for key in natsort.natsorted(table):
 
         entry = table[key]
@@ -158,7 +158,7 @@ def PBH_HASH(db):
 
     body = []
 
-    table = db.cfgdb.get_table(pbh_hash_tbl_name)
+    table = db.cfgdb_pipe.get_table(pbh_hash_tbl_name)
     for key in natsort.natsorted(table):
         entry = table[key]
         if not isinstance(key, tuple):
@@ -203,7 +203,7 @@ def PBH_RULE(db):
 
     body = []
 
-    table = db.cfgdb.get_table(pbh_rule_tbl_name)
+    table = db.cfgdb_pipe.get_table(pbh_rule_tbl_name)
     for key in natsort.natsorted(table):
         entry = table[key]
         if not isinstance(key, tuple):
@@ -322,7 +322,7 @@ def PBH_TABLE(db):
 
     body = []
 
-    table = db.cfgdb.get_table(pbh_table_tbl_name)
+    table = db.cfgdb_pipe.get_table(pbh_table_tbl_name)
     for key in natsort.natsorted(table):
         entry = table[key]
         if not isinstance(key, tuple):
@@ -374,12 +374,12 @@ def PBH_STATISTICS(db):
 
     body = []
 
-    pbh_rules = db.cfgdb.get_table(pbh_rule_tbl_name)
+    pbh_rules = db.cfgdb_pipe.get_table(pbh_rule_tbl_name)
     pbh_counters = read_pbh_counters(pbh_rules)
-    saved_pbh_counters = read_saved_pbh_counters()
+    saved_pbh_counters = deserialize_pbh_counters()
 
     for key in pbh_rules:
-        if pbh_rules[key]['flow_counter'] == 'ENABLED':
+        if pbh_rules[key].get("flow_counter", "") == "ENABLED":
             row = [
                 key[0],
                 key[1],
@@ -403,20 +403,43 @@ def get_counter_value(pbh_counters, saved_pbh_counters, key, type):
     return str(pbh_counters[key][type])
 
 
-def remap_keys(obj_list):
-    res = {}
-    for e in obj_list:
-        res[e['key'][0], e['key'][1]] = e['value']
-    return res
+def deserialize_pbh_counters():
+    """ Helper that performs PBH counters deserialization.
 
+        in = [
+            {
+                "key": ["pbh_table1", "pbh_rule1"],
+                "value": {"SAI_ACL_COUNTER_ATTR_BYTES": "0", "SAI_ACL_COUNTER_ATTR_PACKETS": "0"}
+            },
+            ...
+            {
+                "key": ["pbh_tableN", "pbh_ruleN"],
+                "value": {"SAI_ACL_COUNTER_ATTR_BYTES": "0", "SAI_ACL_COUNTER_ATTR_PACKETS": "0"}
+            }
+        ]
 
-def read_saved_pbh_counters():
+        out = {
+            ('pbh_table1', 'pbh_rule1'): {'SAI_ACL_COUNTER_ATTR_BYTES': '0', 'SAI_ACL_COUNTER_ATTR_PACKETS': '0'},
+            ...
+            ('pbh_tableN', 'pbh_ruleN'): {'SAI_ACL_COUNTER_ATTR_BYTES': '0', 'SAI_ACL_COUNTER_ATTR_PACKETS': '0'}
+        }
+
+        Returns:
+            obj: counters dict.
+    """
+
+    def remap_keys(obj):
+        res = {}
+        for e in obj:
+            res[e['key'][0], e['key'][1]] = e['value']
+        return res
+
     if os.path.isfile(PBH_COUNTERS_LOCATION):
         try:
-            with open(PBH_COUNTERS_LOCATION) as fp:
-                return remap_keys(json.load(fp))
-        except Exception:
-            return {}
+            with open(PBH_COUNTERS_LOCATION, 'r') as f:
+                return remap_keys(json.load(f))
+        except Exception as err:
+            pass
 
     return {}
 
@@ -484,4 +507,3 @@ def register(cli):
     if cli_node.name in cli.commands:
         raise Exception(f"{cli_node.name} already exists in CLI")
     cli.add_command(PBH)
-

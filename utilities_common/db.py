@@ -1,5 +1,5 @@
 from sonic_py_common import multi_asic, device_info
-from swsscommon.swsscommon import ConfigDBConnector, SonicV2Connector
+from swsscommon.swsscommon import ConfigDBConnector, ConfigDBPipeConnector, SonicV2Connector
 from utilities_common import constants
 from utilities_common.multi_asic import multi_asic_ns_choices
 
@@ -10,6 +10,8 @@ class Db(object):
         self.db_clients = {}
         self.cfgdb = ConfigDBConnector()
         self.cfgdb.connect()
+        self.cfgdb_pipe = ConfigDBPipeConnector()
+        self.cfgdb_pipe.connect()
         self.db = SonicV2Connector(host="127.0.0.1")
 
         # Skip connecting to chassis databases in line cards

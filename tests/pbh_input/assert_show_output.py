@@ -77,6 +77,7 @@ pbh_table1  nvgre   100                 200
 pbh_table2  vxlan   300                 400
 """
 
+
 show_pbh_statistics_updated="""\
 TABLE       RULE    RX PACKETS COUNT    RX BYTES COUNT
 ----------  ------  ------------------  ----------------
@@ -84,9 +85,25 @@ pbh_table1  nvgre   400                 400
 pbh_table2  vxlan   400                 400
 """
 
+
 show_pbh_statistics_after_disabling_rule="""\
 TABLE       RULE    RX PACKETS COUNT    RX BYTES COUNT
 ----------  ------  ------------------  ----------------
 pbh_table1  nvgre   0                   0
 """
 
+
+show_pbh_statistics_after_toggling_counter="""\
+TABLE       RULE    RX PACKETS COUNT    RX BYTES COUNT
+----------  ------  ------------------  ----------------
+pbh_table1  nvgre   100                 200
+pbh_table2  vxlan   0                   0
+"""
+
+
+show_pbh_statistics_after_toggling_rule="""\
+TABLE       RULE    RX PACKETS COUNT    RX BYTES COUNT
+----------  ------  ------------------  ----------------
+pbh_table1  nvgre   0                   0
+pbh_table2  vxlan   300                 400
+"""

@@ -2,6 +2,7 @@
 import json
 import os
 import sys
+import re
 from unittest import mock
 
 import mockredis
@@ -121,6 +122,41 @@ class SwssSyncClient(mockredis.MockRedis):
 
     # Patch mockredis/mockredis/client.py
     # The offical implementation assume decode_responses=False
+    def _common_scan(self, values_function, cursor='0', match=None, count=10, key=None):
+        """
+        Common scanning skeleton.
+
+        :param key: optional function used to identify what 'match' is applied to
+        """
+        if count is None:
+            count = 10
+        cursor = int(cursor)
+        count = int(count)
+        if not count:
+            raise ValueError('if specified, count must be > 0: %s' % count)
+
+        values = values_function()
+        if cursor + count >= len(values):
+            # we reached the end, back to zero
+            result_cursor = 0
+        else:
+            result_cursor = cursor + count
+
+        values = values[cursor:cursor+count]
+
+        if match is not None:
+            if self.decode_responses:
+                regex = re.compile('^' + re.escape(self._encode(match)).replace('\\*', '.*') + '$')
+            else:
+                regex = re.compile(b'^' + re.escape(self._encode(match)).replace(b'\\*', b'.*') + b'$')
+            if not key:
+                key = lambda v: v
+            values = [v for v in values if regex.match(key(v))]
+
+        return [result_cursor, values]
+
+    # Patch mockredis/mockredis/client.py
+    # The offical implementation assume decode_responses=False
     # Here we detect the option and decode after doing encode
     def _encode(self, value):
         "Return a bytestring representation of the value. Taken from redis-py connection.py"
@@ -128,7 +164,7 @@ class SwssSyncClient(mockredis.MockRedis):
         value = super(SwssSyncClient, self)._encode(value)
 
         if self.decode_responses:
-           return value.decode('utf-8')
+            return value.decode('utf-8')
 
     # Patch mockredis/mockredis/client.py
     # The official implementation will filter out keys with a slash '/'
