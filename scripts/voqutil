@@ -38,6 +38,7 @@ SYSTEM_PORT_CORE = "core_index"
 SYSTEM_PORT_CORE_PORT = "core_port_index"
 SYSTEM_PORT_SPEED = "speed"
 SYSTEM_PORT_SWITCH_ID = "switch_id"
+SYSTEM_PORT_OPER_STATUS = "oper_status"
 
 SYSTEM_NEIGH_TABLE_PREFIX = swsscommon.CHASSIS_APP_SYSTEM_NEIGH_TABLE_NAME + "|"
 SYSTEM_NEIGH_MAC = "neigh"
@@ -116,7 +117,9 @@ def port_oper_speed_get(db, system_port_name):
     """
     full_table_id = SYSTEM_STATE_PORT_TABLE_PREFIX + system_port_name
     oper_speed = db.get(db.STATE_DB, full_table_id, SYSTEM_PORT_SPEED)
-    if oper_speed is None or oper_speed == "N/A":
+    oper_status = db.get(db.APPL_DB, SYSTEM_PORT_TABLE_PREFIX + system_port_name,
+                         SYSTEM_PORT_OPER_STATUS)
+    if oper_speed is None or oper_speed == "N/A" or oper_status != "up":
         return appl_db_system_port_status_get(db, system_port_name, SYSTEM_PORT_SPEED)
 
     return '{}G'.format(oper_speed[:-3])

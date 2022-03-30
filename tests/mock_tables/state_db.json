@@ -643,6 +643,7 @@
         "access": "False"
     },
     "PORT_TABLE|Ethernet0": {
+        "speed" : "100000",
         "supported_speeds": "10000,25000,40000,100000"
     },
     "PORT_TABLE|Ethernet112": {

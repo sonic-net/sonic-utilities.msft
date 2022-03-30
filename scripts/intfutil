@@ -154,7 +154,8 @@ def port_oper_speed_get(db, intf_name):
     Get port oper speed
     """
     oper_speed = db.get(db.STATE_DB, PORT_STATE_TABLE_PREFIX + intf_name, PORT_SPEED)
-    if oper_speed is None or oper_speed == "N/A":
+    oper_status = db.get(db.APPL_DB, PORT_STATUS_TABLE_PREFIX + intf_name, PORT_OPER_STATUS)
+    if oper_speed is None or oper_speed == "N/A" or oper_status != "up":
         return appl_db_port_status_get(db, intf_name, PORT_SPEED)
 
     return '{}G'.format(oper_speed[:-3])
@@ -164,7 +165,8 @@ def port_oper_speed_get_raw(db, intf_name):
     Get port raw speed. E.g. 100000, 50000 and so on.
     """
     speed = db.get(db.STATE_DB, PORT_STATE_TABLE_PREFIX + intf_name, PORT_SPEED)
-    if speed is None or speed == "N/A":
+    oper_status = db.get(db.APPL_DB, PORT_STATUS_TABLE_PREFIX + intf_name, PORT_OPER_STATUS)
+    if speed is None or speed == "N/A" or oper_status != "up":
         speed = db.get(db.APPL_DB, PORT_STATUS_TABLE_PREFIX + intf_name, PORT_SPEED)
     return speed
 
