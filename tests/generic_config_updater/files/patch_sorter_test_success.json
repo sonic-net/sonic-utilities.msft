@@ -169,15 +169,9 @@
                     "op": "add",
                     "path": "/INTERFACE/Ethernet8|10.0.0.1~130",
                     "value": {
-                        "family": "IPv4"
+                        "family": "IPv4",
+                        "scope": "global"
                     }
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/INTERFACE/Ethernet8|10.0.0.1~130/scope",
-                    "value": "global"
                 }
             ]
         ]
@@ -282,38 +276,14 @@
                     "op": "add",
                     "path": "/ACL_TABLE/EVERFLOWV6",
                     "value": {
+                        "policy_desc": "EVERFLOWV6",
+                        "ports": [
+                            "Ethernet4",
+                            "Ethernet8"
+                        ],
+                        "stage": "ingress",
                         "type": "MIRRORV6"
                     }
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/ACL_TABLE/EVERFLOWV6/policy_desc",
-                    "value": "EVERFLOWV6"
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/ACL_TABLE/EVERFLOWV6/ports",
-                    "value": [
-                        "Ethernet4"
-                    ]
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/ACL_TABLE/EVERFLOWV6/ports/1",
-                    "value": "Ethernet8"
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/ACL_TABLE/EVERFLOWV6/stage",
-                    "value": "ingress"
                 }
             ]
         ]
@@ -419,7 +389,11 @@
                     "path": "/ACL_TABLE",
                     "value": {
                         "NO-NSW-PACL-V4": {
-                            "type": "L3"
+                            "type": "L3",
+                            "policy_desc": "NO-NSW-PACL-V4",
+                            "ports": [
+                                "Ethernet0"
+                            ]
                         }
                     }
                 }
@@ -427,24 +401,13 @@
             [
                 {
                     "op": "add",
-                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/policy_desc",
-                    "value": "NO-NSW-PACL-V4"
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports",
-                    "value": [
-                        "Ethernet0"
-                    ]
-                }
-            ],
-            [
-                {
-                    "op": "add",
                     "path": "/ACL_TABLE/DATAACL",
                     "value": {
+                        "policy_desc": "DATAACL",
+                        "ports": [
+                            "Ethernet4"
+                        ],
+                        "stage": "ingress",
                         "type": "L3"
                     }
                 }
@@ -452,31 +415,13 @@
             [
                 {
                     "op": "add",
-                    "path": "/ACL_TABLE/DATAACL/policy_desc",
-                    "value": "DATAACL"
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/ACL_TABLE/DATAACL/ports",
-                    "value": [
-                        "Ethernet4"
-                    ]
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/ACL_TABLE/DATAACL/stage",
-                    "value": "ingress"
-                }
-            ],
-            [
-                {
-                    "op": "add",
                     "path": "/ACL_TABLE/EVERFLOW",
                     "value": {
+                        "policy_desc": "EVERFLOW",
+                        "ports": [
+                            "Ethernet8"
+                        ],
+                        "stage": "ingress",
                         "type": "MIRROR"
                     }
                 }
@@ -484,63 +429,16 @@
             [
                 {
                     "op": "add",
-                    "path": "/ACL_TABLE/EVERFLOW/policy_desc",
-                    "value": "EVERFLOW"
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/ACL_TABLE/EVERFLOW/ports",
-                    "value": [
-                        "Ethernet8"
-                    ]
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/ACL_TABLE/EVERFLOW/stage",
-                    "value": "ingress"
-                }
-            ],
-            [
-                {
-                    "op": "add",
                     "path": "/ACL_TABLE/EVERFLOWV6",
                     "value": {
+                        "policy_desc": "EVERFLOWV6",
+                        "ports": [
+                            "Ethernet4",
+                            "Ethernet8"
+                        ],
+                        "stage": "ingress",
                         "type": "MIRRORV6"
                     }
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/ACL_TABLE/EVERFLOWV6/policy_desc",
-                    "value": "EVERFLOWV6"
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/ACL_TABLE/EVERFLOWV6/ports",
-                    "value": [
-                        "Ethernet4"
-                    ]
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/ACL_TABLE/EVERFLOWV6/ports/1",
-                    "value": "Ethernet8"
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/ACL_TABLE/EVERFLOWV6/stage",
-                    "value": "ingress"
                 }
             ]
         ]
@@ -979,48 +877,12 @@
             [
                 {
                     "op": "add",
-                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports",
-                    "value": [
-                        "Ethernet0"
-                    ]
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/VLAN_MEMBER",
-                    "value": {
-                        "Vlan100|Ethernet0": {
-                            "tagging_mode": "untagged"
-                        }
-                    }
-                }
-            ],
-            [
-                {
-                    "op": "add",
                     "path": "/PORT/Ethernet3",
                     "value": {
                         "alias": "Eth1/4",
                         "lanes": "68",
                         "description": "",
                         "speed": "10000"
-                    }
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports/1",
-                    "value": "Ethernet3"
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/VLAN_MEMBER/Vlan100|Ethernet3",
-                    "value": {
-                        "tagging_mode": "untagged"
                     }
                 }
             ],
@@ -1039,8 +901,42 @@
             [
                 {
                     "op": "add",
-                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports/2",
-                    "value": "Ethernet2"
+                    "path": "/PORT/Ethernet1",
+                    "value": {
+                        "alias": "Eth1/2",
+                        "lanes": "66",
+                        "description": "",
+                        "speed": "10000"
+                    }
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/VLAN_MEMBER",
+                    "value": {
+                        "Vlan100|Ethernet0": {
+                            "tagging_mode": "untagged"
+                        }
+                    }
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/VLAN_MEMBER/Vlan100|Ethernet1",
+                    "value": {
+                        "tagging_mode": "untagged"
+                    }
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/VLAN_MEMBER/Vlan100|Ethernet3",
+                    "value": {
+                        "tagging_mode": "untagged"
+                    }
                 }
             ],
             [
@@ -1055,13 +951,10 @@
             [
                 {
                     "op": "add",
-                    "path": "/PORT/Ethernet1",
-                    "value": {
-                        "alias": "Eth1/2",
-                        "lanes": "66",
-                        "description": "",
-                        "speed": "10000"
-                    }
+                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports",
+                    "value": [
+                        "Ethernet0"
+                    ]
                 }
             ],
             [
@@ -1073,23 +966,16 @@
             ],
             [
                 {
-                    "op": "replace",
-                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports",
-                    "value": [
-                        "Ethernet0",
-                        "Ethernet1",
-                        "Ethernet2",
-                        "Ethernet3"
-                    ]
+                    "op": "add",
+                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports/2",
+                    "value": "Ethernet2"
                 }
             ],
             [
                 {
                     "op": "add",
-                    "path": "/VLAN_MEMBER/Vlan100|Ethernet1",
-                    "value": {
-                        "tagging_mode": "untagged"
-                    }
+                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports/3",
+                    "value": "Ethernet3"
                 }
             ]
         ]
@@ -1222,6 +1108,24 @@
         "expected_changes": [
             [
                 {
+                    "op": "remove",
+                    "path": "/VLAN_MEMBER/Vlan100|Ethernet1"
+                }
+            ],
+            [
+                {
+                    "op": "remove",
+                    "path": "/VLAN_MEMBER/Vlan100|Ethernet2"
+                }
+            ],
+            [
+                {
+                    "op": "remove",
+                    "path": "/VLAN_MEMBER/Vlan100|Ethernet3"
+                }
+            ],
+            [
+                {
                     "op": "replace",
                     "path": "/PORT/Ethernet0/alias",
                     "value": "Eth1"
@@ -1286,31 +1190,13 @@
             [
                 {
                     "op": "remove",
-                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports/1"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
-                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports/1"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
-                    "path": "/VLAN_MEMBER/Vlan100|Ethernet1"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
                     "path": "/PORT/Ethernet1"
                 }
             ],
             [
                 {
                     "op": "remove",
-                    "path": "/VLAN_MEMBER/Vlan100|Ethernet2"
+                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports/1"
                 }
             ],
             [
@@ -1322,7 +1208,7 @@
             [
                 {
                     "op": "remove",
-                    "path": "/VLAN_MEMBER/Vlan100|Ethernet3"
+                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports/1"
                 }
             ],
             [
@@ -1361,37 +1247,21 @@
             [
                 {
                     "op": "add",
-                    "path": "/ACL_TABLE",
+                    "path": "/VLAN_MEMBER",
                     "value": {
-                        "NO-NSW-PACL-V4": {
-                            "type": "L3"
+                        "Vlan100|Ethernet0": {
+                            "tagging_mode": "untagged"
                         }
                     }
                 }
             ],
             [
                 {
-                    "op": "remove",
-                    "path": "/PORT"
-                }
-            ],
-            [
-                {
                     "op": "add",
-                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/policy_desc",
-                    "value": "NO-NSW-PACL-V4"
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/PORT",
+                    "path": "/ACL_TABLE",
                     "value": {
-                        "Ethernet0": {
-                            "alias": "Eth1",
-                            "lanes": "65, 66, 67, 68",
-                            "description": "Ethernet0 100G link",
-                            "speed": "100000"
+                        "NO-NSW-PACL-V4": {
+                            "type": "L3"
                         }
                     }
                 }
@@ -1407,6 +1277,38 @@
             ],
             [
                 {
+                    "op": "remove",
+                    "path": "/VLAN_MEMBER"
+                }
+            ],
+            [
+                {
+                    "op": "remove",
+                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports"
+                }
+            ],
+            [
+                {
+                    "op": "remove",
+                    "path": "/PORT"
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/PORT",
+                    "value": {
+                        "Ethernet0": {
+                            "alias": "Eth1",
+                            "description": "Ethernet0 100G link",
+                            "lanes": "65, 66, 67, 68",
+                            "speed": "100000"
+                        }
+                    }
+                }
+            ],
+            [
+                {
                     "op": "add",
                     "path": "/VLAN_MEMBER",
                     "value": {
@@ -1414,6 +1316,22 @@
                             "tagging_mode": "untagged"
                         }
                     }
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/policy_desc",
+                    "value": "NO-NSW-PACL-V4"
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports",
+                    "value": [
+                        "Ethernet0"
+                    ]
                 }
             ]
         ]
@@ -2088,18 +2006,6 @@
             [
                 {
                     "op": "remove",
-                    "path": "/PORT/Ethernet0/alias"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
-                    "path": "/PORT/Ethernet0/description"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
                     "path": "/VLAN_MEMBER/Vlan1000|Ethernet0"
                 }
             ],
@@ -2154,18 +2060,6 @@
             }
         ],
         "expected_changes": [
-            [
-                {
-                    "op": "remove",
-                    "path": "/INTERFACE/Ethernet8|10.0.0.1~130/family"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
-                    "path": "/INTERFACE/Ethernet8|10.0.0.1~130/scope"
-                }
-            ],
             [
                 {
                     "op": "remove",
@@ -2381,61 +2275,7 @@
             [
                 {
                     "op": "remove",
-                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/policy_desc"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
-                    "path": "/ACL_TABLE/DATAACL/policy_desc"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
-                    "path": "/ACL_TABLE/DATAACL/stage"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
-                    "path": "/ACL_TABLE/EVERFLOW/policy_desc"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
-                    "path": "/ACL_TABLE/EVERFLOW/stage"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
-                    "path": "/ACL_TABLE/EVERFLOWV6/policy_desc"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
-                    "path": "/ACL_TABLE/EVERFLOWV6/ports/0"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
-                    "path": "/ACL_TABLE/EVERFLOWV6/stage"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
                     "path": "/ACL_TABLE/NO-NSW-PACL-V4"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
-                    "path": "/ACL_TABLE/DATAACL/ports"
                 }
             ],
             [
@@ -2447,19 +2287,7 @@
             [
                 {
                     "op": "remove",
-                    "path": "/ACL_TABLE/EVERFLOW/ports"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
                     "path": "/ACL_TABLE/EVERFLOW"
-                }
-            ],
-            [
-                {
-                    "op": "remove",
-                    "path": "/ACL_TABLE/EVERFLOWV6/ports"
                 }
             ],
             [
@@ -2755,37 +2583,21 @@
             [
                 {
                     "op": "add",
-                    "path": "/ACL_TABLE",
+                    "path": "/VLAN_MEMBER",
                     "value": {
-                        "NO-NSW-PACL-V4": {
-                            "type": "L3"
+                        "Vlan100|Ethernet0": {
+                            "tagging_mode": "untagged"
                         }
                     }
                 }
             ],
             [
                 {
-                    "op": "remove",
-                    "path": "/PORT"
-                }
-            ],
-            [
-                {
                     "op": "add",
-                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/policy_desc",
-                    "value": "NO-NSW-PACL-V4"
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/PORT",
+                    "path": "/ACL_TABLE",
                     "value": {
-                        "Ethernet0": {
-                            "alias": "Eth1",
-                            "lanes": "67",
-                            "description": "Ethernet0 100G link",
-                            "speed": "100000"
+                        "NO-NSW-PACL-V4": {
+                            "type": "L3"
                         }
                     }
                 }
@@ -2801,6 +2613,38 @@
             ],
             [
                 {
+                    "op": "remove",
+                    "path": "/VLAN_MEMBER"
+                }
+            ],
+            [
+                {
+                    "op": "remove",
+                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports"
+                }
+            ],
+            [
+                {
+                    "op": "remove",
+                    "path": "/PORT"
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/PORT",
+                    "value": {
+                        "Ethernet0": {
+                            "alias": "Eth1",
+                            "description": "Ethernet0 100G link",
+                            "lanes": "67",
+                            "speed": "100000"
+                        }
+                    }
+                }
+            ],
+            [
+                {
                     "op": "add",
                     "path": "/VLAN_MEMBER",
                     "value": {
@@ -2808,6 +2652,22 @@
                             "tagging_mode": "untagged"
                         }
                     }
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/policy_desc",
+                    "value": "NO-NSW-PACL-V4"
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/ACL_TABLE/NO-NSW-PACL-V4/ports",
+                    "value": [
+                        "Ethernet0"
+                    ]
                 }
             ]
         ]
@@ -4270,6 +4130,127 @@
             [
                 {
                     "op": "add",
+                    "path": "/BGP_NEIGHBOR/10.0.0.33",
+                    "value": {
+                        "admin_status": "up",
+                        "asn": "64001",
+                        "holdtime": "10",
+                        "keepalive": "3",
+                        "local_addr": "10.0.0.32",
+                        "name": "ARISTA01T0",
+                        "nhopself": "0",
+                        "rrclient": "0"
+                    }
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/BGP_NEIGHBOR/fc00::42",
+                    "value": {
+                        "admin_status": "up",
+                        "asn": "64001",
+                        "holdtime": "10",
+                        "keepalive": "3",
+                        "local_addr": "fc00::41",
+                        "name": "ARISTA01T0",
+                        "nhopself": "0",
+                        "rrclient": "0"
+                    }
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/BUFFER_PG/Ethernet64|3-4",
+                    "value": {
+                        "profile": "pg_lossless_40000_40m_profile"
+                    }
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/BUFFER_PG/Ethernet64|0",
+                    "value": {
+                        "profile": "ingress_lossy_profile"
+                    }
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/BUFFER_QUEUE/Ethernet64|0-2",
+                    "value": {
+                        "profile": "egress_lossy_profile"
+                    }
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/BUFFER_QUEUE/Ethernet64|3-4",
+                    "value": {
+                        "profile": "egress_lossless_profile"
+                    }
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/BUFFER_QUEUE/Ethernet64|5-6",
+                    "value": {
+                        "profile": "egress_lossy_profile"
+                    }
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/DEVICE_NEIGHBOR/Ethernet64",
+                    "value": {
+                        "name": "ARISTA01T0",
+                        "port": "Ethernet1"
+                    }
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/INTERFACE/Ethernet64",
+                    "value": {}
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/INTERFACE/Ethernet64|10.0.0.32~131",
+                    "value": {}
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/INTERFACE/Ethernet64|FC00::41~1126",
+                    "value": {}
+                }
+            ],
+            [
+                {
+                    "op": "add",
+                    "path": "/PORT_QOS_MAP/Ethernet64",
+                    "value": {
+                        "dscp_to_tc_map": "AZURE",
+                        "pfc_enable": "3,4",
+                        "pfc_to_queue_map": "AZURE",
+                        "tc_to_pg_map": "AZURE",
+                        "tc_to_queue_map": "AZURE"
+                    }
+                }
+            ],
+            [
+                {
+                    "op": "add",
                     "path": "/ACL_TABLE/EVERFLOW/ports/0",
                     "value": "Ethernet64"
                 }
@@ -4605,88 +4586,6 @@
             ],
             [
                 {
-                    "op": "add",
-                    "path": "/BUFFER_PG/Ethernet64|3-4",
-                    "value": {
-                        "profile": "pg_lossless_40000_40m_profile"
-                    }
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/BUFFER_PG/Ethernet64|0",
-                    "value": {
-                        "profile": "ingress_lossy_profile"
-                    }
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/BUFFER_QUEUE/Ethernet64|0-2",
-                    "value": {
-                        "profile": "egress_lossy_profile"
-                    }
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/BUFFER_QUEUE/Ethernet64|3-4",
-                    "value": {
-                        "profile": "egress_lossless_profile"
-                    }
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/BUFFER_QUEUE/Ethernet64|5-6",
-                    "value": {
-                        "profile": "egress_lossy_profile"
-                    }
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/DEVICE_NEIGHBOR/Ethernet64",
-                    "value": {
-                        "name": "ARISTA01T0"
-                    }
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/DEVICE_NEIGHBOR/Ethernet64/port",
-                    "value": "Ethernet1"
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/INTERFACE/Ethernet64",
-                    "value": {}
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/INTERFACE/Ethernet64|10.0.0.32~131",
-                    "value": {}
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/INTERFACE/Ethernet64|FC00::41~1126",
-                    "value": {}
-                }
-            ],
-            [
-                {
                     "op": "replace",
                     "path": "/PORT/Ethernet64/description",
                     "value": "ARISTA01T0:Ethernet1"
@@ -4695,77 +4594,8 @@
             [
                 {
                     "op": "add",
-                    "path": "/PORT_QOS_MAP/Ethernet64",
-                    "value": {
-                        "dscp_to_tc_map": "AZURE"
-                    }
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/PORT_QOS_MAP/Ethernet64/pfc_enable",
-                    "value": "3,4"
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/PORT_QOS_MAP/Ethernet64/pfc_to_queue_map",
-                    "value": "AZURE"
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/PORT_QOS_MAP/Ethernet64/tc_to_pg_map",
-                    "value": "AZURE"
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/PORT_QOS_MAP/Ethernet64/tc_to_queue_map",
-                    "value": "AZURE"
-                }
-            ],
-            [
-                {
-                    "op": "add",
                     "path": "/PORT/Ethernet64/admin_status",
                     "value": "up"
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/BGP_NEIGHBOR/10.0.0.33",
-                    "value": {
-                        "admin_status": "up",
-                        "asn": "64001",
-                        "holdtime": "10",
-                        "keepalive": "3",
-                        "local_addr": "10.0.0.32",
-                        "name": "ARISTA01T0",
-                        "nhopself": "0",
-                        "rrclient": "0"
-                    }
-                }
-            ],
-            [
-                {
-                    "op": "add",
-                    "path": "/BGP_NEIGHBOR/fc00::42",
-                    "value": {
-                        "admin_status": "up",
-                        "asn": "64001",
-                        "holdtime": "10",
-                        "keepalive": "3",
-                        "local_addr": "fc00::41",
-                        "name": "ARISTA01T0",
-                        "nhopself": "0",
-                        "rrclient": "0"
-                    }
                 }
             ]
         ]

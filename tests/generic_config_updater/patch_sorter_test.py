@@ -498,21 +498,23 @@ class TestMoveWrapper(unittest.TestCase):
     def test_ctor__assigns_values_correctly(self):
         # Arrange
         move_generators = Mock()
+        move_non_extendable_generators = Mock()
         move_extenders = Mock()
         move_validators = Mock()
 
         # Act
-        move_wrapper = ps.MoveWrapper(move_generators, move_extenders, move_validators)
+        move_wrapper = ps.MoveWrapper(move_generators, move_non_extendable_generators, move_extenders, move_validators)
 
         # Assert
         self.assertIs(move_generators, move_wrapper.move_generators)
+        self.assertIs(move_non_extendable_generators, move_wrapper.move_non_extendable_generators)
         self.assertIs(move_extenders, move_wrapper.move_extenders)
         self.assertIs(move_validators, move_wrapper.move_validators)
 
     def test_generate__single_move_generator__single_move_returned(self):
         # Arrange
         move_generators = [self.single_move_generator]
-        move_wrapper = ps.MoveWrapper(move_generators, [], [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], [], [])
         expected = [self.any_move]
 
         # Act
@@ -524,7 +526,7 @@ class TestMoveWrapper(unittest.TestCase):
     def test_generate__multiple_move_generator__multiple_move_returned(self):
         # Arrange
         move_generators = [self.multiple_move_generator]
-        move_wrapper = ps.MoveWrapper(move_generators, [], [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], [], [])
         expected = [self.any_move, self.any_other_move1, self.any_other_move2]
 
         # Act
@@ -536,7 +538,7 @@ class TestMoveWrapper(unittest.TestCase):
     def test_generate__different_move_generators__different_moves_returned(self):
         # Arrange
         move_generators = [self.single_move_generator, self.another_single_move_generator]
-        move_wrapper = ps.MoveWrapper(move_generators, [], [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], [], [])
         expected = [self.any_move, self.any_other_move1]
 
         # Act
@@ -548,7 +550,44 @@ class TestMoveWrapper(unittest.TestCase):
     def test_generate__duplicate_generated_moves__unique_moves_returned(self):
         # Arrange
         move_generators = [self.single_move_generator, self.single_move_generator]
-        move_wrapper = ps.MoveWrapper(move_generators, [], [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], [], [])
+        expected = [self.any_move]
+
+        # Act
+        actual = list(move_wrapper.generate(self.any_diff))
+
+        # Assert
+        self.assertListEqual(expected, actual)
+
+    def test_generate__different_move_non_extendable_generators__different_moves_returned(self):
+        # Arrange
+        move_non_extendable_generators = [self.single_move_generator, self.another_single_move_generator]
+        move_wrapper = ps.MoveWrapper([], move_non_extendable_generators, [], [])
+        expected = [self.any_move, self.any_other_move1]
+
+        # Act
+        actual = list(move_wrapper.generate(self.any_diff))
+
+        # Assert
+        self.assertListEqual(expected, actual)
+
+    def test_generate__duplicate_generated_non_extendable_moves__unique_moves_returned(self):
+        # Arrange
+        move_non_extendable_generators = [self.single_move_generator, self.single_move_generator]
+        move_wrapper = ps.MoveWrapper([], move_non_extendable_generators, [], [])
+        expected = [self.any_move]
+
+        # Act
+        actual = list(move_wrapper.generate(self.any_diff))
+
+        # Assert
+        self.assertListEqual(expected, actual)
+
+    def test_generate__duplicate_move_between_extendable_and_non_extendable_generators__unique_move_returned(self):
+        # Arrange
+        move_generators = [self.single_move_generator]
+        move_non_extendable_generators = [self.single_move_generator]
+        move_wrapper = ps.MoveWrapper(move_generators, move_non_extendable_generators, [], [])
         expected = [self.any_move]
 
         # Act
@@ -561,7 +600,7 @@ class TestMoveWrapper(unittest.TestCase):
         # Arrange
         move_generators = [self.single_move_generator]
         move_extenders = [self.single_move_extender]
-        move_wrapper = ps.MoveWrapper(move_generators, move_extenders, [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], move_extenders, [])
         expected = [self.any_move, self.any_extended_move]
 
         # Act
@@ -574,7 +613,7 @@ class TestMoveWrapper(unittest.TestCase):
         # Arrange
         move_generators = [self.single_move_generator]
         move_extenders = [self.multiple_move_extender]
-        move_wrapper = ps.MoveWrapper(move_generators, move_extenders, [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], move_extenders, [])
         expected = [self.any_move, self.any_extended_move, self.any_other_extended_move1, self.any_other_extended_move2]
 
         # Act
@@ -587,7 +626,7 @@ class TestMoveWrapper(unittest.TestCase):
         # Arrange
         move_generators = [self.single_move_generator]
         move_extenders = [self.single_move_extender, self.another_single_move_extender]
-        move_wrapper = ps.MoveWrapper(move_generators, move_extenders, [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], move_extenders, [])
         expected = [self.any_move, self.any_extended_move, self.any_other_extended_move1]
 
         # Act
@@ -600,7 +639,7 @@ class TestMoveWrapper(unittest.TestCase):
         # Arrange
         move_generators = [self.single_move_generator]
         move_extenders = [self.single_move_extender, self.single_move_extender]
-        move_wrapper = ps.MoveWrapper(move_generators, move_extenders, [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], move_extenders, [])
         expected = [self.any_move, self.any_extended_move]
 
         # Act
@@ -613,7 +652,7 @@ class TestMoveWrapper(unittest.TestCase):
         # Arrange
         move_generators = [self.single_move_generator, self.another_single_move_generator]
         move_extenders = [self.mixed_move_extender]
-        move_wrapper = ps.MoveWrapper(move_generators, move_extenders, [])
+        move_wrapper = ps.MoveWrapper(move_generators, [], move_extenders, [])
         expected = [self.any_move,
                     self.any_other_move1,
                     self.any_extended_move,
@@ -626,10 +665,54 @@ class TestMoveWrapper(unittest.TestCase):
         # Assert
         self.assertListEqual(expected, actual)
 
+    def test_generate__multiple_non_extendable_moves__no_moves_extended(self):
+        # Arrange
+        move_non_extendable_generators = [self.single_move_generator, self.another_single_move_generator]
+        move_extenders = [self.mixed_move_extender]
+        move_wrapper = ps.MoveWrapper([], move_non_extendable_generators, move_extenders, [])
+        expected = [self.any_move, self.any_other_move1]
+
+        # Act
+        actual = list(move_wrapper.generate(self.any_diff))
+
+        # Assert
+        self.assertListEqual(expected, actual)
+
+    def test_generate__mixed_extendable_non_extendable_moves__only_extendable_moves_extended(self):
+        # Arrange
+        move_generators = [self.another_single_move_generator] # generates: any_other_move1, extends: any_other_extended_move1
+        move_non_extendable_generators = [self.single_move_generator] # generates: any_move
+        move_extenders = [self.mixed_move_extender]
+        move_wrapper = ps.MoveWrapper(move_generators, move_non_extendable_generators, move_extenders, [])
+        expected = [self.any_move,
+                    self.any_other_move1,
+                    self.any_other_extended_move1]
+
+        # Act
+        actual = list(move_wrapper.generate(self.any_diff))
+
+        # Assert
+        self.assertListEqual(expected, actual)
+
+    def test_generate__move_is_extendable_and_non_extendable__move_is_extended(self):
+        # Arrange
+        move_generators = [self.single_move_generator]
+        move_non_extendable_generators = [self.single_move_generator]
+        move_extenders = [self.single_move_extender]
+        move_wrapper = ps.MoveWrapper(move_generators, move_non_extendable_generators, move_extenders, [])
+        expected = [self.any_move,
+                    self.any_extended_move]
+
+        # Act
+        actual = list(move_wrapper.generate(self.any_diff))
+
+        # Assert
+        self.assertListEqual(expected, actual)
+
     def test_validate__validation_fail__false_returned(self):
         # Arrange
         move_validators = [self.fail_move_validator]
-        move_wrapper = ps.MoveWrapper([], [], move_validators)
+        move_wrapper = ps.MoveWrapper([], [], [], move_validators)
 
         # Act and assert
         self.assertFalse(move_wrapper.validate(self.any_move, self.any_diff))
@@ -637,7 +720,7 @@ class TestMoveWrapper(unittest.TestCase):
     def test_validate__validation_succeed__true_returned(self):
         # Arrange
         move_validators = [self.success_move_validator]
-        move_wrapper = ps.MoveWrapper([], [], move_validators)
+        move_wrapper = ps.MoveWrapper([], [], [], move_validators)
 
         # Act and assert
         self.assertTrue(move_wrapper.validate(self.any_move, self.any_diff))
@@ -645,7 +728,7 @@ class TestMoveWrapper(unittest.TestCase):
     def test_validate__multiple_validators_last_fail___false_returned(self):
         # Arrange
         move_validators = [self.success_move_validator, self.success_move_validator, self.fail_move_validator]
-        move_wrapper = ps.MoveWrapper([], [], move_validators)
+        move_wrapper = ps.MoveWrapper([], [], [], move_validators)
 
         # Act and assert
         self.assertFalse(move_wrapper.validate(self.any_move, self.any_diff))
@@ -653,7 +736,7 @@ class TestMoveWrapper(unittest.TestCase):
     def test_validate__multiple_validators_succeed___true_returned(self):
         # Arrange
         move_validators = [self.success_move_validator, self.success_move_validator, self.success_move_validator]
-        move_wrapper = ps.MoveWrapper([], [], move_validators)
+        move_wrapper = ps.MoveWrapper([], [], [], move_validators)
 
         # Act and assert
         self.assertTrue(move_wrapper.validate(self.any_move, self.any_diff))
@@ -662,7 +745,7 @@ class TestMoveWrapper(unittest.TestCase):
         # Arrange
         diff = Mock()
         diff.apply_move.side_effect = create_side_effect_dict({(str(self.any_move), ): self.any_diff})
-        move_wrapper = ps.MoveWrapper(None, None, None)
+        move_wrapper = ps.MoveWrapper(None, None, None, None)
 
         # Act
         actual = move_wrapper.simulate(self.any_move, diff)
@@ -1862,6 +1945,130 @@ class TestRequiredValueMoveValidator(unittest.TestCase):
     def _apply_operations(self, config, operations):
         return jsonpatch.JsonPatch(operations).apply(config)
 
+class TestTableLevelMoveGenerator(unittest.TestCase):
+    def setUp(self):
+        self.generator = ps.TableLevelMoveGenerator()
+
+    def test_generate__tables_in_current_but_not_target__tables_deleted_moves(self):
+        self.verify(current = {"ExistingTable": {}, "NonExistingTable1": {}, "NonExistingTable2": {}},
+                    target = {"ExistingTable": {}},
+                    ex_ops = [{"op": "remove", 'path': '/NonExistingTable1'},
+                              {"op": "remove", 'path': '/NonExistingTable2'}])
+
+    def test_generate__tables_in_target_but_not_current__tables_added_moves(self):
+        self.verify(current = {"ExistingTable": {}},
+                    target = {"ExistingTable": {}, "NonExistingTable1": {}, "NonExistingTable2": {}},
+                    ex_ops = [{"op": "add", 'path': '/NonExistingTable1', 'value': {}},
+                              {"op": "add", 'path': '/NonExistingTable2', 'value': {}}])
+
+    def test_generate__all_tables_exist__no_moves(self):
+        self.verify(current = {"ExistingTable1": { "Key1": "Value1" }, "ExistingTable2": {}},
+                    target = {"ExistingTable1": {}, "ExistingTable2": { "Key2": "Value2" }},
+                    ex_ops = [])
+    
+    def test_generate__multiple_cases__deletion_precedes_addition(self):
+        self.verify(current = {"CommonTable": { "Key1": "Value1" }, "CurrentTable": {}},
+                    target = {"CommonTable": {}, "TargetTable": { "Key2": "Value2" }},
+                    ex_ops = [{"op": "remove", 'path': '/CurrentTable'},
+                              {"op": "add", 'path': '/TargetTable', 'value': { "Key2": "Value2" }}])
+
+    def verify(self, current, target, ex_ops):
+        # Arrange
+        diff = ps.Diff(current, target)
+
+        # Act
+        moves = self.generator.generate(diff)
+
+        # Assert
+        self.verify_moves(ex_ops,
+                          moves)
+
+    def verify_moves(self, ops, moves):
+        moves_ops = [list(move.patch)[0] for move in moves]
+        self.assertCountEqual(ops, moves_ops)
+
+class TestKeyLevelMoveGenerator(unittest.TestCase):
+    def setUp(self):
+        self.generator = ps.KeyLevelMoveGenerator()
+
+    def test_generate__keys_in_current_but_not_target__keys_deleted_moves(self):
+        self.verify(current = {
+                            "ExistingTable1": {
+                                "ExistingKey11": "Value11",
+                                "NonExistingKey12" : "Value12",
+                                "NonExistingKey13" : "Value13"
+                            },
+                            "NonExistingTable2":
+                            {
+                                "NonExistingKey21" : "Value21",
+                                "NonExistingKey22" : "Value22"
+                            }
+                        },
+                    target = {
+                            "ExistingTable1": {
+                                "ExistingKey11": "Value11"
+                            }
+                        },
+                    ex_ops = [{"op": "remove", 'path': '/ExistingTable1/NonExistingKey12'},
+                              {"op": "remove", 'path': '/ExistingTable1/NonExistingKey13'},
+                              {"op": "remove", 'path': '/NonExistingTable2/NonExistingKey21'},
+                              {"op": "remove", 'path': '/NonExistingTable2/NonExistingKey22'}])
+
+
+    def test_generate__single_key_in_current_but_not_target__whole_table_deleted(self):
+        self.verify(current = { "ExistingTable1": { "NonExistingKey11" : "Value11" }},
+                    target = {},
+                    ex_ops = [{"op": "remove", 'path': '/ExistingTable1'}])
+
+    def test_generate__keys_in_target_but_not_current__keys_added_moves(self):
+        self.verify(current = {
+                            "ExistingTable1": {
+                                "ExistingKey11": "Value11"
+                            }
+                        },
+                    target = {
+                            "ExistingTable1": {
+                                "ExistingKey11": "Value11",
+                                "NonExistingKey12" : "Value12",
+                                "NonExistingKey13" : "Value13"
+                            },
+                            "NonExistingTable2":
+                            {
+                                "NonExistingKey21" : "Value21",
+                                "NonExistingKey22" : "Value22"
+                            }
+                        },
+                    ex_ops = [{"op": "add", 'path': '/ExistingTable1/NonExistingKey12', "value": "Value12"},
+                              {"op": "add", 'path': '/ExistingTable1/NonExistingKey13', "value": "Value13"},
+                              {"op": "add", 'path': '/NonExistingTable2', "value": { "NonExistingKey21": "Value21" }},
+                              {"op": "add", 'path': '/NonExistingTable2', "value": { "NonExistingKey22": "Value22" }}])
+
+    def test_generate__all_keys_exist__no_moves(self):
+        self.verify(current = {"ExistingTable1": { "Key1": "Value1Current" }, "ExistingTable2": { "Key2": "Value2" }},
+                    target = {"ExistingTable1": { "Key1": "Value1Target" }, "ExistingTable2": { "Key2": {} } },
+                    ex_ops = [])
+
+    def test_generate__multiple_cases__deletion_precedes_addition(self):
+        self.verify(current = {"AnyTable": { "CommonKey": "CurrentValue1", "CurrentKey": "CurrentValue2" }},
+                    target = {"AnyTable": { "CommonKey": "TargetValue1", "TargetKey": "TargetValue2" }},
+                    ex_ops = [{"op": "remove", 'path': '/AnyTable/CurrentKey'},
+                              {"op": "add", 'path': '/AnyTable/TargetKey', 'value': "TargetValue2"}])
+
+    def verify(self, current, target, ex_ops):
+        # Arrange
+        diff = ps.Diff(current, target)
+
+        # Act
+        moves = self.generator.generate(diff)
+
+        # Assert
+        self.verify_moves(ex_ops,
+                          moves)
+
+    def verify_moves(self, ops, moves):
+        moves_ops = [list(move.patch)[0] for move in moves]
+        self.assertCountEqual(ops, moves_ops)
+
 class TestLowLevelMoveGenerator(unittest.TestCase):
     def setUp(self):
         path_addressing = PathAddressing()
@@ -2823,6 +3030,7 @@ class TestSortAlgorithmFactory(unittest.TestCase):
         config_wrapper = ConfigWrapper()
         factory = ps.SortAlgorithmFactory(OperationWrapper(), config_wrapper, PathAddressing(config_wrapper))
         expected_generators = [ps.LowLevelMoveGenerator]
+        expected_non_extendable_generators = [ps.KeyLevelMoveGenerator]
         expected_extenders = [ps.RequiredValueMoveExtender,
                               ps.UpperLevelMoveExtender,
                               ps.DeleteInsteadOfReplaceMoveExtender,
@@ -2838,12 +3046,14 @@ class TestSortAlgorithmFactory(unittest.TestCase):
         # Act
         sorter = factory.create(algo)
         actual_generators = [type(item) for item in sorter.move_wrapper.move_generators]
+        actual_non_extendable_generators = [type(item) for item in sorter.move_wrapper.move_non_extendable_generators]
         actual_extenders = [type(item) for item in sorter.move_wrapper.move_extenders]
         actual_validators = [type(item) for item in sorter.move_wrapper.move_validators]
 
         # Assert
         self.assertIsInstance(sorter, algo_class)
         self.assertCountEqual(expected_generators, actual_generators)
+        self.assertCountEqual(expected_non_extendable_generators, actual_non_extendable_generators)
         self.assertCountEqual(expected_extenders, actual_extenders)
         self.assertCountEqual(expected_validator, actual_validators)
 

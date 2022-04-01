@@ -290,29 +290,52 @@ class JsonMove:
         return hash((self.op_type, self.path, json.dumps(self.value)))
 
 class MoveWrapper:
-    def __init__(self, move_generators, move_extenders, move_validators):
+    def __init__(self, move_generators, move_non_extendable_generators, move_extenders, move_validators):
         self.move_generators = move_generators
+        self.move_non_extendable_generators = move_non_extendable_generators
         self.move_extenders = move_extenders
         self.move_validators = move_validators
 
     def generate(self, diff):
+        """
+        Generates all possible moves to help transform diff.current_config to diff.target_config.
+
+        It starts by generating the non-extendable moves i.e. moves that will not extended to e.g. change its parent.
+        The non-extendable moves are mostly high level moves such as deleting/adding whole tables.
+
+        After that it generates extendable moves i.e. moves that can be extended to e.g. change its parent.
+        The extendable moves are typically very low level moves that can achieve the minimum disruption guarantee.
+
+        Lastly the moves are extended for example to try to replace the parent config instead, or by deleting
+        the dependencies of the config.
+        """
         processed_moves = set()
+        extended_moves = set()
         moves = deque([])
 
+        for move in self._generate_non_extendable_moves(diff):
+            if not(move in processed_moves):
+                processed_moves.add(move)
+                yield move
+
         for move in self._generate_moves(diff):
-            if move in processed_moves:
-                continue
-            processed_moves.add(move)
-            yield move
-            moves.extend(self._extend_moves(move, diff))
+            if not(move in processed_moves):
+                processed_moves.add(move)
+                yield move
+
+            if not(move in extended_moves):
+                extended_moves.add(move)
+                moves.extend(self._extend_moves(move, diff))
 
         while moves:
             move = moves.popleft()
-            if move in processed_moves:
-                continue
-            processed_moves.add(move)
-            yield move
-            moves.extend(self._extend_moves(move, diff))
+            if not(move in processed_moves):
+                processed_moves.add(move)
+                yield move
+
+            if not(move in extended_moves):
+                extended_moves.add(move)
+                moves.extend(self._extend_moves(move, diff))
 
     def validate(self, move, diff):
         for validator in self.move_validators:
@@ -325,6 +348,11 @@ class MoveWrapper:
 
     def _generate_moves(self, diff):
         for generator in self.move_generators:
+            for move in generator.generate(diff):
+                yield move
+
+    def _generate_non_extendable_moves(self, diff):
+        for generator in self.move_non_extendable_generators:
             for move in generator.generate(diff):
                 yield move
 
@@ -921,6 +949,68 @@ class RequiredValueMoveValidator:
 
         return True
 
+class TableLevelMoveGenerator:
+    """
+    A class that key level moves. The item name at the root level of ConfigDB is called 'Table'.
+
+    e.g.
+    {
+        "Table": ...
+    }
+
+    This class will generate moves to remove tables if they are in current, but not target. It also add tables
+    if they are in target but not current configs.
+    """
+
+    def generate(self, diff):
+        # Removing tables in current but not target
+        for tokens in self._get_non_existing_tables_tokens(diff.current_config, diff.target_config):
+            yield JsonMove(diff, OperationType.REMOVE, tokens)
+
+        # Adding tables in target but not current
+        for tokens in self._get_non_existing_tables_tokens(diff.target_config, diff.current_config):
+            yield JsonMove(diff, OperationType.ADD, tokens, tokens)
+
+    def _get_non_existing_tables_tokens(self, config1, config2):
+        for table in config1:
+            if not(table in config2):
+                yield [table]
+
+class KeyLevelMoveGenerator:
+    """
+    A class that key level moves. The item name at the root level of ConfigDB is called 'Table', the item
+    name in the Table level of ConfigDB is called key.
+
+    e.g.
+    {
+        "Table": {
+            "Key": ...
+        }
+    }
+
+    This class will generate moves to remove keys if they are in current, but not target. It also add keys
+    if they are in target but not current configs.
+    """
+    def generate(self, diff):
+        # Removing keys in current but not target
+        for tokens in self._get_non_existing_keys_tokens(diff.current_config, diff.target_config):
+            table = tokens[0]
+            # if table has a single key, delete the whole table because empty tables are not allowed in ConfigDB
+            if len(diff.current_config[table]) == 1:
+                yield JsonMove(diff, OperationType.REMOVE, [table])
+            else:
+                yield JsonMove(diff, OperationType.REMOVE, tokens)
+
+        # Adding keys in target but not current
+        for tokens in self._get_non_existing_keys_tokens(diff.target_config, diff.current_config):
+            yield JsonMove(diff, OperationType.ADD, tokens, tokens)
+
+    def _get_non_existing_keys_tokens(self, config1, config2):
+        for table in config1:
+            for key in config1[table]:
+                if not(table in config2) or not (key in config2[table]):
+                    yield [table, key]
+
 class LowLevelMoveGenerator:
     """
     A class to generate the low level moves i.e. moves corresponding to differences between current/target config
@@ -1407,6 +1497,8 @@ class SortAlgorithmFactory:
 
     def create(self, algorithm=Algorithm.DFS):
         move_generators = [LowLevelMoveGenerator(self.path_addressing)]
+        # TODO: Enable TableLevelMoveGenerator once it is confirmed whole table can be updated at the same time
+        move_non_extendable_generators = [KeyLevelMoveGenerator()]
         move_extenders = [RequiredValueMoveExtender(self.path_addressing, self.operation_wrapper),
                           UpperLevelMoveExtender(),
                           DeleteInsteadOfReplaceMoveExtender(),
@@ -1419,7 +1511,7 @@ class SortAlgorithmFactory:
                            RequiredValueMoveValidator(self.path_addressing),
                            NoEmptyTableMoveValidator(self.path_addressing)]
 
-        move_wrapper = MoveWrapper(move_generators, move_extenders, move_validators)
+        move_wrapper = MoveWrapper(move_generators, move_non_extendable_generators, move_extenders, move_validators)
 
         if algorithm == Algorithm.DFS:
             sorter = DfsSorter(move_wrapper)
