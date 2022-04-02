@@ -635,6 +635,8 @@ def _clear_cbf():
 
 def _clear_qos():
     QOS_TABLE_NAMES = [
+            'PORT_QOS_MAP',
+            'QUEUE',
             'TC_TO_PRIORITY_GROUP_MAP',
             'MAP_PFC_PRIORITY_TO_QUEUE',
             'TC_TO_QUEUE_MAP',
@@ -642,14 +644,14 @@ def _clear_qos():
             'MPLS_TC_TO_TC_MAP',
             'SCHEDULER',
             'PFC_PRIORITY_TO_PRIORITY_GROUP_MAP',
-            'PORT_QOS_MAP',
             'WRED_PROFILE',
-            'QUEUE',
             'CABLE_LENGTH',
-            'BUFFER_POOL',
-            'BUFFER_PROFILE',
             'BUFFER_PG',
             'BUFFER_QUEUE',
+            'BUFFER_PORT_INGRESS_PROFILE_LIST',
+            'BUFFER_PORT_EGRESS_PROFILE_LIST',
+            'BUFFER_PROFILE',
+            'BUFFER_POOL',
             'DEFAULT_LOSSLESS_BUFFER_PARAMETER',
             'LOSSLESS_TRAFFIC_PATTERN']
 
