@@ -63,6 +63,10 @@ handle_exit()
     ECODE=$?
     echo "Removing lock. Exit: $ECODE" >&2
     $RM $V -rf ${LOCKDIR}
+    # Echo the filename as the last statement if the generation succeeds
+    if [[ -f $TARFILE && ($ECODE == $EXT_SUCCESS || $ECODE == $RETURN_CODE) ]]; then
+        echo $TARFILE
+    fi
 }
 
 handle_signal()
@@ -1360,8 +1364,6 @@ main() {
 
     # Invoke the TechSupport Cleanup Hook
     setsid python3 /usr/local/bin/techsupport_cleanup.py ${TARFILE} &> /tmp/techsupport_cleanup.log &
-
-    echo ${TARFILE}
     
     if ! $SAVE_STDERR
     then
@@ -1494,7 +1496,6 @@ while getopts ":xnvhzas:t:r:d" opt; do
             ;;
         v)
             # echo commands about to be run to stderr
-            set -v
             V="-v"
             ;;
         n)
@@ -1547,7 +1548,7 @@ fi
 ## Attempt Locking
 ##
 
-if mkdir "${LOCKDIR}" &>/dev/null; then
+if $MKDIR "${LOCKDIR}" &>/dev/null; then
     trap 'handle_exit' EXIT
     echo "$$" > "${PIDFILE}"
     # This handler will exit the script upon receiving these interrupts
@@ -1555,6 +1556,9 @@ if mkdir "${LOCKDIR}" &>/dev/null; then
     trap 'handle_signal' SIGINT SIGHUP SIGQUIT SIGTERM
     echo "Lock succesfully accquired and installed signal handlers"
     # Proceed with the actual code
+    if [[ ! -z "${V}" ]]; then
+        set -v
+    fi
     main
 else
     # lock failed, check if the other PID is alive

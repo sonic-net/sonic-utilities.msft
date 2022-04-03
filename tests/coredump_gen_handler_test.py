@@ -3,10 +3,12 @@ import time
 import sys
 import pyfakefs
 import unittest
+import signal
 from pyfakefs.fake_filesystem_unittest import Patcher
 from swsscommon import swsscommon
 from utilities_common.general import load_module_from_source
 from utilities_common.db import Db
+from utilities_common.auto_techsupport_helper import EXT_RETRY
 from .mock_tables import dbconnector
 
 sys.path.append("scripts")
@@ -17,6 +19,9 @@ Techsupport is running with silent option. This command might take a long time.
 The SAI dump is generated to /tmp/saisdkdump/sai_sdk_dump_11_22_2021_11_07_PM
 /tmp/saisdkdump
 """
+
+def signal_handler(signum, frame):
+    raise Exception("Timed out!")
 
 def set_auto_ts_cfg(redis_mock, state="disabled",
                     rate_limit_interval="0",
@@ -264,7 +269,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
             def mock_cmd(cmd, env):
                 ts_dump = "/var/dump/sonic_dump_random3.tar.gz"
                 cmd_str = " ".join(cmd)
-                if "--since '4 days ago'" in cmd_str:
+                if "--since 4 days ago" in cmd_str:
                     patcher.fs.create_file(ts_dump)
                     return 0, AUTO_TS_STDOUT + ts_dump, ""
                 elif "date --date=4 days ago" in cmd_str:
@@ -330,7 +335,7 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
             def mock_cmd(cmd, env):
                 ts_dump = "/var/dump/sonic_dump_random3.tar.gz"
                 cmd_str = " ".join(cmd)
-                if "--since '2 days ago'" in cmd_str:
+                if "--since 2 days ago" in cmd_str:
                     patcher.fs.create_file(ts_dump)
                     print(AUTO_TS_STDOUT + ts_dump)
                     return 0, AUTO_TS_STDOUT + ts_dump, ""
@@ -396,3 +401,30 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
             assert "orchagent.12345.123.core.gz" in current_fs
             assert "lldpmgrd.12345.22.core.gz" in current_fs
             assert "python3.12345.21.core.gz" in current_fs
+
+    def test_max_retry_ts_failure(self):
+        """
+        Scenario: TS subprocess is continously returning EXT_RETRY
+                  Make sure auto-ts is not exceeding the limit
+        """
+        db_wrap = Db()
+        redis_mock = db_wrap.db
+        set_auto_ts_cfg(redis_mock, state="enabled")
+        set_feature_table_cfg(redis_mock, state="enabled")
+        with Patcher() as patcher:
+            def mock_cmd(cmd, env):
+                return EXT_RETRY, "", ""
+
+            cdump_mod.subprocess_exec = mock_cmd
+            patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
+            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", "swss", redis_mock)
+        
+            signal.signal(signal.SIGALRM, signal_handler)
+            signal.alarm(5)   # 5 seconds
+            try:
+                cls.handle_core_dump_creation_event()
+            except Exception:
+                assert False, "Method should not time out"
+            finally:
+                signal.alarm(0)
+
