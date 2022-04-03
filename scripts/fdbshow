@@ -130,7 +130,9 @@ class FdbShow(object):
                     except Exception:
                         vlan_id = bvid
                         print("Failed to get Vlan id for bvid {}\n".format(bvid))
-            self.bridge_mac_list.append((int(vlan_id),) + (fdb["mac"],) + (if_name,) + (fdb_type,))
+
+            if vlan_id is not None:
+                self.bridge_mac_list.append((int(vlan_id),) + (fdb["mac"],) + (if_name,) + (fdb_type,))
 
         self.bridge_mac_list.sort(key = lambda x: x[0])
         return
