@@ -44,7 +44,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_2_0_4'
+        self.CURRENT_VERSION = 'version_2_0_5'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -665,9 +665,26 @@ class DBMigrator():
 
     def version_2_0_4(self):
         """
-        Current latest version. Nothing to do here.
+        Version 2_0_4
         """
         log.log_info('Handling version_2_0_4')
+        # Migrate "pfc_enable" to "pfc_enable" and "pfcwd_sw_enable"
+        # 1. pfc_enable means enable pfc on certain queues
+        # 2. pfcwd_sw_enable means enable PFC software watchdog on certain queues
+        # By default, PFC software watchdog is enabled on all pfc enabled queues.
+        qos_maps = self.configDB.get_table('PORT_QOS_MAP')
+        for k, v in qos_maps.items():
+            if 'pfc_enable' in v:
+                v['pfcwd_sw_enable'] = v['pfc_enable']
+                self.configDB.set_entry('PORT_QOS_MAP', k, v)
+
+        return 'version_2_0_5'
+
+    def version_2_0_5(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log.log_info('Handling version_2_0_5')
         return None
 
     def get_version(self):

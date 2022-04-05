@@ -1,0 +1,36 @@
+{
+    "VERSIONS|DATABASE": {
+        "VERSION": "version_2_0_5"
+    },
+    "PORT_QOS_MAP": {
+        "Ethernet0": {
+            "dscp_to_tc_map": "[DSCP_TO_TC_MAP|AZURE]",
+            "pfc_enable": "3,4",
+            "pfcwd_sw_enable": "3,4",
+            "pfc_to_queue_map": "[MAP_PFC_PRIORITY_TO_QUEUE|AZURE]",
+            "tc_to_pg_map": "[TC_TO_PRIORITY_GROUP_MAP|AZURE]",
+            "tc_to_queue_map": "[TC_TO_QUEUE_MAP|AZURE]"
+        },
+        "Ethernet100": {
+            "dscp_to_tc_map": "[DSCP_TO_TC_MAP|AZURE]",
+            "pfc_enable": "3,4",
+            "pfcwd_sw_enable": "3,4",
+            "pfc_to_queue_map": "[MAP_PFC_PRIORITY_TO_QUEUE|AZURE]",
+            "tc_to_pg_map": "[TC_TO_PRIORITY_GROUP_MAP|AZURE]",
+            "tc_to_queue_map": "[TC_TO_QUEUE_MAP|AZURE]"
+        },
+        "Ethernet92": {
+            "dscp_to_tc_map": "[DSCP_TO_TC_MAP|AZURE]",
+            "pfc_to_queue_map": "[MAP_PFC_PRIORITY_TO_QUEUE|AZURE]",
+            "tc_to_pg_map": "[TC_TO_PRIORITY_GROUP_MAP|AZURE]",
+            "tc_to_queue_map": "[TC_TO_QUEUE_MAP|AZURE]"
+        },
+        "Ethernet96": {
+            "dscp_to_tc_map": "[DSCP_TO_TC_MAP|AZURE]",
+            "pfc_to_queue_map": "[MAP_PFC_PRIORITY_TO_QUEUE|AZURE]",
+            "tc_to_pg_map": "[TC_TO_PRIORITY_GROUP_MAP|AZURE]",
+            "tc_to_queue_map": "[TC_TO_QUEUE_MAP|AZURE]"
+        }
+    }
+}
+

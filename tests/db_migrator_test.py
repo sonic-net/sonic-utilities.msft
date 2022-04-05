@@ -281,7 +281,7 @@ class TestLacpKeyMigrator(object):
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         dbconnector.dedicated_dbs['CONFIG_DB'] = None
-        
+
     def test_lacp_key_migrator(self):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'portchannel-input')
         import db_migrator
@@ -348,3 +348,28 @@ class TestQosDBFieldValueReferenceRemoveMigrator(object):
         self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
         self.check_appl_db(dbmgtr.appDB, expected_appl_db)
         self.clear_dedicated_mock_dbs()
+
+
+class TestPfcEnableMigrator(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_pfc_enable_migrator(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'qos_map_table_input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'qos_map_table_expected')
+        expected_db = Db()
+
+        resulting_table = dbmgtr.configDB.get_table('PORT_QOS_MAP')
+        expected_table = expected_db.cfgdb.get_table('PORT_QOS_MAP')
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
