@@ -1111,6 +1111,34 @@
     "FG_NHG_PREFIX|fc:05::/128": {
 	    "FG_NHG": "fgnhg_v6"
 	},
+    "FG_NHG|fgnhg_v4": {
+            "bucket_size": "120",
+            "match_mode": "nexthop-based"
+        },
+    "FG_NHG|fgnhg_v6": {
+            "bucket_size": "120",
+            "match_mode": "nexthop-based"
+        },
+    "FG_NHG_MEMBER|200.200.200.4": {
+            "FG_NHG": "fgnhg_v4",
+            "bank": "0",
+            "link": "Ethernet8"
+        },
+    "FG_NHG_MEMBER|200.200.200.5": {
+            "FG_NHG": "fgnhg_v4",
+            "bank": "1",
+            "link": "Ethernet12"
+        },
+    "FG_NHG_MEMBER|200:200:200:200::4": {
+            "FG_NHG": "fgnhg_v6",
+            "bank": "0",
+            "link": "Ethernet8"
+        },
+    "FG_NHG_MEMBER|200:200:200:200::5": {
+            "FG_NHG": "fgnhg_v6",
+            "bank": "1",
+            "link": "Ethernet12"
+        },
     "BGP_NEIGHBOR|10.0.0.1": {
         "asn": "65200",
         "holdtime": "10",
