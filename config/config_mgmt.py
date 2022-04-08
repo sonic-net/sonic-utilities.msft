@@ -872,6 +872,27 @@ class ConfigMgmtDPB(ConfigMgmt):
             # we do not allow updates right now
             if isinstance(diff, list) and isinstance(outp, dict):
                 return changed
+            '''
+            libYang converts ietf yang types to lower case internally, which
+            creates false config diff for us while DPB.
+
+            Example:
+            For DEVICE_METADATA['localhost']['mac'] type is yang:mac-address.
+            Libyang converts from 'XX:XX:XX:E4:B3:DD' -> 'xx:xx:xx:e4:b3:dd'
+            so args for this functions will be:
+
+            diff = DEVICE_METADATA['localhost']['mac']
+            where DEVICE_METADATA': {'localhost': {'mac': ['XX:XX:XX:E4:B3:DD', 'xx:xx:xx:e4:b3:dd']}}}
+            Note: above dict is representation of diff in config given by diffJson
+            library.
+            out = 'XX:XX:XX:e4:b3:dd'
+            inp = 'xx:xx:xx:E4:B3:DD'
+
+            With below check, we will avoid processing of such config diff for DPB.
+            '''
+            if isinstance(diff, list) and isinstance(outp, str) and \
+              inp.lower() == outp.lower():
+                return changed
 
             idx = -1
             for key in diff:

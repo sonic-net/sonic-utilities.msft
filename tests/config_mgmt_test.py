@@ -57,6 +57,78 @@ class TestConfigMgmt(TestCase):
             len(out['ACL_TABLE'][k]) == 1
         return
 
+    def test_upper_case_mac_fix(self):
+        '''
+        Issue:
+        https://github.com/Azure/sonic-buildimage/issues/9478
+
+        LibYang converts ietf yang types to lower case internally,which
+        creates false config diff for us while DPB.
+        This tests is to verify the fix done in config_mgmt.py to resolve this
+        issue.
+
+        Example:
+        For DEVICE_METADATA['localhost']['mac'] type is yang:mac-address.
+        Libyang converts from 'XX:XX:XX:E4:B3:DD' -> 'xx:xx:xx:e4:b3:dd'
+        '''
+        curConfig = deepcopy(configDbJson)
+        # Keep only PORT part to skip dependencies.
+        curConfig = {'PORT': curConfig['PORT']}
+        # add DEVICE_METADATA Config
+        curConfig['DEVICE_METADATA'] = {
+            "localhost": {
+                "bgp_asn": "65100",
+                "default_bgp_status": "up",
+                "default_pfcwd_status": "disable",
+                "docker_routing_config_mode": "split",
+                "hostname": "sonic",
+                "hwsku": "Seastone-DX010",
+                "mac": "00:11:22:BB:CC:DD",
+                "platform": "x86_64-cel_seastone-r0",
+                "type": "LeafRouter"
+            }
+        }
+        cmdpb = self.config_mgmt_dpb(curConfig)
+        # create ARGS
+        dPorts, pJson = self.generate_args(portIdx=0, laneIdx=65, \
+            curMode='4x25G', newMode='2x50G')
+
+        # use side effect to mock _createConfigToLoad but with call to same
+        # function
+        cmdpb._createConfigToLoad = mock.MagicMock(side_effect=cmdpb._createConfigToLoad)
+
+        # Try to breakout and see if writeConfigDB is called thrice
+        deps, ret = cmdpb.breakOutPort(delPorts=dPorts, portJson=pJson, \
+            force=True, loadDefConfig=False)
+
+        '''
+        assert call to _createConfigToLoad has
+        DEVICE_METADATA': {'localhost': {'mac': ['XX:XX:XX:E4:B3:DD',
+        'xx:xx:xx:e4:b3:dd']}} in diff
+        '''
+        (args, kwargs) = cmdpb._createConfigToLoad.call_args_list[0]
+        print(args)
+        # in case of tuple get first arg, which is diff
+        if type(args) == tuple:
+            args = args[0]
+        assert args['DEVICE_METADATA']['localhost']['mac'] == \
+            ['00:11:22:BB:CC:DD', '00:11:22:bb:cc:dd']
+
+        # verify correct function call to writeConfigDB
+        assert cmdpb.writeConfigDB.call_count == 3
+        print(cmdpb.writeConfigDB.call_args_list[0])
+        # args is populated if call is done as writeConfigDB(a, b), kwargs is
+        # populated if call is done as writeConfigDB(A=a, B=b)
+        (args, kwargs) = cmdpb.writeConfigDB.call_args_list[0]
+        print(args)
+        # in case of tuple also, we should have only one element writeConfigDB
+        if type(args) == tuple:
+            args = args[0]
+        # Make sure no DEVICE_METADATA in the args to func
+        assert "DEVICE_METADATA" not in args
+
+        return
+
     @pytest.mark.skip(reason="not stable")
     def test_break_out(self):
         # prepare default config
