@@ -18,6 +18,7 @@ platform_sfputil = None
 
 REDIS_TIMEOUT_MSECS = 0
 SELECT_TIMEOUT = 1000
+HWMODE_MUXDIRECTION_TIMEOUT = 0.1
 
 # The empty namespace refers to linux host namespace.
 EMPTY_NAMESPACE = ''
@@ -1095,7 +1096,7 @@ def get_hwmode_mux_direction_port(db, port):
     if port is not None:
 
         res_dict = update_and_get_response_for_xcvr_cmd(
-            "state", "state", "True", "XCVRD_SHOW_HWMODE_DIR_CMD", "XCVRD_SHOW_HWMODE_DIR_RES", "XCVRD_SHOW_HWMODE_DIR_RSP", port, 1, None, "probe")
+            "state", "state", "True", "XCVRD_SHOW_HWMODE_DIR_CMD", "XCVRD_SHOW_HWMODE_DIR_RES", "XCVRD_SHOW_HWMODE_DIR_RSP", port, HWMODE_MUXDIRECTION_TIMEOUT, None, "probe")
 
         result = get_result(port, res_dict, "muxdirection" , result, "XCVRD_SHOW_HWMODE_DIR_RES")
 
