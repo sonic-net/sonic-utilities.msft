@@ -674,15 +674,8 @@ fi
 if [[ -f ${SHUTDOWN_ORDER_FILE} ]]; then
     SERVICES_TO_STOP="$(cat ${SHUTDOWN_ORDER_FILE})"
 else
-    # TODO: to be removed once sonic-buildimage change is in
-    if [[ "${REBOOT_TYPE}" == "fast-reboot" ]]; then
-        SERVICES_TO_STOP="nat radv bgp sflow lldp swss teamd syncd"
-    elif [[ "${REBOOT_TYPE}" == "fastfast-reboot" || "${REBOOT_TYPE}" == "warm-reboot" ]]; then
-        SERVICES_TO_STOP="nat radv bgp sflow lldp teamd swss syncd"
-    else
-        error "Unexpected reboot type ${REBOOT_TYPE}"
-        exit $EXIT_FAILURE
-    fi
+    error "No shutdown sequence file found: ${SHUTDOWN_ORDER_FILE}"
+    exit "${EXIT_FAILURE}"
 fi
 
 for service in ${SERVICES_TO_STOP}; do
