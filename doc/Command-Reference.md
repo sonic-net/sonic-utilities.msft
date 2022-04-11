@@ -6747,7 +6747,7 @@ A port channel can be deleted only if it does not have any members or the member
 
 - Usage:
   ```
-  config portchannel (add | del) <portchannel_name> [min-links <num_min_links>] [fallback (true | false)]
+  config portchannel (add | del) <portchannel_name> [--min-links <num_min_links>] [--fallback (true | false)]
   ```
 
 - Example (Create the portchannel with name "PortChannel0011"):
