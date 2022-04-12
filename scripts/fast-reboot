@@ -670,6 +670,13 @@ if [ -x ${LOG_SSD_HEALTH} ]; then
     ${LOG_SSD_HEALTH}
 fi
 
+# Stop any timers to prevent any containers starting in the middle of the process.
+TIMERS=$(systemctl list-dependencies --plain sonic-delayed.target | sed 1d)
+for timer in ${TIMERS}; do
+    debug "Stopping ${timer} ..."
+    systemctl stop ${timer}
+    debug "Stopped ${timer} ..."
+done
 
 if [[ -f ${SHUTDOWN_ORDER_FILE} ]]; then
     SERVICES_TO_STOP="$(cat ${SHUTDOWN_ORDER_FILE})"
