@@ -68,25 +68,22 @@ VLAN_SUB_INTERFACE_SEPARATOR = '.'
 
 GEARBOX_TABLE_PHY_PATTERN = r"_GEARBOX_TABLE:phy:*"
 
+COMMAND_TIMEOUT = 300
+
 # To be enhanced. Routing-stack information should be collected from a global
 # location (configdb?), so that we prevent the continous execution of this
 # bash oneliner. To be revisited once routing-stack info is tracked somewhere.
 def get_routing_stack():
+    result = None
     command = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1 | head -n 1"
 
     try:
-        proc = subprocess.Popen(command,
-                                stdout=subprocess.PIPE,
-                                shell=True,
-                                text=True)
-        stdout = proc.communicate()[0]
-        proc.wait()
+        stdout = subprocess.check_output(command, shell=True, timeout=COMMAND_TIMEOUT)
         result = stdout.rstrip('\n')
+    except Exception as err:
+        click.echo('Failed to get routing stack: {}'.format(err), err=True)
 
-    except OSError as e:
-        raise OSError("Cannot detect routing-stack")
-
-    return (result)
+    return result
 
 
 # Global Routing-Stack variable
@@ -1149,7 +1146,7 @@ def users(verbose):
 @click.option('--redirect-stderr', '-r', is_flag=True, help="Redirect an intermediate errors to STDERR")
 def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop, silent, debug_dump, redirect_stderr):
     """Gather information for troubleshooting"""
-    cmd = "sudo timeout -s SIGTERM --foreground {}m".format(global_timeout)
+    cmd = "sudo timeout --kill-after={}s -s SIGTERM --foreground {}m".format(COMMAND_TIMEOUT, global_timeout)
 
     if allow_process_stop:
         cmd += " -a"
@@ -1164,7 +1161,7 @@ def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop,
         cmd += " -s '{}'".format(since)
 
     if debug_dump:
-        cmd += " -d "
+        cmd += " -d"
 
     cmd += " -t {}".format(cmd_timeout)
     if redirect_stderr:
