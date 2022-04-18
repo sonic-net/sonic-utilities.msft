@@ -1010,5 +1010,15 @@
     },
     "RATES:oid:0x1500000000034e":{
         "RX_PPS": 45.25
+    },
+    "COUNTERS_ROUTE_NAME_MAP":{
+        "1.1.1.2/31": "oid:0x1600000000034f"
+    },
+    "COUNTERS_ROUTE_TO_PATTERN_MAP": {
+        "1.1.1.2/31": "1.1.1.0/24"
+    },
+    "COUNTERS:oid:0x1600000000034f":{
+        "SAI_COUNTER_STAT_PACKETS": 1000,
+        "SAI_COUNTER_STAT_BYTES": 2000
     }
 }

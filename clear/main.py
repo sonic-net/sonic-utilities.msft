@@ -4,7 +4,9 @@ import subprocess
 import sys
 import click
 import utilities_common.cli as clicommon
+import utilities_common.multi_asic as multi_asic_util
 
+from flow_counter_util.route import exit_if_route_flow_counter_not_support
 from utilities_common import util_base
 from show.plugins.pbh import read_pbh_counters
 from config.plugins.pbh import serialize_pbh_counters
@@ -482,6 +484,53 @@ def flowcnt_trap():
     """ Clear trap flow counters """
     command = "flow_counters_stat -c -t trap"
     run_command(command)
+
+
+# ("sonic-clear flowcnt-route")
+@cli.group(invoke_without_command=True)
+@click.option('--namespace', '-n', 'namespace', default=None, type=click.Choice(multi_asic_util.multi_asic_ns_choices()), show_default=True, help='Namespace name or all')
+@click.pass_context
+def flowcnt_route(ctx, namespace):
+    """Clear all route flow counters"""
+    exit_if_route_flow_counter_not_support()
+    if ctx.invoked_subcommand is None:
+        command = "flow_counters_stat -c -t route"
+        # None namespace means default namespace
+        if namespace is not None:
+            command += " -n {}".format(namespace)
+        clicommon.run_command(command)
+
+
+# ("sonic-clear flowcnt-route pattern")
+@flowcnt_route.command()
+@click.option('--vrf', help='VRF/VNET name or default VRF')
+@click.option('--namespace', '-n', 'namespace', default=None, type=click.Choice(multi_asic_util.multi_asic_ns_choices()), show_default=True, help='Namespace name or all')
+@click.argument('prefix-pattern', required=True)
+def pattern(prefix_pattern, vrf, namespace):
+    """Clear route flow counters by pattern"""
+    command = "flow_counters_stat -c -t route --prefix_pattern {}".format(prefix_pattern)
+    if vrf:
+        command += ' --vrf {}'.format(vrf)
+    # None namespace means default namespace
+    if namespace is not None:
+        command += " -n {}".format(namespace)
+    clicommon.run_command(command)
+
+
+# ("sonic-clear flowcnt-route route")
+@flowcnt_route.command()
+@click.option('--vrf', help='VRF/VNET name or default VRF')
+@click.option('--namespace', '-n', 'namespace', default=None, type=click.Choice(multi_asic_util.multi_asic_ns_choices()), show_default=True, help='Namespace name or all')
+@click.argument('prefix', required=True)
+def route(prefix, vrf, namespace):
+    """Clear route flow counters by prefix"""
+    command = "flow_counters_stat -c -t route --prefix {}".format(prefix)
+    if vrf:
+        command += ' --vrf {}'.format(vrf)
+    # None namespace means default namespace
+    if namespace is not None:
+        command += " -n {}".format(namespace)
+    clicommon.run_command(command)
 
 
 # Load plugins and register them

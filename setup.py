@@ -40,6 +40,7 @@ setup(
         'ssdutil',
         'pfc',
         'psuutil',
+        'flow_counter_util',
         'fdbutil',
         'fwutil',
         'pcieutil',

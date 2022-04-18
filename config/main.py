@@ -35,6 +35,7 @@ from . import aaa
 from . import chassis_modules
 from . import console
 from . import feature
+from . import flow_counters
 from . import kdump
 from . import kube
 from . import muxcable
@@ -789,7 +790,7 @@ def _per_namespace_swss_ready(service_name):
         return False
 
 def _swss_ready():
-    list_of_swss = [] 
+    list_of_swss = []
     num_asics = multi_asic.get_num_asics()
     if num_asics == 1:
         list_of_swss.append("swss.service")
@@ -802,7 +803,7 @@ def _swss_ready():
         if _per_namespace_swss_ready(service_name) == False:
             return False
 
-    return True 
+    return True
 
 def _is_system_starting():
     out = clicommon.run_command("sudo systemctl is-system-running", return_cmd=True)
@@ -1076,6 +1077,7 @@ config.add_command(aaa.radius)
 config.add_command(chassis_modules.chassis)
 config.add_command(console.console)
 config.add_command(feature.feature)
+config.add_command(flow_counters.flowcnt_route)
 config.add_command(kdump.kdump)
 config.add_command(kube.kubernetes)
 config.add_command(muxcable.muxcable)
@@ -1482,10 +1484,10 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
 
 
         config_gen_opts = ""
-        
+
         if os.path.isfile(INIT_CFG_FILE):
             config_gen_opts += " -j {} ".format(INIT_CFG_FILE)
-        
+
         if file_format == 'config_db':
             config_gen_opts += ' -j {} '.format(file)
         else:
@@ -6239,7 +6241,7 @@ def del_subinterface(ctx, subinterface_name):
     sub_intfs = [k for k,v in subintf_config_db.items() if type(k) != tuple]
     if subinterface_name not in sub_intfs:
         ctx.fail("{} does not exists".format(subinterface_name))
-        
+
     ips = {}
     ips = [ k[1] for k in config_db.get_table('VLAN_SUB_INTERFACE') if type(k) == tuple and k[0] == subinterface_name ]
     for ip in ips:

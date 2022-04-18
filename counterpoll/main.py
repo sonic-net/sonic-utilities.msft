@@ -1,5 +1,6 @@
 import click
 import json
+from flow_counter_util.route import exit_if_route_flow_counter_not_support
 from swsscommon.swsscommon import ConfigDBConnector
 from tabulate import tabulate
 
@@ -347,6 +348,40 @@ def disable(ctx):
     fc_info['FLEX_COUNTER_STATUS'] = 'disable'
     ctx.obj.mod_entry("FLEX_COUNTER_TABLE", "FLOW_CNT_TRAP", fc_info)
 
+# Route flow counter commands
+@cli.group()
+@click.pass_context
+def flowcnt_route(ctx):
+    """ Route flow counter commands """
+    exit_if_route_flow_counter_not_support()
+    ctx.obj = ConfigDBConnector()
+    ctx.obj.connect()
+
+@flowcnt_route.command()
+@click.argument('poll_interval', type=click.IntRange(1000, 30000))
+@click.pass_context
+def interval(ctx, poll_interval):
+    """ Set route flow counter query interval """
+    fc_info = {}
+    fc_info['POLL_INTERVAL'] = poll_interval
+    ctx.obj.mod_entry("FLEX_COUNTER_TABLE", "FLOW_CNT_ROUTE", fc_info)
+
+@flowcnt_route.command()
+@click.pass_context
+def enable(ctx):
+    """ Enable route flow counter query """
+    fc_info = {}
+    fc_info['FLEX_COUNTER_STATUS'] = 'enable'
+    ctx.obj.mod_entry("FLEX_COUNTER_TABLE", "FLOW_CNT_ROUTE", fc_info)
+
+@flowcnt_route.command()
+@click.pass_context
+def disable(ctx):
+    """ Disable route flow counter query """
+    fc_info = {}
+    fc_info['FLEX_COUNTER_STATUS'] = 'disable'
+    ctx.obj.mod_entry("FLEX_COUNTER_TABLE", "FLOW_CNT_ROUTE", fc_info)
+
 @cli.command()
 def show():
     """ Show the counter configuration """
@@ -363,6 +398,7 @@ def show():
     acl_info = configdb.get_entry('FLEX_COUNTER_TABLE', ACL)
     tunnel_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'TUNNEL')
     trap_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'FLOW_CNT_TRAP')
+    route_info = configdb.get_entry('FLEX_COUNTER_TABLE', 'FLOW_CNT_ROUTE')
 
     header = ("Type", "Interval (in ms)", "Status")
     data = []
@@ -388,6 +424,9 @@ def show():
         data.append(["TUNNEL_STAT", rif_info.get("POLL_INTERVAL", DEFLT_10_SEC), rif_info.get("FLEX_COUNTER_STATUS", DISABLE)])
     if trap_info:
         data.append(["FLOW_CNT_TRAP_STAT", trap_info.get("POLL_INTERVAL", DEFLT_10_SEC), trap_info.get("FLEX_COUNTER_STATUS", DISABLE)])
+    if route_info:
+        data.append(["FLOW_CNT_ROUTE_STAT", route_info.get("POLL_INTERVAL", DEFLT_10_SEC),
+                     route_info.get("FLEX_COUNTER_STATUS", DISABLE)])
 
     click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
 

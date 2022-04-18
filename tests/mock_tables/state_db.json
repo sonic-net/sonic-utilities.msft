@@ -793,6 +793,9 @@
         "xcvrd_switch_standby_end": "2021-May-13 10:01:15.696051",
         "xcvrd_switch_standby_start": "2021-May-13 10:01:15.690835"
     },
+    "FLOW_COUNTER_CAPABILITY_TABLE|route": {
+        "support": "true"
+    },
     "LINK_PROBE_STATS|Ethernet0": {
         "pck_loss_count": "612",
         "pck_expected_count": "840",

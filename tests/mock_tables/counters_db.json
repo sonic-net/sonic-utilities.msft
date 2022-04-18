@@ -2041,5 +2041,33 @@
     },
     "RATES:oid:0x1500000000034e":{
         "RX_PPS": 50.25
+    },
+    "COUNTERS_ROUTE_NAME_MAP":{
+        "1.1.1.1/31": "oid:0x1600000000034e",
+        "1.1.1.2/31": "oid:0x1600000000034f",
+        "2001::1/64": "oid:0x1600000000035e",
+        "Vrf_1|2001::1/64": "oid:0x1600000000035f"
+    },
+    "COUNTERS_ROUTE_TO_PATTERN_MAP": {
+        "1.1.1.1/31": "1.1.1.0/24",
+        "1.1.1.2/31": "1.1.1.0/24",
+        "2001::1/64": "2001::/64",
+        "Vrf_1|2001::1/64": "Vrf_1|2001::/64"
+    },
+    "COUNTERS:oid:0x1600000000034e":{
+        "SAI_COUNTER_STAT_PACKETS": 100,
+        "SAI_COUNTER_STAT_BYTES": 2000
+    },
+    "COUNTERS:oid:0x1600000000034f":{
+        "SAI_COUNTER_STAT_PACKETS": 1000,
+        "SAI_COUNTER_STAT_BYTES": 2000
+    },
+    "COUNTERS:oid:0x1600000000035e":{
+        "SAI_COUNTER_STAT_PACKETS": 50,
+        "SAI_COUNTER_STAT_BYTES": 1000
+    },
+    "COUNTERS:oid:0x1600000000035f":{
+        "SAI_COUNTER_STAT_PACKETS": 1000,
+        "SAI_COUNTER_STAT_BYTES": 25000
     }
 }
