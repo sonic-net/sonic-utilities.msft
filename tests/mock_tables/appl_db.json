@@ -41,6 +41,52 @@
         "adv_interface_types": "CR4,CR2",
         "autoneg": "on"
     },
+    "PORT_TABLE:Ethernet16": {
+        "index": "4",
+        "lanes": "16",
+        "alias": "etp5",
+        "description": "ARISTA04T1:Ethernet16",
+        "speed": "100",
+        "oper_status": "up",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "admin_status": "up"
+    },
+    "PORT_TABLE:Ethernet36": {
+        "index": "9",
+        "lanes": "9,10,11,12",
+        "alias": "etp10",
+        "description": "Servers8:eth0",
+        "speed": "10",
+        "oper_status": "up",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "tpid": "0x8100",
+        "admin_status": "up"
+    },
+    "PORT_TABLE:Ethernet24": {
+        "index": "6",
+        "lanes": "24",
+        "alias": "etp6",
+        "description": "ARISTA02T1:Ethernet24",
+        "speed": "1000",
+        "oper_status": "up",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "tpid": "0x8100",
+        "admin_status": "up"
+    },
+    "PORT_TABLE:Ethernet28": {
+        "index": "7",
+        "lanes": "28",
+        "alias": "etp8",
+        "description": "ARISTA03T1:Ethernet28",
+        "speed": "1000",
+        "oper_status": "up",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "admin_status": "up"
+    },
     "PORT_TABLE:Ethernet32": {
         "index": "8",
         "lanes": "13,14,15,16",

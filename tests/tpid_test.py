@@ -48,7 +48,11 @@ show_interface_tpid_output="""\
       Interface      Alias    Oper    Admin    TPID
 ---------------  ---------  ------  -------  ------
       Ethernet0  Ethernet0    down       up  0x9200
+     Ethernet16       etp5      up       up     N/A
+     Ethernet24       etp6      up       up  0x8100
+     Ethernet28       etp8      up       up     N/A
      Ethernet32       etp9      up       up  0x8100
+     Ethernet36      etp10      up       up  0x8100
     Ethernet112      etp29      up       up  0x8100
     Ethernet116      etp30      up       up  0x8100
     Ethernet120      etp31      up       up  0x8100

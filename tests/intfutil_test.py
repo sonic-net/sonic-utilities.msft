@@ -14,7 +14,11 @@ show_interface_status_output="""\
       Interface            Lanes    Speed    MTU    FEC      Alias             Vlan    Oper    Admin             Type    Asym PFC
 ---------------  ---------------  -------  -----  -----  ---------  ---------------  ------  -------  ---------------  ----------
       Ethernet0                0      25G   9100     rs  Ethernet0           routed    down       up  QSFP28 or later         off
+     Ethernet16               16     100M   9100    N/A       etp5            trunk      up       up             RJ45         off
+     Ethernet24               24       1G   9100    N/A       etp6            trunk      up       up  QSFP28 or later         off
+     Ethernet28               28    1000M   9100    N/A       etp8            trunk      up       up             RJ45         off
      Ethernet32      13,14,15,16      40G   9100     rs       etp9  PortChannel1001      up       up              N/A         off
+     Ethernet36       9,10,11,12      10M   9100    N/A      etp10           routed      up       up             RJ45         off
     Ethernet112      93,94,95,96      40G   9100     rs      etp29  PortChannel0001      up       up              N/A         off
     Ethernet116      89,90,91,92      40G   9100     rs      etp30  PortChannel0002      up       up              N/A         off
     Ethernet120  101,102,103,104      40G   9100     rs      etp31  PortChannel0003      up       up              N/A         off
@@ -33,14 +37,18 @@ show_interface_status_Ethernet32_output="""\
 """
 
 show_interface_description_output="""\
-  Interface    Oper    Admin      Alias           Description
------------  ------  -------  ---------  --------------------
-  Ethernet0    down       up  Ethernet0  ARISTA01T2:Ethernet1
- Ethernet32      up       up       etp9         Servers7:eth0
-Ethernet112      up       up      etp29  ARISTA01T1:Ethernet1
-Ethernet116      up       up      etp30  ARISTA02T1:Ethernet1
-Ethernet120      up       up      etp31  ARISTA03T1:Ethernet1
-Ethernet124      up       up      etp32  ARISTA04T1:Ethernet1
+  Interface    Oper    Admin      Alias            Description
+-----------  ------  -------  ---------  ---------------------
+  Ethernet0    down       up  Ethernet0   ARISTA01T2:Ethernet1
+ Ethernet16      up       up       etp5  ARISTA04T1:Ethernet16
+ Ethernet24      up       up       etp6  ARISTA02T1:Ethernet24
+ Ethernet28      up       up       etp8  ARISTA03T1:Ethernet28
+ Ethernet32      up       up       etp9          Servers7:eth0
+ Ethernet36      up       up      etp10          Servers8:eth0
+Ethernet112      up       up      etp29   ARISTA01T1:Ethernet1
+Ethernet116      up       up      etp30   ARISTA02T1:Ethernet1
+Ethernet120      up       up      etp31   ARISTA03T1:Ethernet1
+Ethernet124      up       up      etp32   ARISTA04T1:Ethernet1
 """
 
 show_interface_description_Ethernet0_output="""\
@@ -66,7 +74,11 @@ show_interface_auto_neg_status_output = """\
   Interface    Auto-Neg Mode    Speed    Adv Speeds    Type    Adv Types    Oper    Admin
 -----------  ---------------  -------  ------------  ------  -----------  ------  -------
   Ethernet0          enabled      25G       10G,50G     CR4      CR4,CR2    down       up
+ Ethernet16              N/A     100M           N/A     N/A          N/A      up       up
+ Ethernet24              N/A       1G           N/A     N/A          N/A      up       up
+ Ethernet28              N/A    1000M           N/A     N/A          N/A      up       up
  Ethernet32         disabled      40G           all     N/A          all      up       up
+ Ethernet36              N/A      10M           N/A     N/A          N/A      up       up
 Ethernet112              N/A      40G           N/A     N/A          N/A      up       up
 Ethernet116              N/A      40G           N/A     N/A          N/A      up       up
 Ethernet120              N/A      40G           N/A     N/A          N/A      up       up

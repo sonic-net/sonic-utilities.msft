@@ -70,11 +70,11 @@
         "alias": "etp5",
         "description": "Servers3:eth0",
         "index": "4",
-        "lanes": "45,46,47,48",
+        "lanes": "16",
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "100"
     },
     "PORT|Ethernet20": {
         "admin_status": "up",
@@ -96,7 +96,7 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "1000"
     },
     "PORT|Ethernet28": {
         "admin_status": "up",
@@ -107,7 +107,7 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "1000"
     },
     "PORT|Ethernet32": {
         "admin_status": "up",
@@ -129,7 +129,7 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "10"
     },
     "PORT|Ethernet40": {
         "admin_status": "up",

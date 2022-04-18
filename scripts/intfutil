@@ -48,6 +48,7 @@ PORT_ADV_SPEEDS = 'adv_speeds'
 PORT_INTERFACE_TYPE = 'interface_type'
 PORT_ADV_INTERFACE_TYPES = 'adv_interface_types'
 PORT_TPID = "tpid"
+OPTICS_TYPE_RJ45 = 'RJ45'
 
 VLAN_SUB_INTERFACE_SEPARATOR = "."
 VLAN_SUB_INTERFACE_TYPE = "802.1q-encapsulation"
@@ -131,6 +132,19 @@ def appl_db_sub_intf_keys_get(appl_db, sub_intf_list, sub_intf_name):
     return appl_db_sub_intf_keys
 
 
+def appl_db_port_speed_parse(in_speed, optics_type):
+    """
+    Parse the speed received from application DB
+    """
+    # fetched speed is in megabits per second
+    speed = int(in_speed)
+    if optics_type == OPTICS_TYPE_RJ45 and speed <= 1000:
+        out_speed = '{}M'.format(speed)
+    else:
+        out_speed = '{}G'.format(int(speed/1000))
+
+    return out_speed
+
 def appl_db_port_status_get(appl_db, intf_name, status_type):
     """
     Get the port status
@@ -140,12 +154,14 @@ def appl_db_port_status_get(appl_db, intf_name, status_type):
     if status is None:
         return "N/A"
     if status_type == PORT_SPEED and status != "N/A":
-        status = '{}G'.format(status[:-3])
+        optics_type = state_db_port_optics_get(appl_db, intf_name, PORT_OPTICS_TYPE)
+        status = appl_db_port_speed_parse(status, optics_type)
     elif status_type == PORT_ADV_SPEEDS and status != "N/A" and status != "all":
+        optics_type = state_db_port_optics_get(appl_db, intf_name, PORT_OPTICS_TYPE)
         speed_list = status.split(',')
         new_speed_list = []
         for s in natsorted(speed_list):
-            new_speed_list.append('{}G'.format(s[:-3]))
+            new_speed_list.append(appl_db_port_speed_parse(s, optics_type))
         status = ','.join(new_speed_list)
     return status
 
@@ -284,16 +300,18 @@ def po_speed_dict(po_int_dict, appl_db):
                     # If no speed was returned, append None without format
                     po_list.append(None)
                 else:
-                    interface_speed = '{}G'.format(interface_speed[:-3])
+                    optics_type = state_db_port_optics_get(appl_db, value[0], PORT_OPTICS_TYPE)
+                    interface_speed = appl_db_port_speed_parse(interface_speed, optics_type)
                     po_list.append(interface_speed)
             elif len(value) > 1:
                 for intf in value:
                     temp_speed = port_oper_speed_get_raw(appl_db, intf)
+                    optics_type = state_db_port_optics_get(appl_db, intf, PORT_OPTICS_TYPE)
                     temp_speed = int(temp_speed) if temp_speed else 0
                     agg_speed_list.append(temp_speed)
                     interface_speed = sum(agg_speed_list)
                     interface_speed = str(interface_speed)
-                    interface_speed = '{}G'.format(interface_speed[:-3])
+                    interface_speed = appl_db_port_speed_parse(interface_speed, optics_type)
                 po_list.append(interface_speed)
             po_speed_dict = dict(po_list[i:i+2] for i in range(0, len(po_list), 2))
         return po_speed_dict
