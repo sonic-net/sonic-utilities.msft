@@ -62,6 +62,8 @@ class TestConfigInterface(object):
         result = self.basic_check("type", ["Ethernet0", "Invalid"], ctx, operator.ne)
         assert 'Invalid interface type specified' in result.output
         assert 'Valid interface types:' in result.output
+        result = self.basic_check("type", ["Ethernet16", "Invalid"], ctx, operator.ne)
+        assert "Setting RJ45 ports' type is not supported" in result.output
 
     def test_config_adv_types(self, ctx):
         self.basic_check("advertised-types", ["Ethernet0", "CR4,KR4"], ctx)
@@ -74,6 +76,8 @@ class TestConfigInterface(object):
         assert 'Invalid interface type specified' in result.output
         assert 'duplicate' in result.output
         self.basic_check("advertised-types", ["Ethernet0", ""], ctx, operator.ne)
+        result = self.basic_check("advertised-types", ["Ethernet16", "Invalid"], ctx, operator.ne)
+        assert "Setting RJ45 ports' advertised types is not supported" in result.output
 
     def basic_check(self, command_name, para_list, ctx, op=operator.eq, expect_result=0):
         runner = CliRunner()
