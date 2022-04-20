@@ -442,6 +442,24 @@ class TestConfigQos(object):
         )
         assert filecmp.cmp(output_file, expected_result, shallow=False)
 
+    def test_qos_update_single(
+            self, get_cmd_module, setup_qos_mock_apis
+        ):
+        (config, show) = get_cmd_module
+        json_data = '{"DEVICE_METADATA": {"localhost": {}}, "PORT": {"Ethernet0": {}}}'
+        runner = CliRunner()
+        output_file = os.path.join(os.sep, "tmp", "qos_config_update.json")
+        cmd_vector = ["reload", "--ports", "Ethernet0", "--json-data", json_data, "--dry_run", output_file]
+        result = runner.invoke(config.config.commands["qos"], cmd_vector)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        cwd = os.path.dirname(os.path.realpath(__file__))
+        expected_result = os.path.join(
+            cwd, "qos_config_input", "update_qos.json"
+        )
+        assert filecmp.cmp(output_file, expected_result, shallow=False)
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
@@ -494,6 +512,40 @@ class TestConfigQosMasic(object):
             )
             file = "{}{}".format(output_file, asic)
             assert filecmp.cmp(file, expected_result, shallow=False)
+
+    def test_qos_update_masic(
+            self, get_cmd_module, setup_qos_mock_apis,
+            setup_multi_broadcom_masic
+        ):
+        (config, show) = get_cmd_module
+        runner = CliRunner()
+
+        output_file = os.path.join(os.sep, "tmp", "qos_update_output")
+        print("Saving output in {}<0,1,2..>".format(output_file))
+        num_asic = device_info.get_num_npus()
+        for asic in range(num_asic):
+            try:
+                file = "{}{}".format(output_file, asic)
+                os.remove(file)
+            except OSError:
+                pass
+        json_data = '{"DEVICE_METADATA": {"localhost": {}}, "PORT": {"Ethernet0": {}}}'
+        result = runner.invoke(
+            config.config.commands["qos"],
+            ["reload", "--ports", "Ethernet0,Ethernet4", "--json-data", json_data, "--dry_run", output_file]
+        )
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        cwd = os.path.dirname(os.path.realpath(__file__))
+
+        for asic in range(num_asic):
+            expected_result = os.path.join(
+                cwd, "qos_config_input", str(asic), "update_qos.json"
+            )
+
+            assert filecmp.cmp(output_file + "asic{}".format(asic), expected_result, shallow=False)
 
     @classmethod
     def teardown_class(cls):

@@ -2258,6 +2258,7 @@ def _update_buffer_calculation_model(config_db, model):
 
 @qos.command('reload')
 @click.pass_context
+@click.option('--ports', is_flag=False, required=False, help="List of ports that needs to be updated")
 @click.option('--no-dynamic-buffer', is_flag=True, help="Disable dynamic buffer calculation")
 @click.option(
     '--json-data', type=click.STRING,
@@ -2267,8 +2268,13 @@ def _update_buffer_calculation_model(config_db, model):
     '--dry_run', type=click.STRING,
     help="Dry run, writes config to the given file"
 )
-def reload(ctx, no_dynamic_buffer, dry_run, json_data):
+def reload(ctx, no_dynamic_buffer, dry_run, json_data, ports):
     """Reload QoS configuration"""
+    if ports:
+        log.log_info("'qos reload --ports {}' executing...".format(ports))
+        _qos_update_ports(ctx, ports, dry_run, json_data)
+        return
+
     log.log_info("'qos reload' executing...")
     _clear_qos()
 
@@ -2339,6 +2345,165 @@ def reload(ctx, no_dynamic_buffer, dry_run, json_data):
 
     if buffer_model_updated:
         print("Buffer calculation model updated, restarting swss is required to take effect")
+
+def _qos_update_ports(ctx, ports, dry_run, json_data):
+    """Reload QoS configuration"""
+    _, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
+    sonic_version_file = device_info.get_sonic_version_file()
+
+    portlist = ports.split(',')
+    portset_to_handle = set(portlist)
+    portset_handled = set()
+
+    namespace_list = [DEFAULT_NAMESPACE]
+    if multi_asic.get_num_asics() > 1:
+        namespace_list = multi_asic.get_namespaces_from_linux()
+
+    # Tables whose key is port only
+    tables_single_index = [
+        'PORT_QOS_MAP',
+        'BUFFER_PORT_INGRESS_PROFILE_LIST',
+        'BUFFER_PORT_EGRESS_PROFILE_LIST']
+    # Tables whose key is port followed by other element
+    tables_multi_index = [
+        'QUEUE',
+        'BUFFER_PG',
+        'BUFFER_QUEUE']
+
+    if json_data:
+        from_db = "--additional-data \'{}\'".format(json_data) if json_data else ""
+    else:
+        from_db = "-d"
+
+    items_to_update = {}
+    config_dbs = {}
+
+    for ns in namespace_list:
+        if ns is DEFAULT_NAMESPACE:
+            asic_id_suffix = ""
+            config_db = ConfigDBConnector()
+        else:
+            asic_id = multi_asic.get_asic_id_from_name(ns)
+            if asic_id is None:
+                click.secho("Command 'qos update' failed with invalid namespace '{}'".format(ns), fg="yellow")
+                raise click.Abort()
+            asic_id_suffix = str(asic_id)
+
+            config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=ns)
+
+        config_db.connect()
+        config_dbs[ns] = config_db
+        if is_dynamic_buffer_enabled(config_db):
+            buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers_dynamic.json.j2")
+        else:
+            buffer_template_file = os.path.join(hwsku_path, asic_id_suffix, "buffers.json.j2")
+
+        if not os.path.isfile(buffer_template_file):
+            click.secho("Buffer definition template not found at {}".format(buffer_template_file), fg="yellow")
+            ctx.abort()
+
+        qos_template_file = os.path.join(hwsku_path, asic_id_suffix, "qos.json.j2")
+
+        if not os.path.isfile(qos_template_file):
+            click.secho("QoS definition template not found at {}".format(qos_template_file), fg="yellow")
+            ctx.abort()
+
+        # Remove multi indexed entries first
+        for table_name in tables_multi_index:
+            entries = config_db.get_keys(table_name)
+            for key in entries:
+                port, _ = key
+                if not port in portset_to_handle:
+                    continue
+                config_db.set_entry(table_name, '|'.join(key), None)
+
+        cmd_ns = "" if ns is DEFAULT_NAMESPACE else "-n {}".format(ns)
+        command = "{} {} {} -t {},config-db -t {},config-db -y {} --print-data".format(
+            SONIC_CFGGEN_PATH, cmd_ns, from_db, buffer_template_file, qos_template_file, sonic_version_file
+        )
+        jsonstr = clicommon.run_command(command, display_cmd=False, return_cmd=True)
+
+        jsondict = json.loads(jsonstr)
+        port_table = jsondict.get('PORT')
+        if port_table:
+            ports_to_update = set(port_table.keys()).intersection(portset_to_handle)
+            if not ports_to_update:
+                continue
+        else:
+            continue
+
+        portset_handled.update(ports_to_update)
+
+        items_to_apply = {}
+
+        for table_name in tables_single_index:
+            table_items_rendered = jsondict.get(table_name)
+            if table_items_rendered:
+                for key, data in table_items_rendered.items():
+                    port = key
+                    if not port in ports_to_update:
+                        continue
+                    # Push the rendered data to config-db
+                    if not items_to_apply.get(table_name):
+                        items_to_apply[table_name] = {}
+                    items_to_apply[table_name][key] = data
+
+        for table_name in tables_multi_index:
+            table_items_rendered = jsondict.get(table_name)
+            if table_items_rendered:
+                for key, data in table_items_rendered.items():
+                    port = key.split('|')[0]
+                    if not port in ports_to_update:
+                        continue
+                    # Push the result to config-db
+                    if not items_to_apply.get(table_name):
+                        items_to_apply[table_name] = {}
+                    items_to_apply[table_name][key] = data
+
+        # Handle CABLE_LENGTH
+        # This table needs to be specially handled because the port is not the index but the field name
+        # The idea is for all the entries in template, the same entries in CONFIG_DB will be merged together
+        # Eg. there is entry AZURE rendered from template for ports Ethernet0, Ethernet4 with cable length "5m":
+        # and entry AZURE in CONFIG_DB for ports Ethernet8, Ethernet12, Ethernet16 with cable length "40m"
+        # The entry that will eventually be pushed into CONFIG_DB is
+        # {"AZURE": {"Ethernet0": "5m", "Ethernet4": "5m", "Ethernet8": "40m", "Ethernet12": "40m", "Ethernet16": "40m"}}
+        table_name = 'CABLE_LENGTH'
+        cable_length_table = jsondict.get(table_name)
+        if cable_length_table:
+            for key, item in cable_length_table.items():
+                cable_length_from_db = config_db.get_entry(table_name, key)
+                cable_length_from_template = {}
+                for port in ports_to_update:
+                    cable_len = item.get(port)
+                    if cable_len:
+                        cable_length_from_template[port] = cable_len
+                # Reaching this point,
+                # - cable_length_from_template contains cable length rendered from the template, eg Ethernet0 and Ethernet4 in the above example
+                # - cable_length_from_db contains cable length existing in the CONFIG_DB, eg Ethernet8, Ethernet12, and Ethernet16 in the above exmaple
+
+                if not items_to_apply.get(table_name):
+                    items_to_apply[table_name] = {}
+
+                if cable_length_from_db:
+                    cable_length_from_db.update(cable_length_from_template)
+                    items_to_apply[table_name][key] = cable_length_from_db
+                else:
+                    items_to_apply[table_name][key] = cable_length_from_template
+
+        if items_to_apply:
+            items_to_update[ns] = items_to_apply
+
+        if dry_run:
+            with open(dry_run + ns, "w+") as f:
+                json.dump(items_to_apply, f, sort_keys=True, indent=4)
+        else:
+            jsonstr = json.dumps(items_to_apply)
+            cmd_ns = "" if ns is DEFAULT_NAMESPACE else "-n {}".format(ns)
+            command = "{} {} --additional-data '{}' --write-to-db".format(SONIC_CFGGEN_PATH, cmd_ns, jsonstr)
+            clicommon.run_command(command, display_cmd=False)
+
+    if portset_to_handle != portset_handled:
+        click.echo("The port(s) {} are not updated because they do not exist".format(portset_to_handle - portset_handled))
 
 def is_dynamic_buffer_enabled(config_db):
     """Return whether the current system supports dynamic buffer calculation"""

@@ -7586,6 +7586,36 @@ Some of the example QOS configurations that users can modify are given below.
   When there are no changes in the platform specific configutation files, they internally use the file "/usr/share/sonic/templates/buffers_config.j2" and "/usr/share/sonic/templates/qos_config.j2" to generate the configuration.
   ```
 
+**config qos reload --ports port_list**
+
+This command is used to reload the default QoS configuration on a group of ports.
+Typically, the default QoS configuration is in the following tables.
+1) PORT_QOS_MAP
+2) QUEUE
+3) BUFFER_PG
+4) BUFFER_QUEUE
+5) BUFFER_PORT_INGRESS_PROFILE_LIST
+6) BUFFER_PORT_EGRESS_PROFILE_LIST
+7) CABLE_LENGTH
+
+If there was QoS configuration in the above tables for the ports:
+
+  - if `--force` option is provied, the existing QoS configuration will be replaced by the default QoS configuration,
+  - otherwise, the command will exit with nothing updated.
+
+- Usage:
+  ```
+  config qos reload --ports <port>[,port]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config qos reload --ports Ethernet0,Ethernet4
+
+  In this example, it updates the QoS configuration on port Ethernet0 and Ethernet4 to default.
+  If there was QoS configuration on the ports, the command will clear the existing QoS configuration on the port and reload to default.
+  ```
+
 Go Back To [Beginning of the document](#) or [Beginning of this section](#qos)
 
 ## sFlow
