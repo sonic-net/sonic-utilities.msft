@@ -132,9 +132,9 @@ def appl_db_sub_intf_keys_get(appl_db, sub_intf_list, sub_intf_name):
     return appl_db_sub_intf_keys
 
 
-def appl_db_port_speed_parse(in_speed, optics_type):
+def port_speed_parse(in_speed, optics_type):
     """
-    Parse the speed received from application DB
+    Parse the speed received from DB
     """
     # fetched speed is in megabits per second
     speed = int(in_speed)
@@ -155,13 +155,13 @@ def appl_db_port_status_get(appl_db, intf_name, status_type):
         return "N/A"
     if status_type == PORT_SPEED and status != "N/A":
         optics_type = state_db_port_optics_get(appl_db, intf_name, PORT_OPTICS_TYPE)
-        status = appl_db_port_speed_parse(status, optics_type)
+        status = port_speed_parse(status, optics_type)
     elif status_type == PORT_ADV_SPEEDS and status != "N/A" and status != "all":
         optics_type = state_db_port_optics_get(appl_db, intf_name, PORT_OPTICS_TYPE)
         speed_list = status.split(',')
         new_speed_list = []
         for s in natsorted(speed_list):
-            new_speed_list.append(appl_db_port_speed_parse(s, optics_type))
+            new_speed_list.append(port_speed_parse(s, optics_type))
         status = ','.join(new_speed_list)
     return status
 
@@ -173,8 +173,9 @@ def port_oper_speed_get(db, intf_name):
     oper_status = db.get(db.APPL_DB, PORT_STATUS_TABLE_PREFIX + intf_name, PORT_OPER_STATUS)
     if oper_speed is None or oper_speed == "N/A" or oper_status != "up":
         return appl_db_port_status_get(db, intf_name, PORT_SPEED)
-
-    return '{}G'.format(oper_speed[:-3])
+    else:
+        optics_type = state_db_port_optics_get(db, intf_name, PORT_OPTICS_TYPE)
+        return port_speed_parse(oper_speed, optics_type)
 
 def port_oper_speed_get_raw(db, intf_name):
     """
@@ -301,7 +302,7 @@ def po_speed_dict(po_int_dict, appl_db):
                     po_list.append(None)
                 else:
                     optics_type = state_db_port_optics_get(appl_db, value[0], PORT_OPTICS_TYPE)
-                    interface_speed = appl_db_port_speed_parse(interface_speed, optics_type)
+                    interface_speed = port_speed_parse(interface_speed, optics_type)
                     po_list.append(interface_speed)
             elif len(value) > 1:
                 for intf in value:
@@ -311,7 +312,7 @@ def po_speed_dict(po_int_dict, appl_db):
                     agg_speed_list.append(temp_speed)
                     interface_speed = sum(agg_speed_list)
                     interface_speed = str(interface_speed)
-                    interface_speed = appl_db_port_speed_parse(interface_speed, optics_type)
+                    interface_speed = port_speed_parse(interface_speed, optics_type)
                 po_list.append(interface_speed)
             po_speed_dict = dict(po_list[i:i+2] for i in range(0, len(po_list), 2))
         return po_speed_dict
