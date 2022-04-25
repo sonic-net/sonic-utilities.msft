@@ -25,6 +25,7 @@ REBOOT_USER=$(logname)
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 ASIC_TYPE=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)
 SUBTYPE=$(sonic-cfggen -d -v DEVICE_METADATA.localhost.subtype)
+ASAN=$(sonic-cfggen -y /etc/sonic/sonic_version.yml -v asan)
 VERBOSE=no
 EXIT_NEXT_IMAGE_NOT_EXISTS=4
 EXIT_SONIC_INSTALLER_VERIFY_REBOOT=21
@@ -76,6 +77,12 @@ function stop_sonic_services()
         sleep 3
     fi
     stop_pmon_service
+}
+
+function stop_services_asan()
+{
+    debug "Stopping swss for ASAN"
+    systemctl stop swss
 }
 
 function clear_warm_boot()
@@ -186,6 +193,11 @@ tag_images
 
 # Stop SONiC services gracefully.
 stop_sonic_services
+
+# Stop ASAN-enabled services so the report can be generated
+if [[ x"$ASAN" == x"yes" ]]; then
+    stop_services_asan
+fi
 
 clear_warm_boot
 
