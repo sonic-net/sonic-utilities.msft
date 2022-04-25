@@ -57,6 +57,7 @@
 * [Flow Counters](#flow-counters)
   * [Flow Counters show commands](#flow-counters-show-commands)
   * [Flow Counters clear commands](#flow-counters-clear-commands)
+  * [Flow Counters config commands](#flow-counters-config-commands)
 * [Gearbox](#gearbox)
   * [Gearbox show commands](#gearbox-show-commands)
 * [Interfaces](#interfaces)
@@ -3137,9 +3138,10 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#featur
 
 ## Flow Counters
 
-This section explains all the Flow Counters show commands and clear commands that are supported in SONiC. Flow counters are usually used for debugging, troubleshooting and performance enhancement processes. Flow counters supports case like:
+This section explains all the Flow Counters show commands, clear commands and config commands that are supported in SONiC. Flow counters are usually used for debugging, troubleshooting and performance enhancement processes. Flow counters supports case like:
 
   - Host interface traps (number of received traps per Trap ID)
+  - Routes matching the configured prefix pattern (number of hits and number of bytes)
 
 ### Flow Counters show commands
 
@@ -3169,6 +3171,50 @@ Because clear (see below) is handled on a per-user basis different users may see
     asic1         dhcp        200    3,000  45.25/s
   ```
 
+**show flowcnt-route stats**
+
+This command is used to show the current statistics for route flow patterns. 
+
+Because clear (see below) is handled on a per-user basis different users may see different counts.
+
+- Usage:
+  ```
+  show flowcnt-route stats
+  show flowcnt-route stats pattern <route_pattern> [--vrf <vrf>]
+  show flowcnt-route stats route <route_prefix> [--vrf <vrf>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show flowcnt-route stats
+  Route pattern       VRF               Matched routes           Packets          Bytes
+  --------------------------------------------------------------------------------------
+  3.3.0.0/16          default           3.3.1.0/24               100              4543
+                                        3.3.2.3/32               3443             929229
+                                        3.3.0.0/16               0                0
+  2000::/64           default           2000::1/128              100              4543
+  ```
+
+The "pattern" subcommand is used to display the route flow counter statistics by route pattern.
+
+- Example:
+  ```
+  admin@sonic:~$ show flowcnt-route stats pattern 3.3.0.0/16
+  Route pattern       VRF               Matched routes           Packets          Bytes
+  --------------------------------------------------------------------------------------
+  3.3.0.0/16          default           3.3.1.0/24               100              4543
+                                        3.3.2.3/32               3443             929229
+                                        3.3.0.0/16               0                0
+  ```
+
+The "route" subcommand is used to display the route flow counter statistics by route prefix.
+  ```
+  admin@sonic:~$ show flowcnt-route stats route 3.3.3.2/32 --vrf Vrf_1
+  Route                     VRF              Route Pattern           Packets          Bytes
+  -----------------------------------------------------------------------------------------
+  3.3.3.2/32                Vrf_1            3.3.0.0/16              100              4543
+  ```
+
 ### Flow Counters clear commands
 
 **sonic-clear flowcnt-trap**
@@ -3185,6 +3231,70 @@ This command is used to clear the current statistics for the registered host int
   admin@sonic:~$ sonic-clear flowcnt-trap
   Trap Flow Counters were successfully cleared
   ```
+
+**sonic-clear flowcnt-route**
+
+This command is used to clear the current statistics for the route flow counter. This is done on a per-user basis.
+
+- Usage:
+  ```
+  sonic-clear flowcnt-route
+  sonic-clear flowcnt-route pattern <route_pattern> [--vrf <vrf>]
+  sonic-clear flowcnt-route route <prefix> [--vrf <vrf>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear flowcnt-route
+  Route Flow Counters were successfully cleared
+  ```
+
+The "pattern" subcommand is used to clear the route flow counter statistics by route pattern.
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear flowcnt-route pattern 3.3.0.0/16 --vrf Vrf_1
+  Flow Counters of all routes matching the configured route pattern were successfully cleared
+  ```
+
+The "route" subcommand is used to clear the route flow counter statistics by route prefix.
+
+- Example:
+  ```
+  admin@sonic:~$ sonic-clear flowcnt-route route 3.3.3.2/32 --vrf Vrf_1
+  Flow Counters of the specified route were successfully cleared
+  ```
+
+### Flow Counters config commands
+
+**config flowcnt-route pattern add**
+
+This command is used to add or update the route pattern which is used by route flow counter to match route entries.
+
+- Usage:
+  ```
+  config flowcnt-route pattern add <prefix> [--vrf <vrf>] [--max <max_match_count>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config flowcnt-route pattern add 2.2.0.0/16 --vrf Vrf_1 --max 50
+  ```
+
+**config flowcnt-route pattern remove**
+
+This command is used to remove the route pattern which is used by route flow counter to match route entries.
+
+- Usage:
+  ```
+  config flowcnt-route pattern remove <prefix> [--vrf <vrf>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config flowcnt-route pattern remove 2.2.0.0/16 --vrf Vrf_1
+  ```
+
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#flow-counters)
 ## Gearbox
