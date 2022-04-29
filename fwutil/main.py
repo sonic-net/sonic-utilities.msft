@@ -89,10 +89,10 @@ def update(ctx):
     ctx.obj[COMPONENT_PATH_CTX_KEY] = [ ]
 
 
-# 'auto_update' group
+# 'all_update' group
 @click.group()
 @click.pass_context
-def auto_update(ctx):
+def all_update(ctx):
     """Auto-update platform firmware"""
     pass
 
@@ -343,7 +343,7 @@ def fw_update(ctx, yes, force, image):
 
 
 # 'fw' subcommand
-@auto_update.command(name='fw')
+@all_update.command(name='fw')
 @click.option('-i', '--image', 'image', type=click.Choice(["current", "next"]), default="current", show_default=True, help="Update firmware using current/next SONiC image")
 @click.option('-f', '--fw_image', 'fw_image', help="Custom FW package path")
 @click.option('-b', '--boot', 'boot', type=click.Choice(["any", "cold", "fast", "warm", "none"]), default="none", show_default=True, help="Necessary boot option after the firmware update")
@@ -380,7 +380,7 @@ def fw_auto_update(ctx, boot, image=None, fw_image=None):
         if cup is not None:
             au_component_list = cup.get_update_available_components()
             if au_component_list:
-                if cup.is_first_auto_update(boot):
+                if cup.is_capable_auto_update(boot):
                     for au_component in au_component_list:
                         cup.auto_update_firmware(au_component, boot)
                     log_helper.print_warning("All firmware auto-update has been performed")
@@ -462,18 +462,10 @@ def status(ctx):
 
 
 # 'updates' subcommand
-@click.group()
+@show.command(name='update-all-status')
 @click.pass_context
-def show_update(ctx):
-    """status : Show platform components auto_update status"""
-    pass
-
-
-# 'status' subcommand
-@show_update.command(name='status')
-@click.pass_context
-def update_status(ctx):
-    """Show platform components auto_update status"""
+def update_all_status(ctx):
+    """Show platform components update all status"""
     try:
         csp = ComponentStatusProvider()
         click.echo(csp.get_au_status())
@@ -487,14 +479,12 @@ def version():
     """Show utility version"""
     click.echo("fwutil version {0}".format(VERSION))
 
-show.add_command(show_update, name='update')
-
 install.add_command(chassis_install, name='chassis')
 install.add_command(module_install, name='module')
 
 update.add_command(chassis_update, name='chassis')
 update.add_command(module_update, name='module')
-update.add_command(auto_update, name='all')
+update.add_command(all_update, name='all')
 
 chassis_install.add_command(component_install, name='component')
 module_install.add_command(component_install, name='component')

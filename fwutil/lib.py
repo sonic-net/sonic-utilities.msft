@@ -790,7 +790,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
 
     def update_au_status_file(self, au_info_data, filename=FW_AU_STATUS_FILE_PATH):
         with open(filename, 'w') as f:
-            json.dump(au_info_data, f)
+            json.dump(au_info_data, f, indent=4, sort_keys=True)
 
     def read_au_status_file_if_exists(self, filename=FW_AU_STATUS_FILE_PATH):
         data = None
@@ -835,6 +835,8 @@ class ComponentUpdateProvider(PlatformDataProvider):
         comp_au_status['status'] = status
         comp_au_status['version'] = fw_version
         comp_au_status['info'] = info
+
+        click.echo("{} firmware auto-update status from {} to {} : {}".format(component_path, fw_version.split('/')[0], fw_version.split('/')[1], info))
 
         au_status.append(comp_au_status)
 
@@ -883,7 +885,6 @@ class ComponentUpdateProvider(PlatformDataProvider):
                 rt_code = int(rt_code.strip())
             else:
                 rt_code = component.auto_update_firmware(firmware_path, boot)
-            click.echo("{} firmware auto-update status return_code: {}".format(component_path, int(rt_code)))
             (status, info) = self.set_firmware_auto_update_status(component_path, fw_version, boot, rt_code)
             log_helper.log_fw_auto_update_end(component_path, firmware_path, boot, status, info)
         except KeyboardInterrupt:
@@ -894,7 +895,7 @@ class ComponentUpdateProvider(PlatformDataProvider):
             raise
 
 
-    def is_first_auto_update(self, boot):
+    def is_capable_auto_update(self, boot):
         task_file = None
         status_file = None
         for task_file in glob.glob(os.path.join(FIRMWARE_AU_STATUS_DIR, FW_AU_TASK_FILE_REGEX)):
@@ -903,6 +904,12 @@ class ComponentUpdateProvider(PlatformDataProvider):
                 return False
         for status_file in glob.glob(os.path.join(FIRMWARE_AU_STATUS_DIR, FW_AU_STATUS_FILE)):
             if status_file is not None:
+                data = self.read_au_status_file_if_exists(FW_AU_STATUS_FILE_PATH)
+                if data is not None:
+                    if boot is "none" or boot in data:
+                        click.echo("Allow firmware auto-update with boot_type {} again".format(boot))
+                        return True
+
                 click.echo("{} firmware auto-update is already performed, {} firmware auto update is not allowed any more".format(status_file, boot))
                 return False
         click.echo("Firmware auto-update for boot_type {} is allowed".format(boot))
