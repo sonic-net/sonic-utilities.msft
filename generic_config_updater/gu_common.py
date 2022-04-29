@@ -105,9 +105,9 @@ class ConfigWrapper:
             sy.loadData(config_db_as_json)
 
             sy.validate_data_tree()
-            return True
+            return True, None
         except sonic_yang.SonicYangException as ex:
-            return False
+            return False, ex
 
     def validate_config_db_config(self, config_db_as_json):
         sy = self.create_sonic_yang_with_loaded_models()
@@ -118,9 +118,9 @@ class ConfigWrapper:
             sy.loadData(tmp_config_db_as_json)
 
             sy.validate_data_tree()
-            return True
+            return True, None
         except sonic_yang.SonicYangException as ex:
-            return False
+            return False, ex
 
     def crop_tables_without_yang(self, config_db_as_json):
         sy = self.create_sonic_yang_with_loaded_models()
@@ -151,7 +151,8 @@ class ConfigWrapper:
     def create_sonic_yang_with_loaded_models(self):
         # sonic_yang_with_loaded_models will only be initialized once the first time this method is called
         if self.sonic_yang_with_loaded_models is None:
-            loaded_models_sy = sonic_yang.SonicYang(self.yang_dir)
+            sonic_yang_print_log_enabled = genericUpdaterLogging.get_verbose()
+            loaded_models_sy = sonic_yang.SonicYang(self.yang_dir, print_log_enabled=sonic_yang_print_log_enabled)
             loaded_models_sy.loadYangModel() # This call takes a long time (100s of ms) because it reads files from disk
             self.sonic_yang_with_loaded_models = loaded_models_sy
 
@@ -828,6 +829,9 @@ class GenericUpdaterLogging:
 
     def set_verbose(self, verbose):
         self._verbose = verbose
+
+    def get_verbose(self):
+        return self._verbose
 
     def get_logger(self, title, print_all_to_console=False):
         return TitledLogger(SYSLOG_IDENTIFIER, title, self._verbose, print_all_to_console)

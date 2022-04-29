@@ -144,10 +144,11 @@ class TestConfigWrapper(unittest.TestCase):
         expected = True
 
         # Act
-        actual = config_wrapper.validate_sonic_yang_config(Files.SONIC_YANG_AS_JSON)
+        actual, error = config_wrapper.validate_sonic_yang_config(Files.SONIC_YANG_AS_JSON)
 
         # Assert
         self.assertEqual(expected, actual)
+        self.assertIsNone(error)
 
     def test_validate_sonic_yang_config__invvalid_config__returns_false(self):
         # Arrange
@@ -155,10 +156,11 @@ class TestConfigWrapper(unittest.TestCase):
         expected = False
 
         # Act
-        actual = config_wrapper.validate_sonic_yang_config(Files.SONIC_YANG_AS_JSON_INVALID)
+        actual, error = config_wrapper.validate_sonic_yang_config(Files.SONIC_YANG_AS_JSON_INVALID)
 
         # Assert
         self.assertEqual(expected, actual)
+        self.assertIsNotNone(error)
 
     def test_validate_config_db_config__valid_config__returns_true(self):
         # Arrange
@@ -166,10 +168,11 @@ class TestConfigWrapper(unittest.TestCase):
         expected = True
 
         # Act
-        actual = config_wrapper.validate_config_db_config(Files.CONFIG_DB_AS_JSON)
+        actual, error = config_wrapper.validate_config_db_config(Files.CONFIG_DB_AS_JSON)
 
         # Assert
         self.assertEqual(expected, actual)
+        self.assertIsNone(error)
 
     def test_validate_config_db_config__invalid_config__returns_false(self):
         # Arrange
@@ -177,10 +180,11 @@ class TestConfigWrapper(unittest.TestCase):
         expected = False
 
         # Act
-        actual = config_wrapper.validate_config_db_config(Files.CONFIG_DB_AS_JSON_INVALID)
+        actual, error = config_wrapper.validate_config_db_config(Files.CONFIG_DB_AS_JSON_INVALID)
 
         # Assert
         self.assertEqual(expected, actual)
+        self.assertIsNotNone(error)
 
     def test_crop_tables_without_yang__returns_cropped_config_db_as_json(self):
         # Arrange
