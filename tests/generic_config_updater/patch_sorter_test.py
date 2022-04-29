@@ -3078,9 +3078,7 @@ class TestPatchSorter(unittest.TestCase):
         data = Files.PATCH_SORTER_TEST_SUCCESS
         skip_exact_change_list_match = False
         for test_case_name in data:
-            # Skipping ADD RACK case until fixing issue https://github.com/Azure/sonic-utilities/issues/2034
-            if test_case_name == "ADD_RACK":
-                continue
+            # TODO: Add CABLE_LENGTH to ADD_RACK and REMOVE_RACK tests https://github.com/Azure/sonic-utilities/issues/2034
             with self.subTest(name=test_case_name):
                 self.run_single_success_case(data[test_case_name], skip_exact_change_list_match)
 
