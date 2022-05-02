@@ -10,6 +10,7 @@ import ast
 import os
 import re
 import sys
+from typing import Dict
 
 import click
 from natsort import natsorted
@@ -235,7 +236,7 @@ class SFPShow(object):
         self.intf_name = intf_name
         self.dump_dom = dump_dom
         self.table = []
-        self.output = ''
+        self.intf_eeprom: Dict[str, str] = {}
         self.multi_asic = multi_asic_util.MultiAsic(namespace_option=namespace_option)
 
     # Convert dict values to cli output string
@@ -391,7 +392,7 @@ class SFPShow(object):
         output = ''
 
         sfp_info_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface_name))
-        output = interface_name + ': ' + 'SFP EEPROM detected' + '\n'
+        output = 'SFP EEPROM detected\n'
         sfp_info_output = self.convert_sfp_info_to_output_string(sfp_info_dict)
         output += sfp_info_output
 
@@ -408,24 +409,22 @@ class SFPShow(object):
         if self.intf_name is not None:
             presence = self.db.exists(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(self.intf_name))
             if presence:
-                self.output = self.convert_interface_sfp_info_to_cli_output_string(
+                self.intf_eeprom[self.intf_name] = self.convert_interface_sfp_info_to_cli_output_string(
                     self.db, self.intf_name, self.dump_dom)
             else:
-                self.output += (self.intf_name + ': ' + 'SFP EEPROM Not detected' + '\n')
+                self.intf_eeprom[self.intf_name] = "SFP EEPROM Not detected\n"
         else:
             port_table_keys = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
-            sorted_table_keys = natsorted(port_table_keys)
-            for i in sorted_table_keys:
+            for i in port_table_keys:
                 interface = re.split(':', i, maxsplit=1)[-1].strip()
                 if interface and interface.startswith(front_panel_prefix()) and not interface.startswith((backplane_prefix(), inband_prefix(), recirc_prefix())):
                     presence = self.db.exists(self.db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface))
                     if presence:
-                        self.output += self.convert_interface_sfp_info_to_cli_output_string(
+                        self.intf_eeprom[interface] = self.convert_interface_sfp_info_to_cli_output_string(
                             self.db, interface, self.dump_dom)
                     else:
-                        self.output += (interface + ': ' + 'SFP EEPROM Not detected' + '\n')
+                        self.intf_eeprom[interface] = "SFP EEPROM Not detected\n"
 
-                    self.output += '\n'
 
     @multi_asic_util.run_on_multi_asic
     def get_presence(self):
@@ -451,7 +450,7 @@ class SFPShow(object):
         self.table += port_table
 
     def display_eeprom(self):
-        click.echo(self.output)
+        click.echo("\n".join([f"{k}: {v}" for k, v in natsorted(self.intf_eeprom.items())]))
 
     def display_presence(self):
         header = ['Port', 'Presence']
