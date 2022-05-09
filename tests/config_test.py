@@ -224,6 +224,27 @@ class TestLoadMinigraph(object):
                 assert result.exit_code == 0
                 assert expected_output in result.output
 
+    def test_load_minigraph_with_golden_config(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch(
+            "utilities_common.cli.run_command",
+            mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, show) = get_cmd_module
+            db = Db()
+            golden_config = {}
+            self.check_golden_config(db, config, golden_config,
+                                     "config override-config-table /etc/sonic/golden_config_db.json")
+
+    def check_golden_config(self, db, config, golden_config, expected_output):
+        def is_file_side_effect(filename):
+            return True if 'golden_config' in filename else False
+        with mock.patch('os.path.isfile', mock.MagicMock(side_effect=is_file_side_effect)):
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["load_minigraph"], ["-y"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            assert expected_output in result.output
+
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
