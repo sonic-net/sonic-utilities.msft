@@ -5281,8 +5281,11 @@ If vrf-name is also provided as part of the command, if the vrf is created it wi
      default    Vlan20
      Vrf-red    Vlan100
                 Loopback11
+                Eth0.100
      Vrf-blue   Loopback100
                 Loopback102
+                Ethernet0.10
+                PortChannel101
   ````  
 
 ### VRF config commands
