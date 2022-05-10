@@ -45,6 +45,7 @@ PORT_OPTICS_TYPE = "type"
 PORT_PFC_ASYM_STATUS = "pfc_asym"
 PORT_AUTONEG = 'autoneg'
 PORT_ADV_SPEEDS = 'adv_speeds'
+PORT_RMT_ADV_SPEEDS = 'rmt_adv_speeds'
 PORT_INTERFACE_TYPE = 'interface_type'
 PORT_ADV_INTERFACE_TYPES = 'adv_interface_types'
 PORT_TPID = "tpid"
@@ -140,8 +141,12 @@ def port_speed_parse(in_speed, optics_type):
     speed = int(in_speed)
     if optics_type == OPTICS_TYPE_RJ45 and speed <= 1000:
         out_speed = '{}M'.format(speed)
+    elif speed < 1000:
+        out_speed = '{}M'.format(speed)
+    elif speed % 1000 >= 100:
+        out_speed = '{:.1f}G'.format(speed / 1000)
     else:
-        out_speed = '{}G'.format(int(speed/1000))
+        out_speed = '{:.0f}G'.format(speed / 1000)
 
     return out_speed
 
@@ -158,6 +163,23 @@ def appl_db_port_status_get(appl_db, intf_name, status_type):
         status = port_speed_parse(status, optics_type)
     elif status_type == PORT_ADV_SPEEDS and status != "N/A" and status != "all":
         optics_type = state_db_port_optics_get(appl_db, intf_name, PORT_OPTICS_TYPE)
+        speed_list = status.split(',')
+        new_speed_list = []
+        for s in natsorted(speed_list):
+            new_speed_list.append(port_speed_parse(s, optics_type))
+        status = ','.join(new_speed_list)
+    return status
+
+def state_db_port_status_get(db, intf_name, field):
+    """
+    Get the port status
+    """
+    full_table_id = PORT_STATE_TABLE_PREFIX + intf_name
+    status = db.get(db.STATE_DB, full_table_id, field)
+    if not status:
+        return "N/A"
+    if field in [PORT_RMT_ADV_SPEEDS] and status not in ["N/A", "all"]:
+        optics_type = state_db_port_optics_get(db, intf_name, PORT_OPTICS_TYPE)
         speed_list = status.split(',')
         new_speed_list = []
         for s in natsorted(speed_list):
@@ -566,7 +588,7 @@ class IntfDescription(object):
 
 
 # ========================== interface-autoneg logic ==========================
-header_autoneg = ['Interface', 'Auto-Neg Mode', 'Speed', 'Adv Speeds', 'Type', 'Adv Types', 'Oper', 'Admin']
+header_autoneg = ['Interface', 'Auto-Neg Mode', 'Speed', 'Adv Speeds', 'Rmt Adv Speeds', 'Type', 'Adv Types', 'Oper', 'Admin']
 
 
 class IntfAutoNegStatus(object):
@@ -616,6 +638,7 @@ class IntfAutoNegStatus(object):
                               autoneg_mode,
                               port_oper_speed_get(self.db, key),
                               appl_db_port_status_get(self.db, key, PORT_ADV_SPEEDS),
+                              state_db_port_status_get(self.db, key, PORT_RMT_ADV_SPEEDS),
                               appl_db_port_status_get(self.db, key, PORT_INTERFACE_TYPE),
                               appl_db_port_status_get(self.db, key, PORT_ADV_INTERFACE_TYPES),
                               appl_db_port_status_get(self.db, key, PORT_OPER_STATUS),

@@ -34,6 +34,7 @@ table_display_output = '''\
 |             |           | | PORT_TABLE|Ethernet0 | +------------------+--------------------------+ | |
 |             |           | |                      | | field            | value                    | | |
 |             |           | |                      | |------------------+--------------------------| | |
+|             |           | |                      | | rmt_adv_speeds   | 10,100,1000              | | |
 |             |           | |                      | | speed            | 100000                   | | |
 |             |           | |                      | | supported_speeds | 10000,25000,40000,100000 | | |
 |             |           | |                      | +------------------+--------------------------+ | |
@@ -120,7 +121,7 @@ class TestDumpState(object):
         expected = {'Ethernet0': {'CONFIG_DB': {'keys': [{'PORT|Ethernet0': {'alias': 'etp1', 'description': 'etp1', 'index': '0', 'lanes': '25,26,27,28', 'mtu': '9100', 'pfc_asym': 'off', 'speed': '40000'}}], 'tables_not_found': []},
                                   'APPL_DB': {'keys': [{'PORT_TABLE:Ethernet0': {'index': '0', 'lanes': '0', 'alias': 'Ethernet0', 'description': 'ARISTA01T2:Ethernet1', 'speed': '25000', 'oper_status': 'down', 'pfc_asym': 'off', 'mtu': '9100', 'fec': 'rs', 'admin_status': 'up'}}], 'tables_not_found': []},
                                   'ASIC_DB': {'keys': [{'ASIC_STATE:SAI_OBJECT_TYPE_HOSTIF:oid:0xd00000000056d': {'SAI_HOSTIF_ATTR_NAME': 'Ethernet0', 'SAI_HOSTIF_ATTR_OBJ_ID': 'oid:0x10000000004a4', 'SAI_HOSTIF_ATTR_OPER_STATUS': 'true', 'SAI_HOSTIF_ATTR_TYPE': 'SAI_HOSTIF_TYPE_NETDEV', 'SAI_HOSTIF_ATTR_VLAN_TAG': 'SAI_HOSTIF_VLAN_TAG_STRIP'}}, {'ASIC_STATE:SAI_OBJECT_TYPE_PORT:oid:0x10000000004a4': {'NULL': 'NULL', 'SAI_PORT_ATTR_ADMIN_STATE': 'true', 'SAI_PORT_ATTR_MTU': '9122', 'SAI_PORT_ATTR_SPEED': '100000'}}], 'tables_not_found': [], 'vidtorid': {'oid:0xd00000000056d': 'oid:0xd', 'oid:0x10000000004a4': 'oid:0x1690000000001'}},
-                                  'STATE_DB': {'keys': [{'PORT_TABLE|Ethernet0': {'speed': '100000', 'supported_speeds': '10000,25000,40000,100000'}}], 'tables_not_found': []}}}
+                                  'STATE_DB': {'keys': [{'PORT_TABLE|Ethernet0': {'rmt_adv_speeds': '10,100,1000', 'speed': '100000', 'supported_speeds': '10000,25000,40000,100000'}}], 'tables_not_found': []}}}
 
         assert result.exit_code == 0, "exit code: {}, Exception: {}, Traceback: {}".format(result.exit_code, result.exception, result.exc_info)
         # Cause other tests depend and change these paths in the mock_db, this test would fail everytime when a field or a value in changed in this path, creating noise
@@ -137,7 +138,7 @@ class TestDumpState(object):
                     {"CONFIG_DB": {"keys": [{"PORT|Ethernet0": {"alias": "etp1", "description": "etp1", "index": "0", "lanes": "25,26,27,28", "mtu": "9100", "pfc_asym": "off", "speed": "40000"}}], "tables_not_found": []},
                      "APPL_DB": {"keys": [{"PORT_TABLE:Ethernet0": {"index": "0", "lanes": "0", "alias": "Ethernet0", "description": "ARISTA01T2:Ethernet1", "speed": "25000", "oper_status": "down", "pfc_asym": "off", "mtu": "9100", "fec": "rs", "admin_status": "up"}}], "tables_not_found": []},
                      "ASIC_DB": {"keys": [{"ASIC_STATE:SAI_OBJECT_TYPE_HOSTIF:oid:0xd00000000056d": {"SAI_HOSTIF_ATTR_NAME": "Ethernet0", "SAI_HOSTIF_ATTR_OBJ_ID": "oid:0x10000000004a4", "SAI_HOSTIF_ATTR_OPER_STATUS": "true", "SAI_HOSTIF_ATTR_TYPE": "SAI_HOSTIF_TYPE_NETDEV", "SAI_HOSTIF_ATTR_VLAN_TAG": "SAI_HOSTIF_VLAN_TAG_STRIP"}}, {"ASIC_STATE:SAI_OBJECT_TYPE_PORT:oid:0x10000000004a4": {"NULL": "NULL", "SAI_PORT_ATTR_ADMIN_STATE": "true", "SAI_PORT_ATTR_MTU": "9122", "SAI_PORT_ATTR_SPEED": "100000"}}], "tables_not_found": [], "vidtorid": {"oid:0xd00000000056d": "oid:0xd", "oid:0x10000000004a4": "oid:0x1690000000001"}},
-                     "STATE_DB": {"keys": [{"PORT_TABLE|Ethernet0": {"speed": "100000", "supported_speeds": "10000,25000,40000,100000"}}], "tables_not_found": []}},
+                     "STATE_DB": {"keys": [{"PORT_TABLE|Ethernet0": {"rmt_adv_speeds": "10,100,1000", "speed": "100000", "supported_speeds": "10000,25000,40000,100000"}}], "tables_not_found": []}},
                     "Ethernet4":
                     {"CONFIG_DB": {"keys": [{"PORT|Ethernet4": {"admin_status": "up", "alias": "etp2", "description": "Servers0:eth0", "index": "1", "lanes": "29,30,31,32", "mtu": "9100", "pfc_asym": "off", "speed": "40000"}}], "tables_not_found": []},
                         "APPL_DB": {"keys": [], "tables_not_found": ["PORT_TABLE"]},
@@ -166,7 +167,7 @@ class TestDumpState(object):
         result = runner.invoke(dump.state, ["port", "Ethernet0", "--db", "ASIC_DB", "--db", "STATE_DB"])
         print(result.output)
         expected = {"Ethernet0": {"ASIC_DB": {"keys": [{"ASIC_STATE:SAI_OBJECT_TYPE_HOSTIF:oid:0xd00000000056d": {"SAI_HOSTIF_ATTR_NAME": "Ethernet0", "SAI_HOSTIF_ATTR_OBJ_ID": "oid:0x10000000004a4", "SAI_HOSTIF_ATTR_OPER_STATUS": "true", "SAI_HOSTIF_ATTR_TYPE": "SAI_HOSTIF_TYPE_NETDEV", "SAI_HOSTIF_ATTR_VLAN_TAG": "SAI_HOSTIF_VLAN_TAG_STRIP"}}, {"ASIC_STATE:SAI_OBJECT_TYPE_PORT:oid:0x10000000004a4": {"NULL": "NULL", "SAI_PORT_ATTR_ADMIN_STATE": "true", "SAI_PORT_ATTR_MTU": "9122", "SAI_PORT_ATTR_SPEED": "100000"}}], "tables_not_found": [], "vidtorid": {"oid:0xd00000000056d": "oid:0xd", "oid:0x10000000004a4": "oid:0x1690000000001"}},
-                                  "STATE_DB": {"keys": [{"PORT_TABLE|Ethernet0": {"speed": "100000", "supported_speeds": "10000,25000,40000,100000"}}], "tables_not_found": []}}}
+                                  "STATE_DB": {"keys": [{"PORT_TABLE|Ethernet0": {"rmt_adv_speeds": "10,100,1000", "speed": "100000", "supported_speeds": "10000,25000,40000,100000"}}], "tables_not_found": []}}}
         assert result.exit_code == 0, "exit code: {}, Exception: {}, Traceback: {}".format(result.exit_code, result.exception, result.exc_info)
         ddiff = compare_json_output(expected, result.output)
         assert not ddiff, ddiff
