@@ -63,6 +63,48 @@ QSFP_DATA_MAP = {
     'application_advertisement': 'Application Advertisement'
 }
 
+QSFP_DD_DATA_MAP = {
+    'model': 'Vendor PN',
+    'vendor_oui': 'Vendor OUI',
+    'vendor_date': 'Vendor Date Code(YYYY-MM-DD Lot)',
+    'manufacturer': 'Vendor Name',
+    'vendor_rev': 'Vendor Rev',
+    'serial': 'Vendor SN',
+    'type': 'Identifier',
+    'ext_identifier': 'Extended Identifier',
+    'ext_rateselect_compliance': 'Extended RateSelect Compliance',
+    'cable_length': 'cable_length',
+    'cable_type': 'Length',
+    'nominal_bit_rate': 'Nominal Bit Rate(100Mbs)',
+    'specification_compliance': 'Specification compliance',
+    'encoding': 'Encoding',
+    'connector': 'Connector',
+    'application_advertisement': 'Application Advertisement',
+    'active_firmware': 'Active Firmware Version',
+    'inactive_firmware': 'Inactive Firmware Version',
+    'hardware_rev': 'Hardware Revision',
+    'media_interface_code': 'Media Interface Code',
+    'host_electrical_interface': 'Host Electrical Interface',
+    'host_lane_count': 'Host Lane Count',
+    'media_lane_count': 'Media Lane Count',
+    'host_lane_assignment_option': 'Host Lane Assignment Options',
+    'media_lane_assignment_option': 'Media Lane Assignment Options',
+    'active_apsel_hostlane1': 'Active App Selection Host Lane 1',
+    'active_apsel_hostlane2': 'Active App Selection Host Lane 2',
+    'active_apsel_hostlane3': 'Active App Selection Host Lane 3',
+    'active_apsel_hostlane4': 'Active App Selection Host Lane 4',
+    'active_apsel_hostlane5': 'Active App Selection Host Lane 5',
+    'active_apsel_hostlane6': 'Active App Selection Host Lane 6',
+    'active_apsel_hostlane7': 'Active App Selection Host Lane 7',
+    'active_apsel_hostlane8': 'Active App Selection Host Lane 8',
+    'media_interface_technology': 'Media Interface Technology',
+    'cmis_rev': 'CMIS Revision',
+    'supported_max_tx_power': 'Supported Max TX Power',
+    'supported_min_tx_power': 'Supported Min TX Power',
+    'supported_max_laser_freq': 'Supported Max Laser Frequency',
+    'supported_min_laser_freq': 'Supported Min Laser Frequency'
+}
+
 SFP_DOM_CHANNEL_MONITOR_MAP = {
     'rx1power': 'RXPower',
     'tx1bias': 'TXBias',
@@ -273,31 +315,68 @@ def format_dict_value_to_string(sorted_key_table,
 def convert_sfp_info_to_output_string(sfp_info_dict):
     indent = ' ' * 8
     output = ''
+    sfp_type = sfp_info_dict['type']
+    # CMIS supported module types include QSFP-DD and OSFP
+    if sfp_type.startswith('QSFP-DD') or sfp_type.startswith('OSFP'):
+        sorted_qsfp_data_map_keys = sorted(QSFP_DD_DATA_MAP, key=QSFP_DD_DATA_MAP.get)
+        for key in sorted_qsfp_data_map_keys:
+            if key == 'cable_type':
+                output += '{}{}: {}\n'.format(indent, sfp_info_dict['cable_type'], sfp_info_dict['cable_length'])
+            elif key == 'cable_length':
+                pass
+            elif key == 'specification_compliance':
+                if sfp_info_dict['type'] == "QSFP-DD Double Density 8X Pluggable Transceiver" or \
+                sfp_info_dict['type'] == "OSFP 8X Pluggable Transceiver" or \
+                sfp_info_dict['type'] == "QSFP+ or later with CMIS":
+                    output += '{}{}: {}\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
+                else:
+                    output += '{}{}:\n'.format(indent, QSFP_DD_DATA_MAP['specification_compliance'])
 
-    sorted_qsfp_data_map_keys = sorted(QSFP_DATA_MAP, key=QSFP_DATA_MAP.get)
-    for key in sorted_qsfp_data_map_keys:
-        if key == 'cable_type':
-            output += '{}{}: {}\n'.format(indent, sfp_info_dict['cable_type'], sfp_info_dict['cable_length'])
-        elif key == 'cable_length':
-            pass
-        elif key == 'specification_compliance':
-            if sfp_info_dict['type'] == "QSFP-DD Double Density 8X Pluggable Transceiver" or \
-            sfp_info_dict['type'] == "OSFP 8X Pluggable Transceiver" or \
-            sfp_info_dict['type'] == "QSFP+ or later with CMIS":
-                output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
+                    spec_compliance_dict = {}
+                    try:
+                        spec_compliance_dict = ast.literal_eval(sfp_info_dict['specification_compliance'])
+                        sorted_compliance_key_table = natsorted(spec_compliance_dict)
+                        for compliance_key in sorted_compliance_key_table:
+                            output += '{}{}: {}\n'.format((indent * 2), compliance_key, spec_compliance_dict[compliance_key])
+                    except ValueError as e:
+                        output += '{}N/A\n'.format((indent * 2))
+            elif key == 'application_advertisement':
+                pass
+            elif key == 'supported_max_tx_power' or key == 'supported_min_tx_power':
+                output += '{}{}: {}dBm\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
+            elif key == 'supported_max_laser_freq' or key == 'supported_min_laser_freq':
+                output += '{}{}: {}GHz\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
             else:
-                output += '{}{}:\n'.format(indent, QSFP_DATA_MAP['specification_compliance'])
-
-                spec_compliance_dict = {}
                 try:
-                    spec_compliance_dict = ast.literal_eval(sfp_info_dict['specification_compliance'])
-                    sorted_compliance_key_table = natsorted(spec_compliance_dict)
-                    for compliance_key in sorted_compliance_key_table:
-                        output += '{}{}: {}\n'.format((indent * 2), compliance_key, spec_compliance_dict[compliance_key])
-                except ValueError as e:
-                    output += '{}N/A\n'.format((indent * 2))
-        else:
-            output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
+                    output += '{}{}: {}\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
+                except (KeyError, ValueError) as e:
+                    output += '{}{}: N/A\n'.format(indent, QSFP_DD_DATA_MAP[key])
+
+    else:
+        sorted_qsfp_data_map_keys = sorted(QSFP_DATA_MAP, key=QSFP_DATA_MAP.get)
+        for key in sorted_qsfp_data_map_keys:
+            if key == 'cable_type':
+                output += '{}{}: {}\n'.format(indent, sfp_info_dict['cable_type'], sfp_info_dict['cable_length'])
+            elif key == 'cable_length':
+                pass
+            elif key == 'specification_compliance':
+                if sfp_info_dict['type'] == "QSFP-DD Double Density 8X Pluggable Transceiver" or \
+                sfp_info_dict['type'] == "OSFP 8X Pluggable Transceiver" or \
+                sfp_info_dict['type'] == "QSFP+ or later with CMIS":
+                    output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
+                else:
+                    output += '{}{}:\n'.format(indent, QSFP_DATA_MAP['specification_compliance'])
+
+                    spec_compliance_dict = {}
+                    try:
+                        spec_compliance_dict = ast.literal_eval(sfp_info_dict['specification_compliance'])
+                        sorted_compliance_key_table = natsorted(spec_compliance_dict)
+                        for compliance_key in sorted_compliance_key_table:
+                            output += '{}{}: {}\n'.format((indent * 2), compliance_key, spec_compliance_dict[compliance_key])
+                    except ValueError as e:
+                        output += '{}N/A\n'.format((indent * 2))
+            else:
+                output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
 
     return output
 

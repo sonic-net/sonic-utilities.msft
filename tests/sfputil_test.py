@@ -77,47 +77,135 @@ class TestSfputil(object):
                                                      sfputil.QSFP_DOM_CHANNEL_MONITOR_MAP,
                                                      sfputil.DOM_VALUE_UNIT_MAP)
         assert output == expected_output
-
-    def test_convert_sfp_info_to_output_string(self):
-        sfp_info_dict = {
-            'type': 'QSFP28 or later',
-            'type_abbrv_name': 'QSFP28',
-            'manufacturer': 'Mellanox',
-            'model': 'MCP1600-C003',
-            'vendor_rev': 'A2',
-            'serial': 'MT1636VS10561',
-            'vendor_oui': '00-02-c9',
-            'vendor_date': '2016-07-18',
-            'connector': 'No separable connector',
-            'encoding': '64B66B',
-            'ext_identifier': 'Power Class 1(1.5W max)',
-            'ext_rateselect_compliance': 'QSFP+ Rate Select Version 1',
-            'cable_type': 'Length Cable Assembly(m)',
-            'cable_length': '3',
-            'application_advertisement': 'N/A',
-            'specification_compliance': "{'10/40G Ethernet Compliance Code': '40GBASE-CR4'}",
-            'dom_capability': "{'Tx_power_support': 'no', 'Rx_power_support': 'no', 'Voltage_support': 'no', 'Temp_support': 'no'}",
-            'nominal_bit_rate': '255'
-        }
-
-        expected_output = '''\
-        Application Advertisement: N/A
-        Connector: No separable connector
-        Encoding: 64B66B
-        Extended Identifier: Power Class 1(1.5W max)
-        Extended RateSelect Compliance: QSFP+ Rate Select Version 1
-        Identifier: QSFP28 or later
-        Length Cable Assembly(m): 3
-        Nominal Bit Rate(100Mbs): 255
-        Specification compliance:
-                10/40G Ethernet Compliance Code: 40GBASE-CR4
-        Vendor Date Code(YYYY-MM-DD Lot): 2016-07-18
-        Vendor Name: Mellanox
-        Vendor OUI: 00-02-c9
-        Vendor PN: MCP1600-C003
-        Vendor Rev: A2
-        Vendor SN: MT1636VS10561
-'''
+    @pytest.mark.parametrize("sfp_info_dict, expected_output",[
+        # Non-CMIS module
+        (
+            # sfp_info_dict
+            {
+                'type': 'QSFP28 or later',
+                'type_abbrv_name': 'QSFP28',
+                'manufacturer': 'Mellanox',
+                'model': 'MCP1600-C003',
+                'vendor_rev': 'A2',
+                'serial': 'MT1636VS10561',
+                'vendor_oui': '00-02-c9',
+                'vendor_date': '2016-07-18',
+                'connector': 'No separable connector',
+                'encoding': '64B66B',
+                'ext_identifier': 'Power Class 1(1.5W max)',
+                'ext_rateselect_compliance': 'QSFP+ Rate Select Version 1',
+                'cable_type': 'Length Cable Assembly(m)',
+                'cable_length': '3',
+                'application_advertisement': 'N/A',
+                'specification_compliance': "{'10/40G Ethernet Compliance Code': '40GBASE-CR4'}",
+                'dom_capability': "{'Tx_power_support': 'no', 'Rx_power_support': 'no', 'Voltage_support': 'no', 'Temp_support': 'no'}",
+                'nominal_bit_rate': '255'
+            },
+            # expected_output
+            "        Application Advertisement: N/A\n"
+            "        Connector: No separable connector\n"
+            "        Encoding: 64B66B\n"
+            "        Extended Identifier: Power Class 1(1.5W max)\n"
+            "        Extended RateSelect Compliance: QSFP+ Rate Select Version 1\n"
+            "        Identifier: QSFP28 or later\n"
+            "        Length Cable Assembly(m): 3\n"
+            "        Nominal Bit Rate(100Mbs): 255\n"
+            "        Specification compliance:\n"
+            "                10/40G Ethernet Compliance Code: 40GBASE-CR4\n"
+            "        Vendor Date Code(YYYY-MM-DD Lot): 2016-07-18\n"
+            "        Vendor Name: Mellanox\n"
+            "        Vendor OUI: 00-02-c9\n"
+            "        Vendor PN: MCP1600-C003\n"
+            "        Vendor Rev: A2\n"
+            "        Vendor SN: MT1636VS10561\n"
+        ),
+        # CMIS compliant module
+        (
+            # sfp_info_dict
+            {
+                'type': 'QSFP-DD Double Density 8X Pluggable Transceiver',
+                'type_abbrv_name': 'QSFP-DD',
+                'manufacturer': 'abc',
+                'model': 'def',
+                'vendor_rev': 'ghi',
+                'serial': 'jkl',
+                'vendor_oui': '00-00-00',
+                'vendor_date': '2000-01-01',
+                'connector': 'LC',
+                'encoding': 'N/A',
+                'ext_identifier': 'Power Class 8 (18.0W Max)',
+                'ext_rateselect_compliance': 'N/A',
+                'cable_type': 'Length Cable Assembly(m)',
+                'cable_length': '0',
+                'application_advertisement': 'N/A',
+                'specification_compliance': "sm_media_interface",
+                'dom_capability': "{'Tx_power_support': 'no', 'Rx_power_support': 'no', 'Voltage_support': 'no', 'Temp_support': 'no'}",
+                'nominal_bit_rate': '0',
+                'active_firmware': '0.1',
+                'inactive_firmware': '0.0',
+                'hardware_rev': '0.0',
+                'media_interface_code': '400ZR, DWDM, amplified',
+                'host_electrical_interface': '400GAUI-8 C2M (Annex 120E)',
+                'host_lane_count': 8,
+                'media_lane_count': 1,
+                'host_lane_assignment_option': 1,
+                'media_lane_assignment_option': 1,
+                'active_apsel_hostlane1': 1,
+                'active_apsel_hostlane2': 1,
+                'active_apsel_hostlane3': 1,
+                'active_apsel_hostlane4': 1,
+                'active_apsel_hostlane5': 1,
+                'active_apsel_hostlane6': 1,
+                'active_apsel_hostlane7': 1,
+                'active_apsel_hostlane8': 1,
+                'media_interface_technology': 'C-band tunable laser',
+                'cmis_rev': '5.0',
+                'supported_max_tx_power': 0,
+                'supported_min_tx_power': -20,
+                'supported_max_laser_freq': 196100,
+                'supported_min_laser_freq': 191300
+            },
+            # expected_output
+            "        Active App Selection Host Lane 1: 1\n"
+            "        Active App Selection Host Lane 2: 1\n"
+            "        Active App Selection Host Lane 3: 1\n"
+            "        Active App Selection Host Lane 4: 1\n"
+            "        Active App Selection Host Lane 5: 1\n"
+            "        Active App Selection Host Lane 6: 1\n"
+            "        Active App Selection Host Lane 7: 1\n"
+            "        Active App Selection Host Lane 8: 1\n"
+            "        Active Firmware Version: 0.1\n"
+            "        CMIS Revision: 5.0\n"
+            "        Connector: LC\n"
+            "        Encoding: N/A\n"
+            "        Extended Identifier: Power Class 8 (18.0W Max)\n"
+            "        Extended RateSelect Compliance: N/A\n"
+            "        Hardware Revision: 0.0\n"
+            "        Host Electrical Interface: 400GAUI-8 C2M (Annex 120E)\n"
+            "        Host Lane Assignment Options: 1\n"
+            "        Host Lane Count: 8\n"
+            "        Identifier: QSFP-DD Double Density 8X Pluggable Transceiver\n"
+            "        Inactive Firmware Version: 0.0\n"
+            "        Length Cable Assembly(m): 0\n"
+            "        Media Interface Code: 400ZR, DWDM, amplified\n"
+            "        Media Interface Technology: C-band tunable laser\n"
+            "        Media Lane Assignment Options: 1\n"
+            "        Media Lane Count: 1\n"
+            "        Nominal Bit Rate(100Mbs): 0\n"
+            "        Specification compliance: sm_media_interface\n"
+            "        Supported Max Laser Frequency: 196100GHz\n"
+            "        Supported Max TX Power: 0dBm\n"
+            "        Supported Min Laser Frequency: 191300GHz\n"
+            "        Supported Min TX Power: -20dBm\n"
+            "        Vendor Date Code(YYYY-MM-DD Lot): 2000-01-01\n"
+            "        Vendor Name: abc\n"
+            "        Vendor OUI: 00-00-00\n"
+            "        Vendor PN: def\n"
+            "        Vendor Rev: ghi\n"
+            "        Vendor SN: jkl\n"
+        ),
+    ])
+    def test_convert_sfp_info_to_output_string(self, sfp_info_dict, expected_output):
         output = sfputil.convert_sfp_info_to_output_string(sfp_info_dict)
         assert output == expected_output
 
