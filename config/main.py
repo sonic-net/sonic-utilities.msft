@@ -829,18 +829,36 @@ def interface_is_in_portchannel(portchannel_member_table, interface_name):
 
     return False
 
-def interface_has_mirror_config(mirror_table, interface_name):
-    """ Check if port is already configured with mirror config """
+def check_mirror_direction_config(v, direction):
+    """ Check if port is already configured for mirror in same direction """
+    if direction:
+        direction=direction.upper()
+        if ('direction' in v and v['direction'] == 'BOTH') or (direction == 'BOTH'):
+            return True
+        if 'direction' in v and v['direction'] == direction:
+            return True
+    else:
+        return True
+
+def interface_has_mirror_config(ctx, mirror_table, dst_port, src_port, direction):
+    """ Check if dst/src port is already configured with mirroring in same direction """
     for _, v in mirror_table.items():
-        if 'src_port' in v and v['src_port'] == interface_name:
-            return True
-        if 'dst_port' in v and v['dst_port'] == interface_name:
-            return True
+        if src_port:
+            for port in src_port.split(","):
+                if 'dst_port' in v and v['dst_port'] == port:
+                    ctx.fail("Error: Source Interface {} already has mirror config".format(port))
+                if 'src_port' in v and re.search(port,v['src_port']):
+                    if check_mirror_direction_config(v, direction):
+                        ctx.fail("Error: Source Interface {} already has mirror config in same direction".format(port))
+        if dst_port:
+            if ('dst_port' in v and v['dst_port'] == dst_port) or ('src_port' in v and re.search(dst_port,v['src_port'])):
+                ctx.fail("Error: Destination Interface {} already has mirror config".format(dst_port))
 
     return False
 
 def validate_mirror_session_config(config_db, session_name, dst_port, src_port, direction):
     """ Check if SPAN mirror-session config is valid """
+    ctx = click.get_current_context()
     if len(config_db.get_entry('MIRROR_SESSION', session_name)) != 0:
         click.echo("Error: {} already exists".format(session_name))
         return False
@@ -851,41 +869,34 @@ def validate_mirror_session_config(config_db, session_name, dst_port, src_port, 
 
     if dst_port:
         if not interface_name_is_valid(config_db, dst_port):
-            click.echo("Error: Destination Interface {} is invalid".format(dst_port))
-            return False
+            ctx.fail("Error: Destination Interface {} is invalid".format(dst_port))
+
+        if is_portchannel_present_in_db(config_db, dst_port):
+            ctx.fail("Error: Destination Interface {} is not supported".format(dst_port))
 
         if interface_is_in_vlan(vlan_member_table, dst_port):
-            click.echo("Error: Destination Interface {} has vlan config".format(dst_port))
-            return False
+            ctx.fail("Error: Destination Interface {} has vlan config".format(dst_port))
 
-        if interface_has_mirror_config(mirror_table, dst_port):
-            click.echo("Error: Destination Interface {} already has mirror config".format(dst_port))
-            return False
 
         if interface_is_in_portchannel(portchannel_member_table, dst_port):
-            click.echo("Error: Destination Interface {} has portchannel config".format(dst_port))
-            return False
+            ctx.fail("Error: Destination Interface {} has portchannel config".format(dst_port))
 
         if clicommon.is_port_router_interface(config_db, dst_port):
-            click.echo("Error: Destination Interface {} is a L3 interface".format(dst_port))
-            return False
+            ctx.fail("Error: Destination Interface {} is a L3 interface".format(dst_port))
 
     if src_port:
         for port in src_port.split(","):
             if not interface_name_is_valid(config_db, port):
-                click.echo("Error: Source Interface {} is invalid".format(port))
-                return False
+                ctx.fail("Error: Source Interface {} is invalid".format(port))
             if dst_port and dst_port == port:
-                click.echo("Error: Destination Interface cant be same as Source Interface")
-                return False
-            if interface_has_mirror_config(mirror_table, port):
-                click.echo("Error: Source Interface {} already has mirror config".format(port))
-                return False
+                ctx.fail("Error: Destination Interface cant be same as Source Interface")
+
+    if interface_has_mirror_config(ctx, mirror_table, dst_port, src_port, direction):
+        return False
 
     if direction:
         if direction not in ['rx', 'tx', 'both']:
-            click.echo("Error: Direction {} is invalid".format(direction))
-            return False
+            ctx.fail("Error: Direction {} is invalid".format(direction))
 
     return True
 
@@ -2086,7 +2097,7 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
         dst_port = interface_alias_to_name(None, dst_port)
         if dst_port is None:
             click.echo("Error: Destination Interface {} is invalid".format(dst_port))
-            return
+            return False
 
     session_info = {
             "type" : "SPAN",

@@ -2553,5 +2553,10 @@
     },
     "QUEUE|Ethernet96|6": {
         "scheduler": "[SCHEDULER|scheduler.0]"
+    },
+    "MIRROR_SESSION|test_session_db1": {
+        "dst_port": "Ethernet44",
+        "src_port": "Ethernet40,Ethernet48",
+        "direction": "RX"
     }
 }
