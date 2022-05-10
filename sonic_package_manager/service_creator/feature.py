@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 """ This module implements new feature registration/de-registration in SONiC system. """
-
+import copy
 from typing import Dict, Type
 
+from sonic_package_manager.logger import log
 from sonic_package_manager.manifest import Manifest
 from sonic_package_manager.service_creator.sonic_db import SonicDB
 
@@ -15,6 +16,14 @@ DEFAULT_FEATURE_CONFIG = {
     'set_owner': 'local'
 }
 
+AUTO_TS_GLOBAL = "AUTO_TECHSUPPORT"
+AUTO_TS_FEATURE = "AUTO_TECHSUPPORT_FEATURE"
+CFG_STATE = "state"
+# TODO: Enable available_mem_threshold once the mem_leak_auto_ts feature is available
+DEFAULT_AUTO_TS_FEATURE_CONFIG = {
+    'state': 'disabled',
+    'rate_limit_interval': '600'
+}
 
 def is_enabled(cfg):
     return cfg.get('state', 'disabled').lower() == 'enabled'
@@ -25,8 +34,11 @@ def is_multi_instance(cfg):
 
 
 class FeatureRegistry:
-    """ FeatureRegistry class provides an interface to
-    register/de-register new feature persistently. """
+    """ 1) FeatureRegistry class provides an interface to
+    register/de-register new feature tables persistently.
+        2) Writes persistent configuration to FEATURE & 
+    AUTO_TECHSUPPORT_FEATURE tables
+    """
 
     def __init__(self, sonic_db: Type[SonicDB]):
         self._sonic_db = sonic_db
@@ -60,6 +72,9 @@ class FeatureRegistry:
             new_cfg = {**new_cfg, **non_cfg_entries}
 
             conn.set_entry(FEATURE, name, new_cfg)
+        
+        if self.register_auto_ts(name):
+            log.info(f'{name} entry is added to {AUTO_TS_FEATURE} table')
 
     def deregister(self, name: str):
         """ Deregister feature by name.
@@ -73,6 +88,7 @@ class FeatureRegistry:
         db_connetors = self._sonic_db.get_connectors()
         for conn in db_connetors:
             conn.set_entry(FEATURE, name, None)
+            conn.set_entry(AUTO_TS_FEATURE, name, None)
 
     def update(self,
                old_manifest: Manifest,
@@ -103,6 +119,9 @@ class FeatureRegistry:
             new_cfg = {**new_cfg, **non_cfg_entries}
 
             conn.set_entry(FEATURE, new_name, new_cfg)
+        
+        if self.register_auto_ts(new_name, old_name):
+            log.info(f'{new_name} entry is added to {AUTO_TS_FEATURE} table')
 
     def is_feature_enabled(self, name: str) -> bool:
         """ Returns whether the feature is current enabled
@@ -122,6 +141,46 @@ class FeatureRegistry:
         conn = self._sonic_db.get_initial_db_connector()
         features = conn.get_table(FEATURE)
         return [feature for feature, cfg in features.items() if is_multi_instance(cfg)]
+
+    def infer_auto_ts_capability(self, init_cfg_conn):
+        """ Determine whether to enable/disable the state for new feature
+        AUTO_TS provides a compile-time knob to enable/disable this feature
+        Default State for the new feature follows the decision made at compile time.
+
+        Args:
+            init_cfg_conn: PersistentConfigDbConnector for init_cfg.json
+        Returns:
+            Capability: Tuple: (bool, ["enabled", "disabled"])
+        """
+        cfg = init_cfg_conn.get_entry(AUTO_TS_GLOBAL, "GLOBAL")
+        default_state = cfg.get(CFG_STATE, "")
+        if not default_state:
+            return (False, "disabled")
+        else:
+            return (True, default_state)
+
+    def register_auto_ts(self, new_name, old_name=None):
+        """ Registers auto_ts feature
+        """
+        # Infer and update default config
+        init_cfg_conn = self._sonic_db.get_initial_db_connector()
+        def_cfg = DEFAULT_AUTO_TS_FEATURE_CONFIG.copy()
+        (auto_ts_add_cfg, auto_ts_state) = self.infer_auto_ts_capability(init_cfg_conn)
+        def_cfg['state'] = auto_ts_state
+
+        if not auto_ts_add_cfg:
+            log.debug("Skip adding AUTO_TECHSUPPORT_FEATURE table because no AUTO_TECHSUPPORT|GLOBAL entry is found")
+            return False
+
+        for conn in self._sonic_db.get_connectors():
+            new_cfg = copy.deepcopy(def_cfg)
+            if old_name:
+                current_cfg = conn.get_entry(AUTO_TS_FEATURE, old_name)
+                conn.set_entry(AUTO_TS_FEATURE, old_name, None)
+                new_cfg.update(current_cfg)
+            
+            conn.set_entry(AUTO_TS_FEATURE, new_name, new_cfg)
+        return True
 
     @staticmethod
     def get_default_feature_entries(state=None, owner=None) -> Dict[str, str]:
