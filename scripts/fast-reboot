@@ -738,6 +738,26 @@ for service in ${SERVICES_TO_STOP}; do
     fi
 done
 
+# Kill other containers to make the reboot faster
+# We call `docker kill ...` to ensure the container stops as quickly as possible,
+# then immediately call `systemctl stop ...` to prevent the service from
+# restarting the container automatically.
+debug "Stopping all remaining containers ..."
+if test -f /usr/local/bin/ctrmgr_tools.py
+then
+    /usr/local/bin/ctrmgr_tools.py kill-all
+else
+    for CONTAINER_NAME in $(docker ps --format '{{.Names}}'); do
+        CONTAINER_STOP_RC=0
+        docker kill $CONTAINER_NAME &> /dev/null || CONTAINER_STOP_RC=$?
+        systemctl stop $CONTAINER_NAME || debug "Ignore stopping $CONTAINER_NAME error $?"
+        if [[ CONTAINER_STOP_RC -ne 0 ]]; then
+            debug "Failed killing container $CONTAINER_NAME RC $CONTAINER_STOP_RC ."
+        fi
+    done
+fi
+debug "Stopped all remaining containers ..."
+
 # Stop the docker container engine. Otherwise we will have a broken docker storage
 systemctl stop docker.service || debug "Ignore stopping docker service error $?"
 
