@@ -24,6 +24,7 @@ PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
 LOG_SSD_HEALTH="/usr/local/bin/log_ssd_health"
 PLATFORM_FWUTIL_AU_REBOOT_HANDLE="platform_fw_au_reboot_handle"
 SSD_FW_UPDATE="ssd-fw-upgrade"
+SSD_FW_UPDATE_BOOT_OPTION=no
 TAG_LATEST=yes
 DETACH=no
 LOG_PATH="/var/log/${REBOOT_TYPE}.txt"
@@ -77,13 +78,14 @@ function showHelpAndExit()
     echo "            - control plane assistant IP list."
     echo "    -t    : Don't tag the current kube images as latest"
     echo "    -D    : detached mode - closing terminal will not cause stopping reboot"
+    echo "    -u    : include ssd-upgrader-part in boot options"
 
     exit "${EXIT_SUCCESS}"
 }
 
 function parseOptions()
 {
-    while getopts "vfidh?rkxc:sD" opt; do #TODO "t" is missing
+    while getopts "vfidh?rkxc:sDu" opt; do #TODO "t" is missing
         case ${opt} in
             h|\? )
                 showHelpAndExit
@@ -120,6 +122,9 @@ function parseOptions()
                 ;;
             D )
                 DETACH=yes
+                ;;
+            u )
+                SSD_FW_UPDATE_BOOT_OPTION=yes
                 ;;
         esac
     done
@@ -354,6 +359,11 @@ function setup_reboot_variables()
     else
         error "Unknown bootloader. ${REBOOT_TYPE} is not supported."
         exit "${EXIT_NOT_SUPPORTED}"
+    fi
+    if [[ x"${SSD_FW_UPDATE_BOOT_OPTION}" == x"yes" ]]; then
+        local sonic_dev=$(blkid -L SONiC-OS)
+        local fstype=$(blkid -o value -s TYPE ${sonic_dev})
+        BOOT_OPTIONS="${BOOT_OPTIONS} ssd-upgrader-part=${sonic_dev},${fstype}"
     fi
 }
 
