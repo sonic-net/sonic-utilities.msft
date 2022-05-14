@@ -60,8 +60,8 @@ PORT_STATE_TABLE_NAME = "PORT_TABLE"
 PORT_STATE_SUPPORTED_SPEEDS = "supported_speeds"
 
 
-VALID_INTERFACE_TYPE_SET = set(['CR','CR2','CR4','SR','SR2','SR4',
-                                'LR','LR4','KR','KR4','CAUI','GMII',
+VALID_INTERFACE_TYPE_SET = set(['CR','CR2','CR4','CR8','SR','SR2','SR4','SR8',
+                                'LR','LR4','LR8','KR','KR4','KR8','CAUI','GMII',
                                 'SFI','XLAUI','KR2','CAUI4','XAUI',
                                 'XFI','XGMII', 'none'])
 
