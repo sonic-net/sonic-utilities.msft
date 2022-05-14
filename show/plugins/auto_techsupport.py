@@ -61,6 +61,8 @@ def AUTO_TECHSUPPORT_GLOBAL(db):
         "RATE LIMIT INTERVAL (sec)",
         "MAX TECHSUPPORT LIMIT (%)",
         "MAX CORE LIMIT (%)",
+        "AVAILABLE MEM THRESHOLD (%)",
+        "MIN AVAILABLE MEM (Kb)",
         "SINCE",
     ]
 
@@ -86,6 +88,14 @@ def AUTO_TECHSUPPORT_GLOBAL(db):
         ),
         format_attr_value(
             entry,
+            {'name': 'available_mem_threshold', 'description': 'Memory threshold; 0 to disable techsupport invocation on memory usage threshold crossing.', 'is-leaf-list': False, 'is-mandatory': False, 'group': ''}
+        ),
+        format_attr_value(
+            entry,
+            {'name': 'min_available_mem', 'description': 'Minimum Free memory (in MB) that should be available for the techsupport execution to start', 'is-leaf-list': False, 'is-mandatory': False, 'group': ''}
+        ),
+        format_attr_value(
+            entry,
             {'name': 'since', 'description': "Only collect the logs & core-dumps generated since the time provided. A default value of '2 days ago' is used if this value is not set explicitly or a non-valid string is provided", 'is-leaf-list': False, 'is-mandatory': False, 'group': ''}
         ),
     ]
@@ -98,14 +108,15 @@ def AUTO_TECHSUPPORT_GLOBAL(db):
 @clicommon.pass_db
 def AUTO_TECHSUPPORT_history(db):
     keys = db.db.keys("STATE_DB", "AUTO_TECHSUPPORT_DUMP_INFO|*")
-    header = ["TECHSUPPORT DUMP", "TRIGGERED BY", "CORE DUMP"]
+    header = ["TECHSUPPORT DUMP", "TRIGGERED BY", "EVENT TYPE", "CORE DUMP"]
     body = []
     for key in keys:
         dump = key.split("|")[-1]
         fv_pairs = db.db.get_all("STATE_DB", key)
         core_dump = fv_pairs.get("core_dump", "")
         container = fv_pairs.get("container_name", "")
-        body.append([dump, container, core_dump])
+        event_type = fv_pairs.get("event_type", "")
+        body.append([dump, container, event_type, core_dump])
     click.echo(tabulate.tabulate(body, header, numalign="left"))
 
 
@@ -120,6 +131,7 @@ def AUTO_TECHSUPPORT_FEATURE(db):
         "FEATURE NAME",
         "STATE",
         "RATE LIMIT INTERVAL (sec)",
+        "AVAILABLE MEM THRESHOLD (%)",
     ]
 
     body = []
@@ -138,6 +150,10 @@ def AUTO_TECHSUPPORT_FEATURE(db):
             format_attr_value(
                 entry,
                 {'name': 'rate_limit_interval', 'description': 'Rate limit interval for the corresponding feature. Configure 0 to explicitly disable', 'is-leaf-list': False, 'is-mandatory': False, 'group': ''}
+            ),
+            format_attr_value(
+                entry,
+                {'name': 'available_mem_threshold', 'description': 'Memory threshold; 0 to disable techsupport invocation on memory usage threshold crossing.', 'is-leaf-list': False, 'is-mandatory': False, 'group': ''}
             ),
         ]
         body.append(row)
