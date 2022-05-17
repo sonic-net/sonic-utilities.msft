@@ -186,6 +186,80 @@ class TestConfigWrapper(unittest.TestCase):
         self.assertEqual(expected, actual)
         self.assertIsNotNone(error)
 
+    def test_validate_bgp_peer_group__valid_non_intersecting_ip_ranges__returns_true(self):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+        config = {
+            "BGP_PEER_RANGE":
+            {
+                "BGPSLBPassive": {
+                    "ip_range": ["1.1.1.1/31", "10.10.10.10/16", "100.100.100.100/24"]
+                },
+                "BgpVac": {
+                    "ip_range": ["2.2.2.2/31", "20.20.20.20/16", "200.200.200.200/24"]
+                }
+            }
+        }
+
+        # Act
+        actual, error = config_wrapper.validate_bgp_peer_group(config)
+
+        # Assert
+        self.assertTrue(actual)
+        self.assertIsNone(error)
+
+    def test_validate_bgp_peer_group__same_ip_prefix__return_false(self):
+        # duplicate v4 within same ip_range
+        self.check_validate_bgp_peer_group(
+            ["1.1.1.1/16", "1.1.1.1/16"],
+            duplicated_ip="1.1.1.1/16")
+        # duplicate v4 within different ip_ranges
+        self.check_validate_bgp_peer_group(
+            ["1.1.1.1/16"],
+            ["1.1.1.1/16"],
+            duplicated_ip="1.1.1.1/16")
+        # duplicate v4 within different ip_ranges, but many ips
+        self.check_validate_bgp_peer_group(
+            ["1.1.1.1/16", "1.1.1.1/31", "10.10.10.10/16", "100.100.100.100/24"],
+            ["2.2.2.2/31", "20.20.20.20/16", "200.200.200.200/24", "1.1.1.1/16"],
+            duplicated_ip="1.1.1.1/16")
+        # duplicate v6 within same ip_range
+        self.check_validate_bgp_peer_group(
+            ["fc00:1::32/16", "fc00:1::32/16"],
+            duplicated_ip="fc00:1::32/16")
+        # duplicate v6 within different ip_ranges
+        self.check_validate_bgp_peer_group(
+            ["fc00:1::32/16"],
+            ["fc00:1::32/16"],
+            duplicated_ip="fc00:1::32/16")
+        # duplicate v6 within different ip_ranges, but many ips
+        self.check_validate_bgp_peer_group(
+            ["fc00:1::32/16", "fc00:1::32/31", "10:1::1/16", "100:1::1/24"],
+            ["2:1::1/31", "20:1::1/16", "200:1::1/24", "fc00:1::32/16"],
+            duplicated_ip="fc00:1::32/16")
+
+    def check_validate_bgp_peer_group(self, ip_range, other_ip_range=[], duplicated_ip=None):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+        config = {
+            "BGP_PEER_RANGE":
+            {
+                "BGPSLBPassive": {
+                    "ip_range": ip_range
+                },
+                "BgpVac": {
+                    "ip_range": other_ip_range
+                },
+            }
+        }
+
+        # Act
+        actual, error = config_wrapper.validate_bgp_peer_group(config)
+
+        # Assert
+        self.assertFalse(actual)
+        self.assertTrue(duplicated_ip in error)
+
     def test_crop_tables_without_yang__returns_cropped_config_db_as_json(self):
         # Arrange
         config_wrapper = gu_common.ConfigWrapper()
