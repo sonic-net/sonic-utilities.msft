@@ -6,6 +6,7 @@ import re
 
 import click
 import utilities_common.cli as clicommon
+from sonic_py_common import multi_asic
 import utilities_common.multi_asic as multi_asic_util
 from importlib import reload
 from natsort import natsorted
@@ -128,7 +129,92 @@ def run_command(command, display_cmd=False, return_cmd=False):
 # Global class instance for SONiC interface name to alias conversion
 iface_alias_converter = clicommon.InterfaceAliasConverter()
 
+#
+# Display all storm-control data 
+#
+def display_storm_all():
+    """ Show storm-control """
+    header = ['Interface Name', 'Storm Type', 'Rate (kbps)']
+    body = []
 
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    table = config_db.get_table('PORT_STORM_CONTROL')
+
+    #To avoid further looping below
+    if not table:
+        return
+
+    sorted_table = natsorted(table)
+
+    for storm_key in sorted_table:
+        interface_name = storm_key[0]
+        storm_type = storm_key[1]
+        #interface_name, storm_type = storm_key.split(':')
+        data = config_db.get_entry('PORT_STORM_CONTROL', storm_key)
+
+        if not data:
+            return
+
+        kbps = data['kbps']
+
+        body.append([interface_name, storm_type, kbps])
+
+    click.echo(tabulate(body, header, tablefmt="grid"))
+
+#
+# Get storm-control configurations per interface append to body
+#
+def get_storm_interface(intf, body):
+    storm_type_list = ['broadcast','unknown-unicast','unknown-multicast']
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    table = config_db.get_table('PORT_STORM_CONTROL')
+
+    #To avoid further looping below
+    if not table:
+        return
+
+    for storm_type in storm_type_list:
+        storm_key = intf + '|' + storm_type
+        data = config_db.get_entry('PORT_STORM_CONTROL', storm_key)
+
+        if data:
+            kbps = data['kbps']
+            body.append([intf, storm_type, kbps])
+
+#
+# Display storm-control data of given interface
+#
+def display_storm_interface(intf):
+    """ Show storm-control """
+
+    storm_type_list = ['broadcast','unknown-unicast','unknown-multicast']
+
+    header = ['Interface Name', 'Storm Type', 'Rate (kbps)']
+    body = []
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+
+    table = config_db.get_table('PORT_STORM_CONTROL')
+
+    #To avoid further looping below
+    if not table:
+        return
+
+    for storm_type in storm_type_list:
+        storm_key = intf + '|' + storm_type
+        data = config_db.get_entry('PORT_STORM_CONTROL', storm_key)
+
+        if data:
+            kbps = data['kbps']
+            body.append([intf, storm_type, kbps])
+
+    click.echo(tabulate(body, header, tablefmt="grid"))
 
 def connect_config_db():
     """
@@ -307,6 +393,43 @@ def is_mgmt_vrf_enabled(ctx):
                 return True
 
     return False
+
+#
+# 'storm-control' group 
+# "show storm-control [interface <interface>]"
+#
+@cli.group('storm-control', invoke_without_command=True)
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+@click.option('--display', '-d', 'display', default=None, show_default=False, type=str, help='all|frontend')
+@click.pass_context
+def storm_control(ctx, namespace, display):
+    """ Show storm-control """
+    header = ['Interface Name', 'Storm Type', 'Rate (kbps)']
+    body = []
+    if ctx.invoked_subcommand is None:
+        if namespace is None:
+            display_storm_all()
+        else:
+            interfaces = multi_asic.multi_asic_get_ip_intf_from_ns(namespace)
+            for intf in interfaces:
+                get_storm_interface(intf, body)
+            click.echo(tabulate(body, header, tablefmt="grid"))
+
+@storm_control.command('interface')
+@click.argument('interface', metavar='<interface>',required=True)
+def interface(interface, namespace, display):
+    if multi_asic.is_multi_asic() and namespace not in multi_asic.get_namespace_list():
+        ctx = click.get_current_context()
+        ctx.fail('-n/--namespace option required. provide namespace from list {}'.format(multi_asic.get_namespace_list()))
+    if interface:
+        display_storm_interface(interface)
 
 #
 # 'mgmt-vrf' group ("show mgmt-vrf ...")

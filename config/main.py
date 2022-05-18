@@ -29,6 +29,7 @@ from utilities_common import bgp_util
 import utilities_common.cli as clicommon
 from utilities_common.helper import get_port_pbh_binding, get_port_acl_binding
 from utilities_common.general import load_db_config, load_module_from_source
+import utilities_common.multi_asic as multi_asic_util
 
 from .utils import log
 
@@ -637,6 +638,78 @@ def _clear_cbf():
         config_db.connect()
         for cbf_table in CBF_TABLE_NAMES:
             config_db.delete_table(cbf_table)
+
+#API to validate the interface passed for storm-control configuration
+def storm_control_interface_validate(port_name):
+    if clicommon.get_interface_naming_mode() == "alias":
+        port_name = interface_alias_to_name(None, port_name)
+        if port_name is None:
+            click.echo("'port_name' is None!")
+            return False
+
+    if (port_name.startswith("Ethernet")):
+        if interface_name_is_valid(None, port_name) is False:
+            click.echo("Interface name %s is invalid. Please enter a valid interface name" %(port_name))
+            return False
+    else:
+        click.echo("Storm-control is supported only on Ethernet interfaces. Not supported on %s" %(port_name))
+        return False
+
+    return True
+
+def is_storm_control_supported(storm_type, namespace):
+    asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+    #state_db[asic_id] = swsscommon.DBConnector("STATE_DB", REDIS_TIMEOUT_MSECS, True, namespace)
+    #supported = state_db[asic_id].get_entry('BUM_STORM_CAPABILITY', storm_type)
+    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db.connect(state_db.STATE_DB, False)
+    entry_name="BUM_STORM_CAPABILITY|"+storm_type
+    supported = state_db.get(state_db.STATE_DB, entry_name,"supported")
+    return supported
+
+#API to configure the PORT_STORM_CONTROL table 
+def storm_control_set_entry(port_name, kbps, storm_type, namespace):
+
+    if storm_control_interface_validate(port_name) is False:
+        return False
+
+    if is_storm_control_supported(storm_type, namespace) == 0:
+        click.echo("Storm-control is not supported on this namespace {}".format(namespace))
+        return False
+
+    #Validate kbps value
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    key = port_name + '|' + storm_type
+    entry = config_db.get_entry('PORT_STORM_CONTROL', key)
+
+    if len(entry) == 0:
+        config_db.set_entry('PORT_STORM_CONTROL', key, {'kbps':kbps})
+    else:
+        kbps_value = int(entry.get('kbps',0))
+        if kbps_value != kbps:
+            config_db.mod_entry('PORT_STORM_CONTROL', key, {'kbps':kbps})
+
+    return True
+
+#API to remove an entry from PORT_STORM_CONTROL table 
+def storm_control_delete_entry(port_name, storm_type):
+
+    if storm_control_interface_validate(port_name) is False:
+        return False
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    key = port_name + '|' + storm_type
+    entry = config_db.get_entry('PORT_STORM_CONTROL', key)
+
+    if len(entry) == 0:
+        click.echo("%s storm-control not enabled on interface %s" %(storm_type, port_name))
+        return False
+    else:
+        config_db.set_entry('PORT_STORM_CONTROL', key, None)
+
+    return True
 
 
 def _clear_qos():
@@ -5783,6 +5856,45 @@ def naming_mode_default():
 def naming_mode_alias():
     """Set CLI interface naming mode to ALIAS (Vendor port alias)"""
     set_interface_naming_mode('alias')
+
+@interface.group('storm-control')
+@click.pass_context
+def storm_control(ctx):
+    """ Configure storm-control"""
+    pass
+
+@storm_control.command('add')
+@click.argument('port_name',metavar='<port_name>', required=True)
+@click.argument('storm_type',metavar='<storm_type>', required=True, type=click.Choice(["broadcast", "unknown-unicast", "unknown-multicast"]))
+@click.argument('kbps',metavar='<kbps_value>', required=True, type=click.IntRange(0,100000000))
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+@click.pass_context
+def add_interface_storm(ctx, port_name,storm_type, kbps, namespace):
+    if storm_control_set_entry(port_name, kbps, storm_type, namespace) is False:
+        ctx.fail("Unable to add {} storm-control to interface {}".format(storm_type, port_name))
+
+@storm_control.command('del')
+@click.argument('port_name',metavar='<port_name>', required=True)
+@click.argument('storm_type',metavar='<storm_type>', required=True, type=click.Choice(["broadcast", "unknown-unicast", "unknown-multicast"]))
+@click.option('--namespace',
+              '-n',
+              'namespace',
+              default=None,
+              type=str,
+              show_default=True,
+              help='Namespace name or all',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+@click.pass_context
+def del_interface_storm(ctx,port_name,storm_type, namespace):
+    if storm_control_delete_entry(port_name, storm_type) is False:
+        ctx.fail("Unable to delete {} storm-control from interface {}".format(storm_type, port_name))
 
 def is_loopback_name_valid(loopback_name):
     """Loopback name validation

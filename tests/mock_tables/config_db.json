@@ -1575,6 +1575,24 @@
         "nhopself": "0",
         "rrclient": "0"
     },
+    "PORT_STORM_CONTROL|Ethernet0|broadcast": {
+        "kbps":"100000"
+    },
+    "PORT_STORM_CONTROL|Ethernet0|unknown-unicast": {
+        "kbps":"200000"
+    },
+    "PORT_STORM_CONTROL|Ethernet0|unknown-multicast": {
+        "kbps":"300000"
+    },
+    "PORT_STORM_CONTROL|Ethernet4|broadcast": {
+        "kbps":"400000"
+    },
+    "PORT_STORM_CONTROL|Ethernet8|unknown-unicast": {
+        "kbps":"500000"
+    },
+    "PORT_STORM_CONTROL|Ethernet8|unknown-multicast": {
+        "kbps":"600000"
+    },
     "BGP_VOQ_CHASSIS_NEIGHBOR|3.3.3.6": {
         "admin_status": "up",
         "asn": "65100",
