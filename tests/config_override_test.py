@@ -15,6 +15,7 @@ EMPTY_INPUT = os.path.join(DATA_DIR, "empty_input.json")
 PARTIAL_CONFIG_OVERRIDE = os.path.join(DATA_DIR, "partial_config_override.json")
 NEW_FEATURE_CONFIG = os.path.join(DATA_DIR, "new_feature_config.json")
 FULL_CONFIG_OVERRIDE = os.path.join(DATA_DIR, "full_config_override.json")
+PORT_CONFIG_OVERRIDE = os.path.join(DATA_DIR, "port_config_override.json")
 
 # Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
 sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
@@ -122,6 +123,15 @@ class TestConfigOverride(object):
         """Golden Config makes change to every table in configDB"""
         db = Db()
         with open(FULL_CONFIG_OVERRIDE, "r") as f:
+            read_data = json.load(f)
+        self.check_override_config_table(
+            db, config, read_data['running_config'], read_data['golden_config'],
+            read_data['expected_config'])
+
+    def test_golden_config_db_port_config(self):
+        """Golden Config makes change to PORT admin_status"""
+        db = Db()
+        with open(PORT_CONFIG_OVERRIDE, "r") as f:
             read_data = json.load(f)
         self.check_override_config_table(
             db, config, read_data['running_config'], read_data['golden_config'],
