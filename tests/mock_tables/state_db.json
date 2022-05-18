@@ -685,10 +685,15 @@
     "PORT_TABLE|Ethernet0": {
         "rmt_adv_speeds" : "10,100,1000",
         "speed" : "100000",
-        "supported_speeds": "10000,25000,40000,100000"
+        "supported_speeds": "10000,25000,40000,100000",
+        "link_training_status": "not_trained"
+    },
+    "PORT_TABLE|Ethernet32": {
+        "link_training_status": "trained"
     },
     "PORT_TABLE|Ethernet112": {
-        "speed": "40000"
+        "speed": "40000",
+        "link_training_status": "off"
     },
     "PCIE_DEVICE|00:01.0": {
         "correctable|BadDLLP": "0",
@@ -823,5 +828,14 @@
         "admin_status": "up",
         "mtu":  "9100",
         "speed": "1000"
+    },
+    "LINK_TRAINING|Ethernet0": {
+        "status": "not_trained"
+    },
+    "LINK_TRAINING|Ethernet32": {
+        "status": "trained"
+    },
+    "LINK_TRAINING|Ethernet112": {
+         "status": "off"
     }
 }
