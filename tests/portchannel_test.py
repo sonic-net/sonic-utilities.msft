@@ -157,6 +157,28 @@ class TestPortChannel(object):
         assert result.exit_code != 0
         assert "Error: Ethernet116 is not a member of portchannel PortChannel1001" in result.output
 
+    def test_add_portchannel_member_with_acl_bindngs(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb, 'db_wrap':db, 'namespace':''}
+
+        result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["add"], ["PortChannel0002", "Ethernet100"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Port Ethernet100 is already bound to following ACL_TABLES:" in result.output
+
+    def test_add_portchannel_member_with_pbh_bindngs(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb, 'db_wrap':db, 'namespace':''}
+
+        result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["add"], ["PortChannel0002", "Ethernet60"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Port Ethernet60 is already bound to following PBH_TABLES:" in result.output
+
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"

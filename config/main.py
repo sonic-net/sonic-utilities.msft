@@ -27,6 +27,7 @@ from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
 from utilities_common import bgp_util
 import utilities_common.cli as clicommon
+from utilities_common.helper import get_port_pbh_binding, get_port_acl_binding
 from utilities_common.general import load_db_config, load_module_from_source
 
 from .utils import log
@@ -1802,14 +1803,15 @@ def synchronous_mode(sync_mode):
 @click.option('-n', '--namespace', help='Namespace name',
              required=True if multi_asic.is_multi_asic() else False, type=click.Choice(multi_asic.get_namespace_list()))
 @click.pass_context
-def portchannel(ctx, namespace):
+@clicommon.pass_db
+def portchannel(db, ctx, namespace):
     # Set namespace to default_namespace if it is None.
     if namespace is None:
         namespace = DEFAULT_NAMESPACE
 
     config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=str(namespace))
     config_db.connect()
-    ctx.obj = {'db': config_db, 'namespace': str(namespace)}
+    ctx.obj = {'db': config_db, 'namespace': str(namespace), 'db_wrap': db}
 
 @portchannel.command('add')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -1938,6 +1940,22 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
         port_tpid = port_entry.get(PORT_TPID)
         if port_tpid != DEFAULT_TPID:
             ctx.fail("Port TPID of {}: {} is not at default 0x8100".format(port_name, port_tpid))
+
+    # Don't allow a port to be a member of portchannel if already has ACL bindings
+    try:
+        acl_bindings = get_port_acl_binding(ctx.obj['db_wrap'], port_name, ctx.obj['namespace'])
+        if acl_bindings:
+            ctx.fail("Port {} is already bound to following ACL_TABLES: {}".format(port_name, acl_bindings))
+    except Exception as e:
+        ctx.fail(str(e))
+
+    # Don't allow a port to be a member of portchannel if already has PBH bindings
+    try:
+        pbh_bindings = get_port_pbh_binding(ctx.obj['db_wrap'], port_name, DEFAULT_NAMESPACE)
+        if pbh_bindings:
+            ctx.fail("Port {} is already bound to following PBH_TABLES: {}".format(port_name, pbh_bindings))
+    except Exception as e:
+        ctx.fail(str(e))
 
     db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
             {'NULL': 'NULL'})

@@ -250,6 +250,10 @@ class ConnectionPool:
         elif namespace in self.cache:
             del self.cache[namespace]
 
+    def fill(self, ns, conn, connected_to):
+        """ Update internal cache """
+        self.cache[ns] = {'conn': conn, 'connected_to': set(connected_to)}
+
 
 class MatchEngine:
     """

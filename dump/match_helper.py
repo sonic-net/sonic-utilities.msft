@@ -1,6 +1,23 @@
 from dump.match_infra import MatchRequest
 from dump.helper import handle_multiple_keys_matched_error
 
+# Return dict helper methods
+
+def check_error(ret):
+    """ Check if the match request failed """
+    if ret["error"]:
+        return True, ret["error"]
+    else:
+        return False, ""
+
+def get_matched_keys(ret):
+    """ Return Matched Keys """
+    failed, err_str = check_error(ret)
+    if not failed:
+        return ret["keys"], ""
+    else:
+        return [], err_str
+
 # Port Helper Methods
 
 def fetch_port_oid(match_engine, port_name, ns):

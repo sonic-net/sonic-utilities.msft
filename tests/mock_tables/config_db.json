@@ -532,6 +532,10 @@
         "services@": "SSH",
         "type": "CTRLPLANE"
     },
+    "PBH_TABLE|pbh_table1": {
+        "description": "NVGRE",
+        "interface_list@": "Ethernet8,Ethernet60"
+    },
     "VLAN|Vlan1000": {
         "dhcp_servers@": "192.0.0.1,192.0.0.2,192.0.0.3,192.0.0.4",
         "vlanid": "1000"
