@@ -639,3 +639,36 @@ def autoneg_status(interfacename, namespace, display, verbose):
         cmd += " -n {}".format(namespace)
 
     clicommon.run_command(cmd, display_cmd=verbose)
+
+#
+# link-training group (show interfaces link-training ...)
+#
+@interfaces.group(name='link-training', cls=clicommon.AliasedGroup)
+def link_training():
+    """Show interface link-training information"""
+    pass
+
+# 'link-training status' subcommand ("show interfaces link-training status")
+@link_training.command(name='status')
+@click.argument('interfacename', required=False)
+@multi_asic_util.multi_asic_click_options
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def link_training_status(interfacename, namespace, display, verbose):
+    """Show interface link-training status"""
+
+    ctx = click.get_current_context()
+
+    cmd = "intfutil -c link_training"
+
+    #ignore the display option when interface name is passed
+    if interfacename is not None:
+        interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+
+        cmd += " -i {}".format(interfacename)
+    else:
+        cmd += " -d {}".format(display)
+
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
+
+    clicommon.run_command(cmd, display_cmd=verbose)

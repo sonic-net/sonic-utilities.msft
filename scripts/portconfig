@@ -21,6 +21,7 @@ optional arguments:
   -S     --adv-speeds          port advertised speeds
   -t     --interface-type      port interface type
   -T     --adv-interface-types port advertised interface types
+  -lt    --link-training       port link training mode
 """
 import os
 import sys
@@ -49,6 +50,7 @@ PORT_AUTONEG_CONFIG_FIELD_NAME = "autoneg"
 PORT_ADV_SPEEDS_CONFIG_FIELD_NAME = "adv_speeds"
 PORT_INTERFACE_TYPE_CONFIG_FIELD_NAME = "interface_type"
 PORT_ADV_INTERFACE_TYPES_CONFIG_FIELD_NAME = "adv_interface_types"
+PORT_LINK_TRAINING_CONFIG_FIELD_NAME = "link_training"
 PORT_CHANNEL_TABLE_NAME = "PORTCHANNEL"
 PORT_CHANNEL_MBR_TABLE_NAME = "PORTCHANNEL_MEMBER"
 TPID_CONFIG_FIELD_NAME = "tpid"
@@ -133,6 +135,16 @@ class portconfig(object):
         if self.verbose:
             print("Setting mtu %s on port %s" % (mtu, port))
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_MTU_CONFIG_FIELD_NAME: mtu})
+
+    def set_link_training(self, port, mode):
+        if self.verbose:
+            print("Setting link-training %s on port %s" % (mode, port))
+        lt_modes = ['on', 'off']
+        if mode not in lt_modes:
+            print('Invalid mode specified: {}'.format(mode))
+            print('Valid modes: {}'.format(','.join(lt_modes)))
+            exit(1)
+        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_LINK_TRAINING_CONFIG_FIELD_NAME: mode})
 
     def set_autoneg(self, port, mode):
         if self.verbose:
@@ -266,6 +278,8 @@ def main():
                         help = 'port interface type', default=None)
     parser.add_argument('-T', '--adv-interface-types', type = str, required = False,
                         help = 'port advertised interface types', default=None)
+    parser.add_argument('-lt', '--link-training', type = str, required = False,
+                        help = 'port link training mode', default=None)
     args = parser.parse_args()
 
     # Load database config files
@@ -274,13 +288,15 @@ def main():
         port = portconfig(args.verbose, args.port, args.namespace)
         if args.list:
             port.list_params(args.port)
-        elif args.speed or args.fec or args.mtu or args.autoneg or args.adv_speeds or args.interface_type or args.adv_interface_types or args.tpid:
+        elif args.speed or args.fec or args.mtu or args.link_training or args.autoneg or args.adv_speeds or args.interface_type or args.adv_interface_types or args.tpid:
             if args.speed:
                 port.set_speed(args.port, args.speed)
             if args.fec:
                 port.set_fec(args.port, args.fec)
             if args.mtu:
                 port.set_mtu(args.port, args.mtu)
+            if args.link_training:
+                port.set_link_training(args.port, args.link_training)
             if args.autoneg:
                 port.set_autoneg(args.port, args.autoneg)
             if args.adv_speeds:

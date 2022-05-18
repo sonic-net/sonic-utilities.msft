@@ -39,7 +39,8 @@
         "adv_speeds": "50000,10000",
         "interface_type": "CR4",
         "adv_interface_types": "CR4,CR2",
-        "autoneg": "on"
+        "autoneg": "on",
+        "link_training": "on"
     },
     "PORT_TABLE:Ethernet16": {
         "index": "4",
@@ -101,7 +102,8 @@
         "admin_status": "up",
         "autoneg": "off",
         "adv_speeds": "all",
-        "adv_interface_types": "all"
+        "adv_interface_types": "all",
+        "link_training": "on"
     },
     "PORT_TABLE:Ethernet112": {
         "index": "28",
@@ -114,7 +116,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "fec": "rs",
-        "admin_status": "up"
+        "admin_status": "up",
+        "link_training": "off"
     },
     "PORT_TABLE:Ethernet116": {
         "index": "29",

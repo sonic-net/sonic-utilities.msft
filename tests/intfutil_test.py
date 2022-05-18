@@ -97,7 +97,20 @@ show_interface_auto_neg_status_eth9_output = """\
  Ethernet32         disabled      40G           all               N/A     N/A          all      up       up
 """
 
-
+show_interface_link_training_status_output = """\
+  Interface      LT Oper    LT Admin    Oper    Admin
+-----------  -----------  ----------  ------  -------
+  Ethernet0  not trained          on    down       up
+ Ethernet16          off           -      up       up
+ Ethernet24          off           -      up       up
+ Ethernet28          off           -      up       up
+ Ethernet32      trained          on      up       up
+ Ethernet36          off           -      up       up
+Ethernet112          off         off      up       up
+Ethernet116          off           -      up       up
+Ethernet120          off           -      up       up
+Ethernet124          off           -      up       up
+"""
 
 class TestIntfutil(TestCase):
     @classmethod
@@ -301,6 +314,13 @@ class TestIntfutil(TestCase):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_interface_auto_neg_status_eth9_output
+
+    def test_show_interfaces_link_training_status(self):
+        result = self.runner.invoke(show.cli.commands["interfaces"].commands["link-training"].commands["status"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_interface_link_training_status_output
 
     @classmethod
     def teardown_class(cls):
