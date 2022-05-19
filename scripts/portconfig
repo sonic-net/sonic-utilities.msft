@@ -127,6 +127,9 @@ class portconfig(object):
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_FEC_CONFIG_FIELD_NAME: fec})
 
     def set_mtu(self, port, mtu):
+        port_tables = self.db.get_table(PORT_TABLE_NAME)
+        if port not in port_tables:
+            raise Exception("Invalid port %s" % (port))
         if self.verbose:
             print("Setting mtu %s on port %s" % (mtu, port))
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_MTU_CONFIG_FIELD_NAME: mtu})
