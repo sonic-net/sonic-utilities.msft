@@ -198,3 +198,34 @@ def monitor_list():
             entry.append(element[1]['type'])
             table.append(entry)
     click.echo(tabulate(table, header))
+
+
+@system_health.group('sysready-status',invoke_without_command=True)
+@click.pass_context
+def sysready_status(ctx):
+    """Show system-health system ready status"""
+
+    if ctx.invoked_subcommand is None:
+        try:
+            cmd = "sysreadyshow"
+            clicommon.run_command(cmd, display_cmd=False)
+        except Exception as e:
+            click.echo("Exception: {}".format(str(e)))
+
+
+@sysready_status.command('brief')
+def sysready_status_brief():
+    try:
+        cmd = "sysreadyshow --brief"
+        clicommon.run_command(cmd, display_cmd=False)
+    except Exception as e:
+        click.echo("Exception: {}".format(str(e)))
+
+
+@sysready_status.command('detail')
+def sysready_status_detail():
+    try:
+        cmd = "sysreadyshow --detail"
+        clicommon.run_command(cmd, display_cmd=False)
+    except Exception as e:
+        click.echo("Exception: {}".format(str(e)))

@@ -837,5 +837,32 @@
     },
     "LINK_TRAINING|Ethernet112": {
          "status": "off"
+    },
+    "ALL_SERVICE_STATUS|mgmt-framework": {
+      "app_ready_status": "OK",
+      "fail_reason": "-",
+      "service_status": "OK",
+      "update_time": "-"
+    },
+    "ALL_SERVICE_STATUS|swss": {
+      "app_ready_status": "OK",
+      "fail_reason": "-",
+      "service_status": "OK",
+      "update_time": "-"
+    },
+    "ALL_SERVICE_STATUS|bgp": {
+      "app_ready_status": "Down",
+      "fail_reason": "Inactive",
+      "service_status": "Down",
+      "update_time": "-"
+    },
+    "ALL_SERVICE_STATUS|pmon": {
+      "app_ready_status": "OK",
+      "fail_reason": "-",
+      "service_status": "OK",
+      "update_time": "-"
+    },
+    "SYSTEM_READY|SYSTEM_STATE": {
+        "Status":"DOWN"
     }
 }

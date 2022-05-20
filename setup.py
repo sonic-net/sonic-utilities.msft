@@ -150,7 +150,8 @@ setup(
         'scripts/memory_threshold_check_handler.py',
         'scripts/techsupport_cleanup.py',
         'scripts/storm_control.py',
-        'scripts/check_db_integrity.py'
+        'scripts/check_db_integrity.py',
+        'scripts/sysreadyshow'
     ],
     entry_points={
         'console_scripts': [
