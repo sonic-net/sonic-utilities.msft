@@ -779,6 +779,19 @@ class TestPathAddressing(unittest.TestCase):
         # Assert
         self.assertEqual(expected_config, config)
 
+    def test_find_ref_paths__ref_path_is_leaflist_in_yang_but_string_in_config_db__path_to_string_returned(self):
+        # Arrange
+        path = "/BUFFER_PROFILE/egress_lossless_profile"
+        expected = [
+            "/BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet9/profile_list",
+        ]
+
+        # Act
+        actual = self.path_addressing.find_ref_paths(path, Files.CONFIG_DB_WITH_PROFILE_LIST)
+
+        # Assert
+        self.assertEqual(expected, actual)
+
     def test_convert_path_to_xpath(self):
         def check(path, xpath, config=None):
             if not config:
@@ -839,6 +852,9 @@ class TestPathAddressing(unittest.TestCase):
         check(path="/LLDP/GLOBAL/mode",
               xpath="/sonic-lldp:sonic-lldp/LLDP/GLOBAL/mode",
               config=Files.CONFIG_DB_WITH_LLDP)
+        check(path="/BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet9/profile_list",
+              xpath="/sonic-buffer-port-egress-profile-list:sonic-buffer-port-egress-profile-list/BUFFER_PORT_EGRESS_PROFILE_LIST/BUFFER_PORT_EGRESS_PROFILE_LIST_LIST[port='Ethernet9']/profile_list",
+              config=Files.CONFIG_DB_WITH_PROFILE_LIST)
 
     def test_convert_xpath_to_path(self):
         def check(xpath, path, config=None):
@@ -914,6 +930,12 @@ class TestPathAddressing(unittest.TestCase):
         check(xpath="/sonic-lldp:sonic-lldp/LLDP/GLOBAL/mode",
               path="/LLDP/GLOBAL/mode",
               config=Files.CONFIG_DB_WITH_LLDP)
+        check(xpath="/sonic-buffer-port-egress-profile-list:sonic-buffer-port-egress-profile-list/BUFFER_PORT_EGRESS_PROFILE_LIST/BUFFER_PORT_EGRESS_PROFILE_LIST_LIST[port='Ethernet9']/profile_list",
+              path="/BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet9/profile_list",
+              config=Files.CONFIG_DB_WITH_PROFILE_LIST)
+        check(xpath="/sonic-buffer-port-egress-profile-list:sonic-buffer-port-egress-profile-list/BUFFER_PORT_EGRESS_PROFILE_LIST/BUFFER_PORT_EGRESS_PROFILE_LIST_LIST[port='Ethernet9']/profile_list[.='egress_lossy_profile']",
+              path="/BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet9/profile_list",
+              config=Files.CONFIG_DB_WITH_PROFILE_LIST)
 
     def test_has_path(self):
         def check(config, path, expected):
