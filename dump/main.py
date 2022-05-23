@@ -6,6 +6,7 @@ import click
 from tabulate import tabulate
 from sonic_py_common import multi_asic
 from utilities_common.constants import DEFAULT_NAMESPACE
+from swsscommon.swsscommon import ConfigDBConnector
 from dump.match_infra import RedisSource, JsonSource, ConnectionPool
 from dump import plugins
 
@@ -82,7 +83,10 @@ def state(ctx, module, identifier, db, table, key_map, verbose, namespace):
     params['namespace'] = namespace
     for arg in ids:
         params[plugins.dump_modules[module].ARG_NAME] = arg
-        collected_info[arg] = obj.execute(params)
+        try:
+            collected_info[arg] = obj.execute(params)
+        except ValueError as err:
+            click.fail(f"Failed to execute plugin: {err}")
 
     if len(db) > 0:
         collected_info = filter_out_dbs(db, collected_info)
@@ -151,7 +155,7 @@ def populate_fv(info, module, namespace):
     db_cfg_file = JsonSource()
     db_conn = ConnectionPool().initialize_connector(namespace)
     for db_name in all_dbs:
-        if db_name is "CONFIG_FILE":
+        if db_name == "CONFIG_FILE":
             db_cfg_file.connect(plugins.dump_modules[module].CONFIG_FILE, namespace)
         else:
             db_conn.connect(db_name)
@@ -164,7 +168,7 @@ def populate_fv(info, module, namespace):
             final_info[id][db_name]["keys"] = []
             final_info[id][db_name]["tables_not_found"] = info[id][db_name]["tables_not_found"]
             for key in info[id][db_name]["keys"]:
-                if db_name is "CONFIG_FILE":
+                if db_name == "CONFIG_FILE":
                     fv = db_cfg_file.get(db_name, key)
                 else:
                     fv = db_conn.get_all(db_name, key)
@@ -174,9 +178,13 @@ def populate_fv(info, module, namespace):
 
 
 def get_dict_str(key_obj):
+    conn = ConfigDBConnector()
     table = []
-    for pair in key_obj.items():
-        table.append(list(pair))
+    key_obj = conn.raw_to_typed(key_obj)
+    for field, value in key_obj.items():
+        if isinstance(value, list):
+            value = "\n".join(value)
+        table.append((field, value))
     return tabulate(table, headers=["field", "value"], tablefmt="psql")
 
 
