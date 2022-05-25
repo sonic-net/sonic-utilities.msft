@@ -5,6 +5,7 @@ import functools
 import os
 import pkgutil
 import tempfile
+import yang as ly
 from inspect import signature
 from typing import Any, Iterable, List, Callable, Dict, Optional
 
@@ -1002,7 +1003,7 @@ class PackageManager:
         docker_api = DockerApi(docker.from_env(), ProgressManager())
         registry_resolver = RegistryResolver()
         metadata_resolver = MetadataResolver(docker_api, registry_resolver)
-        cfg_mgmt = config_mgmt.ConfigMgmt(source=INIT_CFG_JSON)
+        cfg_mgmt = config_mgmt.ConfigMgmt(source=INIT_CFG_JSON, sonicYangOptions=ly.LY_CTX_DISABLE_SEARCHDIR_CWD)
         cli_generator = CliGenerator(log)
         feature_registry = FeatureRegistry(SonicDB)
         service_creator = ServiceCreator(feature_registry,
