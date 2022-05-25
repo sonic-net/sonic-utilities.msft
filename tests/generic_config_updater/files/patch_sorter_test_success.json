@@ -2673,8 +2673,10 @@
         ]
     },
     "ADDING_LOOPBACK0_VRF_NAME__DELETES_LOOPBACK0_AND_IPS_DOES_NOT_AFFECT_OTHER_TABLES": {
-        "desc": ["Adding loopback vrf name, deletes loopback0 and the associated ips. ",
-                 "It does not affect other tables."],
+        "desc": [
+            "Adding loopback vrf name, deletes loopback0 and the associated ips. ",
+            "It does not affect other tables."
+        ],
         "current_config": {
             "CABLE_LENGTH": {
                 "AZURE": {
@@ -2733,7 +2735,7 @@
                     "op": "add",
                     "path": "/LOOPBACK_INTERFACE",
                     "value": {
-                        "Loopback0":{
+                        "Loopback0": {
                             "vrf_name": "Vrf_01"
                         }
                     }
@@ -3538,6 +3540,15 @@
                     "profile": "egress_lossy_profile"
                 }
             },
+            "CABLE_LENGTH": {
+                "AZURE": {
+                    "Ethernet52": "40m",
+                    "Ethernet56": "40m",
+                    "Ethernet60": "40m",
+                    "Ethernet68": "40m",
+                    "Ethernet72": "40m"
+                }
+            },
             "DEVICE_NEIGHBOR": {
                 "Ethernet52": {
                     "name": "ARISTA13T2",
@@ -3818,6 +3829,11 @@
                 "op": "add",
                 "path": "/ACL_TABLE/EVERFLOW/ports/0",
                 "value": "Ethernet64"
+            },
+            {
+                "op": "add",
+                "path": "/CABLE_LENGTH/AZURE/Ethernet64",
+                "value": "40m"
             },
             {
                 "op": "add",
@@ -4586,6 +4602,13 @@
             ],
             [
                 {
+                    "op": "add",
+                    "path": "/CABLE_LENGTH/AZURE/Ethernet64",
+                    "value": "40m"
+                }
+            ],
+            [
+                {
                     "op": "replace",
                     "path": "/PORT/Ethernet64/description",
                     "value": "ARISTA01T0:Ethernet1"
@@ -5233,6 +5256,16 @@
                     "profile": "egress_lossy_profile"
                 }
             },
+            "CABLE_LENGTH": {
+                "AZURE": {
+                    "Ethernet52": "40m",
+                    "Ethernet56": "40m",
+                    "Ethernet60": "40m",
+                    "Ethernet64": "40m",
+                    "Ethernet68": "40m",
+                    "Ethernet72": "40m"
+                }
+            },
             "DEVICE_NEIGHBOR": {
                 "Ethernet52": {
                     "name": "ARISTA13T2",
@@ -5682,6 +5715,10 @@
             },
             {
                 "op": "remove",
+                "path": "/CABLE_LENGTH/AZURE/Ethernet64"
+            },
+            {
+                "op": "remove",
                 "path": "/INTERFACE/Ethernet64"
             },
             {
@@ -6061,6 +6098,12 @@
                 {
                     "op": "remove",
                     "path": "/BGP_NEIGHBOR/fc00::a/admin_status"
+                }
+            ],
+            [
+                {
+                    "op": "remove",
+                    "path": "/CABLE_LENGTH/AZURE/Ethernet64"
                 }
             ],
             [

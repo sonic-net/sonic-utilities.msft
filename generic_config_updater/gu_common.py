@@ -2,6 +2,7 @@ import json
 import jsonpatch
 from jsonpointer import JsonPointer
 import sonic_yang
+import sonic_yang_ext
 import subprocess
 import yang as ly
 import copy
@@ -155,14 +156,14 @@ class ConfigWrapper:
         sy._cropConfigDB()
 
         return sy.jIn
-    
+
     def get_empty_tables(self, config):
         empty_tables = []
         for key in config.keys():
             if not(config[key]):
                 empty_tables.append(key)
         return empty_tables
-        
+
     def remove_empty_tables(self, config):
         config_with_non_empty_tables = {}
         for table in config:
@@ -398,7 +399,7 @@ class PathAddressing:
         Finds the paths referencing any line under the given 'path' within the given 'config'.
         Example:
           path: /PORT
-          config: 
+          config:
             {
                 "VLAN_MEMBER": {
                     "Vlan1000|Ethernet0": {},
@@ -543,9 +544,24 @@ class PathAddressing:
         if len(path_tokens)-1 == token_index:
             return xpath_tokens
 
+        type_1_list_model = self._get_type_1_list_model(model)
+        if type_1_list_model:
+            new_xpath_tokens = self._get_xpath_tokens_from_type_1_list(type_1_list_model, token_index+1, path_tokens, config[path_tokens[token_index]])
+            xpath_tokens.extend(new_xpath_tokens)
+            return xpath_tokens
+
         new_xpath_tokens = self._get_xpath_tokens_from_leaf(model, token_index+1, path_tokens,config[path_tokens[token_index]])
         xpath_tokens.extend(new_xpath_tokens)
         return xpath_tokens
+
+    def _get_xpath_tokens_from_type_1_list(self, model, token_index, path_tokens, config):
+        type_1_list_name = model['@name']
+        keyName = model['key']['@value']
+        value = path_tokens[token_index]
+        keyToken = f"[{keyName}='{value}']"
+        itemToken = f"{type_1_list_name}{keyToken}"
+
+        return [itemToken]
 
     def _get_xpath_tokens_from_leaf(self, model, token_index, path_tokens, config):
         token = path_tokens[token_index]
@@ -580,7 +596,7 @@ class PathAddressing:
             #   /module-name:container/leaf-list[.='val']
             # Source: Check examples in https://netopeer.liberouter.org/doc/libyang/master/html/howto_x_path.html
             return [f"{token}[.='{value}']"]
-        
+
         # checking 'uses' statement
         if not isinstance(config[token], list): # leaf-list under uses is not supported yet in sonic_yang
             table = path_tokens[0]
@@ -608,7 +624,7 @@ class PathAddressing:
     def _get_list_model(self, model, token_index, path_tokens):
         parent_container_name = path_tokens[token_index]
         clist = model.get('list')
-        # Container contains a single list, just return it 
+        # Container contains a single list, just return it
         # TODO: check if matching also by name is necessary
         if isinstance(clist, dict):
             return clist
@@ -629,6 +645,15 @@ class PathAddressing:
                                             f"but none of them match the config_db value {configdb_values_str}")
 
         return None
+
+    def _get_type_1_list_model(self, model):
+        list_name = model['@name']
+        if list_name not in sonic_yang_ext.Type_1_list_maps_model:
+            return None
+
+        # Type 1 list is expected to have a single inner list model.
+        # No need to check if it is a dictionary of list models.
+        return model.get('list')
 
     def convert_xpath_to_path(self, xpath, config, sy):
         """
@@ -711,9 +736,65 @@ class PathAddressing:
         if next_token in key_dict:
             return path_tokens
 
+        type_1_list_model = self._get_type_1_list_model(model)
+        if type_1_list_model:
+            new_path_tokens = self._get_path_tokens_from_type_1_list(type_1_list_model, token_index+1, xpath_tokens, config[path_token])
+            path_tokens.extend(new_path_tokens)
+            return path_tokens
+
         new_path_tokens = self._get_path_tokens_from_leaf(model, token_index+1, xpath_tokens, config[path_token])
         path_tokens.extend(new_path_tokens)
         return path_tokens
+
+    def _get_path_tokens_from_type_1_list(self, model, token_index, xpath_tokens, config):
+        type_1_inner_list_name = model['@name']
+
+        token = xpath_tokens[token_index]
+        list_tokens = token.split("[", 1) # split once on the first '[', first element will be the inner list name
+        inner_list_name = list_tokens[0]
+
+        if type_1_inner_list_name != inner_list_name:
+            raise GenericConfigUpdaterError(f"Type 1 inner list name '{type_1_inner_list_name}' does match xpath inner list name '{inner_list_name}'.")
+
+        key_dict = self._extract_key_dict(token)
+
+        # If no keys specified return empty tokens, as we are already inside the correct table.
+        # Also note that the type 1 inner list name in SonicYang has no correspondence in ConfigDb and is ignored.
+        # Example where VLAN_MEMBER_LIST has no specific key/value:
+        #   xpath: /sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']/DOT1P_TO_TC_MAP
+        #   path: /DOT1P_TO_TC_MAP/Dot1p_to_tc_map1
+        if not(key_dict):
+            return []
+
+        if len(key_dict) > 1:
+            raise GenericConfigUpdaterError(f"Type 1 inner list should have only 1 key in xpath, {len(key_dict)} specified. Key dictionary: {key_dict}")
+
+        keyName = next(iter(key_dict.keys()))
+        value = key_dict[keyName]
+
+        path_tokens = [value]
+
+        # If this is the last xpath token, return the path tokens we have built so far, no need for futher checks
+        # Example:
+        #   xpath: /sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']/DOT1P_TO_TC_MAP[dot1p='2']
+        #   path: /DOT1P_TO_TC_MAP/Dot1p_to_tc_map1/2
+        if token_index+1 >= len(xpath_tokens):
+            return path_tokens
+
+        # Checking if the next_token is actually a child leaf of the inner type 1 list, for which case
+        # just ignore the token, and return the already created ConfigDb path pointing to the whole object
+        # Example where the leaf specified is the key:
+        #   xpath: /sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']/DOT1P_TO_TC_MAP[dot1p='2']/dot1p
+        #   path: /DOT1P_TO_TC_MAP/Dot1p_to_tc_map1/2
+        # Example where the leaf specified is not the key:
+        #   xpath: /sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']/DOT1P_TO_TC_MAP[dot1p='2']/tc
+        #   path: /DOT1P_TO_TC_MAP/Dot1p_to_tc_map1/2
+        next_token = xpath_tokens[token_index+1]
+        leaf_model = self._get_model(model.get('leaf'), next_token)
+        if leaf_model:
+            return path_tokens
+
+        raise GenericConfigUpdaterError(f"Type 1 inner list '{type_1_inner_list_name}' does not have a child leaf named '{next_token}'")
 
     def _get_path_tokens_from_leaf(self, model, token_index, xpath_tokens, config):
         token = xpath_tokens[token_index]
