@@ -855,6 +855,15 @@ class TestPathAddressing(unittest.TestCase):
         check(path="/BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet9/profile_list",
               xpath="/sonic-buffer-port-egress-profile-list:sonic-buffer-port-egress-profile-list/BUFFER_PORT_EGRESS_PROFILE_LIST/BUFFER_PORT_EGRESS_PROFILE_LIST_LIST[port='Ethernet9']/profile_list",
               config=Files.CONFIG_DB_WITH_PROFILE_LIST)
+        check(path="/DOT1P_TO_TC_MAP/Dot1p_to_tc_map1",
+              xpath="/sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
+        check(path="/DOT1P_TO_TC_MAP/Dot1p_to_tc_map1/2",
+              xpath="/sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']/DOT1P_TO_TC_MAP[dot1p='2']",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
+        check(path="/EXP_TO_FC_MAP/Exp_to_fc_map2/4",
+              xpath="/sonic-exp-fc-map:sonic-exp-fc-map/EXP_TO_FC_MAP/EXP_TO_FC_MAP_LIST[name='Exp_to_fc_map2']/EXP_TO_FC_MAP[exp='4']",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
 
     def test_convert_xpath_to_path(self):
         def check(xpath, path, config=None):
@@ -936,6 +945,24 @@ class TestPathAddressing(unittest.TestCase):
         check(xpath="/sonic-buffer-port-egress-profile-list:sonic-buffer-port-egress-profile-list/BUFFER_PORT_EGRESS_PROFILE_LIST/BUFFER_PORT_EGRESS_PROFILE_LIST_LIST[port='Ethernet9']/profile_list[.='egress_lossy_profile']",
               path="/BUFFER_PORT_EGRESS_PROFILE_LIST/Ethernet9/profile_list",
               config=Files.CONFIG_DB_WITH_PROFILE_LIST)
+        check(xpath="/sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']",
+              path="/DOT1P_TO_TC_MAP/Dot1p_to_tc_map1",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
+        check(xpath="/sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']/DOT1P_TO_TC_MAP",
+              path="/DOT1P_TO_TC_MAP/Dot1p_to_tc_map1",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
+        check(xpath="/sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']/DOT1P_TO_TC_MAP[dot1p='2']",
+              path="/DOT1P_TO_TC_MAP/Dot1p_to_tc_map1/2",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
+        check(xpath="/sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']/DOT1P_TO_TC_MAP[dot1p='2']/dot1p",
+              path="/DOT1P_TO_TC_MAP/Dot1p_to_tc_map1/2",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
+        check(xpath="/sonic-dot1p-tc-map:sonic-dot1p-tc-map/DOT1P_TO_TC_MAP/DOT1P_TO_TC_MAP_LIST[name='Dot1p_to_tc_map1']/DOT1P_TO_TC_MAP[dot1p='2']/tc",
+              path="/DOT1P_TO_TC_MAP/Dot1p_to_tc_map1/2",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
+        check(xpath="/sonic-exp-fc-map:sonic-exp-fc-map/EXP_TO_FC_MAP/EXP_TO_FC_MAP_LIST[name='Exp_to_fc_map2']/EXP_TO_FC_MAP[exp='4']",
+              path="/EXP_TO_FC_MAP/Exp_to_fc_map2/4",
+              config=Files.CONFIG_DB_WITH_TYPE1_TABLES)
 
     def test_has_path(self):
         def check(config, path, expected):
