@@ -105,6 +105,36 @@ class TestIntIp(object):
             assert result.exit_code == 0
             assert mock_run_command.call_count == 1
 
+    @pytest.mark.parametrize('setup_single_bgp_instance',
+                             ['ip_route_for_int_ip'], indirect=['setup_single_bgp_instance'])
+    def test_config_int_ip_rem_sub_intf(
+            self,
+            get_cmd_module,
+            setup_single_bgp_instance):
+        (config, _) = get_cmd_module
+        jsonfile_config = os.path.join(mock_db_path, "config_db")
+        from .mock_tables import dbconnector
+        dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile_config
+
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db': db.cfgdb}
+
+        # remove vlan IP`s
+        with mock.patch('utilities_common.cli.run_command') as mock_run_command:
+            print(db.cfgdb.get_table('INTERFACE'))
+            assert ('Ethernet16.16', '16.1.1.1/16') in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
+            assert 'Ethernet16.16' in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
+            result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"],
+                                   ["Ethernet16.16", "16.1.1.1/16"], obj=obj)
+            print(result.exit_code, result.output)
+            assert result.exit_code == 0
+            assert mock_run_command.call_count == 1
+            # removing IP should only remove the INTERFACE,IP key. The regular INTERFACE key should still exists for sub interface
+            assert ('Ethernet16.16', '16.1.1.1/16') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
+            assert 'Ethernet16.16' in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
+
+
 class TestIntIpMultiasic(object):
     @pytest.fixture(scope="class", autouse=True)
     def setup_class(cls):
