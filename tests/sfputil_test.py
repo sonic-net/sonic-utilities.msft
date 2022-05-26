@@ -176,6 +176,7 @@ class TestSfputil(object):
             "        Active App Selection Host Lane 7: 1\n"
             "        Active App Selection Host Lane 8: 1\n"
             "        Active Firmware Version: 0.1\n"
+            "        Application Advertisement: N/A\n"
             "        CMIS Revision: 5.0\n"
             "        Connector: LC\n"
             "        Encoding: N/A\n"
