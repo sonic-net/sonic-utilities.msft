@@ -37,5 +37,11 @@
     },
     "VLAN_INTERFACE|Vlan2|192.168.1.1/21": {
         "NULL": "NULL"
+    },
+    "VLAN_SUB_INTERFACE|Ethernet16.16": {
+        "admin_status": "up"
+    },
+    "VLAN_SUB_INTERFACE|Ethernet16.16|16.1.1.1/16": {
+        "NULL": "NULL"
     }
 }
