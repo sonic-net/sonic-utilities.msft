@@ -8431,6 +8431,7 @@ This command is used to add a static route. Note that prefix /nexthop vrf`s and 
 
   ```
   admin@sonic:~$ config route add prefix 2.2.3.4/32 nexthop 30.0.0.9
+  admin@sonic:~$ config route add prefix 4.0.0.0/24 nexthop dev Ethernet32.10
   ```
 
 It also supports ECMP, and adding a new nexthop to the existing prefix will complement it and not overwrite them.
