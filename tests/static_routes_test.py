@@ -372,6 +372,37 @@ class TestStaticRoutes(object):
         print(result.exit_code, result.output)
         assert not '14.2.3.4/32' in db.cfgdb.get_table('STATIC_ROUTE')
 
+    def test_static_route_nexthop_subinterface(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db':db.cfgdb}
+
+        # config route add prefix 2.2.3.5/32 nexthop dev Ethernet0.10
+        result = runner.invoke(config.config.commands["route"].commands["add"], \
+        ["prefix", "2.2.3.5/32", "nexthop", "dev", "Ethernet0.10"], obj=obj)
+        print(result.exit_code, result.output)
+        assert ('2.2.3.5/32') in db.cfgdb.get_table('STATIC_ROUTE')
+        assert db.cfgdb.get_entry('STATIC_ROUTE', '2.2.3.5/32') == {'nexthop': '', 'blackhole': 'false', 'distance': '0', 'ifname': 'Ethernet0.10', 'nexthop-vrf': ''}
+
+        # config route del prefix 2.2.3.5/32 nexthop dev Ethernet0.10
+        result = runner.invoke(config.config.commands["route"].commands["del"], \
+        ["prefix", "2.2.3.5/32", "nexthop", "dev", "Ethernet0.10"], obj=obj)
+        print(result.exit_code, result.output)
+        assert not ('2.2.3.5/32') in db.cfgdb.get_table('STATIC_ROUTE')
+
+        # config route add prefix 2.2.3.5/32 nexthop dev Eth32.10
+        result = runner.invoke(config.config.commands["route"].commands["add"], \
+        ["prefix", "2.2.3.5/32", "nexthop", "dev", "Eth32.10"], obj=obj)
+        print(result.exit_code, result.output)
+        assert ('2.2.3.5/32') in db.cfgdb.get_table('STATIC_ROUTE')
+        assert db.cfgdb.get_entry('STATIC_ROUTE', '2.2.3.5/32') == {'nexthop': '', 'blackhole': 'false', 'distance': '0', 'ifname': 'Eth32.10', 'nexthop-vrf': ''}
+
+        # config route del prefix 2.2.3.5/32 nexthop dev Eth32.10
+        result = runner.invoke(config.config.commands["route"].commands["del"], \
+        ["prefix", "2.2.3.5/32", "nexthop", "dev", "Eth32.10"], obj=obj)
+        print(result.exit_code, result.output)
+        assert not ('2.2.3.5/32') in db.cfgdb.get_table('STATIC_ROUTE')
+
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
