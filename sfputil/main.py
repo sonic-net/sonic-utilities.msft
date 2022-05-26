@@ -325,27 +325,13 @@ def convert_sfp_info_to_output_string(sfp_info_dict):
             elif key == 'cable_length':
                 pass
             elif key == 'specification_compliance':
-                if sfp_info_dict['type'] == "QSFP-DD Double Density 8X Pluggable Transceiver" or \
-                sfp_info_dict['type'] == "OSFP 8X Pluggable Transceiver" or \
-                sfp_info_dict['type'] == "QSFP+ or later with CMIS":
-                    output += '{}{}: {}\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
-                else:
-                    output += '{}{}:\n'.format(indent, QSFP_DD_DATA_MAP['specification_compliance'])
-
-                    spec_compliance_dict = {}
-                    try:
-                        spec_compliance_dict = ast.literal_eval(sfp_info_dict['specification_compliance'])
-                        sorted_compliance_key_table = natsorted(spec_compliance_dict)
-                        for compliance_key in sorted_compliance_key_table:
-                            output += '{}{}: {}\n'.format((indent * 2), compliance_key, spec_compliance_dict[compliance_key])
-                    except ValueError as e:
-                        output += '{}N/A\n'.format((indent * 2))
-            elif key == 'application_advertisement':
-                pass
+                output += '{}{}: {}\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
             elif key == 'supported_max_tx_power' or key == 'supported_min_tx_power':
-                output += '{}{}: {}dBm\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
+                if key in sfp_info_dict:  # C-CMIS compliant / coherent modules
+                    output += '{}{}: {}dBm\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
             elif key == 'supported_max_laser_freq' or key == 'supported_min_laser_freq':
-                output += '{}{}: {}GHz\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
+                if key in sfp_info_dict:  # C-CMIS compliant / coherent modules
+                    output += '{}{}: {}GHz\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
             else:
                 try:
                     output += '{}{}: {}\n'.format(indent, QSFP_DD_DATA_MAP[key], sfp_info_dict[key])
@@ -360,21 +346,16 @@ def convert_sfp_info_to_output_string(sfp_info_dict):
             elif key == 'cable_length':
                 pass
             elif key == 'specification_compliance':
-                if sfp_info_dict['type'] == "QSFP-DD Double Density 8X Pluggable Transceiver" or \
-                sfp_info_dict['type'] == "OSFP 8X Pluggable Transceiver" or \
-                sfp_info_dict['type'] == "QSFP+ or later with CMIS":
-                    output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
-                else:
-                    output += '{}{}:\n'.format(indent, QSFP_DATA_MAP['specification_compliance'])
+                output += '{}{}:\n'.format(indent, QSFP_DATA_MAP['specification_compliance'])
 
-                    spec_compliance_dict = {}
-                    try:
-                        spec_compliance_dict = ast.literal_eval(sfp_info_dict['specification_compliance'])
-                        sorted_compliance_key_table = natsorted(spec_compliance_dict)
-                        for compliance_key in sorted_compliance_key_table:
-                            output += '{}{}: {}\n'.format((indent * 2), compliance_key, spec_compliance_dict[compliance_key])
-                    except ValueError as e:
-                        output += '{}N/A\n'.format((indent * 2))
+                spec_compliance_dict = {}
+                try:
+                    spec_compliance_dict = ast.literal_eval(sfp_info_dict['specification_compliance'])
+                    sorted_compliance_key_table = natsorted(spec_compliance_dict)
+                    for compliance_key in sorted_compliance_key_table:
+                        output += '{}{}: {}\n'.format((indent * 2), compliance_key, spec_compliance_dict[compliance_key])
+                except ValueError as e:
+                    output += '{}N/A\n'.format((indent * 2))
             else:
                 output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
 
