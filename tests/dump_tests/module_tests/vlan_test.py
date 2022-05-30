@@ -9,6 +9,7 @@ from dump.plugins.vlan import Vlan
 from dump.plugins.vlan_member import Vlan_Member
 from dump.match_infra import MatchEngine, ConnectionPool
 from swsscommon.swsscommon import SonicV2Connector
+from utilities_common.constants import DEFAULT_NAMESPACE
 
 module_tests_path = os.path.dirname(__file__)
 dump_tests_path = os.path.join(module_tests_path, "../")
@@ -50,9 +51,7 @@ def match_engine():
 
     # Initialize connection pool
     conn_pool = ConnectionPool()
-    DEF_NS = ''  # Default Namespace
-    conn_pool.cache = {DEF_NS: {'conn': db,
-                                'connected_to': set(db_names)}}
+    conn_pool.fill(DEFAULT_NAMESPACE, db, db_names)
 
     # Initialize match_engine
     match_engine = MatchEngine(conn_pool)

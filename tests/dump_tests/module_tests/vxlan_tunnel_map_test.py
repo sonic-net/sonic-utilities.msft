@@ -6,6 +6,7 @@ from dump.helper import create_template_dict, populate_mock
 from dump.plugins.vxlan_tunnel_map import Vxlan_tunnel_map
 from dump.match_infra import MatchEngine, ConnectionPool
 from swsscommon.swsscommon import SonicV2Connector
+from utilities_common.constants import DEFAULT_NAMESPACE
 
 # Location for dedicated db's used for UT
 module_tests_path = os.path.dirname(__file__)
@@ -40,9 +41,7 @@ def match_engine():
 
     # Initialize connection pool
     conn_pool = ConnectionPool()
-    DEF_NS = ''  # Default Namespace
-    conn_pool.cache = {DEF_NS: {'conn': db,
-                                'connected_to': set(db_names)}}
+    conn_pool.fill(DEFAULT_NAMESPACE, db, db_names)
 
     # Initialize match_engine
     match_engine = MatchEngine(conn_pool)

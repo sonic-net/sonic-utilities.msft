@@ -7,6 +7,10 @@ from swsscommon.swsscommon import SonicV2Connector, SonicDBConfig
 from sonic_py_common import multi_asic
 from utilities_common.constants import DEFAULT_NAMESPACE
 
+# Constants
+CONN = "conn"
+CONN_TO = "connected_to"
+
 EXCEP_DICT = {
     "INV_REQ": "Argument should be of type MatchRequest",
     "INV_DB": "DB provided is not valid",
@@ -249,12 +253,12 @@ class ConnectionPool:
         """ Returns a SonicV2Connector Object and caches it for further requests """
         if ns not in self.cache:
             self.cache[ns] = {}
-            self.cache[ns]["conn"] = self.initialize_connector(ns)
-            self.cache[ns]["connected_to"] = set()
-        if update or db_name not in self.cache[ns]["connected_to"]:
-            self.cache[ns]["conn"].connect(db_name)
-            self.cache[ns]["connected_to"].add(db_name)
-        return self.cache[ns]["conn"]
+            self.cache[ns][CONN] = self.initialize_connector(ns)
+            self.cache[ns][CONN_TO] = set()
+        if update or db_name not in self.cache[ns][CONN_TO]:
+            self.cache[ns][CONN].connect(db_name)
+            self.cache[ns][CONN_TO].add(db_name)
+        return self.cache[ns][CONN]
 
     def clear(self, namespace=None):
         if not namespace:
@@ -264,7 +268,7 @@ class ConnectionPool:
 
     def fill(self, ns, conn, connected_to):
         """ Update internal cache """
-        self.cache[ns] = {'conn': conn, 'connected_to': set(connected_to)}
+        self.cache[ns] = {CONN: conn, CONN_TO: set(connected_to)}
 
 
 class MatchEngine:
