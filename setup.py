@@ -216,6 +216,7 @@ setup(
         'toposort==1.6',
         'www-authenticate==0.9.2',
         'xmltodict==0.12.0',
+        'lazy-object-proxy',
     ],
     setup_requires= [
         'pytest-runner',

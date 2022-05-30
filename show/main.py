@@ -5,6 +5,7 @@ import sys
 import re
 
 import click
+import lazy_object_proxy
 import utilities_common.cli as clicommon
 from sonic_py_common import multi_asic
 import utilities_common.multi_asic as multi_asic_util
@@ -126,8 +127,8 @@ def run_command(command, display_cmd=False, return_cmd=False):
     if rc != 0:
         sys.exit(rc)
 
-# Global class instance for SONiC interface name to alias conversion
-iface_alias_converter = clicommon.InterfaceAliasConverter()
+# Lazy global class instance for SONiC interface name to alias conversion
+iface_alias_converter = lazy_object_proxy.Proxy(lambda: clicommon.InterfaceAliasConverter())
 
 #
 # Display all storm-control data 
