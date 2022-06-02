@@ -179,6 +179,18 @@ class TestPortChannel(object):
         assert result.exit_code != 0
         assert "Error: Port Ethernet60 is already bound to following PBH_TABLES:" in result.output
 
+    def test_delete_portchannel_which_is_member_of_a_vlan(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # try to delete the portchannel when its member of a vlan
+        result = runner.invoke(config.config.commands["portchannel"].commands["del"], ["PortChannel1001"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "PortChannel1001 has vlan Vlan4000 configured, remove vlan membership to proceed" in result.output
+
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
