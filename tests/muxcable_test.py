@@ -138,30 +138,30 @@ tabular_data_config_output_expected = """\
 SWITCH_NAME    PEER_TOR
 -------------  ----------
 sonic-switch   10.2.2.2
-port        state    ipv4      ipv6
-----------  -------  --------  --------
+port        state    ipv4      ipv6      cable_type      soc_ipv4
+----------  -------  --------  --------  --------------  ----------
 Ethernet0   active   10.2.1.1  e800::46
 Ethernet4   auto     10.3.1.1  e801::46
 Ethernet8   active   10.4.1.1  e802::46
 Ethernet12  active   10.4.1.1  e802::46
-Ethernet16  standby  10.1.1.1  fc00::75
+Ethernet16  standby  10.1.1.1  fc00::75  active-standby
 Ethernet28  manual   10.1.1.1  fc00::75
-Ethernet32  auto     10.1.1.1  fc00::75
+Ethernet32  auto     10.1.1.1  fc00::75  active-active   10.1.1.2
 """
 
 tabular_data_config_output_expected_alias = """\
 SWITCH_NAME    PEER_TOR
 -------------  ----------
 sonic-switch   10.2.2.2
-port    state    ipv4      ipv6
-------  -------  --------  --------
+port    state    ipv4      ipv6      cable_type      soc_ipv4
+------  -------  --------  --------  --------------  ----------
 etp1    active   10.2.1.1  e800::46
 etp2    auto     10.3.1.1  e801::46
 etp3    active   10.4.1.1  e802::46
 etp4    active   10.4.1.1  e802::46
-etp5    standby  10.1.1.1  fc00::75
+etp5    standby  10.1.1.1  fc00::75  active-standby
 etp8    manual   10.1.1.1  fc00::75
-etp9    auto     10.1.1.1  fc00::75
+etp9    auto     10.1.1.1  fc00::75  active-active   10.1.1.2
 """
 
 json_data_status_config_output_expected = """\
@@ -201,7 +201,8 @@ json_data_status_config_output_expected = """\
                 "STATE": "standby",
                 "SERVER": {
                     "IPv4": "10.1.1.1",
-                    "IPv6": "fc00::75"
+                    "IPv6": "fc00::75",
+                    "cable_type": "active-standby"
                 }
             },
             "Ethernet28": {
@@ -215,7 +216,9 @@ json_data_status_config_output_expected = """\
                 "STATE": "auto",
                 "SERVER": {
                     "IPv4": "10.1.1.1",
-                    "IPv6": "fc00::75"
+                    "IPv6": "fc00::75",
+                    "cable_type": "active-active",
+                    "soc_ipv4": "10.1.1.2"
                 }
             }
         }
@@ -260,7 +263,8 @@ json_data_status_config_output_expected_alias = """\
                 "STATE": "standby",
                 "SERVER": {
                     "IPv4": "10.1.1.1",
-                    "IPv6": "fc00::75"
+                    "IPv6": "fc00::75",
+                    "cable_type": "active-standby"
                 }
             },
             "etp8": {
@@ -274,7 +278,9 @@ json_data_status_config_output_expected_alias = """\
                 "STATE": "auto",
                 "SERVER": {
                     "IPv4": "10.1.1.1",
-                    "IPv6": "fc00::75"
+                    "IPv6": "fc00::75",
+                    "cable_type": "active-active",
+                    "soc_ipv4": "10.1.1.2"
                 }
             }
         }

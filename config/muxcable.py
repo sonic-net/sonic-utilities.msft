@@ -11,6 +11,7 @@ from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from swsscommon import swsscommon
 from tabulate import tabulate
 from utilities_common import platform_sfputil_helper
+from utilities_common.general import get_optional_value_for_key_in_config_tbl 
 
 platform_sfputil = None
 
@@ -203,7 +204,6 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
 
     return res_dict
 
-
 def get_value_for_key_in_config_tbl(config_db, port, key, table):
     info_dict = {}
     info_dict = config_db.get_entry(table, port)
@@ -244,6 +244,8 @@ def lookup_statedb_and_update_configdb(db, per_npu_statedb, config_db, port, sta
     configdb_state = get_value_for_key_in_config_tbl(config_db, port, "state", "MUX_CABLE")
     ipv4_value = get_value_for_key_in_config_tbl(config_db, port, "server_ipv4", "MUX_CABLE")
     ipv6_value = get_value_for_key_in_config_tbl(config_db, port, "server_ipv6", "MUX_CABLE")
+    soc_ipv4_value = get_optional_value_for_key_in_config_tbl(config_db, port, "soc_ipv4", "MUX_CABLE")
+    cable_type = get_optional_value_for_key_in_config_tbl(config_db, port, "cable_type", "MUX_CABLE")
 
     state = get_value_for_key_in_dict(muxcable_statedb_dict, port, "state", "MUX_CABLE_TABLE")
 
@@ -252,8 +254,16 @@ def lookup_statedb_and_update_configdb(db, per_npu_statedb, config_db, port, sta
     if str(state_cfg_val) == str(configdb_state):
         port_status_dict[port_name] = 'OK'
     else:
-        config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val,
-                                                "server_ipv4": ipv4_value, "server_ipv6": ipv6_value})
+        if cable_type is not None and soc_ipv4_value is not None:
+            config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val,
+                                                    "server_ipv4": ipv4_value,
+                                                    "server_ipv6": ipv6_value, 
+                                                    "soc_ipv4":soc_ipv4_value, 
+                                                    "cable_type": cable_type})
+        else:
+            config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val,
+                                                    "server_ipv4": ipv4_value,
+                                                    "server_ipv6": ipv6_value}) 
         if (str(state_cfg_val) == 'active' and str(state) != 'active') or (str(state_cfg_val) == 'standby' and str(state) != 'standby'):
             port_status_dict[port_name] = 'INPROGRESS'
         else:

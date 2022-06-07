@@ -1740,11 +1740,14 @@
     "MUX_CABLE|Ethernet32": {
         "state": "auto",
 	"server_ipv4": "10.1.1.1",
+        "cable_type": "active-active",
+	"soc_ipv4": "10.1.1.2",
 	"server_ipv6": "fc00::75"
     },
     "MUX_CABLE|Ethernet16": {
         "state": "standby",
 	"server_ipv4": "10.1.1.1",
+        "cable_type": "active-standby",
 	"server_ipv6": "fc00::75"
     },
     "MUX_CABLE|Ethernet28": {

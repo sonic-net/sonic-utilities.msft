@@ -31,3 +31,14 @@ def load_db_config():
     else:
         if not swsscommon.SonicDBConfig.isInit():
             swsscommon.SonicDBConfig.load_sonic_db_config()
+
+def get_optional_value_for_key_in_config_tbl(config_db, port, key, table):
+    info_dict = {}
+    info_dict = config_db.get_entry(table, port)
+    if info_dict is None:
+        return None
+
+    value = info_dict.get(key, None)
+        
+    return value
+

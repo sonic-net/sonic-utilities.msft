@@ -13,6 +13,7 @@ from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from swsscommon import swsscommon
 from tabulate import tabulate
 from utilities_common import platform_sfputil_helper
+from utilities_common.general import get_optional_value_for_key_in_config_tbl 
 
 platform_sfputil = None
 
@@ -460,7 +461,7 @@ def create_table_dump_per_port_status(db, print_data, muxcable_info_dict, muxcab
     print_data.append(print_port_data)
 
 
-def create_table_dump_per_port_config(db ,print_data, per_npu_configdb, asic_id, port):
+def create_table_dump_per_port_config(db ,print_data, per_npu_configdb, asic_id, port, is_dualtor_active_active):
 
     port_list = []
     port_name = platform_sfputil_helper.get_interface_alias(port, db)
@@ -471,6 +472,13 @@ def create_table_dump_per_port_config(db ,print_data, per_npu_configdb, asic_id,
     port_list.append(ipv4_value)
     ipv6_value = get_value_for_key_in_config_tbl(per_npu_configdb[asic_id], port, "server_ipv6", "MUX_CABLE")
     port_list.append(ipv6_value)
+    cable_type = get_optional_value_for_key_in_config_tbl(per_npu_configdb[asic_id], port, "cable_type", "MUX_CABLE")
+    if cable_type is not None:
+        port_list.append(cable_type)
+    soc_ipv4_value = get_optional_value_for_key_in_config_tbl(per_npu_configdb[asic_id], port, "soc_ipv4", "MUX_CABLE")
+    if soc_ipv4_value is not None:
+        port_list.append(soc_ipv4_value)
+        is_dualtor_active_active[0] = True
     print_data.append(port_list)
 
 
@@ -484,6 +492,12 @@ def create_json_dump_per_port_config(db, port_status_dict, per_npu_configdb, asi
     port_status_dict["MUX_CABLE"]["PORTS"][port_name]["SERVER"]["IPv4"] = ipv4_value
     ipv6_value = get_value_for_key_in_config_tbl(per_npu_configdb[asic_id], port, "server_ipv6", "MUX_CABLE")
     port_status_dict["MUX_CABLE"]["PORTS"][port_name]["SERVER"]["IPv6"] = ipv6_value
+    cable_type = get_optional_value_for_key_in_config_tbl(per_npu_configdb[asic_id], port, "cable_type", "MUX_CABLE")
+    if cable_type is not None:
+        port_status_dict["MUX_CABLE"]["PORTS"][port_name]["SERVER"]["cable_type"] = cable_type
+    soc_ipv4_value = get_optional_value_for_key_in_config_tbl(per_npu_configdb[asic_id], port, "soc_ipv4", "MUX_CABLE")
+    if soc_ipv4_value is not None:
+        port_status_dict["MUX_CABLE"]["PORTS"][port_name]["SERVER"]["soc_ipv4"] = soc_ipv4_value
 
 
 @muxcable.command()
@@ -688,8 +702,10 @@ def config(db, port, json_output):
                 else:
                     print_data = []
                     print_peer_tor = []
+                    is_dualtor_active_active = [False]
 
-                    create_table_dump_per_port_config(db, print_data, per_npu_configdb, asic_id, port)
+
+                    create_table_dump_per_port_config(db, print_data, per_npu_configdb, asic_id, port, is_dualtor_active_active)
 
                     headers = ['SWITCH_NAME', 'PEER_TOR']
                     peer_tor_data = []
@@ -697,7 +713,10 @@ def config(db, port, json_output):
                     peer_tor_data.append(peer_switch_value)
                     print_peer_tor.append(peer_tor_data)
                     click.echo(tabulate(print_peer_tor, headers=headers))
-                    headers = ['port', 'state', 'ipv4', 'ipv6']
+                    if is_dualtor_active_active[0]:
+                        headers = ['port', 'state', 'ipv4', 'ipv6', 'cable_type', 'soc_ipv4']
+                    else:
+                        headers = ['port', 'state', 'ipv4', 'ipv6']
                     click.echo(tabulate(print_data, headers=headers))
 
                     sys.exit(CONFIG_SUCCESSFUL)
@@ -733,10 +752,12 @@ def config(db, port, json_output):
         else:
             print_data = []
             print_peer_tor = []
+            is_dualtor_active_active = [False]
+
             for namespace in namespaces:
                 asic_id = multi_asic.get_asic_index_from_namespace(namespace)
                 for port in natsorted(port_mux_tbl_keys[asic_id]):
-                    create_table_dump_per_port_config(db, print_data, per_npu_configdb, asic_id, port)
+                    create_table_dump_per_port_config(db, print_data, per_npu_configdb, asic_id, port, is_dualtor_active_active)
 
             headers = ['SWITCH_NAME', 'PEER_TOR']
             peer_tor_data = []
@@ -744,7 +765,10 @@ def config(db, port, json_output):
             peer_tor_data.append(peer_switch_value)
             print_peer_tor.append(peer_tor_data)
             click.echo(tabulate(print_peer_tor, headers=headers))
-            headers = ['port', 'state', 'ipv4', 'ipv6']
+            if is_dualtor_active_active[0]:
+                headers = ['port', 'state', 'ipv4', 'ipv6', 'cable_type', 'soc_ipv4']
+            else:
+                headers = ['port', 'state', 'ipv4', 'ipv6']
             click.echo(tabulate(print_data, headers=headers))
 
         sys.exit(CONFIG_SUCCESSFUL)
