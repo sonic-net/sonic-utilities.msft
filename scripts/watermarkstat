@@ -226,6 +226,9 @@ class Watermarkstat(object):
 
         # header list contains the port name followed by the queues/pgs. fields is used to populate the queue/pg values
         fields = ["0"]* (len(self.header_list) - 1)
+        if not fields:
+            # counters are not enabled.
+            return fields
 
         for name, obj_id in port_obj.items():
             full_table_id = table_prefix + obj_id
