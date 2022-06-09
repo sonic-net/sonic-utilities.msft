@@ -281,7 +281,7 @@ class ConfigMgmt():
         """
 
         # Instantiate new context since parse_module_mem() loads the module into context.
-        sy = sonic_yang.SonicYang(YANG_DIR, sonic_yang_options=self.sonicYangOptions)
+        sy = sonic_yang.SonicYang(YANG_DIR)
         module = sy.ctx.parse_module_mem(yang_module_str, ly.LYS_IN_YANG)
         return module.name()
 

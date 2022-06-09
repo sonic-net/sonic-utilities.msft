@@ -11,6 +11,7 @@ from utilities_common.general import load_module_from_source
 config_mgmt_py_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'config_mgmt.py')
 config_mgmt = load_module_from_source('config_mgmt', config_mgmt_py_path)
 
+model = "module test_name {namespace urn:test_urn; prefix test_prefix;}"
 
 class TestConfigMgmt(TestCase):
     '''
@@ -20,6 +21,13 @@ class TestConfigMgmt(TestCase):
     def setUp(self):
         config_mgmt.CONFIG_DB_JSON_FILE = "startConfigDb.json"
         config_mgmt.DEFAULT_CONFIG_DB_JSON_FILE = "portBreakOutConfigDb.json"
+        return
+
+    def test_config_get_module_check(self):
+        curConfig = deepcopy(configDbJson)
+        self.writeJson(curConfig, config_mgmt.CONFIG_DB_JSON_FILE)
+        cm = config_mgmt.ConfigMgmt(source=config_mgmt.CONFIG_DB_JSON_FILE)
+        assert cm.get_module_name(model) == "test_name"
         return
 
     def test_config_validation(self):
