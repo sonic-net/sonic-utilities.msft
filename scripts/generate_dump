@@ -985,28 +985,74 @@ collect_broadcom() {
     save_bcmcmd_all_ns "-t5 version" "broadcom.version"
     save_bcmcmd_all_ns "-t5 soc" "broadcom.soc"
     save_bcmcmd_all_ns "-t5 ps" "broadcom.ps"
-    save_bcmcmd_all_ns "\"l3 nat_ingress show\"" "broadcom.nat.ingress"
-    save_bcmcmd_all_ns "\"l3 nat_egress show\"" "broadcom.nat.egress"
-    save_bcmcmd_all_ns "\"ipmc table show\"" "broadcom.ipmc"
-    save_bcmcmd_all_ns "\"multicast show\"" "broadcom.multicast"
-    save_bcmcmd_all_ns "\"conf show\"" "conf.summary"
-    save_bcmcmd_all_ns "\"fp show\"" "fp.summary"
-    save_bcmcmd_all_ns "\"pvlan show\"" "pvlan.summary"
-    save_bcmcmd_all_ns "\"l2 show\"" "l2.summary"
-    save_bcmcmd_all_ns "\"l3 intf show\"" "l3.intf.summary"
-    save_bcmcmd_all_ns "\"l3 defip show\"" "l3.defip.summary"
-    save_bcmcmd_all_ns "\"l3 l3table show\"" "l3.l3table.summary"
-    save_bcmcmd_all_ns "\"l3 egress show\"" "l3.egress.summary"
-    save_bcmcmd_all_ns "\"l3 ecmp egress show\"" "l3.ecmp.egress.summary"
-    save_bcmcmd_all_ns "\"l3 multipath show\"" "l3.multipath.summary"
-    save_bcmcmd_all_ns "\"l3 ip6host show\"" "l3.ip6host.summary"
-    save_bcmcmd_all_ns "\"l3 ip6route show\"" "l3.ip6route.summary"
-    save_bcmcmd_all_ns "\"mc show\"" "multicast.summary"
-    save_bcmcmd_all_ns "\"cstat *\"" "cstat.summary"
-    save_bcmcmd_all_ns "\"mirror show\"" "mirror.summary"
-    save_bcmcmd_all_ns "\"mirror dest show\"" "mirror.dest.summary"
-    save_bcmcmd_all_ns "\"port *\"" "port.summary"
-    save_bcmcmd_all_ns "\"d chg my_station_tcam\"" "mystation.tcam.summary"
+    if [ -e /usr/share/sonic/device/${platform}/platform_asic ]; then
+       bcm_family=`cat /usr/share/sonic/device/${platform}/platform_asic`
+    else
+       echo "'/usr/share/sonic/device/${platform}/platform_asic' does not exist" > /tmp/error
+       save_file /tmp/error sai false
+       return
+    fi
+
+    if [ "$bcm_family" == "broadcom-dnx" ]; then
+       save_bcmcmd_all_ns "\"l2 show\"" "l2.summary"
+       save_bcmcmd_all_ns "\"field group list\"" "fpgroup.list.summary"
+       total_fp_groups=34
+       for (( fp_grp=0; fp_grp<$total_fp_groups; fp_grp++ ))
+       do
+         save_bcmcmd_all_ns "\"field group info group=$fp_grp\"" "fpgroup$fp_grp.info.summary"
+       done
+       save_bcmcmd_all_ns "\"dbal table dump table=IPV4_UNICAST_PRIVATE_LPM_FORWARD\"" "l3.ipv4.lpm.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=IPV6_UNICAST_PRIVATE_LPM_FORWARD\"" "l3.ipv6.lpm.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=IPV4_UNICAST_PRIVATE_HOST\"" "l3.ipv4.host.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=IPV6_UNICAST_PRIVATE_HOST\"" "l3.ipv6.host.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=SUPER_FEC_1ST_HIERARCHY\"" "l3.egress.fec.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=ECMP_TABLE\"" "ecmp.table.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=ECMP_GROUP_PROFILE_TABLE\"" "ecmp.group.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=ING_VSI_INFO_DB\"" "ing.vsi.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=L3_MY_MAC_DA_PREFIXES\"" "l3.mymac.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=INGRESS_VLAN_MEMBERSHIP\"" "ing.vlan.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=LOCAL_SBC_IN_LIF_MATCH_INFO_SW\"" "sbc.inlif.summary"
+       save_bcmcmd_all_ns "\"dbal table dump table=SNIF_COMMAND_TABLE\"" "snif.command.summary"
+       save_bcmcmd_all_ns "\"port mgmt dump full\"" "port.mgmt.summary"
+       save_bcmcmd_all_ns "\"tm lag\"" "tm.lag.summary"
+       save_bcmcmd_all_ns "\"pp info fec\"" "pp.fec.summary"
+       save_bcmcmd_all_ns "\"nif sts\"" "nif.sts.summary"
+       save_bcmcmd_all_ns "\"port pm info\"" "port.pm.summary"
+       save_bcmcmd_all_ns "\"conf show\"" "conf.show.summary"
+       save_bcmcmd_all_ns "\"show counters\"" "show.counters.summary"
+       save_bcmcmd_all_ns "\"diag counter g\"" "diag.counter.summary"
+       save_bcmcmd_all_ns "\"tm ing q map\"" "tm.ingress.qmap.summary"
+       save_bcmcmd_all_ns "\"tm ing vsq resources\"" "tm.ing.vsq.res.summary"
+       for group in {a..f}
+       do
+          save_bcmcmd_all_ns "\"tm ing vsq non g=$group\"" "tm.ing.vsq.non.group-$group.summary"
+       done
+       save_bcmcmd_all_ns "\"fabric connectivity\"" "fabric.connect.summary"
+       save_bcmcmd_all_ns "\"port status\"" "port.status.summary"
+    else
+       save_bcmcmd_all_ns "\"l3 nat_ingress show\"" "broadcom.nat.ingress"
+       save_bcmcmd_all_ns "\"l3 nat_egress show\"" "broadcom.nat.egress"
+       save_bcmcmd_all_ns "\"ipmc table show\"" "broadcom.ipmc"
+       save_bcmcmd_all_ns "\"multicast show\"" "broadcom.multicast"
+       save_bcmcmd_all_ns "\"conf show\"" "conf.summary"
+       save_bcmcmd_all_ns "\"fp show\"" "fp.summary"
+       save_bcmcmd_all_ns "\"pvlan show\"" "pvlan.summary"
+       save_bcmcmd_all_ns "\"l2 show\"" "l2.summary"
+       save_bcmcmd_all_ns "\"l3 intf show\"" "l3.intf.summary"
+       save_bcmcmd_all_ns "\"l3 defip show\"" "l3.defip.summary"
+       save_bcmcmd_all_ns "\"l3 l3table show\"" "l3.l3table.summary"
+       save_bcmcmd_all_ns "\"l3 egress show\"" "l3.egress.summary"
+       save_bcmcmd_all_ns "\"l3 ecmp egress show\"" "l3.ecmp.egress.summary"
+       save_bcmcmd_all_ns "\"l3 multipath show\"" "l3.multipath.summary"
+       save_bcmcmd_all_ns "\"l3 ip6host show\"" "l3.ip6host.summary"
+       save_bcmcmd_all_ns "\"l3 ip6route show\"" "l3.ip6route.summary"
+       save_bcmcmd_all_ns "\"mc show\"" "multicast.summary"
+       save_bcmcmd_all_ns "\"cstat *\"" "cstat.summary"
+       save_bcmcmd_all_ns "\"mirror show\"" "mirror.summary"
+       save_bcmcmd_all_ns "\"mirror dest show\"" "mirror.dest.summary"
+       save_bcmcmd_all_ns "\"port *\"" "port.summary"
+       save_bcmcmd_all_ns "\"d chg my_station_tcam\"" "mystation.tcam.summary"
+    fi
 
     copy_from_masic_docker "syncd" "/var/log/diagrun.log" "/var/log/diagrun.log"
     copy_from_masic_docker "syncd" "/var/log/bcm_diag_post" "/var/log/bcm_diag_post"
