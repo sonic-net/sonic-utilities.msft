@@ -45,6 +45,9 @@
         },
         "ACL_RULE": {
             "services_to_validate": [ "caclmgrd-service" ]
+        },
+        "NTP_SERVER": {
+            "services_to_validate": [ "ntp-service" ]
         }
     },
     "services": {
@@ -65,6 +68,9 @@
         },
         "caclmgrd-service": {
             "validate_commands": [ "generic_config_updater.services_validator.caclmgrd_validator" ]
+        },
+        "ntp-service": {
+            "validate_commands": [ "generic_config_updater.services_validator.ntp_validator" ]
         }
     }
 }

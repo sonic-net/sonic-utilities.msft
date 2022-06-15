@@ -98,3 +98,6 @@ def caclmgrd_validator(old_config, upd_config, keys):
     # No update to ACL_RULE.
     return True
 
+
+def ntp_validator(old_config, upd_config, keys):
+    return _service_restart("ntp-config")
