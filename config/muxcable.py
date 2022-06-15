@@ -254,7 +254,7 @@ def lookup_statedb_and_update_configdb(db, per_npu_statedb, config_db, port, sta
     if str(state_cfg_val) == str(configdb_state):
         port_status_dict[port_name] = 'OK'
     else:
-        if cable_type is not None and soc_ipv4_value is not None:
+        if cable_type is not None or soc_ipv4_value is not None:
             config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val,
                                                     "server_ipv4": ipv4_value,
                                                     "server_ipv6": ipv6_value, 
