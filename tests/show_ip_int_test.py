@@ -19,7 +19,7 @@ PortChannel0001            30.1.1.1/24          error/down    T0-Peer         30
 Vlan100                    40.1.1.1/24          error/down    N/A             N/A"""
 
 show_ipv6_intf_with_multiple_ips = """\
-Interface        Master    IPv4 address/mask                             Admin/Oper    BGP Neighbor    Neighbor IP
+Interface        Master    IPv6 address/mask                             Admin/Oper    BGP Neighbor    Neighbor IP
 ---------------  --------  --------------------------------------------  ------------  --------------  -------------
 Ethernet0                  2100::1/64                                    error/down    N/A             N/A
                            aa00::1/64                                                  N/A             N/A
@@ -36,7 +36,7 @@ Loopback0                  40.1.1.1/32          error/down    N/A             N/
 PortChannel0001            20.1.1.1/24          error/down    T2-Peer         20.1.1.5"""
 
 show_multi_asic_ipv6_intf = """\
-Interface        Master    IPv4 address/mask                       Admin/Oper    BGP Neighbor    Neighbor IP
+Interface        Master    IPv6 address/mask                       Admin/Oper    BGP Neighbor    Neighbor IP
 ---------------  --------  --------------------------------------  ------------  --------------  -------------
 Loopback0                  fe80::60a5:9dff:fef4:1696%Loopback0/64  error/down    N/A             N/A
 PortChannel0001            aa00::1/64                              error/down    N/A             N/A
@@ -54,7 +54,7 @@ veth@eth1                  192.1.1.1/24         error/down    N/A             N/
 veth@eth2                  193.1.1.1/24         error/down    N/A             N/A"""
 
 show_multi_asic_ipv6_intf_all = """\
-Interface        Master    IPv4 address/mask                       Admin/Oper    BGP Neighbor    Neighbor IP
+Interface        Master    IPv6 address/mask                       Admin/Oper    BGP Neighbor    Neighbor IP
 ---------------  --------  --------------------------------------  ------------  --------------  -------------
 Loopback0                  fe80::60a5:9dff:fef4:1696%Loopback0/64  error/down    N/A             N/A
 PortChannel0001            aa00::1/64                              error/down    N/A             N/A
