@@ -73,6 +73,18 @@ reload_config_with_sys_info_command_output="""\
 Running command: rm -rf /tmp/dropstat-*
 Running command: /usr/local/bin/sonic-cfggen -H -k Seastone-DX010-25-50 --write-to-db"""
 
+reload_config_with_disabled_service_output="""\
+Running command: rm -rf /tmp/dropstat-*
+Stopping SONiC target ...
+Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
+Restarting SONiC target ...
+Reloading Monit configuration ...
+"""
+
+reload_config_with_untriggered_timer_output="""\
+Relevant services are not up. Retry later or use -f to avoid system checks
+"""
+
 def mock_run_command_side_effect(*args, **kwargs):
     command = args[0]
 
@@ -86,6 +98,44 @@ def mock_run_command_side_effect(*args, **kwargs):
             return 'swss'
         elif command == "systemctl is-enabled snmp.timer":
             return 'enabled'
+        else:
+            return ''
+
+def mock_run_command_side_effect_disabled_timer(*args, **kwargs):
+    command = args[0]
+
+    if kwargs.get('display_cmd'):
+        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
+
+    if kwargs.get('return_cmd'):
+        if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
+            return 'snmp.timer'
+        elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
+            return 'swss'
+        elif command == "systemctl is-enabled snmp.timer":
+            return 'masked'
+        elif command == "systemctl show swss.service --property ActiveState --value":
+            return 'active'
+        elif command == "systemctl show swss.service --property ActiveEnterTimestampMonotonic --value":
+            return '0'
+        else:
+            return ''
+
+def mock_run_command_side_effect_untriggered_timer(*args, **kwargs):
+    command = args[0]
+
+    if kwargs.get('display_cmd'):
+        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
+
+    if kwargs.get('return_cmd'):
+        if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
+            return 'snmp.timer'
+        elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
+            return 'swss'
+        elif command == "systemctl is-enabled snmp.timer":
+            return 'enabled'
+        elif command == "systemctl show snmp.timer --property=LastTriggerUSecMonotonic --value":
+            return '0'
         else:
             return ''
 
@@ -111,6 +161,8 @@ sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfg
 
 
 class TestConfigReload(object):
+    dummy_cfg_file = os.path.join(os.sep, "tmp", "config.json")
+
     @classmethod
     def setup_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
@@ -121,6 +173,7 @@ class TestConfigReload(object):
 
         import config.main
         importlib.reload(config.main)
+        open(cls.dummy_cfg_file, 'w').close()
 
     def test_config_reload(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
@@ -147,6 +200,32 @@ class TestConfigReload(object):
             assert result.exit_code == 0
 
             assert "\n".join([l.rstrip() for l in result.output.split('\n')][:2]) == reload_config_with_sys_info_command_output
+
+    def test_config_reload_untriggered_timer(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect_untriggered_timer)) as mock_run_command:
+            (config, show) = get_cmd_module
+
+            jsonfile_config = os.path.join(mock_db_path, "config_db.json")
+            jsonfile_init_cfg = os.path.join(mock_db_path, "init_cfg.json")
+
+            # create object
+            config.INIT_CFG_FILE = jsonfile_init_cfg
+            config.DEFAULT_CONFIG_DB_FILE =  jsonfile_config
+
+            db = Db()
+            runner = CliRunner()
+            obj = {'config_db': db.cfgdb}
+
+            # simulate 'config reload' to provoke load_sys_info option
+            result = runner.invoke(config.config.commands["reload"], ["-l", "-y"], obj=obj)
+
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+
+            assert result.exit_code == 1
+
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')][:2]) == reload_config_with_untriggered_timer_output
 
     @classmethod
     def teardown_class(cls):
@@ -311,6 +390,25 @@ class TestReloadConfig(object):
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
                 == RELOAD_CONFIG_DB_OUTPUT
+
+    def test_config_reload_disabled_service(self, get_cmd_module, setup_single_broadcom_asic):
+        with mock.patch(
+               "utilities_common.cli.run_command",
+               mock.MagicMock(side_effect=mock_run_command_side_effect_disabled_timer)
+        ) as mock_run_command:
+            (config, show) = get_cmd_module
+
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["reload"], [self.dummy_cfg_file, "-y"])
+
+            print(result.exit_code)
+            print(result.output)
+            print(reload_config_with_disabled_service_output)
+            traceback.print_tb(result.exc_info[2])
+
+            assert result.exit_code == 0
+
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == reload_config_with_disabled_service_output
 
     def test_reload_config_masic(self, get_cmd_module, setup_multi_broadcom_masic):
         with mock.patch(
