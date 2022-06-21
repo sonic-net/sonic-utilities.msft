@@ -32,6 +32,7 @@ from swsscommon.swsscommon import SonicV2Connector
 
 QueueStats = namedtuple("QueueStats", "queueindex, queuetype, totalpacket, totalbytes, droppacket, dropbytes")
 header = ['Port', 'TxQ', 'Counter/pkts', 'Counter/bytes', 'Drop/pkts', 'Drop/bytes']
+voq_header = ['Port', 'Voq', 'Counter/pkts', 'Counter/bytes', 'Drop/pkts', 'Drop/bytes']
 
 counter_bucket_dict = {
     'SAI_QUEUE_STAT_PACKETS': 2,
@@ -46,13 +47,17 @@ from utilities_common.netstat import ns_diff, STATUS_NA
 QUEUE_TYPE_MC = 'MC'
 QUEUE_TYPE_UC = 'UC'
 QUEUE_TYPE_ALL = 'ALL'
+QUEUE_TYPE_VOQ = 'VOQ'
 SAI_QUEUE_TYPE_MULTICAST = "SAI_QUEUE_TYPE_MULTICAST"
 SAI_QUEUE_TYPE_UNICAST = "SAI_QUEUE_TYPE_UNICAST"
+SAI_QUEUE_TYPE_UNICAST_VOQ = "SAI_QUEUE_TYPE_UNICAST_VOQ"
 SAI_QUEUE_TYPE_ALL = "SAI_QUEUE_TYPE_ALL"
 
 COUNTER_TABLE_PREFIX = "COUNTERS:"
 COUNTERS_PORT_NAME_MAP = "COUNTERS_PORT_NAME_MAP"
+COUNTERS_SYSTEM_PORT_NAME_MAP = "COUNTERS_SYSTEM_PORT_NAME_MAP"
 COUNTERS_QUEUE_NAME_MAP = "COUNTERS_QUEUE_NAME_MAP"
+COUNTERS_VOQ_NAME_MAP= "COUNTERS_VOQ_NAME_MAP"
 COUNTERS_QUEUE_TYPE_MAP = "COUNTERS_QUEUE_TYPE_MAP"
 COUNTERS_QUEUE_INDEX_MAP = "COUNTERS_QUEUE_INDEX_MAP"
 COUNTERS_QUEUE_PORT_MAP = "COUNTERS_QUEUE_PORT_MAP"
@@ -79,9 +84,10 @@ def build_json(port, cnstat):
 
 
 class Queuestat(object):
-    def __init__(self):
+    def __init__(self, voq=False):
         self.db = SonicV2Connector(use_unix_socket_path=False)
         self.db.connect(self.db.COUNTERS_DB)
+        self.voq = voq
 
         def get_queue_port(table_id):
             port_table_id = self.db.get(self.db.COUNTERS_DB, COUNTERS_QUEUE_PORT_MAP, table_id)
@@ -92,7 +98,11 @@ class Queuestat(object):
             return port_table_id
 
         # Get all ports
-        self.counter_port_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_PORT_NAME_MAP)
+        if voq:
+            self.counter_port_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_SYSTEM_PORT_NAME_MAP)
+        else:
+            self.counter_port_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_PORT_NAME_MAP)
+
         if self.counter_port_name_map is None:
             print("COUNTERS_PORT_NAME_MAP is empty!")
             sys.exit(1)
@@ -104,8 +114,13 @@ class Queuestat(object):
             self.port_queues_map[port] = {}
             self.port_name_map[self.counter_port_name_map[port]] = port
 
+        counter_queue_name_map = None
         # Get Queues for each port
-        counter_queue_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_QUEUE_NAME_MAP)
+        if voq:
+            counter_queue_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_VOQ_NAME_MAP)
+        else:
+            counter_queue_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_QUEUE_NAME_MAP)
+
         if counter_queue_name_map is None:
             print("COUNTERS_QUEUE_NAME_MAP is empty!")
             sys.exit(1)
@@ -139,6 +154,8 @@ class Queuestat(object):
                     return QUEUE_TYPE_MC
                 elif queue_type == SAI_QUEUE_TYPE_UNICAST:
                     return QUEUE_TYPE_UC
+                elif queue_type == SAI_QUEUE_TYPE_UNICAST_VOQ:
+                    return QUEUE_TYPE_VOQ
                 elif queue_type == SAI_QUEUE_TYPE_ALL:
                     return QUEUE_TYPE_ALL
                 else:
@@ -189,7 +206,8 @@ class Queuestat(object):
             json_output[port].update(build_json(port, table))
             return json_output
         else:
-            print(tabulate(table, header, tablefmt='simple', stralign='right'))
+            hdr = voq_header if self.voq else header
+            print(tabulate(table, hdr, tablefmt='simple', stralign='right'))
             print()
 
     def cnstat_diff_print(self, port, cnstat_new_dict, cnstat_old_dict, json_opt):
@@ -224,7 +242,8 @@ class Queuestat(object):
             json_output[port].update(build_json(port, table))
             return json_output
         else:
-            print(tabulate(table, header, tablefmt='simple', stralign='right'))
+            hdr = voq_header if self.voq else header
+            print(tabulate(table, hdr, tablefmt='simple', stralign='right'))
             print()
 
     def get_print_all_stat(self, json_opt):
@@ -331,10 +350,12 @@ Examples:
     parser.add_argument('-d', '--delete', action='store_true', help='Delete saved stats')
     parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     parser.add_argument('-j', '--json_opt', action='store_true', help='Print in JSON format')
+    parser.add_argument('-V', '--voq', action='store_true', help='display voq stats')
     args = parser.parse_args()
 
     save_fresh_stats = args.clear
     delete_all_stats = args.delete
+    voq = args.voq
     json_opt = args.json_opt
 
     port_to_show_stats = args.port
@@ -356,7 +377,7 @@ Examples:
             print(e.errno, e)
             sys.exit(e)
 
-    queuestat = Queuestat()
+    queuestat = Queuestat( voq )
 
     if save_fresh_stats:
         queuestat.save_fresh_stats()
