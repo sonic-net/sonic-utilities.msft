@@ -738,7 +738,7 @@ def _get_sonic_services():
     return (unit.strip() for unit in out.splitlines())
 
 
-def _get_delayed_sonic_services():
+def _get_delayed_sonic_units(get_timers=False):
     rc1 = clicommon.run_command("systemctl list-dependencies --plain sonic-delayed.target | sed '1d'", return_cmd=True)
     rc2 = clicommon.run_command("systemctl is-enabled {}".format(rc1.replace("\n", " ")), return_cmd=True)
     timer = [line.strip() for line in rc1.splitlines()]
@@ -746,12 +746,15 @@ def _get_delayed_sonic_services():
     services = []
     for unit in timer:
         if state[timer.index(unit)] == "enabled":
-            services.append(unit.rstrip(".timer"))
+            if not get_timers:
+                services.append(re.sub('\.timer$', '', unit, 1))
+            else:
+                services.append(unit)
     return services
 
 
 def _reset_failed_services():
-    for service in itertools.chain(_get_sonic_services(), _get_delayed_sonic_services()):
+    for service in itertools.chain(_get_sonic_services(), _get_delayed_sonic_units()):
         clicommon.run_command("systemctl reset-failed {}".format(service))
 
 
@@ -770,12 +773,8 @@ def _restart_services():
     click.echo("Reloading Monit configuration ...")
     clicommon.run_command("sudo monit reload")
 
-def _get_delay_timers():
-    out = clicommon.run_command("systemctl list-dependencies sonic-delayed.target --plain |sed '1d'", return_cmd=True)
-    return [timer.strip() for timer in out.splitlines()]
-
 def _delay_timers_elapsed():
-    for timer in _get_delay_timers():
+    for timer in _get_delayed_sonic_units(get_timers=True):
         out = clicommon.run_command("systemctl show {} --property=LastTriggerUSecMonotonic --value".format(timer), return_cmd=True)
         if out.strip() == "0":
             return False
@@ -1373,18 +1372,19 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, disable_arp_cach
     """Clear current configuration and import a previous saved config DB dump file.
        <filename> : Names of configuration file(s) to load, separated by comma with no spaces in between
     """
+    CONFIG_RELOAD_NOT_READY = 1
     if not force and not no_service_restart:
         if _is_system_starting():
             click.echo("System is not up. Retry later or use -f to avoid system checks")
-            return
+            sys.exit(CONFIG_RELOAD_NOT_READY)
 
         if not _delay_timers_elapsed():
             click.echo("Relevant services are not up. Retry later or use -f to avoid system checks")
-            return
+            sys.exit(CONFIG_RELOAD_NOT_READY)
 
         if not _swss_ready():
             click.echo("SwSS container is not ready. Retry later or use -f to avoid system checks")
-            return
+            sys.exit(CONFIG_RELOAD_NOT_READY)
 
     if filename is None:
         message = 'Clear current config and reload config in {} format from the default config file(s) ?'.format(file_format)
