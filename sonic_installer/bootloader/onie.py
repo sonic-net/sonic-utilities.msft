@@ -21,7 +21,10 @@ class OnieInstallerBootloader(Bootloader): # pylint: disable=abstract-method
         cmdline = open('/proc/cmdline', 'r')
         current = re.search(r"loop=(\S+)/fs.squashfs", cmdline.read()).group(1)
         cmdline.close()
-        return current.replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX)
+        # Replace only the first occurrence, since we are using branch name as
+        # tagging for version, IMAGE_PREFIX in the name of the branch may be
+        # replaced as well.
+        return current.replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX, 1)
 
     def get_binary_image_version(self, image_path):
         """returns the version of the image"""

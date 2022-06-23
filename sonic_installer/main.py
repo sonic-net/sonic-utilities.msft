@@ -272,7 +272,7 @@ def update_sonic_environment(bootloader, binary_image_version):
     SONIC_ENV_TEMPLATE_FILE = os.path.join("usr", "share", "sonic", "templates", "sonic-environment.j2")
     SONIC_VERSION_YML_FILE = os.path.join("etc", "sonic", "sonic_version.yml")
 
-    sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version)
+    sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version, 1)
     new_image_dir = bootloader.get_image_path(binary_image_version)
     new_image_mount = os.path.join('/', "tmp", "image-{0}-fs".format(sonic_version))
     env_dir = os.path.join(new_image_dir, "sonic-config")
@@ -327,7 +327,7 @@ def migrate_sonic_packages(bootloader, binary_image_version):
     tmp_dir = "tmp"
     packages_file = "packages.json"
     packages_path = os.path.join(PACKAGE_MANAGER_DIR, packages_file)
-    sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version)
+    sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version, 1)
     new_image_dir = bootloader.get_image_path(binary_image_version)
     new_image_upper_dir = os.path.join(new_image_dir, UPPERDIR_NAME)
     new_image_work_dir = os.path.join(new_image_dir, WORKDIR_NAME)

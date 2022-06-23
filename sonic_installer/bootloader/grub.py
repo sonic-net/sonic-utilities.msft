@@ -77,7 +77,7 @@ class GrubBootloader(OnieInstallerBootloader):
         config.close()
         click.echo('Done')
 
-        image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
+        image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX, 1)
         click.echo('Removing image root filesystem...')
         subprocess.call(['rm','-rf', HOST_PATH + '/' + image_dir])
         click.echo('Done')

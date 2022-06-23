@@ -92,7 +92,7 @@ class AbootBootloader(Bootloader):
         self._boot_config_write(config, path=path)
 
     def _swi_image_path(self, image):
-        image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
+        image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX, 1)
         if is_secureboot():
            return 'flash:%s/sonic.swi' % image_dir
         return 'flash:%s/.sonic-boot.swi' % image_dir
@@ -100,19 +100,20 @@ class AbootBootloader(Bootloader):
     def get_current_image(self):
         with open('/proc/cmdline') as f:
             current = re.search(r"loop=/*(\S+)/", f.read()).group(1)
-        return current.replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX)
+        return current.replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX, 1)
 
     def get_installed_images(self):
         images = []
         for filename in os.listdir(HOST_PATH):
             if filename.startswith(IMAGE_DIR_PREFIX):
-                images.append(filename.replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX))
+                images.append(filename.replace(IMAGE_DIR_PREFIX,
+                                               IMAGE_PREFIX, 1))
         return images
 
     def get_next_image(self):
         config = self._boot_config_read()
         match = re.search(r"flash:/*(\S+)/", config['SWI'])
-        return match.group(1).replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX)
+        return match.group(1).replace(IMAGE_DIR_PREFIX, IMAGE_PREFIX, 1)
 
     def set_default_image(self, image):
         image_path = self._swi_image_path(image)

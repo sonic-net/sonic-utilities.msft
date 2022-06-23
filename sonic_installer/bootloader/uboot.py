@@ -73,7 +73,7 @@ class UbootBootloader(OnieInstallerBootloader):
         elif image in images[1]:
             run_command('/usr/bin/fw_setenv boot_next "run sonic_image_1"')
             run_command('/usr/bin/fw_setenv sonic_version_2 "NONE"')
-        image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX)
+        image_dir = image.replace(IMAGE_PREFIX, IMAGE_DIR_PREFIX, 1)
         click.echo('Removing image root filesystem...')
         subprocess.call(['rm','-rf', HOST_PATH + '/' + image_dir])
         click.echo('Done')

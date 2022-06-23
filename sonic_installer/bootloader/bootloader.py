@@ -76,7 +76,7 @@ class Bootloader(object):
     def get_image_path(cls, image):
         """returns the image path"""
         prefix = path.join(HOST_PATH, IMAGE_DIR_PREFIX)
-        return image.replace(IMAGE_PREFIX, prefix)
+        return image.replace(IMAGE_PREFIX, prefix, 1)
 
     @contextmanager
     def get_rootfs_path(self, image_path):
