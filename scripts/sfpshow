@@ -215,6 +215,8 @@ QSFP_DD_DOM_VALUE_UNIT_MAP = {
     'voltage': 'Volts'
 }
 
+RJ45_PORT_TYPE = 'RJ45'
+
 
 def display_invalid_intf_eeprom(intf_name):
     output = intf_name + ': SFP EEPROM Not detected\n'
@@ -392,15 +394,18 @@ class SFPShow(object):
         output = ''
 
         sfp_info_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_INFO|{}'.format(interface_name))
-        output = 'SFP EEPROM detected\n'
-        sfp_info_output = self.convert_sfp_info_to_output_string(sfp_info_dict)
-        output += sfp_info_output
+        if sfp_info_dict['type'] == RJ45_PORT_TYPE:
+            output = 'SFP EEPROM is not applicable for RJ45 port\n'
+        else:
+            output = 'SFP EEPROM detected\n'
+            sfp_info_output = self.convert_sfp_info_to_output_string(sfp_info_dict)
+            output += sfp_info_output
 
-        if dump_dom:
-            sfp_type = sfp_info_dict['type']
-            dom_info_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_DOM_SENSOR|{}'.format(interface_name))
-            dom_output = self.convert_dom_to_output_string(sfp_type, dom_info_dict)
-            output += dom_output
+            if dump_dom:
+                sfp_type = sfp_info_dict['type']
+                dom_info_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_DOM_SENSOR|{}'.format(interface_name))
+                dom_output = self.convert_dom_to_output_string(sfp_type, dom_info_dict)
+                output += dom_output
 
         return output
 

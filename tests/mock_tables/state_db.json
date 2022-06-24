@@ -221,6 +221,18 @@
         "status": "255",
         "error": "N/A"
     },
+    "TRANSCEIVER_STATUS|Ethernet16": {
+        "status": "0",
+        "error": "N/A"
+    },
+    "TRANSCEIVER_STATUS|Ethernet28": {
+        "status": "0",
+        "error": "N/A"
+    },
+    "TRANSCEIVER_STATUS|Ethernet36": {
+        "status": "255",
+        "error": "Unknown"
+    },
     "CHASSIS_INFO|chassis 1": {
         "psu_num": "2"
     },
