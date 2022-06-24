@@ -348,6 +348,30 @@ Ethernet200  Not present
         assert result.exit_code == 0
         assert result.output == expected
 
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["presence"], ["Ethernet16"])
+        expected = """Port        Presence
+----------  ----------
+Ethernet16  Present
+"""
+        assert result.exit_code == 0
+        assert result.output == expected
+
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["presence"], ["Ethernet28"])
+        expected = """Port        Presence
+----------  ----------
+Ethernet28  Present
+"""
+        assert result.exit_code == 0
+        assert result.output == expected
+
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["presence"], ["Ethernet36"])
+        expected = """Port        Presence
+----------  ----------
+Ethernet36  Present
+"""
+        assert result.exit_code == 0
+        assert result.output == expected
+
     def test_sfp_eeprom_with_dom(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet0 -d"])
@@ -376,6 +400,13 @@ Ethernet200  Not present
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet8"])
         assert result.exit_code == 0
         assert "result.output == test_qsfp_dd_eeprom_output"
+
+    def test_rj45_eeprom(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet36"])
+        result_lines = result.output.strip('\n')
+        expected = "Ethernet36: SFP EEPROM is not applicable for RJ45 port"
+        assert result_lines == expected
 
     @classmethod
     def teardown_class(cls):
