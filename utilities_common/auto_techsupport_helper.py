@@ -13,7 +13,7 @@ __all__ = [  # Contants
             "CFG_CORE_USAGE", "CFG_SINCE", "FEATURE", "STATE_DB",
             "TS_MAP", "CORE_DUMP", "TIMESTAMP", "CONTAINER", "TIME_BUF",
             "SINCE_DEFAULT", "TS_PTRN_GLOB", "EXT_LOCKFAIL", "EXT_RETRY",
-            "EXT_SUCCESS", "MAX_RETRY_LIMIT"
+            "EXT_SUCCESS", "MAX_RETRY_LIMIT", "TS_GLOBAL_TIMEOUT"
         ] + [  # Methods
             "verify_recent_file_creation",
             "get_ts_dumps",
@@ -60,6 +60,7 @@ CONTAINER = "container_name"
 
 TIME_BUF = 20
 SINCE_DEFAULT = "2 days ago"
+TS_GLOBAL_TIMEOUT = "60"
 
 # Techsupport Exit Codes
 EXT_LOCKFAIL = 2

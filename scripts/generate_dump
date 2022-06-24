@@ -1287,11 +1287,6 @@ main() {
     end_t=$(date +%s%3N)
     echo "[ Capture Proc State ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 
-    # Save logs and cores early
-    save_log_files
-    save_crash_files
-    save_warmboot_files
-
     # Save all the processes within each docker
     save_cmd "show services" services.summary
 
@@ -1425,6 +1420,10 @@ main() {
         && $RM $V -rf $TARDIR
     end_t=$(date +%s%3N)
     echo "[ TAR /etc Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
+
+    save_log_files
+    save_crash_files
+    save_warmboot_files
 
     finalize
 }

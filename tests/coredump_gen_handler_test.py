@@ -20,6 +20,8 @@ The SAI dump is generated to /tmp/saisdkdump/sai_sdk_dump_11_22_2021_11_07_PM
 /tmp/saisdkdump
 """
 
+TS_DEFAULT_CMD = "show techsupport --silent --global-timeout 60 --since 2 days ago"
+
 def signal_handler(signum, frame):
     raise Exception("Timed out!")
 
@@ -427,4 +429,23 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
                 assert False, "Method should not time out"
             finally:
                 signal.alarm(0)
+    
+    def test_auto_ts_options(self):
+        """
+        Scenario: Check if the techsupport is called as expected
+        """
+        db_wrap = Db()
+        redis_mock = db_wrap.db
+        set_auto_ts_cfg(redis_mock, state="enabled", since_cfg="2 days ago")
+        set_feature_table_cfg(redis_mock, state="enabled")
+        with Patcher() as patcher:
+            def mock_cmd(cmd, env):
+                cmd_str = " ".join(cmd)
+                if "show techsupport" in cmd_str and cmd_str != TS_DEFAULT_CMD:
+                    assert False, "Expected TS_CMD: {}, Recieved: {}".format(TS_DEFAULT_CMD, cmd_str)
+                return 0, AUTO_TS_STDOUT, ""
+            cdump_mod.subprocess_exec = mock_cmd
+            patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
+            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", "swss", redis_mock)
+            cls.handle_core_dump_creation_event()
 

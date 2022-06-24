@@ -111,7 +111,7 @@ class CriticalProcCoreDumpHandle():
         return ""
 
     def invoke_ts_cmd(self, since_cfg, num_retry=0):
-        cmd_opts = ["show", "techsupport", "--silent", "--since", since_cfg]
+        cmd_opts = ["show", "techsupport", "--silent", "--global-timeout", TS_GLOBAL_TIMEOUT, "--since", since_cfg]
         cmd  = " ".join(cmd_opts)
         rc, stdout, stderr = subprocess_exec(cmd_opts, env=ENV_VAR)
         new_dump = ""
