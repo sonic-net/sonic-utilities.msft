@@ -260,6 +260,84 @@ class TestConfigWrapper(unittest.TestCase):
         self.assertFalse(actual)
         self.assertTrue(duplicated_ip in error)
 
+    def test_validate_lanes__no_port_table__success(self):
+        config = {"ACL_TABLE": {}}
+        self.validate_lanes(config)
+
+    def test_validate_lanes__empty_port_table__success(self):
+        config = {"PORT": {}}
+        self.validate_lanes(config)
+
+    def test_validate_lanes__empty_lane__failure(self):
+        config = {"PORT": {"Ethernet0": {"lanes": "", "speed":"10000"}}}
+        self.validate_lanes(config, 'has an empty lane')
+
+    def test_validate_lanes__whitespace_lane__failure(self):
+        config = {"PORT": {"Ethernet0": {"lanes": " ", "speed":"10000"}}}
+        self.validate_lanes(config, 'has an empty lane')
+
+    def test_validate_lanes__non_digits_lane__failure(self):
+        config = {"PORT": {"Ethernet0": {"lanes": "10g", "speed":"10000"}}}
+        self.validate_lanes(config, "has an invalid lane '10g'")
+
+    def test_validate_lanes__space_between_digits_lane__failure(self):
+        config = {"PORT": {"Ethernet0": {"lanes": " 1 0  ", "speed":"10000"}}}
+        self.validate_lanes(config, "has an invalid lane '1 0'")
+
+    def test_validate_lanes__single_valid_lane__success(self):
+        config = {"PORT": {"Ethernet0": {"lanes": "66", "speed":"10000"}}}
+        self.validate_lanes(config)
+
+    def test_validate_lanes__different_valid_lanes_single_port__success(self):
+        config = {"PORT": {"Ethernet0": {"lanes": "66, 67, 68", "speed":"10000"}}}
+        self.validate_lanes(config)
+
+    def test_validate_lanes__different_valid_and_invalid_empty_lanes_single_port__failure(self):
+        config = {"PORT": {"Ethernet0": {"lanes": "66, , 68", "speed":"10000"}}}
+        self.validate_lanes(config, 'has an empty lane')
+
+    def test_validate_lanes__different_valid_and_invalid_non_digit_lanes_single_port__failure(self):
+        config = {"PORT": {"Ethernet0": {"lanes": "66, 67, 10g", "speed":"10000"}}}
+        self.validate_lanes(config, "has an invalid lane '10g'")
+
+    def test_validate_lanes__different_valid_lanes_multi_ports__success(self):
+        config = {"PORT": {
+            "Ethernet0": {"lanes": " 64 , 65 \t", "speed":"10000"},
+            "Ethernet1": {"lanes": " 66 , 67 \r\t\n, 68 ", "speed":"10000"},
+            }}
+        self.validate_lanes(config)
+
+    def test_validate_lanes__same_valid_lanes_single_port__failure(self):
+        config = {"PORT": {"Ethernet0": {"lanes": "65 \r\t\n, 65", "speed":"10000"}}}
+        self.validate_lanes(config, '65')
+
+    def test_validate_lanes__same_valid_lanes_multi_ports__failure(self):
+        config = {"PORT": {
+            "Ethernet0": {"lanes": "64, 65, 67", "speed":"10000"},
+            "Ethernet1": {"lanes": "66, 67, 68", "speed":"10000"},
+            }}
+        self.validate_lanes(config, '67')
+
+    def test_validate_lanes__same_valid_lanes_multi_ports_no_spaces__failure(self):
+        config = {"PORT": {
+            "Ethernet0": {"lanes": "64,65,67", "speed":"10000"},
+            "Ethernet1": {"lanes": "66,67,68", "speed":"10000"},
+            }}
+        self.validate_lanes(config, '67')
+
+    def validate_lanes(self, config_db, expected_error=None):
+        # Arrange
+        config_wrapper = gu_common.ConfigWrapper()
+        expected = expected_error is None # if expected_error is None, then the input is valid
+
+        # Act
+        actual, error = config_wrapper.validate_lanes(config_db)
+
+        # Assert
+        self.assertEqual(expected, actual)
+        if expected_error:
+            self.assertTrue(expected_error in error)
+
     def test_crop_tables_without_yang__returns_cropped_config_db_as_json(self):
         # Arrange
         config_wrapper = gu_common.ConfigWrapper()

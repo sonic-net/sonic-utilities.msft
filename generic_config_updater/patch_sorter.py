@@ -565,30 +565,6 @@ class FullConfigMoveValidator:
         is_valid, error = self.config_wrapper.validate_config_db_config(simulated_config)
         return is_valid
 
-# TODO: Add this validation to YANG models instead
-class UniqueLanesMoveValidator:
-    """
-    A class to validate lanes and any port are unique between all ports.
-    """
-    def validate(self, move, diff):
-        simulated_config = move.apply(diff.current_config)
-
-        if "PORT" not in simulated_config:
-            return True
-
-        ports = simulated_config["PORT"]
-        existing = set()
-        for port in ports:
-            attrs = ports[port]
-            if "lanes" in attrs:
-                lanes_str = attrs["lanes"]
-                lanes = lanes_str.split(", ")
-                for lane in lanes:
-                    if lane in existing:
-                        return False
-                    existing.add(lane)
-        return True
-
 class CreateOnlyMoveValidator:
     """
     A class to validate create-only fields are only created, but never modified/updated. In other words:
@@ -1507,7 +1483,6 @@ class SortAlgorithmFactory:
         move_validators = [DeleteWholeConfigMoveValidator(),
                            FullConfigMoveValidator(self.config_wrapper),
                            NoDependencyMoveValidator(self.path_addressing, self.config_wrapper),
-                           UniqueLanesMoveValidator(),
                            CreateOnlyMoveValidator(self.path_addressing),
                            RequiredValueMoveValidator(self.path_addressing),
                            NoEmptyTableMoveValidator(self.path_addressing)]

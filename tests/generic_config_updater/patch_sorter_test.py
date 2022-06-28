@@ -868,49 +868,6 @@ class TestDeleteWholeConfigMoveValidator(unittest.TestCase):
         # Assert
         self.assertEqual(expected, actual)
 
-class TestUniqueLanesMoveValidator(unittest.TestCase):
-    def setUp(self):
-        self.validator = ps.UniqueLanesMoveValidator()
-
-    def test_validate__no_port_table__success(self):
-        config = {"ACL_TABLE": {}}
-        self.validate_target_config(config)
-
-    def test_validate__empty_port_table__success(self):
-        config = {"PORT": {}}
-        self.validate_target_config(config)
-
-    def test_validate__single_lane__success(self):
-        config = {"PORT": {"Ethernet0": {"lanes": "66", "speed":"10000"}}}
-        self.validate_target_config(config)
-
-    def test_validate__different_lanes_single_port___success(self):
-        config = {"PORT": {"Ethernet0": {"lanes": "66, 67, 68", "speed":"10000"}}}
-        self.validate_target_config(config)
-
-    def test_validate__different_lanes_multi_ports___success(self):
-        config = {"PORT": {
-            "Ethernet0": {"lanes": "64, 65", "speed":"10000"},
-            "Ethernet1": {"lanes": "66, 67, 68", "speed":"10000"},
-            }}
-        self.validate_target_config(config)
-
-    def test_validate__same_lanes_single_port___success(self):
-        config = {"PORT": {"Ethernet0": {"lanes": "65, 65", "speed":"10000"}}}
-        self.validate_target_config(config, False)
-
-    def validate_target_config(self, target_config, expected=True):
-        # Arrange
-        current_config = {}
-        diff = ps.Diff(current_config, target_config)
-        move = ps.JsonMove(diff, OperationType.REPLACE, [], [])
-
-        # Act
-        actual = self.validator.validate(move, diff)
-
-        # Assert
-        self.assertEqual(expected, actual)
-
 class TestFullConfigMoveValidator(unittest.TestCase):
     def setUp(self):
         self.any_current_config = Mock()
@@ -3038,7 +2995,6 @@ class TestSortAlgorithmFactory(unittest.TestCase):
         expected_validator = [ps.DeleteWholeConfigMoveValidator,
                               ps.FullConfigMoveValidator,
                               ps.NoDependencyMoveValidator,
-                              ps.UniqueLanesMoveValidator,
                               ps.CreateOnlyMoveValidator,
                               ps.RequiredValueMoveValidator,
                               ps.NoEmptyTableMoveValidator]
