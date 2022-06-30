@@ -1851,6 +1851,11 @@ def remove_portchannel(ctx, portchannel_name):
     if is_portchannel_present_in_db(db, portchannel_name) is False:
         ctx.fail("{} is not present.".format(portchannel_name))
 
+    # Dont let to remove port channel if vlan membership exists
+    for k,v in db.get_table('VLAN_MEMBER'):
+        if v == portchannel_name:
+            ctx.fail("{} has vlan {} configured, remove vlan membership to proceed".format(portchannel_name, str(k)))
+
     if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0:
         click.echo("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
     else:
