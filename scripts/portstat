@@ -33,6 +33,7 @@ try:
 except KeyError:
     pass
 
+from swsscommon.swsscommon import CounterTable, PortCounter
 from utilities_common import constants
 from utilities_common.intf_filter import parse_interface_in_filter
 import utilities_common.multi_asic as multi_asic_util
@@ -157,20 +158,20 @@ class Portstat(object):
         """
             Get the counters info from database.
         """
-        def get_counters(table_id):
+        def get_counters(port):
             """
                 Get the counters from specific table.
             """
             fields = ["0"]*BUCKET_NUM
 
+            _, fvs = counter_table.get(PortCounter(), port)
+            fvs = dict(fvs)
             for pos, cntr_list in counter_bucket_dict.items():
                 for counter_name in cntr_list:
-                    full_table_id = COUNTER_TABLE_PREFIX + table_id
-                    counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name)
-                    if counter_data is None:
+                    if counter_name not in fvs:
                         fields[pos] = STATUS_NA
                     elif fields[pos] != STATUS_NA:
-                        fields[pos] = str(int(fields[pos]) + int(counter_data))
+                        fields[pos] = str(int(fields[pos]) + int(fvs[counter_name]))
 
             cntr = NStats._make(fields)
             return cntr
@@ -196,13 +197,14 @@ class Portstat(object):
         cnstat_dict = OrderedDict()
         cnstat_dict['time'] = datetime.datetime.now()
         ratestat_dict = OrderedDict()
+        counter_table = CounterTable(self.db.get_redis_client(self.db.COUNTERS_DB))
         if counter_port_name_map is None:
             return cnstat_dict, ratestat_dict
         for port in natsorted(counter_port_name_map):
             port_name = port.split(":")[0]
             if self.multi_asic.skip_display(constants.PORT_OBJ, port_name):
                 continue
-            cnstat_dict[port] = get_counters(counter_port_name_map[port])
+            cnstat_dict[port] = get_counters(port)
             ratestat_dict[port] = get_rates(counter_port_name_map[port])
         return cnstat_dict, ratestat_dict
 

@@ -182,6 +182,24 @@ class SwssSyncClient(mockredis.MockRedis):
         return [key for key in self.redis if regex.match(key)]
 
 
+class PortCounter:
+    pass
+
+
+class CounterTable:
+    def __init__(self, db):
+        self.db = db
+
+    def get(self, counter, name):
+        if isinstance(counter, PortCounter):
+            name_map = "COUNTERS_PORT_NAME_MAP"
+        else:
+            return False, ()
+
+        key = self.db.hget(name_map, name)
+        return True, tuple(self.db.get("COUNTERS:" + key).items())
+
+
 swsssdk.interface.DBInterface._subscribe_keyspace_notification = _subscribe_keyspace_notification
 mockredis.MockRedis.config_set = config_set
 redis.StrictRedis = SwssSyncClient
@@ -189,3 +207,5 @@ SonicV2Connector.connect = connect_SonicV2Connector
 swsscommon.SonicV2Connector = SonicV2Connector
 swsscommon.ConfigDBConnector = ConfigDBConnector
 swsscommon.ConfigDBPipeConnector = ConfigDBPipeConnector
+swsscommon.CounterTable = CounterTable
+swsscommon.PortCounter = PortCounter
