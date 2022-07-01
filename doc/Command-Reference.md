@@ -5192,7 +5192,7 @@ When user specifies the optional argument "-f" or "--force", this command ignore
 
 This command is used to reconfigure hostname and mgmt interface based on device description file.
 This command either uses the optional file specified as arguement or looks for the file "/etc/sonic/device_desc.xml".
-If the file does not exist or if the file does not have valid fields for "hostname" and "ManagementAddress", it fails.
+If the file does not exist or if the file does not have valid fields for "hostname" and "ManagementAddress" (or "ManagementAddressV6"), it fails.
 
 When user specifies the optional argument "-y" or "--yes", this command forces the loading without prompting the user for confirmation.
 If the argument is not specified, it prompts the user to confirm whether user really wants to load this configuration file.
