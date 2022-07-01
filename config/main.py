@@ -1551,16 +1551,25 @@ def load_mgmt_config(filename):
     config_data = parse_device_desc_xml(filename)
     hostname = config_data['DEVICE_METADATA']['localhost']['hostname']
     _change_hostname(hostname)
-    mgmt_conf = netaddr.IPNetwork(list(config_data['MGMT_INTERFACE'].keys())[0][1])
-    gw_addr = list(config_data['MGMT_INTERFACE'].values())[0]['gwaddr']
-    command = "ifconfig eth0 {} netmask {}".format(str(mgmt_conf.ip), str(mgmt_conf.netmask))
-    clicommon.run_command(command, display_cmd=True)
-    command = "ip route add default via {} dev eth0 table default".format(gw_addr)
-    clicommon.run_command(command, display_cmd=True, ignore_error=True)
-    command = "ip rule add from {} table default".format(str(mgmt_conf.ip))
-    clicommon.run_command(command, display_cmd=True, ignore_error=True)
-    command = "[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid"
-    clicommon.run_command(command, display_cmd=True, ignore_error=True)
+    for key in list(config_data['MGMT_INTERFACE'].keys()):
+        # key: (eth0, ipprefix)
+        # value: { gwaddr: ip }
+        mgmt_conf = netaddr.IPNetwork(key[1])
+        gw_addr = config_data['MGMT_INTERFACE'][key]['gwaddr']
+        if mgmt_conf.version == 4:
+            command = "ifconfig eth0 {} netmask {}".format(str(mgmt_conf.ip), str(mgmt_conf.netmask))
+            clicommon.run_command(command, display_cmd=True)
+        else:
+            command = "ifconfig eth0 add {}".format(str(mgmt_conf))
+            # Ignore error for IPv6 configuration command due to it not allows config the same IP twice
+            clicommon.run_command(command, display_cmd=True, ignore_error=True)
+        command = "ip{} route add default via {} dev eth0 table default".format(" -6" if mgmt_conf.version == 6 else "", gw_addr)
+        clicommon.run_command(command, display_cmd=True, ignore_error=True)
+        command = "ip{} rule add from {} table default".format(" -6" if mgmt_conf.version == 6 else "", str(mgmt_conf.ip))
+        clicommon.run_command(command, display_cmd=True, ignore_error=True)
+    if len(config_data['MGMT_INTERFACE'].keys()) > 0:
+        command = "[ -f /var/run/dhclient.eth0.pid ] && kill `cat /var/run/dhclient.eth0.pid` && rm -f /var/run/dhclient.eth0.pid"
+        clicommon.run_command(command, display_cmd=True, ignore_error=True)
     click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
 
 @config.command("load_minigraph")
