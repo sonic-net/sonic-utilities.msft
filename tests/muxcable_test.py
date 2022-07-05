@@ -25,25 +25,25 @@ import show.main as show
 
 
 tabular_data_status_output_expected = """\
-PORT        STATUS    HEALTH     HWSTATUS      LAST_SWITCHOVER_TIME
-----------  --------  ---------  ------------  ---------------------------
-Ethernet0   active    healthy    inconsistent  2021-May-13 10:01:15.696728
-Ethernet4   standby   healthy    consistent
-Ethernet8   standby   unhealthy  consistent
-Ethernet12  unknown   unhealthy  inconsistent
-Ethernet16  standby   healthy    consistent
-Ethernet32  active    healthy    inconsistent
+PORT        STATUS    SERVER_STATUS    HEALTH     HWSTATUS      LAST_SWITCHOVER_TIME
+----------  --------  ---------------  ---------  ------------  ---------------------------
+Ethernet0   active    active           healthy    inconsistent  2021-May-13 10:01:15.696728
+Ethernet4   standby   standby          healthy    consistent
+Ethernet8   standby   standby          unhealthy  consistent
+Ethernet12  active    unknown          unhealthy  inconsistent
+Ethernet16  standby   standby          healthy    consistent
+Ethernet32  active    active           healthy    inconsistent
 """
 
 tabular_data_status_output_expected_alias = """\
-PORT    STATUS    HEALTH     HWSTATUS      LAST_SWITCHOVER_TIME
-------  --------  ---------  ------------  ---------------------------
-etp1    active    healthy    inconsistent  2021-May-13 10:01:15.696728
-etp2    standby   healthy    consistent
-etp3    standby   unhealthy  consistent
-etp4    unknown   unhealthy  inconsistent
-etp5    standby   healthy    consistent
-etp9    active    healthy    inconsistent
+PORT    STATUS    SERVER_STATUS    HEALTH     HWSTATUS      LAST_SWITCHOVER_TIME
+------  --------  ---------------  ---------  ------------  ---------------------------
+etp1    active    active           healthy    inconsistent  2021-May-13 10:01:15.696728
+etp2    standby   standby          healthy    consistent
+etp3    standby   standby          unhealthy  consistent
+etp4    active    unknown          unhealthy  inconsistent
+etp5    standby   standby          healthy    consistent
+etp9    active    active           healthy    inconsistent
 """
 
 
@@ -52,36 +52,42 @@ json_data_status_output_expected = """\
     "MUX_CABLE": {
         "Ethernet0": {
             "STATUS": "active",
+            "SERVER_STATUS": "active",
             "HEALTH": "healthy",
             "HWSTATUS": "inconsistent",
             "LAST_SWITCHOVER_TIME": "2021-May-13 10:01:15.696728"
         },
         "Ethernet4": {
             "STATUS": "standby",
+            "SERVER_STATUS": "standby",
             "HEALTH": "healthy",
             "HWSTATUS": "consistent",
             "LAST_SWITCHOVER_TIME": ""
         },
         "Ethernet8": {
             "STATUS": "standby",
+            "SERVER_STATUS": "standby",
             "HEALTH": "unhealthy",
             "HWSTATUS": "consistent",
             "LAST_SWITCHOVER_TIME": ""
         },
         "Ethernet12": {
-            "STATUS": "unknown",
+            "STATUS": "active",
+            "SERVER_STATUS": "unknown",
             "HEALTH": "unhealthy",
             "HWSTATUS": "inconsistent",
             "LAST_SWITCHOVER_TIME": ""
         },
         "Ethernet16": {
             "STATUS": "standby",
+            "SERVER_STATUS": "standby",
             "HEALTH": "healthy",
             "HWSTATUS": "consistent",
             "LAST_SWITCHOVER_TIME": ""
         },
         "Ethernet32": {
             "STATUS": "active",
+            "SERVER_STATUS": "active",
             "HEALTH": "healthy",
             "HWSTATUS": "inconsistent",
             "LAST_SWITCHOVER_TIME": ""
@@ -95,36 +101,42 @@ json_data_status_output_expected_alias = """\
     "MUX_CABLE": {
         "etp1": {
             "STATUS": "active",
+            "SERVER_STATUS": "active",
             "HEALTH": "healthy",
             "HWSTATUS": "inconsistent",
             "LAST_SWITCHOVER_TIME": "2021-May-13 10:01:15.696728"
         },
         "etp2": {
             "STATUS": "standby",
+            "SERVER_STATUS": "standby",
             "HEALTH": "healthy",
             "HWSTATUS": "consistent",
             "LAST_SWITCHOVER_TIME": ""
         },
         "etp3": {
             "STATUS": "standby",
+            "SERVER_STATUS": "standby",
             "HEALTH": "unhealthy",
             "HWSTATUS": "consistent",
             "LAST_SWITCHOVER_TIME": ""
         },
         "etp4": {
-            "STATUS": "unknown",
+            "STATUS": "active",
+            "SERVER_STATUS": "unknown",
             "HEALTH": "unhealthy",
             "HWSTATUS": "inconsistent",
             "LAST_SWITCHOVER_TIME": ""
         },
         "etp5": {
             "STATUS": "standby",
+            "SERVER_STATUS": "standby",
             "HEALTH": "healthy",
             "HWSTATUS": "consistent",
             "LAST_SWITCHOVER_TIME": ""
         },
         "etp9": {
             "STATUS": "active",
+            "SERVER_STATUS": "active",
             "HEALTH": "healthy",
             "HWSTATUS": "inconsistent",
             "LAST_SWITCHOVER_TIME": ""
