@@ -263,5 +263,23 @@
     },
     "VXLAN_REMOTE_VNI_TABLE:Vlan200:25.25.25.27": {
         "vni": "200"
+    },
+    "MUX_CABLE_TABLE:Ethernet32": {
+        "state": "active"
+    },
+    "MUX_CABLE_TABLE:Ethernet0": {
+        "state": "active"
+    },
+    "MUX_CABLE_TABLE:Ethernet4": {
+        "state": "standby"
+    },
+    "MUX_CABLE_TABLE:Ethernet8": {
+        "state": "standby"
+    },
+    "MUX_CABLE_TABLE:Ethernet16": {
+        "state": "standby"
+    },
+    "MUX_CABLE_TABLE:Ethernet12": {
+        "state": "active"
     }
 }
