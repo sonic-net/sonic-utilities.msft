@@ -3657,6 +3657,25 @@ This command is used to display the configured MPLS state for the list of config
   Ethernet4    enable
   ```
 
+**show interfaces loopback-action**
+
+This command displays the configured loopback action
+
+- Usage:
+  ```
+  show ip interfaces loopback-action
+  ```
+
+- Example:
+  ```
+  root@sonic:~# show ip interfaces loopback-action
+  Interface     Action
+  ------------  ----------
+  Ethernet232   drop
+  Vlan100       forward
+  ```
+
+
 **show interfaces tpid**
 
 This command displays the key fields of the interfaces such as Operational Status, Administrative Status, Alias and TPID.
@@ -3803,6 +3822,7 @@ This sub-section explains the following list of configuration on the interfaces.
 9) advertised-types - to set interface advertised types
 10) type - to set interface type
 11) mpls - To add or remove MPLS operation for the interface
+12) loopback-action - to set action for packet that ingress and gets routed on the same IP interface
 
 From 201904 release onwards, the “config interface” command syntax is changed and the format is as follows:
 
@@ -4336,6 +4356,29 @@ MPLS operation for either physical, portchannel, or VLAN interface can be config
   admin@sonic:~$ sudo config interface mpls remove Ethernet4
   ```
 
+**config interface ip loopback-action <interface_name> <action> (Versions >= 202205)**
+
+This command is used for setting the action being taken on packets that ingress and get routed on the same IP interface.
+Loopback action can be set on IP interface from type physical, portchannel, VLAN interface and VLAN subinterface.
+Loopback action can be drop or forward.
+
+- Usage:
+  ```
+  config interface ip loopback-action --help
+  Usage: config interface ip loopback-action [OPTIONS] <interface_name> <action>
+
+    Set IP interface loopback action
+
+  Options:
+    -?, -h, --help  Show this message and exit.
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config interface ip loopback-action Ethernet0 drop
+  admin@sonic:~$ config interface ip loopback-action Ethernet0 forward
+
+  ```
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
 ## Interface Naming Mode
