@@ -593,6 +593,7 @@ def is_interface_in_config_db(config_db, interface_name):
     if (not interface_name in config_db.get_keys('VLAN_INTERFACE') and
         not interface_name in config_db.get_keys('INTERFACE') and
         not interface_name in config_db.get_keys('PORTCHANNEL_INTERFACE') and
+        not interface_name in config_db.get_keys('VLAN_SUB_INTERFACE') and
         not interface_name == 'null'):
             return False
 

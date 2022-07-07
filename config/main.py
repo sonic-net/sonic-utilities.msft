@@ -4048,7 +4048,7 @@ def fec(ctx, interface_name, interface_fec, verbose):
 @interface.group(cls=clicommon.AbbreviationGroup)
 @click.pass_context
 def ip(ctx):
-    """Add or remove IP address"""
+    """Set IP interface attributes"""
     pass
 
 #
@@ -4179,6 +4179,32 @@ def remove(ctx, interface_name, ip_addr):
         command = "ip neigh flush dev {} {}".format(interface_name, str(ip_address))
     clicommon.run_command(command)
 
+#
+# 'loopback-action' subcommand
+#
+
+@ip.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('action', metavar='<action>', required=True)
+@click.pass_context
+def loopback_action(ctx, interface_name, action):
+    """Set IP interface loopback action"""
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail('Interface {} is invalid'.format(interface_name))
+
+    if not clicommon.is_interface_in_config_db(config_db, interface_name):
+        ctx.fail('Interface {} is not an IP interface'.format(interface_name))
+
+    allowed_actions = ['drop', 'forward']
+    if action not in allowed_actions:
+        ctx.fail('Invalid action')
+
+    table_name = get_interface_table_name(interface_name)
+    config_db.mod_entry(table_name, interface_name, {"loopback_action": action})
 
 #
 # buffer commands and utilities
@@ -4699,7 +4725,6 @@ def unbind(ctx, interface_name):
     for ipaddress in interface_ipaddresses:
         remove_router_interface_ip_address(config_db, interface_name, ipaddress)
     config_db.set_entry(table_name, interface_name, None)
-
 
 #
 # 'ipv6' subgroup ('config interface ipv6 ...')
