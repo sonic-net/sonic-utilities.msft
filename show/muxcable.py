@@ -503,6 +503,42 @@ def create_json_dump_per_port_config(db, port_status_dict, per_npu_configdb, asi
     if soc_ipv4_value is not None:
         port_status_dict["MUX_CABLE"]["PORTS"][port_name]["SERVER"]["soc_ipv4"] = soc_ipv4_value
 
+def get_tunnel_route_per_port(db, port_tunnel_route, per_npu_configdb, per_npu_appl_db, asic_id, port):
+
+    mux_cfg_dict = per_npu_configdb[asic_id].get_all(
+    per_npu_configdb[asic_id].CONFIG_DB, 'MUX_CABLE|{}'.format(port))
+    dest_names = ["server_ipv4", "server_ipv6", "soc_ipv4"]
+
+    for name in dest_names:
+        dest_address = mux_cfg_dict.get(name, None)
+
+        if dest_address is not None:
+            route_keys = per_npu_appl_db[asic_id].keys(
+                per_npu_appl_db[asic_id].APPL_DB, 'TUNNEL_ROUTE_TABLE:*{}'.format(dest_address))
+            
+            if route_keys is not None and len(route_keys):
+
+                port_tunnel_route["TUNNEL_ROUTE"][port] = port_tunnel_route["TUNNEL_ROUTE"].get(port, {})
+                port_tunnel_route["TUNNEL_ROUTE"][port][name] = {}
+                port_tunnel_route["TUNNEL_ROUTE"][port][name]['DEST'] = dest_address
+
+def create_json_dump_per_port_tunnel_route(db, port_tunnel_route, per_npu_configdb, per_npu_appl_db, asic_id, port):
+
+    get_tunnel_route_per_port(db, port_tunnel_route, per_npu_configdb, per_npu_appl_db,  asic_id, port)
+
+def create_table_dump_per_port_tunnel_route(db, print_data, per_npu_configdb, per_npu_appl_db, asic_id, port):
+
+    port_tunnel_route = {}
+    port_tunnel_route["TUNNEL_ROUTE"] = {}
+    get_tunnel_route_per_port(db, port_tunnel_route, per_npu_configdb, per_npu_appl_db,  asic_id, port)
+
+    for port, route in port_tunnel_route["TUNNEL_ROUTE"].items():
+        for dest_name, values in route.items():
+            print_line = []
+            print_line.append(port)
+            print_line.append(dest_name)
+            print_line.append(values['DEST'])
+            print_data.append(print_line)
 
 @muxcable.command()
 @click.argument('port', required=False, default=None)
@@ -558,8 +594,8 @@ def status(db, port, json_output):
                 click.echo("Got invalid asic index for port {}, cant retreive mux status".format(port_name))
                 sys.exit(STATUS_FAIL)
 
-        muxcable_info_dict[asic_index] = per_npu_appl_db[asic_id].get_all(
-            per_npu_appl_db[asic_id].APPL_DB, 'MUX_CABLE_TABLE:{}'.format(port))
+        muxcable_info_dict[asic_index] = per_npu_appl_db[asic_index].get_all(
+            per_npu_appl_db[asic_index].APPL_DB, 'MUX_CABLE_TABLE:{}'.format(port))
         muxcable_grpc_dict[asic_index] = per_npu_statedb[asic_index].get_all(
             per_npu_statedb[asic_index].STATE_DB, 'MUX_CABLE_TABLE|{}'.format(port))
         muxcable_health_dict[asic_index] = per_npu_statedb[asic_index].get_all(
@@ -1751,3 +1787,100 @@ def packetloss(db, port, json_output):
 
             click.echo(tabulate(print_count, headers=count_headers))
             click.echo(tabulate(print_event, headers=event_headers))
+
+@muxcable.command()
+@click.argument('port', metavar='<port_name>', required=False, default=None)
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
+@clicommon.pass_db
+def tunnel_route(db, port, json_output):
+    """show muxcable tunnel-route <port_name>"""
+
+    port = platform_sfputil_helper.get_interface_name(port, db)
+
+    per_npu_appl_db = {}
+    per_npu_configdb = {}
+    mux_tbl_keys = {}
+
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+
+        per_npu_appl_db[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
+        per_npu_appl_db[asic_id].connect(per_npu_appl_db[asic_id].APPL_DB)
+
+        per_npu_configdb[asic_id] = swsscommon.SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
+        per_npu_configdb[asic_id].connect(per_npu_configdb[asic_id].CONFIG_DB) 
+
+        mux_tbl_keys[asic_id] = per_npu_configdb[asic_id].keys(
+            per_npu_configdb[asic_id].CONFIG_DB, "MUX_CABLE|*")
+
+    if port is not None:
+
+        logical_port_list = platform_sfputil_helper.get_logical_list()
+
+        if port not in logical_port_list:
+            port_name = platform_sfputil_helper.get_interface_alias(port, db)
+            click.echo(("ERR: Not a valid logical port for dualtor firmware {}".format(port_name)))
+            sys.exit(CONFIG_FAIL)
+
+        asic_index = None
+        if platform_sfputil is not None:
+            asic_index = platform_sfputil_helper.get_asic_id_for_logical_port(port)
+        if asic_index is None:
+            # TODO this import is only for unit test purposes, and should be removed once sonic_platform_base
+            # is fully mocked
+            import sonic_platform_base.sonic_sfp.sfputilhelper
+            asic_index = sonic_platform_base.sonic_sfp.sfputilhelper.SfpUtilHelper().get_asic_id_for_logical_port(port)
+            if asic_index is None:
+                port_name = platform_sfputil_helper.get_interface_alias(port, db)
+                click.echo("Got invalid asic index for port {}, cant retreive tunnel route info".format(port_name))
+                sys.exit(STATUS_FAIL)
+        
+        if mux_tbl_keys[asic_index] is not None and "MUX_CABLE|{}".format(port) in mux_tbl_keys[asic_index]:
+            if json_output:
+                port_tunnel_route = {}
+                port_tunnel_route["TUNNEL_ROUTE"] = {}
+
+                create_json_dump_per_port_tunnel_route(db, port_tunnel_route, per_npu_configdb, per_npu_appl_db, asic_index, port)
+
+                click.echo("{}".format(json.dumps(port_tunnel_route, indent=4)))
+
+            else:
+                print_data = []
+
+                create_table_dump_per_port_tunnel_route(db, print_data, per_npu_configdb, per_npu_appl_db, asic_index, port)
+
+                headers = ['PORT', 'DEST_TYPE', 'DEST_ADDRESS']
+
+                click.echo(tabulate(print_data, headers=headers))
+        else:
+            click.echo("this is not a valid port present on dualToR".format(port))
+            sys.exit(STATUS_FAIL)
+    
+    else:
+        if json_output:
+            port_tunnel_route = {}
+            port_tunnel_route["TUNNEL_ROUTE"] = {}
+            for namespace in namespaces:
+                asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+                for key in natsorted(mux_tbl_keys[asic_id]):
+                    port = key.split("|")[1]
+
+                    create_json_dump_per_port_tunnel_route(db, port_tunnel_route, per_npu_configdb, per_npu_appl_db, asic_id, port)
+            
+            click.echo("{}".format(json.dumps(port_tunnel_route, indent=4)))
+        else:
+            print_data = []
+
+            for namespace in namespaces:
+                asic_id = multi_asic.get_asic_index_from_namespace(namespace)
+                for key in natsorted(mux_tbl_keys[asic_id]):
+                    port = key.split("|")[1]
+            
+                    create_table_dump_per_port_tunnel_route(db, print_data, per_npu_configdb, per_npu_appl_db, asic_id, port)
+
+            headers = ['PORT', 'DEST_TYPE', 'DEST_ADDRESS']
+
+            click.echo(tabulate(print_data, headers=headers))
+
+    sys.exit(STATUS_SUCCESSFUL)

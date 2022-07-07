@@ -278,5 +278,11 @@
     },
     "MUX_CABLE_TABLE:Ethernet12": {
         "state": "active"
+    },
+    "TUNNEL_ROUTE_TABLE:10.2.1.1": {
+        "alias": "Vlan1000"
+    },
+    "TUNNEL_ROUTE_TABLE:10.3.1.1": {
+        "alias": "Vlan1000"
     }
 }
