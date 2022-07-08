@@ -5149,9 +5149,11 @@ When user specifies the optional argument "-n" or "--no-service-restart", this c
 running on the device. One use case for this option is during boot time when config-setup service loads minigraph configuration and there is no services
 running on the device.
 
+When user specifies the optional argument "-t" or "--traffic-shift-away", this command executes TSA command at the end to ensure the device remains in maintenance after loading minigraph.
+
 - Usage:
   ```
-  config load_minigraph [-y|--yes] [-n|--no-service-restart]
+  config load_minigraph [-y|--yes] [-n|--no-service-restart] [-t|--traffic-shift-away]
   ```
 
 - Example:
