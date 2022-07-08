@@ -2,6 +2,8 @@ from unittest.mock import Mock, patch
 
 # Import test module
 import sonic_installer.bootloader.aboot as aboot
+import tempfile
+import shutil
 
 # Constants
 image_dir = f'{aboot.IMAGE_DIR_PREFIX}expeliarmus-{aboot.IMAGE_DIR_PREFIX}abcde'
@@ -50,3 +52,24 @@ def test_get_next_image(re_search_patch):
     # Test convertion image dir to image name
     re_search_patch().group = Mock(return_value=image_dir)
     assert bootloader.get_next_image() == exp_image
+
+def test_set_fips_aboot():
+    image = 'test-image'
+    dirpath = tempfile.mkdtemp()
+    bootloader = aboot.AbootBootloader()
+    bootloader.get_image_path = Mock(return_value=dirpath)
+
+    # The the default setting
+    bootloader._set_image_cmdline(image, 'test=1')
+    assert not bootloader.get_fips(image)
+
+    # Test fips enabled
+    bootloader.set_fips(image, True)
+    assert bootloader.get_fips(image)
+
+    # Test fips disabled
+    bootloader.set_fips(image, False)
+    assert not bootloader.get_fips(image)
+
+    # Cleanup
+    shutil.rmtree(dirpath)

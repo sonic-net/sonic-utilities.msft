@@ -57,6 +57,14 @@ class Bootloader(object):
         """verify that the image is secure running image"""
         raise NotImplementedError
 
+    def set_fips(self, image, enable):
+        """set fips"""
+        raise NotImplementedError
+
+    def get_fips(self, image):
+        """returns true if fips set"""
+        raise NotImplementedError
+
     def verify_next_image(self):
         """verify the next image for reboot"""
         image = self.get_next_image()

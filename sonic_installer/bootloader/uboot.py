@@ -5,6 +5,7 @@ Bootloader implementation for uboot based platforms
 import platform
 import subprocess
 import os
+import re
 
 import click
 
@@ -80,6 +81,21 @@ class UbootBootloader(OnieInstallerBootloader):
 
     def verify_image_platform(self, image_path):
         return os.path.isfile(image_path)
+
+    def set_fips(self, image, enable):
+        fips = "1" if enable else "0"
+        proc = subprocess.Popen("/usr/bin/fw_printenv linuxargs", shell=True, text=True, stdout=subprocess.PIPE)
+        (out, _) = proc.communicate()
+        cmdline = out.strip()
+        cmdline = re.sub('^linuxargs=', '', cmdline)
+        cmdline = re.sub(r' sonic_fips=[^\s]', '', cmdline) + " sonic_fips=" + fips
+        run_command('/usr/bin/fw_setenv linuxargs ' +  cmdline)
+        click.echo('Done')
+
+    def get_fips(self, image):
+        proc = subprocess.Popen("/usr/bin/fw_printenv linuxargs", shell=True, text=True, stdout=subprocess.PIPE)
+        (out, _) = proc.communicate()
+        return 'sonic_fips=1' in out
 
     @classmethod
     def detect(cls):
