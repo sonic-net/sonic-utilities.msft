@@ -402,6 +402,34 @@ class TestLoadMinigraph(object):
             assert result.exit_code == 0
             assert expected_output in result.output
 
+    def test_load_minigraph_with_traffic_shift_away(self, get_cmd_module):
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            (config, show) = get_cmd_module
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["load_minigraph"], ["-ty"])
+            print(result.exit_code)
+            print(result.output)
+            traceback.print_tb(result.exc_info[2])
+            assert result.exit_code == 0
+            assert "TSA" in result.output
+
+    def test_load_minigraph_with_traffic_shift_away_with_golden_config(self, get_cmd_module):
+        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
+            def is_file_side_effect(filename):
+                return True if 'golden_config' in filename else False
+            with mock.patch('os.path.isfile', mock.MagicMock(side_effect=is_file_side_effect)):
+                (config, show) = get_cmd_module
+                db = Db()
+                golden_config = {}
+                runner = CliRunner()
+                result = runner.invoke(config.config.commands["load_minigraph"], ["-ty"])
+                print(result.exit_code)
+                print(result.output)
+                traceback.print_tb(result.exc_info[2])
+                assert result.exit_code == 0
+                assert "TSA" in result.output
+                assert "[WARNING] Golden configuration may override Traffic-shift-away state" in result.output
+
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"

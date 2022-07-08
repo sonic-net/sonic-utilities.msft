@@ -1611,8 +1611,9 @@ def load_mgmt_config(filename):
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
                 expose_value=False, prompt='Reload config from minigraph?')
 @click.option('-n', '--no_service_restart', default=False, is_flag=True, help='Do not restart docker services')
+@click.option('-t', '--traffic_shift_away', default=False, is_flag=True, help='Keep device in maintenance with TSA')
 @clicommon.pass_db
-def load_minigraph(db, no_service_restart):
+def load_minigraph(db, no_service_restart, traffic_shift_away):
     """Reconfigure based on minigraph."""
     log.log_info("'load_minigraph' executing...")
 
@@ -1681,6 +1682,13 @@ def load_minigraph(db, no_service_restart):
             else:
                 cfggen_namespace_option = " -n {}".format(namespace)
             clicommon.run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
+
+    # Keep device isolated with TSA 
+    if traffic_shift_away:
+        clicommon.run_command("TSA", display_cmd=True)
+        if os.path.isfile(DEFAULT_GOLDEN_CONFIG_DB_FILE):
+            log.log_warning("Golden configuration may override System Maintenance state. Please execute TSC to check the current System mode")
+            click.secho("[WARNING] Golden configuration may override Traffic-shift-away state. Please execute TSC to check the current System mode")
 
     # Load golden_config_db.json
     if os.path.isfile(DEFAULT_GOLDEN_CONFIG_DB_FILE):
