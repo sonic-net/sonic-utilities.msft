@@ -15,7 +15,7 @@ from time import sleep as tsleep
 
 import sonic_yang
 from jsondiff import diff
-from swsssdk import port_util
+from sonic_py_common import port_util
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from utilities_common.general import load_module_from_source
 

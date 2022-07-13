@@ -3,7 +3,6 @@ import os
 import click
 from click.testing import CliRunner
 import pytest
-import swsssdk
 import traceback
 
 test_path = os.path.dirname(os.path.abspath(__file__))

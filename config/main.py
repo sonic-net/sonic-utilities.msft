@@ -6611,7 +6611,7 @@ def rate():
 @click.argument('rates_type', type=click.Choice(['all', 'port', 'rif', 'flowcnt-trap']), default='all')
 def smoothing_interval(interval, rates_type):
     """Set rates smoothing interval """
-    counters_db = swsssdk.SonicV2Connector()
+    counters_db = SonicV2Connector()
     counters_db.connect('COUNTERS_DB')
 
     alpha = 2.0/(interval + 1)

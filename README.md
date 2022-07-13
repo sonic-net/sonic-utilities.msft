@@ -26,11 +26,11 @@ Currently, this list of dependencies is as follows:
 - libyang-cpp_1.0.73_amd64.deb
 - python3-yang_1.0.73_amd64.deb
 - redis_dump_load-1.1-py3-none-any.whl
-- swsssdk-2.0.1-py3-none-any.whl
 - sonic_py_common-1.0-py3-none-any.whl
 - sonic_config_engine-1.0-py3-none-any.whl
 - sonic_yang_mgmt-1.0-py3-none-any.whl
 - sonic_yang_models-1.0-py3-none-any.whl
+- python-swsscommon_1.0.0_amd64.deb
 
 
 A convenient alternative is to let the SONiC build system configure a build enviroment for you. This can be done by cloning the [sonic-buildimage](https://github.com/Azure/sonic-buildimage) repo, building the sonic-utilities package inside the Debian Buster slave container, and staying inside the container once the build finishes. During the build process, the SONiC build system will build and install all the necessary dependencies inside the container. After following the instructions to clone and initialize the sonic-buildimage repo, this can be done as follows:

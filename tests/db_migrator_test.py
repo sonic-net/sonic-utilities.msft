@@ -4,7 +4,7 @@ import sys
 
 from deepdiff import DeepDiff
 
-from swsssdk import SonicV2Connector
+from swsscommon.swsscommon import SonicV2Connector
 from sonic_py_common import device_info
 
 from .mock_tables import dbconnector

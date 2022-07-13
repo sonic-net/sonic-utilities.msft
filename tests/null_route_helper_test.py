@@ -3,7 +3,7 @@ import os
 import imp
 
 from click.testing import CliRunner
-from swsssdk import ConfigDBConnector
+from swsscommon.swsscommon import ConfigDBConnector
 
 null_route_helper = imp.load_source('null_route_helper', os.path.join(os.path.dirname(__file__), '..', 'scripts','null_route_helper'))
 null_route_helper.ConfigDBConnector = ConfigDBConnector

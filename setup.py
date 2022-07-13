@@ -211,7 +211,6 @@ setup(
         'sonic-platform-common',
         'sonic-py-common',
         'sonic-yang-mgmt',
-        'swsssdk>=2.0.1',
         'tabulate==0.8.2',
         'toposort==1.6',
         'www-authenticate==0.9.2',
