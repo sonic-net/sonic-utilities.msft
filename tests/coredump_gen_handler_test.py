@@ -449,3 +449,23 @@ class TestCoreDumpCreationEvent(unittest.TestCase):
             patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
             cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", "swss", redis_mock)
             cls.handle_core_dump_creation_event()
+
+    def test_auto_ts_empty_state_db(self):
+        """
+        Scenario: Check if the techsupport is called as expected even when the history table in empty
+                  and container cooloff is non-zero
+        """
+        db_wrap = Db()
+        redis_mock = db_wrap.db
+        set_auto_ts_cfg(redis_mock, state="enabled", since_cfg="2 days ago")
+        set_feature_table_cfg(redis_mock, state="enabled", rate_limit_interval="300")
+        with Patcher() as patcher:
+            def mock_cmd(cmd, env):
+                cmd_str = " ".join(cmd)
+                if "show techsupport" in cmd_str and cmd_str != TS_DEFAULT_CMD:
+                    assert False, "Expected TS_CMD: {}, Recieved: {}".format(TS_DEFAULT_CMD, cmd_str)
+                return 0, AUTO_TS_STDOUT, ""
+            ts_helper.subprocess_exec = mock_cmd
+            patcher.fs.create_file("/var/core/orchagent.12345.123.core.gz")
+            cls = cdump_mod.CriticalProcCoreDumpHandle("orchagent.12345.123.core.gz", "swss", redis_mock)
+            cls.handle_core_dump_creation_event()

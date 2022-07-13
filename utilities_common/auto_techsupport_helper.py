@@ -259,7 +259,7 @@ def get_ts_map(db):
     ts_map = {}
     ts_keys = db.keys(STATE_DB, TS_MAP+"*")
     if not ts_keys:
-        return
+        return ts_map
     for ts_key in ts_keys:
         data = db.get_all(STATE_DB, ts_key)
         if not data:
