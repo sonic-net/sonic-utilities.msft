@@ -147,7 +147,8 @@ setup(
         'scripts/null_route_helper',
         'scripts/coredump_gen_handler.py',
         'scripts/techsupport_cleanup.py',
-        'scripts/check_db_integrity.py'
+        'scripts/check_db_integrity.py',
+        'scripts/sysreadyshow'
     ],
     entry_points={
         'console_scripts': [

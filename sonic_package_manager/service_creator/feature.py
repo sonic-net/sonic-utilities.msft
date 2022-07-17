@@ -202,4 +202,5 @@ class FeatureRegistry:
             'has_per_asic_scope': str(manifest['service']['asic-service']),
             'has_global_scope': str(manifest['service']['host-service']),
             'has_timer': str(manifest['service']['delayed']),
+            'check_up_status': str(manifest['service']['check_up_status']),
         }
