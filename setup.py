@@ -143,6 +143,7 @@ setup(
         'scripts/watermarkstat',
         'scripts/watermarkcfg',
         'scripts/sonic-kdump-config',
+        'scripts/sonic-bootchart',
         'scripts/centralize_database',
         'scripts/null_route_helper',
         'scripts/coredump_gen_handler.py',
