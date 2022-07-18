@@ -254,7 +254,7 @@ class Table:
         return list(self.data.keys())
 
     def get(self, key):
-        ret = copy.deepcopy(self.data.get(key, {}))
+        ret = copy.deepcopy(self.data.get(key, self.data))
         return (True, ret)
 
 

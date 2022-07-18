@@ -93,7 +93,7 @@ def get_vnet_intfs():
     vnet_intfs = {}
 
     for intf_key in intfs_keys:
-        intf_attrs = intfs_table.get(intf_key)[1]
+        intf_attrs = dict(intfs_table.get(intf_key)[1])
 
         if 'vnet_name' in intf_attrs:
             vnet_name = intf_attrs['vnet_name']
@@ -110,14 +110,9 @@ def get_all_rifs_oids():
     Format: { <rif_name>: <rif_oid> }
     '''
     db = swsscommon.DBConnector('COUNTERS_DB', 0)
-
     rif_table = swsscommon.Table(db, 'COUNTERS_RIF_NAME_MAP')
-    rif_keys = rif_table.getKeys()
 
-    rif_name_oid_map = {}
-
-    for rif_name in rif_keys:
-        rif_name_oid_map[rif_name] = rif_table.get(rif_name)[1]
+    rif_name_oid_map = dict(rif_table.get('')[1])
 
     return rif_name_oid_map
 
@@ -156,8 +151,8 @@ def get_vrf_entries():
         db_keys = rif_table.getKeys()
 
         for db_key in db_keys:
-            if 'SAI_OBJECT_TYPE_ROUTER_INTERFACE' in db_key:
-                rif_attrs = rif_table.get(db_key)[1]
+            if (db_key == f'SAI_OBJECT_TYPE_ROUTER_INTERFACE:{vnet_rifs_oids[vnet_rif_name]}'):
+                rif_attrs = dict(rif_table.get(db_key)[1])
                 rif_vrf_map[vnet_rif_name] = rif_attrs['SAI_ROUTER_INTERFACE_ATTR_VIRTUAL_ROUTER_ID']
 
     return rif_vrf_map
