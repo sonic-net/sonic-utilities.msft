@@ -148,6 +148,7 @@
   * [Subinterfaces Show Commands](#subinterfaces-show-commands)
   * [Subinterfaces Config Commands](#subinterfaces-config-commands)
 * [Syslog](#syslog)
+  * [Syslog show commands](#syslog-show-commands)
   * [Syslog config commands](#syslog-config-commands)
 * [System State](#system-state)
   * [Processes](#processes)
@@ -8590,40 +8591,71 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#static
 
 ## Syslog
 
+### Syslog Show Commands
+
+This subsection explains how to display configured syslog servers.
+
+**show syslog**
+
+This command displays configured syslog servers.
+
+- Usage:
+  ```
+  show syslog
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show syslog
+  SERVER IP    SOURCE IP    PORT    VRF
+  -----------  -----------  ------  -------
+  2.2.2.2      1.1.1.1      514     default
+  ```
+
 ### Syslog Config Commands
 
-This sub-section of commands is used to add or remove the configured syslog servers.
+This subsection explains how to configure syslog servers.
 
 **config syslog add**
 
-This command is used to add a SYSLOG server to the syslog server list.  Note that more that one syslog server can be added in the device.
+This command is used to add a syslog server to the syslog server list.  
+Note that more that one syslog server can be added in the device.
 
 - Usage:
   ```
-  config syslog add <ip_address>
+  config syslog add <server_address>
   ```
+
+- Parameters:
+  - _server_address_: syslog server IP address
+  - _source_: syslog source IP address
+  - _port_: syslog server UDP port
+  - _vrf_: syslog VRF device
 
 - Example:
   ```
-  admin@sonic:~$ sudo config syslog add 1.1.1.1
-  Syslog server 1.1.1.1 added to configuration
-  Restarting rsyslog-config service...
+  admin@sonic:~$ sudo config syslog add 2.2.2.2 --source 1.1.1.1 --port 514 --vrf default
+  Running command: systemctl reset-failed rsyslog-config
+  Running command: systemctl restart rsyslog-config
   ```
 
-**config syslog delete**
+**config syslog del**
 
-This command is used to delete the syslog server configured.
+This command is used to delete the configured syslog server.
 
 - Usage:
   ```
-  config syslog del <ip_address>
+  config syslog del <server_address>
   ```
+
+- Parameters:
+  - _server_address_: syslog server IP address
 
 - Example:
   ```
-  admin@sonic:~$ sudo config syslog del 1.1.1.1
-  Syslog server 1.1.1.1 removed from configuration
-  Restarting rsyslog-config service...
+  admin@sonic:~$ sudo config syslog del 2.2.2.2
+  Running command: systemctl reset-failed rsyslog-config
+  Running command: systemctl restart rsyslog-config
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#syslog)

@@ -47,6 +47,7 @@ from . import vxlan
 from . import plugins
 from .config_mgmt import ConfigMgmtDPB
 from . import mclag
+from . import syslog
 
 # mock masic APIs for unit test
 try:
@@ -1212,6 +1213,9 @@ config.add_command(vxlan.vxlan)
 config.add_command(mclag.mclag)
 config.add_command(mclag.mclag_member)
 config.add_command(mclag.mclag_unique_ip)
+
+# syslog module
+config.add_command(syslog.syslog)
 
 @config.command()
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false,
@@ -5056,6 +5060,12 @@ def del_vrf(ctx, vrf_name):
         ctx.fail("'vrf_name' is not start with Vrf, mgmt or management!")
     if len(vrf_name) > 15:
         ctx.fail("'vrf_name' is too long!")
+    syslog_table = config_db.get_table("SYSLOG_SERVER")
+    syslog_vrf_dev = "mgmt" if vrf_name == "management" else vrf_name
+    for syslog_entry, syslog_data in syslog_table.items():
+        syslog_vrf = syslog_data.get("vrf")
+        if syslog_vrf == syslog_vrf_dev:
+            ctx.fail("Failed to remove VRF device: {} is in use by SYSLOG_SERVER|{}".format(syslog_vrf, syslog_entry))
     if (vrf_name == 'mgmt' or vrf_name == 'management'):
         vrf_delete_management_vrf(config_db)
     else:
@@ -6081,58 +6091,6 @@ def enable(enable):
     """Administratively Enable ZTP."""
     command = "ztp enable"
     clicommon.run_command(command, display_cmd=True)
-
-#
-# 'syslog' group ('config syslog ...')
-#
-@config.group(cls=clicommon.AbbreviationGroup, name='syslog')
-@click.pass_context
-def syslog_group(ctx):
-    """Syslog server configuration tasks"""
-    config_db = ConfigDBConnector()
-    config_db.connect()
-    ctx.obj = {'db': config_db}
-
-@syslog_group.command('add')
-@click.argument('syslog_ip_address', metavar='<syslog_ip_address>', required=True)
-@click.pass_context
-def add_syslog_server(ctx, syslog_ip_address):
-    """ Add syslog server IP """
-    if not clicommon.is_ipaddress(syslog_ip_address):
-        ctx.fail('Invalid ip address')
-    db = ctx.obj['db']
-    syslog_servers = db.get_table("SYSLOG_SERVER")
-    if syslog_ip_address in syslog_servers:
-        click.echo("Syslog server {} is already configured".format(syslog_ip_address))
-        return
-    else:
-        db.set_entry('SYSLOG_SERVER', syslog_ip_address, {'NULL': 'NULL'})
-        click.echo("Syslog server {} added to configuration".format(syslog_ip_address))
-        try:
-            click.echo("Restarting rsyslog-config service...")
-            clicommon.run_command("systemctl restart rsyslog-config", display_cmd=False)
-        except SystemExit as e:
-            ctx.fail("Restart service rsyslog-config failed with error {}".format(e))
-
-@syslog_group.command('del')
-@click.argument('syslog_ip_address', metavar='<syslog_ip_address>', required=True)
-@click.pass_context
-def del_syslog_server(ctx, syslog_ip_address):
-    """ Delete syslog server IP """
-    if not clicommon.is_ipaddress(syslog_ip_address):
-        ctx.fail('Invalid IP address')
-    db = ctx.obj['db']
-    syslog_servers = db.get_table("SYSLOG_SERVER")
-    if syslog_ip_address in syslog_servers:
-        db.set_entry('SYSLOG_SERVER', '{}'.format(syslog_ip_address), None)
-        click.echo("Syslog server {} removed from configuration".format(syslog_ip_address))
-    else:
-        ctx.fail("Syslog server {} is not configured.".format(syslog_ip_address))
-    try:
-        click.echo("Restarting rsyslog-config service...")
-        clicommon.run_command("systemctl restart rsyslog-config", display_cmd=False)
-    except SystemExit as e:
-        ctx.fail("Restart service rsyslog-config failed with error {}".format(e))
 
 #
 # 'ntp' group ('config ntp ...')
