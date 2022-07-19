@@ -22,9 +22,12 @@ optional arguments:
   -t     --interface-type      port interface type
   -T     --adv-interface-types port advertised interface types
   -lt    --link-training       port link training mode
+  -P     --tx-power            400G ZR modulet target Tx output power (dBm)
+  -F     --laser-freq          400G ZR module 75GHz grid frequency (GHz)
 """
 import os
 import sys
+import decimal
 import argparse
 
 # mock the redis for unit test purposes #
@@ -51,6 +54,8 @@ PORT_ADV_SPEEDS_CONFIG_FIELD_NAME = "adv_speeds"
 PORT_INTERFACE_TYPE_CONFIG_FIELD_NAME = "interface_type"
 PORT_ADV_INTERFACE_TYPES_CONFIG_FIELD_NAME = "adv_interface_types"
 PORT_LINK_TRAINING_CONFIG_FIELD_NAME = "link_training"
+PORT_XCVR_LASER_FREQ_FIELD_NAME = "laser_freq"
+PORT_XCVR_TX_POWER_FIELD_NAME = "tx_power"
 PORT_CHANNEL_TABLE_NAME = "PORTCHANNEL"
 PORT_CHANNEL_MBR_TABLE_NAME = "PORTCHANNEL_MEMBER"
 TPID_CONFIG_FIELD_NAME = "tpid"
@@ -151,6 +156,14 @@ class portconfig(object):
             print("Setting autoneg %s on port %s" % (mode, port))
         mode = 'on' if mode == 'enabled' else 'off'
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_AUTONEG_CONFIG_FIELD_NAME: mode})
+
+    def set_tx_power(self, port, tx_power):
+        print("Setting target Tx output power to %s dBm on port %s" % (tx_power, port))
+        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_XCVR_TX_POWER_FIELD_NAME: tx_power})
+
+    def set_laser_freq(self, port, laser_freq):
+        print("Setting laser frequency to %s GHz on port %s" % (laser_freq, port))
+        self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_XCVR_LASER_FREQ_FIELD_NAME: laser_freq})
 
     def set_adv_speeds(self, port, adv_speeds):
         if self.verbose:
@@ -280,6 +293,10 @@ def main():
                         help = 'port advertised interface types', default=None)
     parser.add_argument('-lt', '--link-training', type = str, required = False,
                         help = 'port link training mode', default=None)
+    parser.add_argument('-P', '--tx-power', type=float, required=False,
+                                            help='Tx output power(dBm)', default=None)
+    parser.add_argument('-F', '--laser-freq', type=int, required=False,
+                                            help='Laser frequency(GHz)', default=None)
     args = parser.parse_args()
 
     # Load database config files
@@ -288,7 +305,9 @@ def main():
         port = portconfig(args.verbose, args.port, args.namespace)
         if args.list:
             port.list_params(args.port)
-        elif args.speed or args.fec or args.mtu or args.link_training or args.autoneg or args.adv_speeds or args.interface_type or args.adv_interface_types or args.tpid:
+        elif args.speed or args.fec or args.mtu or args.link_training or args.autoneg or args.adv_speeds or \
+            args.interface_type or args.adv_interface_types or args.tpid or \
+            args.tx_power or args.laser_freq:
             if args.speed:
                 port.set_speed(args.port, args.speed)
             if args.fec:
@@ -307,6 +326,17 @@ def main():
                 port.set_adv_interface_types(args.port, args.adv_interface_types)
             if args.tpid:
                 port.set_tpid(args.port, args.tpid)
+            if args.tx_power:
+                d = decimal.Decimal(str(args.tx_power))
+                if d.as_tuple().exponent < -1:
+                    print("Error: tx power must be with single decimal place")
+                    sys.exit(1)
+                port.set_tx_power(args.port, args.tx_power)
+            if args.laser_freq:
+                if args.laser_freq <= 0:
+                    print("Error: Frequency must be > 0")
+                    sys.exit(1)
+                port.set_laser_freq(args.port, args.laser_freq)
         else:
             parser.print_help()
             sys.exit(1)
