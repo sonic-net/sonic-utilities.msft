@@ -1,6 +1,6 @@
 {
     "VERSIONS|DATABASE": {
-        "VERSION": "version_2_0_5"
+        "VERSION": "version_3_0_5"
     },
     "PORT_QOS_MAP|Ethernet0": {
         "dscp_to_tc_map": "[DSCP_TO_TC_MAP|AZURE]",
