@@ -480,8 +480,8 @@ class MellanoxBufferMigrator():
                                   "spc2_3800-d24c52_t1_pool_shp", "spc2_3800-d28c50_t1_pool_shp"],
             }
         },
-        "version_2_0_0": {
-            # Version 2.0.0 is introduced for dynamic buffer calculation
+        "version_3_0_0": {
+            # Version 3.0.0 is introduced for dynamic buffer calculation
             #
             "pool_mapped_from_old_version": {
                 "spc1_t0_pool": "spc1_pool",

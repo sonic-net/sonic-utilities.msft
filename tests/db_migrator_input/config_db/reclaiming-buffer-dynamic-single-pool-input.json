@@ -196,6 +196,6 @@
         "description": "Servers6:eth0"
     },
     "VERSIONS|DATABASE": {
-        "VERSION": "version_2_0_2"
+        "VERSION": "version_3_0_2"
     }
 }

@@ -1,6 +1,6 @@
 {
     "VERSIONS|DATABASE": {
-        "VERSION": "version_2_0_4"
+        "VERSION": "version_3_0_4"
     },
     "PORT_QOS_MAP": {
         "Ethernet0": {
