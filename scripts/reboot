@@ -72,8 +72,21 @@ function stop_sonic_services()
     fi
 
     if [[ x"$ASIC_TYPE" != x"mellanox" ]]; then
-        debug "Stopping syncd process..."
-        docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
+        ASIC_CONF=${DEVPATH}/$PLATFORM/asic.conf
+        if [ -f "$ASIC_CONF" ]; then
+            source $ASIC_CONF
+        fi
+        if [[ ($NUM_ASIC -gt 1) ]]; then
+            asic_num=0
+            while [[ ($asic_num -lt $NUM_ASIC) ]]; do
+                debug "Stopping syncd$asic_num process..."
+                docker exec -i syncd$asic_num /usr/bin/syncd_request_shutdown --cold > /dev/null
+                ((asic_num = asic_num + 1))
+            done
+        else
+            debug "Stopping syncd process..."
+            docker exec -i syncd /usr/bin/syncd_request_shutdown --cold > /dev/null
+        fi
         sleep 3
     fi
     stop_pmon_service
