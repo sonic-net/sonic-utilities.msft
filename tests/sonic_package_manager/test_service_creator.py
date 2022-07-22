@@ -216,7 +216,6 @@ def test_feature_registration(mock_sonic_db, manifest):
         'has_per_asic_scope': 'False',
         'has_global_scope': 'True',
         'has_timer': 'False',
-        'check_up_status': 'False',
     })
 
 
@@ -229,7 +228,6 @@ def test_feature_update(mock_sonic_db, manifest):
         'has_per_asic_scope': 'False',
         'has_global_scope': 'True',
         'has_timer': 'False',
-        'check_up_status': 'False',
     }
     mock_connector = Mock()
     mock_connector.get_entry = Mock(return_value=curr_feature_config)
@@ -252,7 +250,6 @@ def test_feature_update(mock_sonic_db, manifest):
             'has_per_asic_scope': 'False',
             'has_global_scope': 'True',
             'has_timer': 'True',
-            'check_up_status': 'False',
         }),
     ], any_order=True)
 
@@ -273,7 +270,6 @@ def test_feature_registration_with_timer(mock_sonic_db, manifest):
         'has_per_asic_scope': 'False',
         'has_global_scope': 'True',
         'has_timer': 'True',
-        'check_up_status': 'False',
     })
 
 
@@ -292,7 +288,6 @@ def test_feature_registration_with_non_default_owner(mock_sonic_db, manifest):
         'has_per_asic_scope': 'False',
         'has_global_scope': 'True',
         'has_timer': 'False',
-        'check_up_status': 'False',
     })
 
 

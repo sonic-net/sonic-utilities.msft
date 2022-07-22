@@ -306,43 +306,6 @@ psu.voltage  Ignored   Device
 """
         assert result.output == expected
 
-    def test_health_systemready(self):
-        runner = CliRunner()
-        result = runner.invoke(show.cli.commands["system-health"].commands["sysready-status"])
-        click.echo(result.output)
-        print("myresult:{}".format(result.output))
-        expected = """\
-System is not ready - one or more services are not up
-
-Service-Name    Service-Status    App-Ready-Status    Down-Reason
---------------  ----------------  ------------------  -------------
-bgp             Down              Down                Inactive
-mgmt-framework  OK                OK                  -
-pmon            OK                OK                  -
-swss            OK                OK                  -
-"""
-        assert result.output == expected
-        result = runner.invoke(show.cli.commands["system-health"].commands["sysready-status"],["brief"])
-        click.echo(result.output)
-        print("myresult:{}".format(result.output))
-        expected = """\
-System is not ready - one or more services are not up
-"""
-        assert result.output == expected
-        result = runner.invoke(show.cli.commands["system-health"].commands["sysready-status"],["detail"])
-        click.echo(result.output)
-        print("myresult:{}".format(result.output))
-        expected = """\
-System is not ready - one or more services are not up
-
-Service-Name    Service-Status    App-Ready-Status    Down-Reason    AppStatus-UpdateTime
---------------  ----------------  ------------------  -------------  ----------------------
-bgp             Down              Down                Inactive       -
-mgmt-framework  OK                OK                  -              -
-pmon            OK                OK                  -              -
-swss            OK                OK                  -              -
-"""
-
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
