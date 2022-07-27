@@ -79,8 +79,8 @@
   * [Kubernetes show commands](#Kubernetes-show-commands)
   * [Kubernetes config commands](#Kubernetes-config-commands)
 * [Linux Kernel Dump](#kdump)
-  * [Linux Kernel Dump show commands](#kdump-show-commands)
-  * [Linux Kernel Dump config commands](#kdump-config-commands)
+  * [Linux Kernel Dump show commands](#Linux-Kernel-Dump-show-commands)
+  * [Linux Kernel Dump config commands](#Linux-Kernel-Dump-config-command)
 * [LLDP](#lldp)
   * [LLDP show commands](#lldp-show-commands)
 * [Loading, Reloading And Saving Configuration](#loading-reloading-and-saving-configuration)
@@ -134,6 +134,9 @@
     * [Queue And Priority-Group](#queue-and-priority-group)
     * [Buffer Pool](#buffer-pool)
   * [QoS config commands](#qos-config-commands)
+* [Radius](#radius)
+  * [radius show commands](#show-radius-commands)
+  * [radius config commands](#Radius-config-commands)  
 * [sFlow](#sflow)
   * [sFlow Show commands](#sflow-show-commands)
   * [sFlow Config commands](#sflow-config-commands)
@@ -5001,6 +5004,27 @@ last number of lines.
   [ 656.337476] gpio_ich(E) ahci(E) mlxsw_core(E) libahci(E) devlink(E) crc32c_intel(E) libata(E) i2c_i801(E) scsi_mod(E) lpc_ich(E) mfd_core(E) ehci_pci(E) ehci_hcd(E) usbcore(E) e1000e(E) usb_common(E) fan(E) thermal(E)
   [ 656.569590] CR2: 0000000000000000
   ```
+### Linux Kernel Dump config command 
+ 
+**config kdump**
+
+Administrative state of kdump is stored in ConfigDB.
+
+The variable USE_KDUMP in the file /etc/default/kdump-tools is set to 0 to disable kdump, and set to 1 to enable kdump.
+
+Since this command might require changing the kernel parameters to specify the amount of memory reserved for the capture kernel (the kernel parameters which are exported through /proc/cmdline), a reboot is necessary. The command displays a message showing that kdump functionality will be either enabled or disabled following the next reboot. 
+  
+- Usage:
+```
+	admin@sonic:~$ config kdump
+
+Commands:
+  disable    Disable the KDUMP mechanism
+  enable     Enable the KDUMP mechanism
+  memory     Configure the memory for KDUMP mechanism
+  num_dumps  Configure the maximum dump files of KDUMP mechanism
+  
+```
 Go Back To [Beginning of the document](#) or [Beginning of this section](#kdump)
 
 ## LLDP
@@ -7777,6 +7801,51 @@ If there was QoS configuration in the above tables for the ports:
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#qos)
 
+## Radius
+
+### show radius commands
+
+This command displays the global radius configuration that includes the auth_type, retransmit, timeout  and passkey.
+
+- Usage:
+  ```
+  show radius
+  ```
+- Example:
+
+  ```
+  admin@sonic:~$ show radius
+	RADIUS global auth_type pap (default)
+	RADIUS global retransmit 3 (default)
+	RADIUS global timeout 5 (default)
+	RADIUS global passkey <EMPTY_STRING> (default)
+
+  ```
+ 
+### Radius config commands
+
+This command is to config the radius server for various parameter listed.
+
+ - Usage:
+  ```
+  config radius
+  ```
+- Example:
+  ```
+  admin@sonic:~$ config radius
+  
+  add         Specify a RADIUS server
+  authtype    Specify RADIUS server global auth_type [chap | pap | mschapv2]
+  default     set its default configuration
+  delete      Delete a RADIUS server
+  nasip       Specify RADIUS server global NAS-IP|IPV6-Address <IPAddress>
+  passkey     Specify RADIUS server global passkey <STRING>
+  retransmit  Specify RADIUS server global retry attempts <0 - 10>
+  sourceip    Specify RADIUS server global source ip <IPAddress>
+  statistics  Specify RADIUS server global statistics [enable | disable |...
+  timeout     Specify RADIUS server global timeout <1 - 60>
+
+  ```
 ## sFlow
 
 ### sFlow Show commands
