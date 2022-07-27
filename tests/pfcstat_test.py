@@ -8,6 +8,7 @@ from click.testing import CliRunner
 import show.main as show
 
 from .utils import get_result_and_return_code
+from utilities_common.cli import UserCache
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -130,9 +131,8 @@ Ethernet-BP260       0       0       0       0       0       0       0       0
 
 
 def del_cached_stats():
-    uid = str(os.getuid())
-    cnstat_dir = os.path.join(os.sep, "tmp", "pfcstat-{}".format(uid))
-    shutil.rmtree(cnstat_dir, ignore_errors=True, onerror=None)
+    cache = UserCache("pfcstat")
+    cache.remove_all()
 
 
 def pfc_clear(expected_output):
@@ -142,17 +142,6 @@ def pfc_clear(expected_output):
     return_code, result = get_result_and_return_code(
         'pfcstat -c'
     )
-
-    # verify that files are created with stats
-    uid = str(os.getuid())
-    cnstat_dir = os.path.join(os.sep, "tmp", "pfcstat-{}".format(uid))
-    cnstat_fqn_file_rx = "{}rx".format(uid)
-    cnstat_fqn_file_tx = "{}tx".format(uid)
-    file_list = [cnstat_fqn_file_tx, cnstat_fqn_file_rx]
-    file_list.sort()
-    files = os.listdir(cnstat_dir)
-    files.sort()
-    assert files == file_list
 
     return_code, result = get_result_and_return_code(
         'pfcstat -s all'

@@ -29,6 +29,7 @@ except KeyError:
     pass
 
 from swsscommon.swsscommon import SonicV2Connector
+from utilities_common.cli import UserCache
 
 QueueStats = namedtuple("QueueStats", "queueindex, queuetype, totalpacket, totalbytes, droppacket, dropbytes")
 header = ['Port', 'TxQ', 'Counter/pkts', 'Counter/bytes', 'Drop/pkts', 'Drop/bytes']
@@ -313,13 +314,6 @@ class Queuestat(object):
             print(json_dump(json_output))
 
     def save_fresh_stats(self):
-        if not os.path.exists(cnstat_dir):
-            try:
-                os.makedirs(cnstat_dir)
-            except IOError as e:
-                print(e.errno, e)
-                sys.exit(1)
-
         # Get stat for each port and save
         for port in natsorted(self.counter_port_name_map):
             cnstat_dict = self.get_cnstat(self.port_queues_map[port])
@@ -354,28 +348,19 @@ Examples:
     args = parser.parse_args()
 
     save_fresh_stats = args.clear
-    delete_all_stats = args.delete
+    delete_stats = args.delete
     voq = args.voq
     json_opt = args.json_opt
 
     port_to_show_stats = args.port
 
-    uid = str(os.getuid())
-    cnstat_file = uid
+    cache = UserCache()
 
-    cnstat_dir = "/tmp/queuestat-" + uid
-    cnstat_fqn_file = cnstat_dir + "/" + cnstat_file
+    cnstat_dir = cache.get_directory()
+    cnstat_fqn_file = os.path.join(cnstat_dir, 'queuestat')
 
-    if delete_all_stats:
-        for file in os.listdir(cnstat_dir):
-            os.remove(cnstat_dir + "/" + file)
-
-        try:
-            os.rmdir(cnstat_dir)
-            sys.exit(0)
-        except IOError as e:
-            print(e.errno, e)
-            sys.exit(e)
+    if delete_stats:
+        cache.remove()
 
     queuestat = Queuestat( voq )
 

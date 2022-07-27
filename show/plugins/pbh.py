@@ -14,13 +14,13 @@ import json
 import utilities_common.cli as clicommon
 from swsscommon.swsscommon import SonicV2Connector
 
-PBH_COUNTERS_LOCATION = '/tmp/.pbh_counters.txt'
-
 COUNTER_PACKETS_ATTR = "SAI_ACL_COUNTER_ATTR_PACKETS"
 COUNTER_BYTES_ATTR = "SAI_ACL_COUNTER_ATTR_BYTES"
 
 COUNTERS = "COUNTERS"
 ACL_COUNTER_RULE_MAP = "ACL_COUNTER_RULE_MAP"
+
+PBH_COUNTERS_CACHE_FILENAME = "pbh-counters"
 
 pbh_hash_field_tbl_name = 'PBH_HASH_FIELD'
 pbh_hash_tbl_name = 'PBH_HASH'
@@ -428,15 +428,18 @@ def deserialize_pbh_counters():
             obj: counters dict.
     """
 
+    cache = clicommon.UserCache('pbh')
+    counters_cache_file = os.path.join(cache.get_directory(), PBH_COUNTERS_CACHE_FILENAME)
+
     def remap_keys(obj):
         res = {}
         for e in obj:
             res[e['key'][0], e['key'][1]] = e['value']
         return res
 
-    if os.path.isfile(PBH_COUNTERS_LOCATION):
+    if os.path.isfile(counters_cache_file):
         try:
-            with open(PBH_COUNTERS_LOCATION, 'r') as f:
+            with open(counters_cache_file, 'r') as f:
                 return remap_keys(json.load(f))
         except Exception as err:
             pass

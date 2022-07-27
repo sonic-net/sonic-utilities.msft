@@ -6,6 +6,7 @@ from click.testing import CliRunner
 import clear.main as clear
 import show.main as show
 from .utils import get_result_and_return_code
+from utilities_common.cli import UserCache
 
 root_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(root_path)
@@ -191,9 +192,8 @@ TEST_PERIOD = 3
 
 def remove_tmp_cnstat_file():
     # remove the tmp portstat
-    uid = str(os.getuid())
-    cnstat_dir = os.path.join(os.sep, "tmp", "portstat-{}".format(uid))
-    shutil.rmtree(cnstat_dir, ignore_errors=True, onerror=None)
+    cache = UserCache("portstat")
+    cache.remove_all()
 
 
 def verify_after_clear(output, expected_out):

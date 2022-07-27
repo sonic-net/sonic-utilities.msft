@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import sys
+import shutil
 
 import click
 import json
@@ -663,3 +664,41 @@ def query_yes_no(question, default="yes"):
         else:
             sys.stdout.write("Please respond with 'yes' or 'no' "
                              "(or 'y' or 'n').\n")
+
+
+class UserCache:
+    """ General purpose cache directory created per user """
+
+    CACHE_DIR = "/tmp/cache/"
+
+    def __init__(self, app_name=None, tag=None):
+        """ Initialize UserCache and create a cache directory if it does not exist.
+
+        Args:
+            tag (str): Tag the user cache. Different tags correspond to different cache directories even for the same user.
+        """
+        self.uid = os.getuid()
+        self.app_name = os.path.basename(sys.argv[0]) if app_name is None else app_name
+        self.cache_directory_suffix = str(self.uid) if tag is None else f"{self.uid}-{tag}"
+        self.cache_directory_app = os.path.join(self.CACHE_DIR, self.app_name)
+
+        prev_umask = os.umask(0)
+        try:
+            os.makedirs(self.cache_directory_app, exist_ok=True)
+        finally:
+            os.umask(prev_umask)
+
+        self.cache_directory = os.path.join(self.cache_directory_app, self.cache_directory_suffix)
+        os.makedirs(self.cache_directory, exist_ok=True)
+
+    def get_directory(self):
+        """ Return the cache directory path """
+        return self.cache_directory
+
+    def remove(self):
+        """ Remove the content of the cache directory """
+        shutil.rmtree(self.cache_directory)
+
+    def remove_all(self):
+        """ Remove the content of the cache for all users """
+        shutil.rmtree(self.cache_directory_app)

@@ -9,6 +9,8 @@ import config.main as config
 from click.testing import CliRunner
 from shutil import copyfile
 
+from utilities_common.cli import UserCache
+
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
@@ -88,25 +90,9 @@ class TestPgDropstat(object):
         assert result.exit_code == 0
         assert result.output == show_output
 
-    def test_show_pg_drop_config_reload(self):
-        runner = CliRunner()
-        self.test_show_pg_drop_clear()
-
-        # simulate 'config reload' to provoke counters recalculation (remove  backup from /tmp folder)
-        result = runner.invoke(config.config.commands["reload"], [ "--no_service_restart",  "-y"])
-
-        print(result.exit_code)
-        print(result.output)
-
-        assert result.exit_code == 0
-
-        self.test_show_pg_drop_show()
-
     @classmethod
     def teardown_class(cls):
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
-        dropstat_dir_prefix = '/tmp/dropstat'
-        dir_path = "{}-{}/".format(dropstat_dir_prefix, os.getuid())
-        os.system("rm -rf {}".format(dir_path))
+        UserCache('pg-drop').remove_all()
         print("TEARDOWN")

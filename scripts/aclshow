@@ -20,15 +20,13 @@ optional arguments:
 import argparse
 import json
 import os
-from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 import sys
+
+from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+from utilities_common.cli import UserCache
 
 from tabulate import tabulate
 
-### temp file to save counter positions when doing clear counter action.
-### if we could have a SAI command to clear counters will be better, so no need to maintain
-### counters in temp loaction for clear conter action
-COUNTER_POSITION = '/tmp/.counters_acl.p'
 COUNTERS = "COUNTERS"
 ACL_COUNTER_RULE_MAP = "ACL_COUNTER_RULE_MAP"
 
@@ -38,6 +36,9 @@ ACL_HEADER = ["RULE NAME", "TABLE NAME", "PRIO", "PACKETS COUNT", "BYTES COUNT"]
 COUNTER_PACKETS_ATTR = "SAI_ACL_COUNTER_ATTR_PACKETS"
 COUNTER_BYTES_ATTR = "SAI_ACL_COUNTER_ATTR_BYTES"
 
+USER_CACHE = UserCache()
+COUNTERS_CACHE_DIR = USER_CACHE.get_directory()
+COUNTERS_CACHE = os.path.join(COUNTERS_CACHE_DIR, 'aclstat')
 
 class AclStat(object):
     """
@@ -78,9 +79,9 @@ class AclStat(object):
                 res[e['key'][0], e['key'][1]] = e['value']
             return res
 
-        if os.path.isfile(COUNTER_POSITION):
+        if os.path.isfile(COUNTERS_CACHE):
             try:
-                with open(COUNTER_POSITION) as fp:
+                with open(COUNTERS_CACHE) as fp:
                     self.saved_acl_counters = remap_keys(json.load(fp))
             except Exception:
                 pass
@@ -207,7 +208,7 @@ class AclStat(object):
         def remap_keys(dict):
             return [{'key': k, 'value': v} for k, v in dict.items()]
 
-        with open(COUNTER_POSITION, 'w') as fp:
+        with open(COUNTERS_CACHE, 'w') as fp:
             json.dump(remap_keys(self.acl_counters), fp)
 
 def main():

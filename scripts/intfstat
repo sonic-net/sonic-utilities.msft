@@ -28,6 +28,7 @@ from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
 from utilities_common.netstat import ns_diff, table_as_json, STATUS_NA, format_brate, format_prate
+from utilities_common.cli import UserCache
 from swsscommon.swsscommon import SonicV2Connector
 
 nstat_fields = (
@@ -274,63 +275,34 @@ def main():
     delete_saved_stats = args.delete
     delete_all_stats = args.delete_all
     use_json = args.json
-    tag_name = args.tag if args.tag else ""
-    uid = str(os.getuid())
+    tag_name = args.tag
     wait_time_in_seconds = args.period
     interface_name = args.interface if args.interface else ""
 
-    # fancy filename with dashes: uid-tag / uid etc
-    filename_components = [uid, tag_name]
+    cnstat_file = "intfstat"
 
-    cnstat_file = "-".join(filter(None, filename_components))
+    cache = UserCache(tag=tag_name)
 
-    cnstat_dir = "/tmp/intfstat-" + uid
+    cache_general = UserCache()
+    cnstat_dir = cache.get_directory()
+    cnstat_general_dir = cache_general.get_directory()
+
+    cnstat_fqn_general_file = cnstat_general_dir + "/" + cnstat_file
     cnstat_fqn_file = cnstat_dir + "/" + cnstat_file
 
     if delete_all_stats:
-        # There is nothing to delete
-        if not os.path.isdir(cnstat_dir):
-            sys.exit(0)
-
-        for file in os.listdir(cnstat_dir):
-            os.remove(cnstat_dir + "/" + file)
-
-        try:
-            os.rmdir(cnstat_dir)
-            sys.exit(0)
-        except IOError as e:
-            print(e.errno, e)
-            sys.exit(e)
+        cache.remove_all()
 
     if delete_saved_stats:
-        try:
-            os.remove(cnstat_fqn_file)
-        except IOError as e:
-            if e.errno != ENOENT:
-                print(e.errno, e)
-                sys.exit(1)
-        finally:
-            if os.listdir(cnstat_dir) == []:
-                os.rmdir(cnstat_dir)
-            sys.exit(0)
+        cache.remove()
 
     intfstat = Intfstat()
     cnstat_dict, ratestat_dict = intfstat.get_cnstat(rif=interface_name)
 
-    # At this point, either we'll create a file or open an existing one.
-    if not os.path.exists(cnstat_dir):
-        try:
-            os.makedirs(cnstat_dir)
-        except IOError as e:
-            print(e.errno, e)
-            sys.exit(1)
-
     if save_fresh_stats:
         try:
             # Add the information also to the general file - i.e. without the tag name
-            if tag_name != '' and tag_name in cnstat_fqn_file.split('/')[-1]:
-                gen_index = cnstat_fqn_file.rfind('/')
-                cnstat_fqn_general_file = cnstat_fqn_file[:gen_index] + cnstat_fqn_file[gen_index:].split('-')[0]
+            if tag_name is not None:
                 if os.path.isfile(cnstat_fqn_general_file):
                     try:
                         general_data = pickle.load(open(cnstat_fqn_general_file, 'rb'))
@@ -354,9 +326,6 @@ def main():
             sys.exit(0)
 
     if wait_time_in_seconds == 0:
-        gen_index = cnstat_fqn_file.rfind('/')
-        cnstat_fqn_general_file = cnstat_fqn_file[:gen_index] + cnstat_fqn_file[gen_index:].split('-')[0]
-
         if os.path.isfile(cnstat_fqn_file) or (os.path.isfile(cnstat_fqn_general_file)):
             try:
                 cnstat_cached_dict = {}

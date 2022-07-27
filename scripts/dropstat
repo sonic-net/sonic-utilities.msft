@@ -35,6 +35,7 @@ except KeyError:
     pass
 
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+from utilities_common.cli import UserCache
 
 
 # COUNTERS_DB Tables
@@ -80,8 +81,7 @@ std_switch_description_header = ['DEVICE']
 
 
 def get_dropstat_dir():
-    dropstat_dir_prefix = '/tmp/dropstat'
-    return "{}-{}/".format(dropstat_dir_prefix, os.getuid())
+    return UserCache().get_directory()
 
 
 class DropStat(object):
@@ -411,18 +411,7 @@ Examples:
     group = args.group
     counter_type = args.type
 
-    dropstat_dir = get_dropstat_dir()
-
-    # Create the directory to hold clear results
-    if not os.path.exists(dropstat_dir):
-        try:
-            os.makedirs(dropstat_dir)
-        except IOError as e:
-            print(e)
-            sys.exit(e.errno)
-
     dcstat = DropStat()
-
     if command == 'clear':
         dcstat.clear_drop_counts()
     elif command == 'show':

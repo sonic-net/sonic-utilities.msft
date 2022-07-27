@@ -10,6 +10,7 @@ import importlib
 
 from .pbh_input import assert_show_output
 from utilities_common.db import Db
+from utilities_common.cli import UserCache
 from click.testing import CliRunner
 from .mock_tables import dbconnector
 from .mock_tables import mock_single_asic
@@ -876,10 +877,7 @@ class TestPBH:
 
 
     def remove_pbh_counters_file(self):
-        SAVED_PBH_COUNTERS_FILE = '/tmp/.pbh_counters.txt'
-        if os.path.isfile(SAVED_PBH_COUNTERS_FILE):
-            os.remove(SAVED_PBH_COUNTERS_FILE)
-
+        UserCache('pbh').remove_all()
 
     def test_show_pbh_statistics_on_empty_config(self):
         dbconnector.dedicated_dbs['CONFIG_DB'] = None

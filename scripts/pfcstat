@@ -18,9 +18,6 @@ from natsort import natsorted
 from tabulate import tabulate
 
 from sonic_py_common.multi_asic import get_external_ports
-from utilities_common.netstat import ns_diff, STATUS_NA, format_number_with_comma
-from utilities_common import multi_asic as multi_asic_util
-from utilities_common import constants
 
 # mock the redis for unit test purposes #
 try:
@@ -36,6 +33,12 @@ try:
 
 except KeyError:
     pass
+
+from utilities_common.netstat import ns_diff, STATUS_NA, format_number_with_comma
+from utilities_common import multi_asic as multi_asic_util
+from utilities_common import constants
+from utilities_common.cli import UserCache
+
 
 PStats = namedtuple("PStats", "pfc0, pfc1, pfc2, pfc3, pfc4, pfc5, pfc6, pfc7")
 header_Rx = ['Port Rx', 'PFC0', 'PFC1', 'PFC2', 'PFC3', 'PFC4', 'PFC5', 'PFC6', 'PFC7']
@@ -224,10 +227,10 @@ Examples:
     save_fresh_stats = args.clear
     delete_all_stats = args.delete
 
-    uid = str(os.getuid())
-    cnstat_file = uid
+    cache = UserCache()
+    cnstat_file = 'pfcstat'
 
-    cnstat_dir = os.path.join(os.sep, "tmp", "pfcstat-{}".format(uid))
+    cnstat_dir = cache.get_directory()
     cnstat_fqn_file_rx = os.path.join(cnstat_dir, "{}rx".format(cnstat_file))
     cnstat_fqn_file_tx = os.path.join(cnstat_dir, "{}tx".format(cnstat_file))
 
@@ -239,15 +242,7 @@ Examples:
     pfcstat = Pfcstat(args.namespace, args.show)
 
     if delete_all_stats:
-        for file in os.listdir(cnstat_dir):
-            os.remove(os.path.join(cnstat_dir, file))
-
-        try:
-            os.rmdir(cnstat_dir)
-            sys.exit(0)
-        except IOError as e:
-            print(e.errno, e)
-            sys.exit(e)
+        cache.remove()
 
     """
         Get the counters of pfc rx counter
@@ -258,14 +253,6 @@ Examples:
         Get the counters of pfc tx counter
     """
     cnstat_dict_tx = deepcopy(pfcstat.get_cnstat(False))
-
-    # At this point, either we'll create a file or open an existing one.
-    if not os.path.exists(cnstat_dir):
-        try:
-            os.makedirs(cnstat_dir)
-        except IOError as e:
-            print(e.errno, e)
-            sys.exit(1)
 
     if save_fresh_stats:
         try:

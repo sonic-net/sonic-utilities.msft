@@ -6,13 +6,14 @@ PBH HLD - https://github.com/Azure/SONiC/pull/773
 CLI Auto-generation tool HLD - https://github.com/Azure/SONiC/pull/78
 """
 
+import os
 import click
 import json
 import ipaddress
 import re
 import utilities_common.cli as clicommon
 
-from show.plugins.pbh import deserialize_pbh_counters
+from show.plugins.pbh import deserialize_pbh_counters, PBH_COUNTERS_CACHE_FILENAME
 
 GRE_KEY_RE = r"^(0x){1}[a-fA-F0-9]{1,8}/(0x){1}[a-fA-F0-9]{1,8}$"
 
@@ -78,8 +79,6 @@ PBH_HASH_FIELD_CAPABILITIES_KEY = "hash-field"
 PBH_ADD = "ADD"
 PBH_UPDATE = "UPDATE"
 PBH_REMOVE = "REMOVE"
-
-PBH_COUNTERS_LOCATION = "/tmp/.pbh_counters.txt"
 
 #
 # DB interface --------------------------------------------------------------------------------------------------------
@@ -467,11 +466,14 @@ def serialize_pbh_counters(obj):
             obj: counters dict.
     """
 
+    cache = clicommon.UserCache('pbh')
+    counters_cache_file = os.path.join(cache.get_directory(), PBH_COUNTERS_CACHE_FILENAME)
+
     def remap_keys(obj):
         return [{'key': k, 'value': v} for k, v in obj.items()]
 
     try:
-        with open(PBH_COUNTERS_LOCATION, 'w') as f:
+        with open(counters_cache_file, 'w') as f:
             json.dump(remap_keys(obj), f)
     except IOError as err:
         pass
