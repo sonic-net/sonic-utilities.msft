@@ -208,16 +208,23 @@ class Watermarkstat(object):
 
         self.header_list = ['Port']
         header_map = wm_type["obj_map"]
-        single_key = list(header_map.keys())[0]
-        header_len = len(header_map[single_key])
-        min_idx = sys.maxsize
 
-        for name, counter_oid in header_map[single_key].items():
-            curr_idx = int(wm_type["idx_func"](counter_oid))
-            min_idx = min(min_idx, curr_idx)
+        max_idx = 0
+        min_idx = sys.maxsize
+        for port in header_map.keys():
+            for element in header_map[port].keys():
+                element_idx = int(element.split(':')[1])
+                if element_idx > max_idx:
+                    max_idx = element_idx
+                if min_idx > element_idx:
+                    min_idx = element_idx
+
+        if min_idx == sys.maxsize:
+            print("Object map is empty!", file=sys.stderr)
+            sys.exit(1)
 
         self.min_idx = min_idx
-        self.header_list += ["{}{}".format(wm_type["header_prefix"], idx) for idx in range(self.min_idx, self.min_idx + header_len)]
+        self.header_list += ["{}{}".format(wm_type["header_prefix"], idx) for idx in range(self.min_idx, max_idx + 1)]
 
     def get_counters(self, table_prefix, port_obj, idx_func, watermark):
         """
