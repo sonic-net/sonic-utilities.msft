@@ -5,13 +5,6 @@ import os
 import re
 import sys
 
-from natsort import natsorted
-from tabulate import tabulate
-from utilities_common import constants
-from utilities_common import multi_asic as multi_asic_util
-from utilities_common.intf_filter import parse_interface_in_filter
-from sonic_py_common.interface import get_intf_longname
-
 # mock the redis for unit test purposes #
 try:
     if os.environ["UTILITIES_UNIT_TESTING"] == "2":
@@ -20,12 +13,22 @@ try:
         sys.path.insert(0, modules_path)
         sys.path.insert(0, tests_path)
         import mock_tables.dbconnector
+        from mock_platform_sfputil.mock_platform_sfputil import mock_platform_sfputil_helper
+        mock_platform_sfputil_helper()
     if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
         import mock_tables.mock_multi_asic
         mock_tables.dbconnector.load_namespace_config()
 
 except KeyError:
     pass
+
+from natsort import natsorted
+from tabulate import tabulate
+from utilities_common import constants
+from utilities_common import multi_asic as multi_asic_util
+from utilities_common.intf_filter import parse_interface_in_filter
+from utilities_common.platform_sfputil_helper import is_rj45_port, RJ45_PORT_TYPE
+from sonic_py_common.interface import get_intf_longname
 
 # ========================== Common interface-utils logic ==========================
 
@@ -49,7 +52,7 @@ PORT_RMT_ADV_SPEEDS = 'rmt_adv_speeds'
 PORT_INTERFACE_TYPE = 'interface_type'
 PORT_ADV_INTERFACE_TYPES = 'adv_interface_types'
 PORT_TPID = "tpid"
-OPTICS_TYPE_RJ45 = 'RJ45'
+OPTICS_TYPE_RJ45 = RJ45_PORT_TYPE
 PORT_LINK_TRAINING = 'link_training'
 PORT_LINK_TRAINING_STATUS = 'link_training_status'
 
@@ -161,10 +164,10 @@ def appl_db_port_status_get(appl_db, intf_name, status_type):
     if status is None:
         return "N/A"
     if status_type == PORT_SPEED and status != "N/A":
-        optics_type = state_db_port_optics_get(appl_db, intf_name, PORT_OPTICS_TYPE)
+        optics_type = port_optics_get(appl_db, intf_name, PORT_OPTICS_TYPE)
         status = port_speed_parse(status, optics_type)
     elif status_type == PORT_ADV_SPEEDS and status != "N/A" and status != "all":
-        optics_type = state_db_port_optics_get(appl_db, intf_name, PORT_OPTICS_TYPE)
+        optics_type = port_optics_get(appl_db, intf_name, PORT_OPTICS_TYPE)
         speed_list = status.split(',')
         new_speed_list = []
         for s in natsorted(speed_list):
@@ -181,7 +184,7 @@ def state_db_port_status_get(db, intf_name, field):
     if not status:
         return "N/A"
     if field in [PORT_RMT_ADV_SPEEDS] and status not in ["N/A", "all"]:
-        optics_type = state_db_port_optics_get(db, intf_name, PORT_OPTICS_TYPE)
+        optics_type = port_optics_get(db, intf_name, PORT_OPTICS_TYPE)
         speed_list = status.split(',')
         new_speed_list = []
         for s in natsorted(speed_list):
@@ -198,7 +201,7 @@ def port_oper_speed_get(db, intf_name):
     if oper_speed is None or oper_speed == "N/A" or oper_status != "up":
         return appl_db_port_status_get(db, intf_name, PORT_SPEED)
     else:
-        optics_type = state_db_port_optics_get(db, intf_name, PORT_OPTICS_TYPE)
+        optics_type = port_optics_get(db, intf_name, PORT_OPTICS_TYPE)
         return port_speed_parse(oper_speed, optics_type)
 
 def port_oper_speed_get_raw(db, intf_name):
@@ -211,14 +214,17 @@ def port_oper_speed_get_raw(db, intf_name):
         speed = db.get(db.APPL_DB, PORT_STATUS_TABLE_PREFIX + intf_name, PORT_SPEED)
     return speed
 
-def state_db_port_optics_get(state_db, intf_name, type):
+def port_optics_get(state_db, intf_name, type):
     """
     Get optic type info for port
     """
     full_table_id = PORT_TRANSCEIVER_TABLE_PREFIX + intf_name
     optics_type = state_db.get(state_db.STATE_DB, full_table_id, type)
     if optics_type is None:
-        return "N/A"
+        if is_rj45_port(intf_name):
+            return OPTICS_TYPE_RJ45
+        else:
+            return "N/A"
     return optics_type
 
 def merge_dicts(x,y):
@@ -325,13 +331,13 @@ def po_speed_dict(po_int_dict, appl_db):
                     # If no speed was returned, append None without format
                     po_list.append(None)
                 else:
-                    optics_type = state_db_port_optics_get(appl_db, value[0], PORT_OPTICS_TYPE)
+                    optics_type = port_optics_get(appl_db, value[0], PORT_OPTICS_TYPE)
                     interface_speed = port_speed_parse(interface_speed, optics_type)
                     po_list.append(interface_speed)
             elif len(value) > 1:
                 for intf in value:
                     temp_speed = port_oper_speed_get_raw(appl_db, intf)
-                    optics_type = state_db_port_optics_get(appl_db, intf, PORT_OPTICS_TYPE)
+                    optics_type = port_optics_get(appl_db, intf, PORT_OPTICS_TYPE)
                     temp_speed = int(temp_speed) if temp_speed else 0
                     agg_speed_list.append(temp_speed)
                     interface_speed = sum(agg_speed_list)
@@ -477,7 +483,7 @@ class IntfStatus(object):
                                 config_db_vlan_port_keys_get(self.combined_int_to_vlan_po_dict, self.front_panel_ports_list, key),
                                 appl_db_port_status_get(self.db, key, PORT_OPER_STATUS),
                                 appl_db_port_status_get(self.db, key, PORT_ADMIN_STATUS),
-                                state_db_port_optics_get(self.db, key, PORT_OPTICS_TYPE),
+                                port_optics_get(self.db, key, PORT_OPTICS_TYPE),
                                 appl_db_port_status_get(self.db, key, PORT_PFC_ASYM_STATUS)))
 
             for po, value in self.portchannel_speed_dict.items():
