@@ -27,6 +27,7 @@ import utilities_common.multi_asic as multi_asic_util
 from flow_counter_util.route import build_route_pattern, extract_route_pattern, exit_if_route_flow_counter_not_support, DEFAULT_VRF, COUNTERS_ROUTE_TO_PATTERN_MAP
 from utilities_common import constants
 from utilities_common.netstat import format_number_with_comma, table_as_json, ns_diff, format_prate
+from utilities_common.cli import UserCache
 
 # Flow counter meta data, new type of flow counters can extend this dictinary to reuse existing logic
 flow_counter_meta = {
@@ -57,9 +58,10 @@ class FlowCounterStats(object):
         meta_data = flow_counter_meta[args.type]
         self.name_map = meta_data['name_map']
         self.headers = meta_data['headers']
-        self.data_file = os.path.join('/tmp/{}-stats-{}'.format(args.type, os.getuid()))
-        if self.args.delete and os.path.exists(self.data_file):
-            os.remove(self.data_file)
+        self.cache = UserCache()
+        self.data_file = os.path.join(self.cache.get_directory(), "flow-counter-stats")
+        if self.args.delete:
+            self.cache.remove()
         self.data = {}
 
     def show(self):

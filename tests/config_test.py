@@ -80,7 +80,6 @@ Please note loaded setting will be lost after system reboot. To preserve setting
 """
 
 RELOAD_CONFIG_DB_OUTPUT = """\
-Running command: rm -rf /tmp/dropstat-*
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
 Restarting SONiC target ...
@@ -88,7 +87,6 @@ Reloading Monit configuration ...
 """
 
 RELOAD_YANG_CFG_OUTPUT = """\
-Running command: rm -rf /tmp/dropstat-*
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen  -Y /tmp/config.json  --write-to-db
 Restarting SONiC target ...
@@ -96,7 +94,6 @@ Reloading Monit configuration ...
 """
 
 RELOAD_MASIC_CONFIG_DB_OUTPUT = """\
-Running command: rm -rf /tmp/dropstat-*
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
 Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic0  --write-to-db
@@ -106,11 +103,9 @@ Reloading Monit configuration ...
 """
 
 reload_config_with_sys_info_command_output="""\
-Running command: rm -rf /tmp/dropstat-*
 Running command: /usr/local/bin/sonic-cfggen -H -k Seastone-DX010-25-50 --write-to-db"""
 
 reload_config_with_disabled_service_output="""\
-Running command: rm -rf /tmp/dropstat-*
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
 Restarting SONiC target ...
@@ -218,7 +213,7 @@ class TestConfigReload(object):
 
             assert result.exit_code == 0
 
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')][:2]) == reload_config_with_sys_info_command_output
+            assert "\n".join([l.rstrip() for l in result.output.split('\n')][:1]) == reload_config_with_sys_info_command_output
 
     def test_config_reload_untriggered_timer(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect_untriggered_timer)) as mock_run_command:
@@ -276,9 +271,9 @@ class TestLoadMinigraph(object):
             traceback.print_tb(result.exc_info[2])
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
-            # Verify "systemctl reset-failed" is called for services under sonic.target 
+            # Verify "systemctl reset-failed" is called for services under sonic.target
             mock_run_command.assert_any_call('systemctl reset-failed swss')
-            # Verify "systemctl reset-failed" is called for services under sonic-delayed.target 
+            # Verify "systemctl reset-failed" is called for services under sonic-delayed.target
             mock_run_command.assert_any_call('systemctl reset-failed snmp')
             assert mock_run_command.call_count == 11
 
@@ -493,7 +488,7 @@ class TestReloadConfig(object):
             runner = CliRunner()
             # 3 config files: 1 for host and 2 for asic
             cfg_files = "{},{},{}".format(
-                            self.dummy_cfg_file, 
+                            self.dummy_cfg_file,
                             self.dummy_cfg_file,
                             self.dummy_cfg_file)
             result = runner.invoke(
@@ -532,7 +527,7 @@ class TestReloadConfig(object):
         os.remove(cls.dummy_cfg_file)
         print("TEARDOWN")
 
- 
+
 class TestConfigCbf(object):
     @classmethod
     def setup_class(cls):

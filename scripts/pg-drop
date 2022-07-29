@@ -26,6 +26,7 @@ try:
 except KeyError:
     pass
 
+from utilities_common.cli import UserCache
 from swsscommon.swsscommon import ConfigDBConnector, SonicV2Connector
 
 STATUS_NA = 'N/A'
@@ -38,8 +39,7 @@ COUNTERS_PG_PORT_MAP = "COUNTERS_PG_PORT_MAP"
 COUNTERS_PG_INDEX_MAP = "COUNTERS_PG_INDEX_MAP"
 
 def get_dropstat_dir():
-    dropstat_dir_prefix = '/tmp/dropstat'
-    return "{}-{}/".format(dropstat_dir_prefix, os.getuid())
+    return UserCache().get_directory()
 
 class PgDropStat(object):
 

@@ -192,8 +192,8 @@ class Aclshow():
         This method is used to empty dumped counters
         if exist in /tmp/.counters_acl.p (by default).
         """
-        if os.path.isfile(aclshow.COUNTER_POSITION):
-            with open(aclshow.COUNTER_POSITION, 'w') as fp:
+        if os.path.isfile(aclshow.COUNTERS_CACHE):
+            with open(aclshow.COUNTERS_CACHE, 'w') as fp:
                 json.dump([], fp)
 
     def runTest(self):
