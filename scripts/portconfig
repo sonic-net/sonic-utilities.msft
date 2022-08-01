@@ -60,7 +60,7 @@ SWITCH_CAPABILITY = "SWITCH_CAPABILITY|switch"
 # STATE_DB constants
 PORT_STATE_TABLE_NAME = "PORT_TABLE"
 PORT_STATE_SUPPORTED_SPEEDS = "supported_speeds"
-
+PORT_STATE_SUPPORTED_FECS = "supported_fecs"
 
 VALID_INTERFACE_TYPE_SET = set(['CR','CR2','CR4','SR','SR2','SR4',
                                 'LR','LR4','KR','KR4','CAUI','GMII',
@@ -126,6 +126,13 @@ class portconfig(object):
     def set_fec(self, port, fec):
         if self.verbose:
             print("Setting fec %s on port %s" % (fec, port))
+        supported_fecs = self.get_supported_fecs(port)
+        if fec not in supported_fecs:
+            if supported_fecs:
+                print('fec {} is not in {}'.format(fec, supported_fecs))
+            else:
+                print('Setting fec is not supported on port {}'.format(port))
+            exit(1)
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_FEC_CONFIG_FIELD_NAME: fec})
 
     def set_mtu(self, port, mtu):
@@ -213,6 +220,26 @@ class portconfig(object):
         state_db.connect(state_db.STATE_DB)
         return state_db.get(state_db.STATE_DB, '{}|{}'.format(PORT_STATE_TABLE_NAME, port), PORT_STATE_SUPPORTED_SPEEDS)
 
+    def get_supported_fecs(self, port):
+        # If there is supported_fecs exposed in STATE_DB, let's use it.
+        # Otherwise, take the default
+        if not self.namespace:
+            state_db = SonicV2Connector(host="127.0.0.1")
+        else:
+            state_db = SonicV2Connector(host="127.0.0.1", namespace=self.namespace, use_unix_socket_path=True)
+        state_db.connect(state_db.STATE_DB)
+
+        supported_fecs_str = state_db.get(state_db.STATE_DB, '{}|{}'.format(PORT_STATE_TABLE_NAME, port), PORT_STATE_SUPPORTED_FECS)
+        if supported_fecs_str:
+            if supported_fecs_str != 'N/A':
+                supported_fecs_list = supported_fecs_str.split(',')
+            else:
+                supported_fecs_list = []
+        else:
+            supported_fecs_list = ["rs", "fc", "none"]
+
+        return supported_fecs_list
+
     def set_tpid(self, port, tpid):
         if self.verbose:
             print("Setting tpid %s on port %s" % (tpid, port))
@@ -263,7 +290,7 @@ def main():
     parser.add_argument('-p', '--port', type=str, help='port name (e.g. Ethernet0)', required=True, default=None)
     parser.add_argument('-l', '--list', action='store_true', help='list port parametars', default=False)
     parser.add_argument('-s', '--speed', type=int, help='port speed value in Mbit', default=None)
-    parser.add_argument('-f', '--fec', type=str, help='port fec mode value in (none, rs, fc)', default=None)
+    parser.add_argument('-f', '--fec', type=str, help='port fec mode value (default is: none, rs, fc)', default=None)
     parser.add_argument('-m', '--mtu', type=int, help='port mtu value in bytes', default=None)
     parser.add_argument('-tp', '--tpid', type=str, help='port TPID value in hex (e.g. 0x8100)', default=None)
     parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')

@@ -4097,8 +4097,6 @@ def fec(ctx, interface_name, interface_fec, verbose):
     # Get the config_db connector
     config_db = ctx.obj['config_db']
 
-    if interface_fec not in ["rs", "fc", "none"]:
-        ctx.fail("'fec not in ['rs', 'fc', 'none']!")
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
