@@ -84,6 +84,22 @@ class TestConfigInterface(object):
         result = self.basic_check("mtu", ["PortChannel0001", "1514"], ctx, operator.ne)
         assert 'Invalid port PortChannel0001' in result.output
 
+    def test_config_fec(self, ctx):
+        # Set a fec mode which is in supported_fec list but not default
+        # on an interface with supported_fec
+        self.basic_check("fec", ["Ethernet0", "test"], ctx)
+        # Set a fec mode which is one of default values on an interface without supported_fecs
+        self.basic_check("fec", ["Ethernet4", "rs"], ctx)
+        # Negative case: Set a fec mode which is default but not in port's supported_fecs
+        result = self.basic_check("fec", ["Ethernet0", "fc"], ctx, operator.ne)
+        assert "fec fc is not in ['rs', 'none', 'test']" in result.output
+        # Negative case: set a fec mode which is not default on an interface without supported_fecs
+        result = self.basic_check("fec", ["Ethernet4", "test"], ctx, operator.ne)
+        assert "fec test is not in ['rs', 'fc', 'none']" in result.output
+        # Negative case: set a fec mode on a port where setting fec is not supported
+        result = self.basic_check("fec", ["Ethernet112", "test"], ctx, operator.ne)
+        assert "Setting fec is not supported" in result.output
+
     def basic_check(self, command_name, para_list, ctx, op=operator.eq, expect_result=0):
         runner = CliRunner()
         result = runner.invoke(config.config.commands["interface"].commands[command_name], para_list, obj = ctx)
