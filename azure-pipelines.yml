@@ -10,8 +10,8 @@ resources:
   repositories:
   - repository: sonic-swss
     type: github
-    name: Azure/sonic-swss
-    endpoint: build
+    name: sonic-net/sonic-swss
+    endpoint: sonic-net
 
 stages:
 - stage: Build
