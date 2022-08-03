@@ -44,7 +44,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_3_0_6'
+        self.CURRENT_VERSION = 'version_3_0_5'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -617,13 +617,13 @@ class DBMigrator():
             abandon_method = self.mellanox_buffer_migrator.mlnx_abandon_pending_buffer_configuration
             append_method = self.mellanox_buffer_migrator.mlnx_append_item_on_pending_configuration_list
 
-            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_6', 'version_3_0_0') \
-               and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_6', 'version_3_0_0') \
+            if self.mellanox_buffer_migrator.mlnx_migrate_buffer_pool_size('version_1_0_6', 'version_2_0_0') \
+               and self.mellanox_buffer_migrator.mlnx_migrate_buffer_profile('version_1_0_6', 'version_2_0_0') \
                and (not self.mellanox_buffer_migrator.mlnx_is_buffer_model_dynamic() or \
                     self.migrate_config_db_buffer_tables_for_dynamic_calculation(speed_list, cable_len_list, '0', abandon_method, append_method)) \
                and self.mellanox_buffer_migrator.mlnx_flush_new_buffer_configuration() \
                and self.prepare_dynamic_buffer_for_warm_reboot(buffer_pools, buffer_profiles, buffer_pgs):
-                self.set_version('version_3_0_0')
+                self.set_version('version_2_0_0')
         else:
             self.prepare_dynamic_buffer_for_warm_reboot()
 
@@ -632,8 +632,26 @@ class DBMigrator():
             self.configDB.set_entry('DEVICE_METADATA', 'localhost', metadata)
             log.log_notice('Setting buffer_model to traditional')
 
-            self.set_version('version_3_0_0')
+            self.set_version('version_2_0_0')
 
+        return 'version_2_0_0'
+
+    def version_2_0_0(self):
+        """
+        Version 2_0_0
+        """
+        log.log_info('Handling version_2_0_0')
+        self.migrate_port_qos_map_global()
+        self.set_version('version_2_0_1')
+        return 'version_2_0_1'
+
+    def version_2_0_1(self):
+        """
+        Version 2_0_1.
+        This is the latest version for 202012 branch 
+        """
+        log.log_info('Handling version_2_0_1')
+        self.set_version('version_3_0_0')
         return 'version_3_0_0'
 
     def version_3_0_0(self):
@@ -694,21 +712,14 @@ class DBMigrator():
             if 'pfc_enable' in v:
                 v['pfcwd_sw_enable'] = v['pfc_enable']
                 self.configDB.set_entry('PORT_QOS_MAP', k, v)
+        self.set_version('version_3_0_5')
         return 'version_3_0_5'
 
     def version_3_0_5(self):
         """
-        Version 3_0_5
-        """
-        log.log_info('Handling version_3_0_5')
-        self.migrate_port_qos_map_global()
-        return 'version_3_0_6'
-
-    def version_3_0_6(self):
-        """
         Current latest version. Nothing to do here.
         """
-        log.log_info('Handling version_3_0_6')
+        log.log_info('Handling version_3_0_5')
         return None
 
     def get_version(self):
