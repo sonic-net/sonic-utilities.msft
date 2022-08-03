@@ -1924,6 +1924,21 @@ def synchronous_mode(sync_mode):
         raise click.BadParameter("Error: Invalid argument %s, expect either enable or disable" % sync_mode)
 
 #
+# 'yang_config_validation' command ('config yang_config_validation ...')
+# 
+@config.command('yang_config_validation')
+@click.argument('yang_config_validation', metavar='<enable|disable>', required=True)
+def yang_config_validation(yang_config_validation):
+    # Enable or disable YANG validation on updates to ConfigDB
+    if yang_config_validation == 'enable' or yang_config_validation == 'disable':
+        config_db = ConfigDBConnector()
+        config_db.connect()
+        config_db.mod_entry('DEVICE_METADATA', 'localhost', {"yang_config_validation": yang_config_validation})
+        click.echo("""Wrote %s yang config validation into CONFIG_DB""" % yang_config_validation)
+    else:
+        raise click.BadParameter("Error: Invalid argument %s, expect either enable or disable" % yang_config_validation)
+
+#
 # 'portchannel' group ('config portchannel ...')
 #
 @config.group(cls=clicommon.AbbreviationGroup)
