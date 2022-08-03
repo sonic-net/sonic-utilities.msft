@@ -1,6 +1,6 @@
 {
     "VERSIONS|DATABASE": {
-        "VERSION": "version_3_0_5"
+        "VERSION": "version_2_0_0"
     },
     "DSCP_TO_TC_MAP|AZURE": {
         "0": "0",

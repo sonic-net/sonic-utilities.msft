@@ -2043,6 +2043,6 @@
         "admin_status": "up"
     },
     "VERSIONS|DATABASE": {
-        "VERSION": "version_3_0_4"
+        "VERSION": "version_3_0_5"
     }
 }
