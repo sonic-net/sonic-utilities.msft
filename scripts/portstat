@@ -51,12 +51,14 @@ NStats = namedtuple("NStats", "rx_ok, rx_err, rx_drop, rx_ovr, tx_ok,\
                     rx_uca, rx_mca, rx_bca, rx_all,\
                     tx_64, tx_65_127, tx_128_255, tx_256_511, tx_512_1023, tx_1024_1518, tx_1519_2047, tx_2048_4095, tx_4096_9216, tx_9217_16383,\
                     tx_uca, tx_mca, tx_bca, tx_all,\
-                    rx_jbr, rx_frag, rx_usize, rx_ovrrun")
+                    rx_jbr, rx_frag, rx_usize, rx_ovrrun,\
+                    fec_corr, fec_uncorr, fec_symbol_err")
 header_all = ['IFACE', 'STATE', 'RX_OK', 'RX_BPS', 'RX_PPS', 'RX_UTIL', 'RX_ERR', 'RX_DRP', 'RX_OVR',
           'TX_OK', 'TX_BPS', 'TX_PPS', 'TX_UTIL', 'TX_ERR', 'TX_DRP', 'TX_OVR']
 header_std = ['IFACE', 'STATE', 'RX_OK', 'RX_BPS', 'RX_UTIL', 'RX_ERR', 'RX_DRP', 'RX_OVR',
           'TX_OK', 'TX_BPS', 'TX_UTIL', 'TX_ERR', 'TX_DRP', 'TX_OVR']
 header_errors_only = ['IFACE', 'STATE', 'RX_ERR', 'RX_DRP', 'RX_OVR', 'TX_ERR', 'TX_DRP', 'TX_OVR']
+header_fec_only = ['IFACE', 'STATE', 'FEC_CORR', 'FEC_UNCORR', 'FEC_SYMBOL_ERR']
 header_rates_only = ['IFACE', 'STATE', 'RX_OK', 'RX_BPS', 'RX_PPS', 'RX_UTIL', 'TX_OK', 'TX_BPS', 'TX_PPS', 'TX_UTIL']
 
 rates_key_list = [ 'RX_BPS', 'RX_PPS', 'RX_UTIL', 'TX_BPS', 'TX_PPS', 'TX_UTIL' ]
@@ -67,7 +69,7 @@ RateStats = namedtuple("RateStats", ratestat_fields)
 The order and count of statistics mentioned below needs to be in sync with the values in portstat script
 So, any fields added/deleted in here should be reflected in portstat script also
 """
-BUCKET_NUM = 42
+BUCKET_NUM = 45
 counter_bucket_dict = {
         0:['SAI_PORT_STAT_IF_IN_UCAST_PKTS', 'SAI_PORT_STAT_IF_IN_NON_UCAST_PKTS'],
         1:['SAI_PORT_STAT_IF_IN_ERRORS'],
@@ -110,7 +112,10 @@ counter_bucket_dict = {
         38:['SAI_PORT_STAT_ETHER_STATS_JABBERS'],
         39:['SAI_PORT_STAT_ETHER_STATS_FRAGMENTS'],
         40:['SAI_PORT_STAT_ETHER_STATS_UNDERSIZE_PKTS'],
-        41:['SAI_PORT_STAT_IP_IN_RECEIVES']
+        41:['SAI_PORT_STAT_IP_IN_RECEIVES'],
+        42:['SAI_PORT_STAT_IF_IN_FEC_CORRECTABLE_FRAMES'],
+        43:['SAI_PORT_STAT_IF_IN_FEC_NOT_CORRECTABLE_FRAMES'],
+        44:['SAI_PORT_STAT_IF_IN_FEC_SYMBOL_ERRORS']
 }
 
 STATUS_NA = 'N/A'
@@ -250,7 +255,7 @@ class Portstat(object):
         return STATUS_NA
 
 
-    def cnstat_print(self, cnstat_dict, ratestat_dict, intf_list, use_json, print_all, errors_only, rates_only, detail=False):
+    def cnstat_print(self, cnstat_dict, ratestat_dict, intf_list, use_json, print_all, errors_only, fec_stats_only, rates_only, detail=False):
         """
             Print the cnstat.
         """
@@ -295,6 +300,12 @@ class Portstat(object):
                               format_number_with_comma(data.tx_err),
                               format_number_with_comma(data.tx_drop),
                               format_number_with_comma(data.tx_ovr)))
+            elif fec_stats_only:
+                header = header_fec_only
+                table.append((key, self.get_port_state(key),
+                              format_number_with_comma(data.fec_corr),
+                              format_number_with_comma(data.fec_uncorr),
+                              format_number_with_comma(data.fec_symbol_err)))
             elif rates_only:
                 header = header_rates_only
                 table.append((key, self.get_port_state(key),
@@ -388,7 +399,10 @@ class Portstat(object):
             print("Time Since Counters Last Cleared............... " + str(cnstat_old_dict.get('time')))
 
 
-    def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict, ratestat_dict, intf_list, use_json, print_all, errors_only, rates_only, detail=False):
+    def cnstat_diff_print(self, cnstat_new_dict, cnstat_old_dict,
+                                ratestat_dict, intf_list, use_json,
+                                print_all, errors_only, fec_stats_only,
+                                rates_only, detail=False):
         """
             Print the difference between two cnstat results.
         """
@@ -465,6 +479,19 @@ class Portstat(object):
                                   format_number_with_comma(cntr.tx_err),
                                   format_number_with_comma(cntr.tx_drop),
                                   format_number_with_comma(cntr.tx_ovr)))
+            elif fec_stats_only:
+                header = header_fec_only
+                if old_cntr is not None:
+                    table.append((key, self.get_port_state(key),
+                                  ns_diff(cntr.fec_corr, old_cntr.fec_corr),
+                                  ns_diff(cntr.fec_uncorr, old_cntr.fec_uncorr),
+                                  ns_diff(cntr.fec_symbol_err, old_cntr.fec_symbol_err)))
+                else:
+                    table.append((key, self.get_port_state(key),
+                                  format_number_with_comma(cntr.fec_corr),
+                                  format_number_with_comma(cntr.fec_uncorr),
+                                  format_number_with_comma(cntr.fec_symbol_err)))
+
             elif rates_only:
                 header = header_rates_only
                 if old_cntr is not None:
@@ -551,6 +578,7 @@ Examples:
     parser.add_argument('-d', '--delete', action='store_true', help='Delete saved stats, either the uid or the specified tag')
     parser.add_argument('-D', '--delete-all', action='store_true', help='Delete all saved stats')
     parser.add_argument('-e', '--errors', action='store_true', help='Display interface errors')
+    parser.add_argument('-f', '--fec-stats', action='store_true', help='Display FEC related statistics')
     parser.add_argument('-j', '--json', action='store_true', help='Display in JSON format')
     parser.add_argument('-r', '--raw', action='store_true', help='Raw stats (unmodified output of netstat)')
     parser.add_argument('-R', '--rate', action='store_true', help='Display interface rates')
@@ -567,6 +595,7 @@ Examples:
     delete_saved_stats = args.delete
     delete_all_stats = args.delete_all
     errors_only = args.errors
+    fec_stats_only = args.fec_stats
     rates_only = args.rate
     use_json = args.json
     raw_stats = args.raw
@@ -603,7 +632,7 @@ Examples:
 
     # Now decide what information to display
     if raw_stats:
-        portstat.cnstat_print(cnstat_dict, ratestat_dict, intf_list, use_json, print_all, errors_only, rates_only)
+        portstat.cnstat_print(cnstat_dict, ratestat_dict, intf_list, use_json, print_all, errors_only, fec_stats_only, rates_only)
         sys.exit(0)
 
     if save_fresh_stats:
@@ -622,7 +651,7 @@ Examples:
                 cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'rb'))
                 if not detail:
                     print("Last cached time was " + str(cnstat_cached_dict.get('time')))
-                portstat.cnstat_diff_print(cnstat_dict, cnstat_cached_dict, ratestat_dict, intf_list, use_json, print_all, errors_only, rates_only, detail)
+                portstat.cnstat_diff_print(cnstat_dict, cnstat_cached_dict, ratestat_dict, intf_list, use_json, print_all, errors_only, fec_stats_only, rates_only, detail)
             except IOError as e:
                 print(e.errno, e)
         else:
@@ -630,13 +659,13 @@ Examples:
                 print("\nFile '%s' does not exist" % cnstat_fqn_file)
                 print("Did you run 'portstat -c -t %s' to record the counters via tag %s?\n" % (tag_name, tag_name))
             else:
-                portstat.cnstat_print(cnstat_dict, ratestat_dict, intf_list, use_json, print_all, errors_only, rates_only, detail)
+                portstat.cnstat_print(cnstat_dict, ratestat_dict, intf_list, use_json, print_all, errors_only, fec_stats_only, rates_only, detail)
     else:
         #wait for the specified time and then gather the new stats and output the difference.
         time.sleep(wait_time_in_seconds)
         print("The rates are calculated within %s seconds period" % wait_time_in_seconds)
         cnstat_new_dict, ratestat_new_dict = portstat.get_cnstat_dict()
-        portstat.cnstat_diff_print(cnstat_new_dict, cnstat_dict, ratestat_new_dict, intf_list, use_json, print_all, errors_only, rates_only, detail)
+        portstat.cnstat_diff_print(cnstat_new_dict, cnstat_dict, ratestat_new_dict, intf_list, use_json, print_all, errors_only, fec_stats_only, rates_only, detail)
 
 if __name__ == "__main__":
     main()

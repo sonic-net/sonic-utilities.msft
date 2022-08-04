@@ -34,6 +34,23 @@ Ethernet4      N/A        4   204.80 KB/s     200.00/s        N/A         0     
 Ethernet8      N/A        6  1350.00 KB/s    9000.00/s        N/A       100        10       N/A       60    13.37 MB/s    9000.00/s        N/A       N/A       N/A       N/A
 """
 
+intf_fec_counters = """\
+    IFACE    STATE    FEC_CORR    FEC_UNCORR    FEC_SYMBOL_ERR
+---------  -------  ----------  ------------  ----------------
+Ethernet0        D     130,402             3                 4
+Ethernet4      N/A     110,412             1                 0
+Ethernet8      N/A     100,317             0                 0
+"""
+
+intf_fec_counters_period = """\
+The rates are calculated within 3 seconds period
+    IFACE    STATE    FEC_CORR    FEC_UNCORR    FEC_SYMBOL_ERR
+---------  -------  ----------  ------------  ----------------
+Ethernet0        D           0             0                 0
+Ethernet4      N/A           0             0                 0
+Ethernet8      N/A           0             0                 0
+"""
+
 intf_counters_period = """\
 The rates are calculated within 3 seconds period
     IFACE    STATE    RX_OK        RX_BPS    RX_UTIL    RX_ERR    RX_DRP    RX_OVR    TX_OK        TX_BPS    TX_UTIL    TX_ERR    TX_DRP    TX_OVR
@@ -257,6 +274,39 @@ class TestPortStat(object):
         print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_counters_all
+
+    def test_show_intf_fec_counters(self):
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["interfaces"].commands["counters"].commands["fec-stats"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == intf_fec_counters
+
+        return_code, result = get_result_and_return_code('portstat -f')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == intf_fec_counters
+
+    def test_show_intf_fec_counters_period(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["counters"].commands["fec-stats"],
+                                ["-p {}".format(TEST_PERIOD)])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == intf_fec_counters_period
+
+        return_code, result = get_result_and_return_code(
+            'portstat -f -p {}'.format(TEST_PERIOD))
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == intf_fec_counters_period
+
+
 
     def test_show_intf_counters_period(self):
         runner = CliRunner()
