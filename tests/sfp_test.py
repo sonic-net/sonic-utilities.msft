@@ -495,6 +495,13 @@ Ethernet200  Not present
         assert result.exit_code == 0
         assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == test_sfp_eeprom_dom_all_output
 
+    def test_is_rj45_port(self):
+        import utilities_common.platform_sfputil_helper as platform_sfputil_helper
+        platform_sfputil_helper.platform_chassis = None
+        if 'sonic_platform' in sys.modules:
+            sys.modules.pop('sonic_platform')
+        assert platform_sfputil_helper.is_rj45_port("Ethernet0") == False
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")

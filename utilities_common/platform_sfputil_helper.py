@@ -111,12 +111,18 @@ def is_rj45_port(port_name):
     global platform_sfp_base
     global platform_sfputil_loaded
 
-    if not platform_chassis:
-        import sonic_platform
-        platform_chassis = sonic_platform.platform.Platform().get_chassis()
-    if not platform_sfp_base:
-        import sonic_platform_base
-        platform_sfp_base = sonic_platform_base.sfp_base.SfpBase
+    try:
+        if not platform_chassis:
+            import sonic_platform
+            platform_chassis = sonic_platform.platform.Platform().get_chassis()
+        if not platform_sfp_base:
+            import sonic_platform_base
+            platform_sfp_base = sonic_platform_base.sfp_base.SfpBase
+    except ModuleNotFoundError as e:
+        # This method is referenced by intfutil which is called on vs image
+        # However, there is no platform API supported on vs image
+        # So False is returned in such case
+        return False
 
     if platform_chassis and platform_sfp_base:
         if not platform_sfputil:
