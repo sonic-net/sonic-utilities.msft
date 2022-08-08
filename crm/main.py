@@ -237,9 +237,9 @@ def polling(ctx):
 
 @polling.command()
 @click.pass_context
-@click.argument('interval', type=click.INT)
+@click.argument('interval', type=click.IntRange(1, 9999))
 def interval(ctx, interval):
-    """CRM polling interval configuration"""
+    """CRM polling interval configuration in seconds (range: 1-9999)"""
     ctx.obj["crm"].config('polling_interval', interval)
 
 @config.group()

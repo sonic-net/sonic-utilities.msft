@@ -1033,6 +1033,8 @@ srv6_nexthop                0               1024
 
 """
 
+crm_config_interval_too_big = "Error: Invalid value for \"INTERVAL\": 30000 is not in the valid range of 1 to 9999."
+
 class TestCrm(object):
     @classmethod
     def setup_class(cls):
@@ -1052,6 +1054,18 @@ class TestCrm(object):
         print(sys.stderr, result.output)
         assert result.exit_code == 0
         assert result.output == crm_new_show_summary
+
+    def test_crm_config_polling_interval(self):
+        runner = CliRunner()
+        db = Db()
+        result = runner.invoke(crm.cli, ['config', 'polling', 'interval', '10'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 0
+        result = runner.invoke(crm.cli, ['config', 'polling', 'interval', '30000'], obj=db)
+        print(sys.stderr, result.output)
+        assert result.exit_code == 2
+        assert crm_config_interval_too_big in result.output
+
 
     def test_crm_show_thresholds_acl_group(self):
         runner = CliRunner()
