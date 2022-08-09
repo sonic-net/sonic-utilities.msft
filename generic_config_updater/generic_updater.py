@@ -77,6 +77,8 @@ class PatchApplier:
         # Validate config updated successfully
         self.logger.log_notice("Verifying patch updates are reflected on ConfigDB.")
         new_config = self.config_wrapper.get_config_db_as_json()
+        self.changeapplier.remove_backend_tables_from_config(target_config)
+        self.changeapplier.remove_backend_tables_from_config(new_config)
         if not(self.patch_wrapper.verify_same_json(target_config, new_config)):
             raise GenericConfigUpdaterError(f"After applying patch to config, there are still some parts not updated")
 
