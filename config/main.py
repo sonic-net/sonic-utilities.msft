@@ -22,6 +22,7 @@ from socket import AF_INET, AF_INET6
 from sonic_py_common import device_info, multi_asic
 from sonic_py_common.interface import get_interface_table_name, get_port_table_name, get_intf_longname
 from utilities_common import util_base
+from swsscommon import swsscommon
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from utilities_common.db import Db
 from utilities_common.intf_filter import parse_interface_in_filter
@@ -1884,19 +1885,11 @@ def hostname(new_hostname):
 
     config_db = ConfigDBConnector()
     config_db.connect()
-    config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"hostname" : new_hostname})
-    try:
-        command = "service hostname-config restart"
-        clicommon.run_command(command, display_cmd=True)
-    except SystemExit as e:
-        click.echo("Restarting hostname-config  service failed with error {}".format(e))
-        raise
+    config_db.mod_entry(swsscommon.CFG_DEVICE_METADATA_TABLE_NAME, 'localhost',
+                        {'hostname': new_hostname})
 
-    # Reload Monit configuration to pick up new hostname in case it changed
-    click.echo("Reloading Monit configuration ...")
-    clicommon.run_command("sudo monit reload")
-
-    click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
+    click.echo('Please note loaded setting will be lost after system reboot. To'
+               ' preserve setting, run `config save`.')
 
 #
 # 'synchronous_mode' command ('config synchronous_mode ...')
@@ -2837,22 +2830,6 @@ def warm_restart_bgp_eoiu(ctx, enable):
     db = ctx.obj['db']
     db.mod_entry('WARM_RESTART', 'bgp', {'bgp_eoiu': enable})
 
-def mvrf_restart_services():
-    """Restart interfaces-config service and NTP service when mvrf is changed"""
-    """
-    When mvrf is enabled, eth0 should be moved to mvrf; when it is disabled,
-    move it back to default vrf. Restarting the "interfaces-config" service
-    will recreate the /etc/network/interfaces file and restart the
-    "networking" service that takes care of the eth0 movement.
-    NTP service should also be restarted to rerun the NTP service with or
-    without "cgexec" accordingly.
-    """
-    cmd="service ntp stop"
-    os.system (cmd)
-    cmd="systemctl restart interfaces-config"
-    os.system (cmd)
-    cmd="service ntp start"
-    os.system (cmd)
 
 def vrf_add_management_vrf(config_db):
     """Enable management vrf in config DB"""
@@ -2862,22 +2839,7 @@ def vrf_add_management_vrf(config_db):
         click.echo("ManagementVRF is already Enabled.")
         return None
     config_db.mod_entry('MGMT_VRF_CONFIG', "vrf_global", {"mgmtVrfEnabled": "true"})
-    mvrf_restart_services()
-    """
-    The regular expression for grep in below cmd is to match eth0 line in /proc/net/route, sample file:
-    $ cat /proc/net/route
-        Iface   Destination     Gateway         Flags   RefCnt  Use     Metric  Mask            MTU     Window  IRTT
-         eth0    00000000        01803B0A        0003    0       0       202     00000000        0       0       0
-    """
-    cmd = r"cat /proc/net/route | grep -E \"eth0\s+00000000\s+[0-9A-Z]+\s+[0-9]+\s+[0-9]+\s+[0-9]+\s+202\" | wc -l"
-    proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    output = proc.communicate()
-    if int(output[0]) >= 1:
-        cmd="ip -4 route del default dev eth0 metric 202"
-        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-        proc.communicate()
-        if proc.returncode != 0:
-            click.echo("Could not delete eth0 route")
+
 
 def vrf_delete_management_vrf(config_db):
     """Disable management vrf in config DB"""
@@ -2887,7 +2849,7 @@ def vrf_delete_management_vrf(config_db):
         click.echo("ManagementVRF is already Disabled.")
         return None
     config_db.mod_entry('MGMT_VRF_CONFIG', "vrf_global", {"mgmtVrfEnabled": "false"})
-    mvrf_restart_services()
+
 
 @config.group(cls=clicommon.AbbreviationGroup)
 @click.pass_context
@@ -4123,20 +4085,6 @@ def _get_all_mgmtinterface_keys():
     config_db.connect()
     return list(config_db.get_table('MGMT_INTERFACE').keys())
 
-def mgmt_ip_restart_services():
-    """Restart the required services when mgmt inteface IP address is changed"""
-    """
-    Whenever the eth0 IP address is changed, restart the "interfaces-config"
-    service which regenerates the /etc/network/interfaces file and restarts
-    the networking service to make the new/null IP address effective for eth0.
-    "ntp-config" service should also be restarted based on the new
-    eth0 IP address since the ntp.conf (generated from ntp.conf.j2) is
-    made to listen on that particular eth0 IP address or reset it back.
-    """
-    cmd="systemctl restart interfaces-config"
-    os.system (cmd)
-    cmd="systemctl restart ntp-config"
-    os.system (cmd)
 
 #
 # 'mtu' subcommand
@@ -4282,7 +4230,6 @@ def add(ctx, interface_name, ip_addr, gw):
             config_db.set_entry("MGMT_INTERFACE", (interface_name, str(ip_address)), {"NULL": "NULL"})
         else:
             config_db.set_entry("MGMT_INTERFACE", (interface_name, str(ip_address)), {"gwaddr": gw})
-        mgmt_ip_restart_services()
 
         return
 
@@ -4322,7 +4269,6 @@ def remove(ctx, interface_name, ip_addr):
 
     if interface_name == 'eth0':
         config_db.set_entry("MGMT_INTERFACE", (interface_name, str(ip_address)), None)
-        mgmt_ip_restart_services()
         return
 
     table_name = get_interface_table_name(interface_name)

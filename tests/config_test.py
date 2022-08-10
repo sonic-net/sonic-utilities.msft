@@ -1580,3 +1580,37 @@ class TestConfigRate(object):
     def teardown_class(cls):
         print("TEARDOWN")
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
+
+
+class TestConfigHostname(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        import config.main
+        importlib.reload(config.main)
+
+    @mock.patch('config.main.ConfigDBConnector')
+    def test_hostname_add(self, db_conn_patch, get_cmd_module):
+        db_conn_patch().mod_entry = mock.Mock()
+        (config, show) = get_cmd_module
+
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands["hostname"],
+                               ["new_hostname"])
+
+        # Verify success
+        assert result.exit_code == 0
+
+        # Check was called
+        args_list = db_conn_patch().mod_entry.call_args_list
+        assert len(args_list) > 0
+
+        args, _ = args_list[0]
+        assert len(args) > 0
+
+        # Check new hostname was part of args
+        assert {'hostname': 'new_hostname'} in args
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
