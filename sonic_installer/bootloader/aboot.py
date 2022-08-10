@@ -146,6 +146,11 @@ class AbootBootloader(Bootloader):
         with open(os.path.join(image_path, KERNEL_CMDLINE_NAME)) as f:
             return f.read()
 
+    def _set_image_cmdline(self, image, cmdline):
+        image_path = self.get_image_path(image)
+        with open(os.path.join(image_path, KERNEL_CMDLINE_NAME), 'w') as f:
+            return f.write(cmdline)
+
     def supports_package_migration(self, image):
         if is_secureboot():
             # NOTE: unsafe until migration can guarantee migration safety
@@ -203,6 +208,17 @@ class AbootBootloader(Bootloader):
         image = self.get_next_image()
         image_path = os.path.join(self.get_image_path(image), DEFAULT_SWI_IMAGE)
         return self._verify_secureboot_image(image_path)
+
+    def set_fips(self, image, enable):
+        fips = "1" if enable else "0"
+        cmdline = self._get_image_cmdline(image)
+        cmdline = re.sub(r' sonic_fips=[^\s]', '', cmdline) + " sonic_fips=" + fips
+        self._set_image_cmdline(image, cmdline)
+        click.echo('Done')
+
+    def get_fips(self, image):
+        cmdline = self._get_image_cmdline(image)
+        return 'sonic_fips=1' in cmdline
 
     def _verify_secureboot_image(self, image_path):
         if is_secureboot():

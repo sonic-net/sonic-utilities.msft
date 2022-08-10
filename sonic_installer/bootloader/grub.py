@@ -85,6 +85,45 @@ class GrubBootloader(OnieInstallerBootloader):
         run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
         click.echo('Image removed')
 
+    def get_linux_cmdline(self, image):
+        cmdline = None
+        config = open(HOST_PATH + '/grub/grub.cfg', 'r')
+        old_config = config.read()
+        menuentry = re.search("menuentry '" + image + "[^}]*}", old_config).group()
+        config.close()
+        for line in menuentry.split('\n'):
+            line = line.strip()
+            if line.startswith('linux '):
+                cmdline = line[6:].strip()
+                break
+        return cmdline
+
+    def set_linux_cmdline(self, image, cmdline):
+        config = open(HOST_PATH + '/grub/grub.cfg', 'r')
+        old_config = config.read()
+        old_menuentry = re.search("menuentry '" + image + "[^}]*}", old_config).group()
+        config.close()
+        new_menuentry = old_menuentry
+        for line in old_menuentry.split('\n'):
+            line = line.strip()
+            if line.startswith('linux '):
+                new_menuentry = old_menuentry.replace(line, "linux " + cmdline)
+                break
+        config = open(HOST_PATH + '/grub/grub.cfg', 'w')
+        config.write(old_config.replace(old_menuentry, new_menuentry))
+        config.close()
+
+    def set_fips(self, image, enable):
+        fips = "1" if enable else "0"
+        cmdline = self.get_linux_cmdline(image)
+        cmdline = re.sub(r' sonic_fips=[^\s]', '', cmdline) + " sonic_fips=" + fips
+        self.set_linux_cmdline(image, cmdline)
+        click.echo('Done')
+
+    def get_fips(self, image):
+        cmdline = self.get_linux_cmdline(image)
+        return 'sonic_fips=1' in cmdline
+
     def platform_in_platforms_asic(self, platform, image_path):
         """
         For those images that don't have devices list builtin, 'tar' will have non-zero returncode.
