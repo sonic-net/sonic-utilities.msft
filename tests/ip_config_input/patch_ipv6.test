@@ -1,0 +1,6 @@
+[
+    {
+        "path": "/INTERFACE/Ethernet12|FC00::1~1126", 
+        "op": "remove"
+    }
+]
