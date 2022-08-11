@@ -1362,6 +1362,20 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
             patch_as_json = json.loads(text)
             patch = jsonpatch.JsonPatch(patch_as_json)
 
+        # convert IPv6 addresses to lowercase
+        for patch_line in patch:
+            if 'remove' == patch_line['op']:
+                match = re.search(r"(?P<prefix>/INTERFACE/\w+\|)(?P<ipv6_address>([a-fA-F0-9]{0,4}[:~]|::){1,7}[a-fA-F0-9]{0,4})"
+                                    "(?P<suffix>.*)", str.format(patch_line['path']))
+                if match:
+                    prefix = match.group('prefix')
+                    ipv6_address_str = match.group('ipv6_address')
+                    suffix = match.group('suffix')
+                    ipv6_address_str = ipv6_address_str.lower()
+                    click.secho("converted ipv6 address to lowercase {} with prefix {} in value: {}"
+                                .format(ipv6_address_str, prefix, patch_line['path']))
+                    patch_line['path'] = prefix + ipv6_address_str + suffix
+
         config_format = ConfigFormat[format.upper()]
         GenericUpdater().apply_patch(patch, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
 
