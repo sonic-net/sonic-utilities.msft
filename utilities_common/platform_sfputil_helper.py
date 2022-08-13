@@ -6,7 +6,11 @@ from . import cli as clicommon
 from sonic_py_common import multi_asic, device_info
 
 platform_sfputil = None
+platform_chassis = None
+platform_sfp_base = None
+platform_porttab_mapping_read = False
 
+RJ45_PORT_TYPE = 'RJ45'
 
 def load_platform_sfputil():
 
@@ -22,6 +26,10 @@ def load_platform_sfputil():
 
 
 def platform_sfputil_read_porttab_mappings():
+    global platform_porttab_mapping_read
+
+    if platform_porttab_mapping_read:
+        return 0
 
     try:
 
@@ -35,6 +43,8 @@ def platform_sfputil_read_porttab_mappings():
             # For single ASIC platforms we pass port_config_file_path and the asic_inst as 0
             port_config_file_path = device_info.get_path_to_port_config_file()
             platform_sfputil.read_porttab_mappings(port_config_file_path, 0)
+
+        platform_porttab_mapping_read = True
     except Exception as e:
         click.echo("Error reading port info (%s)" % str(e))
         sys.exit(1)
@@ -70,7 +80,7 @@ def get_physical_to_logical():
 
 def get_interface_name(port, db):
 
-    if port is not "all" and port is not None:
+    if port != "all" and port is not None:
         alias = port
         iface_alias_converter = clicommon.InterfaceAliasConverter(db)
         if clicommon.get_interface_naming_mode() == "alias":
@@ -83,7 +93,7 @@ def get_interface_name(port, db):
 
 def get_interface_alias(port, db):
 
-    if port is not "all" and port is not None:
+    if port != "all" and port is not None:
         alias = port
         iface_alias_converter = clicommon.InterfaceAliasConverter(db)
         if clicommon.get_interface_naming_mode() == "alias":
@@ -93,3 +103,34 @@ def get_interface_alias(port, db):
                 sys.exit(1)
 
     return port
+
+
+def is_rj45_port(port_name):
+    global platform_sfputil
+    global platform_chassis
+    global platform_sfp_base
+    global platform_sfputil_loaded
+
+    if not platform_chassis:
+        import sonic_platform
+        platform_chassis = sonic_platform.platform.Platform().get_chassis()
+    if not platform_sfp_base:
+        import sonic_platform_base
+        platform_sfp_base = sonic_platform_base.sfp_base.SfpBase
+
+    if platform_chassis and platform_sfp_base:
+        if not platform_sfputil:
+            load_platform_sfputil()
+
+        if not platform_porttab_mapping_read:
+            platform_sfputil_read_porttab_mappings()
+
+        physical_port = logical_port_name_to_physical_port_list(port_name)[0]
+        try:
+            port_type = platform_chassis.get_port_or_cage_type(physical_port)
+        except NotImplementedError as e:
+            port_type = None
+
+        return port_type == platform_sfp_base.SFP_PORT_TYPE_BIT_RJ45
+
+    return False
