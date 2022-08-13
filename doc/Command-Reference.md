@@ -6925,12 +6925,13 @@ When any port is already member of any other portchannel and if user tries to ad
 Command takes two optional arguements given below.
 1) min-links  - minimum number of links required to bring up the portchannel
 2) fallback - true/false. LACP fallback feature can be enabled / disabled.  When it is set to true, only one member port will be selected as active per portchannel during fallback mode. Refer https://github.com/Azure/SONiC/blob/master/doc/lag/LACP%20Fallback%20Feature%20for%20SONiC_v0.5.md for more details about fallback feature.
+3) fast-rate - true/false, default is false (slow). Option specifying the rate in which we'll ask our link partner to transmit LACPDU packets in 802.3ad mode. slow - request partner to transmit LACPDUs every 30 seconds, fast - request partner to transmit LACPDUs every 1 second. In slow mode 60-90 seconds needed to detect linkdown, in fast mode only 2-3 seconds.
 
 A port channel can be deleted only if it does not have any members or the members are already deleted. When a user tries to delete a port channel and the port channel still has one or more members that exist, the deletion of port channel is blocked. 
 
 - Usage:
   ```
-  config portchannel (add | del) <portchannel_name> [--min-links <num_min_links>] [--fallback (true | false)]
+  config portchannel (add | del) <portchannel_name> [--min-links <num_min_links>] [--fallback (true | false)  [--fast-rate (true | false)]
   ```
 
 - Example (Create the portchannel with name "PortChannel0011"):

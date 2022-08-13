@@ -1967,8 +1967,11 @@ def portchannel(db, ctx, namespace):
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
 @click.option('--min-links', default=1, type=click.IntRange(1,1024))
 @click.option('--fallback', default='false')
+@click.option('--fast-rate', default='false',
+              type=click.Choice(['true', 'false'],
+                                case_sensitive=False))
 @click.pass_context
-def add_portchannel(ctx, portchannel_name, min_links, fallback):
+def add_portchannel(ctx, portchannel_name, min_links, fallback, fast_rate):
     """Add port channel"""
     if is_portchannel_name_valid(portchannel_name) != True:
         ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
@@ -1979,9 +1982,12 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback):
     if is_portchannel_present_in_db(db, portchannel_name):
         ctx.fail("{} already exists!".format(portchannel_name))
 
-    fvs = {'admin_status': 'up',
-           'mtu': '9100',
-           'lacp_key': 'auto'}
+    fvs = {
+        'admin_status': 'up',
+        'mtu': '9100',
+        'lacp_key': 'auto',
+        'fast_rate': fast_rate.lower(),
+    }
     if min_links != 0:
         fvs['min_links'] = str(min_links)
     if fallback != 'false':

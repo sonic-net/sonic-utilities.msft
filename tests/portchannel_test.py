@@ -1,4 +1,5 @@
 import os
+import pytest
 import traceback
 
 from click.testing import CliRunner
@@ -60,7 +61,32 @@ class TestPortChannel(object):
         print(result.output)
         assert result.exit_code != 0
         assert "Error: PortChannel0005 is not present." in result.output
-        
+
+    @pytest.mark.parametrize("fast_rate", ["False", "True", "false", "true"])
+    def test_add_portchannel_with_fast_rate(self, fast_rate):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # add a portchannel with fats rate
+        result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChannel0005", "--fast-rate", fast_rate], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+    @pytest.mark.parametrize("fast_rate", ["Fls", "tru"])
+    def test_add_portchannel_with_invalid_fast_rate(self, fast_rate):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # add a portchannel with invalid fats rate
+        result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChannel0005", "--fast-rate", fast_rate], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert 'Invalid value for "--fast-rate"'  in result.output
+
     def test_add_portchannel_member_with_invalid_name(self):
         runner = CliRunner()
         db = Db()
