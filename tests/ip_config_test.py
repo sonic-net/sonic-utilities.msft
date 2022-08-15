@@ -177,6 +177,18 @@ class TestConfigIP(object):
         print(result.exit_code, result.output)
         assert "converted ipv6 address to lowercase fc00::1~1126 with prefix /INTERFACE/Ethernet12| in value: /INTERFACE/Ethernet12|FC00::1~1126" in result.output
 
+    def test_intf_vrf_bind_unbind(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb, 'namespace':db.db.namespace}
+
+        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["bind"], ["Ethernet64", "Vrf1"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+
+        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Ethernet64"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
 
     @classmethod
     def teardown_class(cls):
