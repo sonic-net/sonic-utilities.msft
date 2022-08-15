@@ -60,6 +60,8 @@ def connect_SonicV2Connector(self, db_name, retry_on=True):
 def _subscribe_keyspace_notification(self, db_name, client):
     pass
 
+def mock_close(self, db_name):
+    pass
 
 def config_set(self, *args):
     pass
@@ -183,6 +185,7 @@ class SwssSyncClient(mockredis.MockRedis):
 
 
 swsssdk.interface.DBInterface._subscribe_keyspace_notification = _subscribe_keyspace_notification
+swsssdk.interface.DBInterface.close = mock_close
 mockredis.MockRedis.config_set = config_set
 redis.StrictRedis = SwssSyncClient
 SonicV2Connector.connect = connect_SonicV2Connector
