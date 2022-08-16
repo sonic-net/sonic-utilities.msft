@@ -228,8 +228,6 @@ def main():
 
     (opts, args) = get_cmdline_opts()
 
-    use_db = opts.db and support_eeprom_db
-
     # Get platform name
     platform = device_info.get_platform()
 
@@ -237,6 +235,8 @@ def main():
     platforms_without_eeprom_db = ['.*arista.*', '.*kvm.*']
     if any(re.match(p, platform) for p in platforms_without_eeprom_db):
         support_eeprom_db = False
+
+    use_db = opts.db and support_eeprom_db
 
     if opts.mgmtmac:
         print_mgmt_mac(use_db)

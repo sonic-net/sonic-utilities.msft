@@ -192,3 +192,12 @@ CRC-32               0xFE        4  0xAC518FB3
         decode_syseeprom.print_model(True)
         captured = capsys.readouterr()
         assert captured.out == 'S6100-ON\n'
+
+    @mock.patch('os.geteuid', lambda: 0)
+    @mock.patch('sonic_py_common.device_info.get_platform', lambda: 'arista')
+    @mock.patch('decode-syseeprom.read_and_print_eeprom')
+    @mock.patch('decode-syseeprom.read_eeprom_from_db')
+    def test_support_platforms_not_db_based(self, mockDbBased, mockNotDbBased):
+        decode_syseeprom.main()
+        assert mockNotDbBased.called
+        assert not mockDbBased.called
