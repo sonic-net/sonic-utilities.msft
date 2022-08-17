@@ -460,8 +460,10 @@ class SWAPAllocator(object):
             meminfo = self.read_from_meminfo()
             mem_total_in_bytes = meminfo["MemTotal"] * SWAPAllocator.KiB_TO_BYTES_FACTOR
             mem_avail_in_bytes = meminfo["MemAvailable"] * SWAPAllocator.KiB_TO_BYTES_FACTOR
-            if (mem_total_in_bytes < self.total_mem_threshold * SWAPAllocator.MiB_TO_BYTES_FACTOR
-                    or mem_avail_in_bytes < self.available_mem_threshold * SWAPAllocator.MiB_TO_BYTES_FACTOR):
+            swap_total_in_bytes = meminfo["SwapTotal"] * SWAPAllocator.KiB_TO_BYTES_FACTOR
+            swap_free_in_bytes = meminfo["SwapFree"] * SWAPAllocator.KiB_TO_BYTES_FACTOR
+            if (mem_total_in_bytes + swap_total_in_bytes < self.total_mem_threshold * SWAPAllocator.MiB_TO_BYTES_FACTOR
+                    or mem_avail_in_bytes + swap_free_in_bytes < self.available_mem_threshold * SWAPAllocator.MiB_TO_BYTES_FACTOR):
                 echo_and_log("Setup SWAP memory")
                 swapfile = SWAPAllocator.SWAP_FILE_PATH
                 if os.path.exists(swapfile):
