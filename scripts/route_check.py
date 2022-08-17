@@ -281,7 +281,10 @@ def get_routes():
 
     valid_rt = []
     for k in keys:
-        if not is_vrf(k) and not is_local(k):
+        if (is_vrf(k)):
+            k = k.split(":", 1)[1]
+
+        if not is_local(k):
             valid_rt.append(add_prefix_ifnot(k.lower()))
 
     print_message(syslog.LOG_DEBUG, json.dumps({"ROUTE_TABLE": sorted(valid_rt)}, indent=4))
