@@ -17,6 +17,8 @@ class TestSWAPAllocator(object):
         proc_meminfo_lines = [
             "MemTotal:       32859496 kB",
             "MemFree:        16275512 kB",
+            "SwapTotal:      2000000  kB",
+            "SwapFree:       1000000  kB",
             "HugePages_Total:       0",
             "HugePages_Free:        0",
         ]
@@ -24,6 +26,8 @@ class TestSWAPAllocator(object):
         read_meminfo_expected_return = {
             "MemTotal": 32859496,
             "MemFree": 16275512,
+            "SwapTotal": 2000000,
+            "SwapFree": 1000000,
             "HugePages_Total": 0,
             "HugePages_Free": 0
         }
@@ -113,6 +117,8 @@ class TestSWAPAllocator(object):
             mock_meminfo.return_value = {
                 "MemTotal": 2000000,
                 "MemAvailable": 1900000,
+                "SwapTotal": 0,
+                "SwapFree": 0,
             }
             mock_exists.return_value = False
 
@@ -135,6 +141,56 @@ class TestSWAPAllocator(object):
             mock_meminfo.return_value = {
                 "MemTotal": 3000000,
                 "MemAvailable": 1000000,
+                "SwapTotal": 0,
+                "SwapFree": 0,
+            }
+            mock_exists.return_value = False
+
+            swap_allocator = SWAPAllocator(allocate=True)
+            try:
+                swap_allocator.__enter__()
+            except Exception as detail:
+                pytest.fail("SWAPAllocator context manager should not raise exception %s" % repr(detail))
+            mock_setup.assert_called_once()
+            mock_remove.assert_not_called()
+            assert swap_allocator.is_allocated is True
+
+    def test_swap_allocator_context_enter_allocate_true_insufficient_total_memory_plus_swap(self):
+        with mock.patch("sonic_installer.main.SWAPAllocator.get_disk_freespace") as mock_disk_free, \
+                mock.patch("sonic_installer.main.SWAPAllocator.read_from_meminfo") as mock_meminfo, \
+                mock.patch("sonic_installer.main.SWAPAllocator.setup_swapmem") as mock_setup, \
+                mock.patch("sonic_installer.main.SWAPAllocator.remove_swapmem") as mock_remove, \
+                mock.patch("os.path.exists") as mock_exists:
+            mock_disk_free.return_value = 10 * 1024 * 1024 * 1024
+            mock_meminfo.return_value = {
+                "MemTotal": 1000000,
+                "MemAvailable": 900000,
+                "SwapTotal": 1000000,
+                "SwapFree": 1000000,
+            }
+            mock_exists.return_value = False
+
+            swap_allocator = SWAPAllocator(allocate=True)
+            try:
+                swap_allocator.__enter__()
+            except Exception as detail:
+                pytest.fail("SWAPAllocator context manager should not raise exception %s" % repr(detail))
+            mock_setup.assert_called_once()
+            mock_remove.assert_not_called()
+            assert swap_allocator.is_allocated is True
+
+    def test_swap_allocator_context_enter_allocate_true_insufficient_available_memory_plus_swap(self):
+        with mock.patch("sonic_installer.main.SWAPAllocator.get_disk_freespace") as mock_disk_free, \
+                mock.patch("sonic_installer.main.SWAPAllocator.read_from_meminfo") as mock_meminfo, \
+                mock.patch("sonic_installer.main.SWAPAllocator.setup_swapmem") as mock_setup, \
+                mock.patch("sonic_installer.main.SWAPAllocator.remove_swapmem") as mock_remove, \
+                mock.patch("os.path.exists") as mock_exists:
+            mock_disk_free.return_value = 10 * 1024 * 1024 * 1024
+            mock_meminfo.return_value = {
+                "MemTotal": 2000000,
+                "MemAvailable": 500000,
+                "SwapTotal": 1000000,
+                "SwapFree": 500000,
             }
             mock_exists.return_value = False
 
@@ -157,6 +213,8 @@ class TestSWAPAllocator(object):
             mock_meminfo.return_value = {
                 "MemTotal": 32859496,
                 "MemAvailable": 16275512,
+                "SwapTotal": 0,
+                "SwapFree": 0,
             }
             mock_exists.return_value = False
 
@@ -179,6 +237,8 @@ class TestSWAPAllocator(object):
             mock_meminfo.return_value = {
                 "MemTotal": 32859496,
                 "MemAvailable": 1000000,
+                "SwapTotal": 0,
+                "SwapFree": 0,
             }
             mock_exists.return_value = True
 
@@ -201,6 +261,8 @@ class TestSWAPAllocator(object):
             mock_meminfo.return_value = {
                 "MemTotal": 32859496,
                 "MemAvailable": 1000000,
+                "SwapTotal": 0,
+                "SwapFree": 0,
             }
             mock_exists.return_value = False
             expected_err_str = "Pseudo Error"
@@ -225,6 +287,8 @@ class TestSWAPAllocator(object):
             mock_meminfo.return_value = {
                 "MemTotal": 32859496,
                 "MemAvailable": 1000000,
+                "SwapTotal": 0,
+                "SwapFree": 0,
             }
             mock_exists.return_value = False
 
