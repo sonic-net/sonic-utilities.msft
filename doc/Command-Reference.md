@@ -4484,7 +4484,7 @@ This will move the interface to default vrf.
 
 - Usage:
   ```
-  config interface vrf unbind <interface_name> <vrf_name>
+  config interface vrf unbind <interface_name>
   ```
   
   ### Interface vrf binding show commands
