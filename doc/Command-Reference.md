@@ -1583,7 +1583,7 @@ This command displays the state and key parameters of all BFD sessions.
 
 - Usage:
   ```
-  show bgp summary
+  show bfd summary
   ```
 - Example:
   ```
