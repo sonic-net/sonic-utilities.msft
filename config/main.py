@@ -1692,7 +1692,7 @@ def load_minigraph(db, no_service_restart, traffic_shift_away):
                 cfggen_namespace_option = " -n {}".format(namespace)
             clicommon.run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
 
-    # Keep device isolated with TSA 
+    # Keep device isolated with TSA
     if traffic_shift_away:
         clicommon.run_command("TSA", display_cmd=True)
         if os.path.isfile(DEFAULT_GOLDEN_CONFIG_DB_FILE):
@@ -4630,6 +4630,67 @@ def cable_length(ctx, interface_name, length):
 def transceiver(ctx):
     """SFP transceiver configuration"""
     pass
+
+#
+# 'frequency' subcommand ('config interface transceiver frequency ...')
+#
+@transceiver.command()
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('frequency', metavar='<frequency>', required=True, type=int)
+def frequency(ctx, interface_name, frequency):
+    """Set transciever (only for 400G-ZR) frequency"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if interface_name_is_valid(config_db, interface_name) is False:
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    log.log_info("{} Setting transceiver frequency {} GHz".format(interface_name, frequency))
+
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -F {}".format(interface_name, frequency)
+    else:
+        command = "portconfig -p {} -F {} -n {}".format(interface_name, frequency, ctx.obj['namespace'])
+
+    clicommon.run_command(command)
+
+
+#
+# 'tx_power' subcommand ('config interface transceiver tx_power ...')
+# For negative float use:-
+# config interface transceiver tx_power Ethernet0 -- -27.4"
+#
+@transceiver.command('tx_power')
+@click.pass_context
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('tx-power', metavar='<tx-power>', required=True, type=float)
+def tx_power(ctx, interface_name, tx_power):
+    """Set transciever (only for 400G-ZR) Tx laser power"""
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if interface_name_is_valid(config_db, interface_name) is False:
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    log.log_info("{} Setting transceiver power {} dBm".format(interface_name, tx_power))
+
+    if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
+        command = "portconfig -p {} -P {}".format(interface_name, tx_power)
+    else:
+        command = "portconfig -p {} -P {} -n {}".format(interface_name, tx_power, ctx.obj['namespace'])
+
+    clicommon.run_command(command)
 
 #
 # 'lpmode' subcommand ('config interface transceiver lpmode ...')
