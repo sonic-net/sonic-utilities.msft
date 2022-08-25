@@ -133,7 +133,7 @@ def is_rj45_port(port_name):
 
         port_type = None
         try:
-            physical_port = logical_port_name_to_physical_port_list(port_name)
+            physical_port = platform_sfputil.logical_port_name_to_physical_port_list(port_name)
             if physical_port:
                 port_type = platform_chassis.get_port_or_cage_type(physical_port[0])
         except Exception as e:
