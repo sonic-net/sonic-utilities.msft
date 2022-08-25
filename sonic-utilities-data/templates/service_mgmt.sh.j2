@@ -28,7 +28,7 @@ if [[ -f /etc/sonic/${SERVICE}_dependent ]]; then
 fi
 
 if [[ -f /etc/sonic/${SERVICE}_multi_inst_dependent ]]; then
-    MULTI_INST_DEPENDENT="${MULTI_INST_DEPENDENT} cat /etc/sonic/${SERVICE}_multi_inst_dependent"
+    MULTI_INST_DEPENDENT="${MULTI_INST_DEPENDENT} $(cat /etc/sonic/${SERVICE}_multi_inst_dependent)"
 fi
 
 function debug()
