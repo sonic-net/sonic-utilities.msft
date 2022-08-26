@@ -43,10 +43,9 @@ class AuthenticationService:
 
         content = json.loads(response.content)
         token = content['token']
-        expires_in = content['expires_in']
 
         log.debug(f'authentication token for bearer={bearer}: '
-                  f'token={token} expires_in={expires_in}')
+                  f'token={token}')
 
         return token
 
