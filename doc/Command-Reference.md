@@ -186,6 +186,11 @@
 * [ZTP Configuration And Show Commands](#ztp-configuration-and-show-commands)
   * [ ZTP show commands](#ztp-show-commands)
   * [ZTP configuration commands](#ztp-configuration-commands)
+* [MACsec Commands](#macsec-commands)
+  * [MACsec config command](#macsec-config-command)
+  * [MACsec show command](#macsec-show-command)
+  * [MACsec clear command](#macsec-clear-command)
+
 
 ## Document History
 
@@ -11022,3 +11027,251 @@ Running command: ztp run -y
 ```
 
 Go Back To [Beginning of the document](#SONiC-COMMAND-LINE-INTERFACE-GUIDE) or [Beginning of this section](#ztp-configuration-and-show-commands)
+
+# MACsec Commands
+
+This sub-section explains the list of the configuration options available for MACsec. MACsec feature is as a plugin to SONiC, So please install MACsec package before using MACsec commands.
+
+## MACsec config command
+
+- Add MACsec profile
+```
+admin@sonic:~$ sudo config macsec profile add --help
+Usage: config macsec profile add [OPTIONS] <profile_name>
+
+  Add MACsec profile
+
+Options:
+  --priority <priority>           For Key server election. In 0-255 range with
+                                  0 being the highest priority.  [default:
+                                  255]
+  --cipher_suite <cipher_suite>   The cipher suite for MACsec.  [default: GCM-
+                                  AES-128]
+  --primary_cak <primary_cak>     Primary Connectivity Association Key.
+                                  [required]
+  --primary_ckn <primary_cak>     Primary CAK Name.  [required]
+  --policy <policy>               MACsec policy. INTEGRITY_ONLY: All traffic,
+                                  except EAPOL, will be converted to MACsec
+                                  packets without encryption.  SECURITY: All
+                                  traffic, except EAPOL, will be encrypted by
+                                  SecY.  [default: security]
+  --enable_replay_protect / --disable_replay_protect
+                                  Whether enable replay protect.  [default:
+                                  False]
+  --replay_window <enable_replay_protect>
+                                  Replay window size that is the number of
+                                  packets that could be out of order. This
+                                  field works only if ENABLE_REPLAY_PROTECT is
+                                  true.  [default: 0]
+  --send_sci / --no_send_sci      Send SCI in SecTAG field of MACsec header.
+                                  [default: True]
+  --rekey_period <rekey_period>   The period of proactively refresh (Unit
+                                  second).  [default: 0]
+  -?, -h, --help                  Show this message and exit.
+```
+
+- Delete MACsec profile
+```
+admin@sonic:~$ sudo config macsec profile del --help
+Usage: config macsec profile del [OPTIONS] <profile_name>
+
+  Delete MACsec profile
+
+Options:
+  -?, -h, --help  Show this message and exit.
+```
+
+- Enable MACsec on the port
+```
+admin@sonic:~$ sudo config macsec port add --help
+Usage: config macsec port add [OPTIONS] <port_name> <profile_name>
+
+  Add MACsec port
+
+Options:
+  -?, -h, --help  Show this message and exit.
+```
+
+
+- Disable MACsec on the port
+```
+admin@sonic:~$ sudo config macsec port del --help
+Usage: config macsec port del [OPTIONS] <port_name>
+
+  Delete MACsec port
+
+Options:
+  -?, -h, --help  Show this message and exit.
+
+```
+
+
+## MACsec show command
+
+- Show MACsec
+
+```
+admin@vlab-02:~$ show macsec --help
+Usage: show macsec [OPTIONS] [INTERFACE_NAME]
+
+Options:
+  -d, --display [all]  Show internal interfaces  [default: all]
+  -n, --namespace []   Namespace name or all
+  -h, -?, --help       Show this message and exit.
+
+```
+
+```
+admin@vlab-02:~$ show macsec
+MACsec port(Ethernet0)
+---------------------  -----------
+cipher_suite           GCM-AES-256
+enable                 true
+enable_encrypt         true
+enable_protect         true
+enable_replay_protect  false
+replay_window          0
+send_sci               true
+---------------------  -----------
+	MACsec Egress SC (5254008f4f1c0001)
+	-----------  -
+	encoding_an  2
+	-----------  -
+		MACsec Egress SA (1)
+		-------------------------------------  ----------------------------------------------------------------
+		auth_key                               849B69D363E2B0AA154BEBBD7C1D9487
+		next_pn                                1
+		sak                                    AE8C9BB36EA44B60375E84BC8E778596289E79240FDFA6D7BA33D3518E705A5E
+		salt                                   000000000000000000000000
+		ssci                                   0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN         179
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
+		-------------------------------------  ----------------------------------------------------------------
+		MACsec Egress SA (2)
+		-------------------------------------  ----------------------------------------------------------------
+		auth_key                               5A8B8912139551D3678B43DD0F10FFA5
+		next_pn                                1
+		sak                                    7F2651140F12C434F782EF9AD7791EE2CFE2BF315A568A48785E35FC803C9DB6
+		salt                                   000000000000000000000000
+		ssci                                   0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN         87185
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
+		-------------------------------------  ----------------------------------------------------------------
+	MACsec Ingress SC (525400edac5b0001)
+		MACsec Ingress SA (1)
+		---------------------------------------  ----------------------------------------------------------------
+		active                                   true
+		auth_key                                 849B69D363E2B0AA154BEBBD7C1D9487
+		lowest_acceptable_pn                     1
+		sak                                      AE8C9BB36EA44B60375E84BC8E778596289E79240FDFA6D7BA33D3518E705A5E
+		salt                                     000000000000000000000000
+		ssci                                     0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN           103
+		SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
+		---------------------------------------  ----------------------------------------------------------------
+		MACsec Ingress SA (2)
+		---------------------------------------  ----------------------------------------------------------------
+		active                                   true
+		auth_key                                 5A8B8912139551D3678B43DD0F10FFA5
+		lowest_acceptable_pn                     1
+		sak                                      7F2651140F12C434F782EF9AD7791EE2CFE2BF315A568A48785E35FC803C9DB6
+		salt                                     000000000000000000000000
+		ssci                                     0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN           91824
+		SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
+		---------------------------------------  ----------------------------------------------------------------
+MACsec port(Ethernet1)
+---------------------  -----------
+cipher_suite           GCM-AES-256
+enable                 true
+enable_encrypt         true
+enable_protect         true
+enable_replay_protect  false
+replay_window          0
+send_sci               true
+---------------------  -----------
+	MACsec Egress SC (5254008f4f1c0001)
+	-----------  -
+	encoding_an  1
+	-----------  -
+		MACsec Egress SA (1)
+		-------------------------------------  ----------------------------------------------------------------
+		auth_key                               35FC8F2C81BCA28A95845A4D2A1EE6EF
+		next_pn                                1
+		sak                                    1EC8572B75A840BA6B3833DC550C620D2C65BBDDAD372D27A1DFEB0CD786671B
+		salt                                   000000000000000000000000
+		ssci                                   0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN         4809
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED    0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED    0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_ENCRYPTED  0
+		SAI_MACSEC_SA_STAT_OUT_PKTS_PROTECTED  0
+		-------------------------------------  ----------------------------------------------------------------
+	MACsec Ingress SC (525400edac5b0001)
+		MACsec Ingress SA (1)
+		---------------------------------------  ----------------------------------------------------------------
+		active                                   true
+		auth_key                                 35FC8F2C81BCA28A95845A4D2A1EE6EF
+		lowest_acceptable_pn                     1
+		sak                                      1EC8572B75A840BA6B3833DC550C620D2C65BBDDAD372D27A1DFEB0CD786671B
+		salt                                     000000000000000000000000
+		ssci                                     0
+		SAI_MACSEC_SA_ATTR_CURRENT_XPN           5033
+		SAI_MACSEC_SA_STAT_IN_PKTS_DELAYED       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_INVALID       0
+		SAI_MACSEC_SA_STAT_IN_PKTS_LATE          0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_USING_SA  0
+		SAI_MACSEC_SA_STAT_IN_PKTS_NOT_VALID     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_OK            0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNCHECKED     0
+		SAI_MACSEC_SA_STAT_IN_PKTS_UNUSED_SA     0
+		SAI_MACSEC_SA_STAT_OCTETS_ENCRYPTED      0
+		SAI_MACSEC_SA_STAT_OCTETS_PROTECTED      0
+		---------------------------------------  ----------------------------------------------------------------
+```
+
+## MACsec clear command
+
+Clear MACsec counters which is to reset all MACsec counters to ZERO.
+
+```
+admin@sonic:~$ sonic-clear macsec --help
+Usage: sonic-clear macsec [OPTIONS]
+
+  Clear MACsec counts. This clear command will generated a cache for next
+  show commands which will base on this cache as the zero baseline to show
+  the increment of counters.
+
+Options:
+  --clean-cache BOOLEAN  If the option of clean cache is true, next show
+                         commands will show the raw counters which based on
+                         the service booted instead of the last clear command.
+  -h, -?, --help         Show this message and exit.
+```
+
+
+
