@@ -4914,6 +4914,11 @@ def bind(ctx, interface_name, vrf_name):
     interface_addresses = get_interface_ipaddresses(config_db, interface_name)
     for ipaddress in interface_addresses:
         remove_router_interface_ip_address(config_db, interface_name, ipaddress)
+    if table_name == "VLAN_SUB_INTERFACE":
+        subintf_entry = config_db.get_entry(table_name, interface_name)
+        if 'vrf_name' in subintf_entry:
+            subintf_entry.pop('vrf_name')
+
     config_db.set_entry(table_name, interface_name, None)
     # When config_db del entry and then add entry with same key, the DEL will lost.
     if ctx.obj['namespace'] is DEFAULT_NAMESPACE:
@@ -4925,7 +4930,11 @@ def bind(ctx, interface_name, vrf_name):
     while state_db.exists(state_db.STATE_DB, _hash):
         time.sleep(0.01)
     state_db.close(state_db.STATE_DB)
-    config_db.set_entry(table_name, interface_name, {"vrf_name": vrf_name})
+    if table_name == "VLAN_SUB_INTERFACE":
+        subintf_entry['vrf_name'] = vrf_name
+        config_db.set_entry(table_name, interface_name, subintf_entry)
+    else:
+        config_db.set_entry(table_name, interface_name, {"vrf_name": vrf_name})
 
 #
 # 'unbind' subcommand
@@ -4947,12 +4956,21 @@ def unbind(ctx, interface_name):
     table_name = get_interface_table_name(interface_name)
     if table_name == "":
         ctx.fail("'interface_name' is not valid. Valid names [Ethernet/PortChannel/Vlan/Loopback]")
+
     if is_interface_bind_to_vrf(config_db, interface_name) is False:
         return
+    if table_name == "VLAN_SUB_INTERFACE":
+        subintf_entry = config_db.get_entry(table_name, interface_name)
+        if 'vrf_name' in subintf_entry:
+            subintf_entry.pop('vrf_name')
+
     interface_ipaddresses = get_interface_ipaddresses(config_db, interface_name)
     for ipaddress in interface_ipaddresses:
         remove_router_interface_ip_address(config_db, interface_name, ipaddress)
-    config_db.set_entry(table_name, interface_name, None)
+    if table_name == "VLAN_SUB_INTERFACE":
+        config_db.set_entry(table_name, interface_name, subintf_entry)
+    else:
+        config_db.set_entry(table_name, interface_name, None)
 
 #
 # 'ipv6' subgroup ('config interface ipv6 ...')
@@ -6677,6 +6695,13 @@ def subintf_vlan_check(config_db, parent_intf, vlan):
                     return True
     return False
 
+def is_subintf_shortname(intf):
+    if VLAN_SUB_INTERFACE_SEPARATOR in intf:
+        if intf.startswith("Ethernet") or intf.startswith("PortChannel"):
+            return False
+        return True
+    return False
+
 @subinterface.command('add')
 @click.argument('subinterface_name', metavar='<subinterface_name>', required=True)
 @click.argument('vid', metavar='<vid>', required=False, type=click.IntRange(1,4094))
@@ -6722,6 +6747,8 @@ def add_subinterface(ctx, subinterface_name, vid):
     subintf_dict = {}
     if vid is not None:
         subintf_dict.update({"vlan" : vid})
+    elif is_subintf_shortname(subinterface_name):
+        ctx.fail("{} Encap vlan is mandatory for short name subinterfaces".format(subinterface_name))
 
     if subintf_vlan_check(config_db, get_intf_longname(interface_alias), vid) is True:
         ctx.fail("Vlan {} encap already configured on other subinterface on {}".format(vid, interface_alias))

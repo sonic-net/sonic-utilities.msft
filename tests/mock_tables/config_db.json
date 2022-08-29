@@ -379,9 +379,24 @@
     "VLAN_SUB_INTERFACE|Eth32.10": {
         "admin_status": "up",
         "loopback_action": "drop",
+        "vrf_name": "Vrf1",
         "vlan": "100"
     },
     "VLAN_SUB_INTERFACE|Eth32.10|32.10.11.12/24": {
+        "NULL" : "NULL"
+    },
+    "VLAN_SUB_INTERFACE|Eth32.10|3210::12/126": {
+        "NULL" : "NULL"
+    },
+    "VLAN_SUB_INTERFACE|Po0001.10": {
+        "admin_status": "up",
+        "vrf_name": "Vrf1",
+        "vlan": "100"
+    },
+    "VLAN_SUB_INTERFACE|Po0001.10|10.10.11.12/24": {
+        "NULL" : "NULL"
+    },
+    "VLAN_SUB_INTERFACE|Po0001.10|1010::12/126": {
         "NULL" : "NULL"
     },
     "ACL_RULE|NULL_ROUTE_V4|DEFAULT_RULE": {
