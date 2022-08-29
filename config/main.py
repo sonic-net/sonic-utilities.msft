@@ -365,6 +365,19 @@ def get_interface_ipaddresses(config_db, interface_name):
 
     return ipaddresses
 
+def is_vrf_exists(config_db, vrf_name):
+    """Check if VRF exists
+    """
+    keys = config_db.get_keys("VRF")
+    if vrf_name in keys:
+        return True
+    elif vrf_name == "mgmt":
+        entry = config_db.get_entry("MGMT_VRF_CONFIG", "vrf_global")
+        if entry and entry.get("mgmtVrfEnabled") == "true":
+           return True
+
+    return False
+
 def is_interface_bind_to_vrf(config_db, interface_name):
     """Get interface if bind to vrf or not
     """
@@ -910,6 +923,7 @@ def cli_sroute_to_config(ctx, command_str, strict_nh = True):
     nexthop_str = None
     config_entry = {}
     vrf_name = ""
+    config_db = ctx.obj['config_db']
 
     if "nexthop" in command_str:
         idx = command_str.index("nexthop")
@@ -922,6 +936,8 @@ def cli_sroute_to_config(ctx, command_str, strict_nh = True):
         if 'prefix' in prefix_str and 'vrf' in prefix_str:
             # prefix_str: ['prefix', 'vrf', Vrf-name, ip]
             vrf_name = prefix_str[2]
+            if not is_vrf_exists(config_db, vrf_name):
+                ctx.fail("VRF %s does not exist!"%(vrf_name))
             ip_prefix = prefix_str[3]
         elif 'prefix' in prefix_str:
             # prefix_str: ['prefix', ip]
@@ -933,6 +949,8 @@ def cli_sroute_to_config(ctx, command_str, strict_nh = True):
         if 'nexthop' in nexthop_str and 'vrf' in nexthop_str:
             # nexthop_str: ['nexthop', 'vrf', Vrf-name, ip]
             config_entry["nexthop"] = nexthop_str[3]
+            if not is_vrf_exists(config_db, nexthop_str[2]):
+                ctx.fail("VRF %s does not exist!"%(nexthop_str[2]))
             config_entry["nexthop-vrf"] = nexthop_str[2]
         elif 'nexthop' in nexthop_str and 'dev' in nexthop_str:
             # nexthop_str: ['nexthop', 'dev', ifname]
@@ -4820,6 +4838,9 @@ def bind(ctx, interface_name, vrf_name):
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
+
+    if not is_vrf_exists(config_db, vrf_name):
+        ctx.fail("VRF %s does not exist!"%(vrf_name))
 
     table_name = get_interface_table_name(interface_name)
     if table_name == "":
