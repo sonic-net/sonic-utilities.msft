@@ -15,6 +15,20 @@ ip_config_input_path = os.path.join(test_path, "ip_config_input")
 
 ERROR_MSG = "Error: IP address is not valid"
 
+INVALID_VRF_MSG ="""\
+Usage: bind [OPTIONS] <interface_name> <vrf_name>
+Try "bind --help" for help.
+
+Error: VRF Vrf2 does not exist!
+"""
+
+INVALID_MGMT_VRF_MSG ="""\
+Usage: bind [OPTIONS] <interface_name> <vrf_name>
+Try "bind --help" for help.
+
+Error: VRF mgmt does not exist!
+"""
+
 class TestConfigIP(object):
     @classmethod
     def setup_class(cls):
@@ -187,6 +201,27 @@ class TestConfigIP(object):
         assert result.exit_code == 0
 
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Ethernet64"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code == 0
+
+    def test_intf_unknown_vrf_bind(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb, 'namespace':db.db.namespace}
+
+        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["bind"], ["Ethernet64", "Vrf2"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+        assert result.output == INVALID_VRF_MSG
+
+        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["bind"], ["Ethernet64", "mgmt"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+        assert result.output == INVALID_MGMT_VRF_MSG
+
+        result = runner.invoke(config.config.commands["vrf"].commands["add"], ["mgmt"], obj=obj)
+        print(result.exit_code, result.output)
+        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["bind"], ["Ethernet64", "mgmt"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
 
