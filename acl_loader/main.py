@@ -4,6 +4,7 @@ import click
 import ipaddress
 import json
 import syslog
+import operator
 
 import openconfig_acl
 import tabulate
@@ -758,7 +759,7 @@ class AclLoader(object):
                 namespace_configdb.mod_entry(self.ACL_RULE, key, None)
 
         for key in existing_controlplane_rules:
-            if cmp(self.rules_info[key], self.rules_db_info[key]) != 0:
+            if not operator.eq(self.rules_info[key], self.rules_db_info[key]):
                 self.configdb.set_entry(self.ACL_RULE, key, self.rules_info[key])
                 # Program for per-asic namespace corresponding to front asic also if present.
                 # For control plane ACL it's not needed but to keep all db in sync program everywhere

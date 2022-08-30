@@ -1,6 +1,7 @@
 import sys
 import os
 import pytest
+from unittest import mock
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -200,3 +201,19 @@ class TestAclLoader(object):
         acl_loader.rules_info = {}
         acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/tcp_bad_protocol_number.json'))
         assert not acl_loader.rules_info.get("RULE_1")
+
+    def test_incremental_update(self, acl_loader):
+        acl_loader.rules_info = {}
+        acl_loader.tables_db_info['NTP_ACL'] = {
+            "stage": "INGRESS",
+            "type": "CTRLPLANE"
+        }
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/incremental_1.json'))
+        acl_loader.rules_db_info = acl_loader.rules_info
+        assert acl_loader.rules_info[(('NTP_ACL', 'RULE_1'))]["PACKET_ACTION"] == "ACCEPT"
+        acl_loader.per_npu_configdb = None
+        acl_loader.configdb.mod_entry = mock.MagicMock(return_value=True)
+        acl_loader.configdb.set_entry = mock.MagicMock(return_value=True)
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/incremental_2.json'))
+        acl_loader.incremental_update()
+        assert acl_loader.rules_info[(('NTP_ACL', 'RULE_1'))]["PACKET_ACTION"] == "DROP"
