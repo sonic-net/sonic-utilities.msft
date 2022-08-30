@@ -24,6 +24,7 @@ RESULT = "res"
 OP_SET = "SET"
 OP_DEL = "DEL"
 
+NEIGH_TABLE = 'NEIGH_TABLE'
 ROUTE_TABLE = 'ROUTE_TABLE'
 VNET_ROUTE_TABLE = 'VNET_ROUTE_TABLE'
 INTF_TABLE = 'INTF_TABLE'
@@ -295,6 +296,22 @@ test_data = {
         }
     },
     "7": {
+        DESCR: "dualtor standalone tunnel route case",
+        ARGS: "route_check",
+        PRE: {
+            APPL_DB: {
+                NEIGH_TABLE: {
+                    "Vlan1000:fc02:1000::99": { "neigh": "00:00:00:00:00:00", "family": "IPv6"}
+                }
+            },
+            ASIC_DB: {
+                RT_ENTRY_TABLE: {
+                    RT_ENTRY_KEY_PREFIX + "fc02:1000::99/128" + RT_ENTRY_KEY_SUFFIX: {},
+                }
+            }
+        }
+    },
+    "8": {
         DESCR: "Good one with VRF routes",
         ARGS: "route_check",
         PRE: {
@@ -401,6 +418,11 @@ class Table:
     def get(self, key):
         ret = copy.deepcopy(self.data.get(key, {}))
         return (True, ret)
+
+
+    def hget(self, key, field):
+        ret = copy.deepcopy(self.data.get(key, {}).get(field, {}))
+        return True, ret
 
 
 db_conns = {"APPL_DB": APPL_DB, "ASIC_DB": ASIC_DB}

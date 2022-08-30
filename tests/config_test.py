@@ -222,7 +222,7 @@ class TestConfigReload(object):
             obj = {'config_db': db.cfgdb}
 
             # simulate 'config reload' to provoke load_sys_info option
-            result = runner.invoke(config.config.commands["reload"], ["-l", "-n", "-y"], obj=obj)
+            result = runner.invoke(config.config.commands["reload"], ["-l", "-n", "-y", "--disable_arp_cache"], obj=obj)
 
             print(result.exit_code)
             print(result.output)
@@ -484,7 +484,7 @@ class TestReloadConfig(object):
 
             result = runner.invoke(
                 config.config.commands["reload"],
-                [self.dummy_cfg_file, '-y', '-f'])
+                [self.dummy_cfg_file, '-y', '-f', "--disable_arp_cache"])
 
             print(result.exit_code)
             print(result.output)
@@ -501,7 +501,7 @@ class TestReloadConfig(object):
             (config, show) = get_cmd_module
 
             runner = CliRunner()
-            result = runner.invoke(config.config.commands["reload"], [self.dummy_cfg_file, "-y"])
+            result = runner.invoke(config.config.commands["reload"], [self.dummy_cfg_file, "-y", "--disable_arp_cache"])
 
             print(result.exit_code)
             print(result.output)
@@ -526,7 +526,7 @@ class TestReloadConfig(object):
                             self.dummy_cfg_file)
             result = runner.invoke(
                 config.config.commands["reload"],
-                [cfg_files, '-y', '-f'])
+                [cfg_files, '-y', '-f', "--disable_arp_cache"])
 
             print(result.exit_code)
             print(result.output)
@@ -545,7 +545,7 @@ class TestReloadConfig(object):
             runner = CliRunner()
 
             result = runner.invoke(config.config.commands["reload"],
-                                    [self.dummy_cfg_file, '-y','-f' ,'-t', 'config_yang'])
+                                    [self.dummy_cfg_file, "--disable_arp_cache", '-y', '-f', '-t', 'config_yang'])
 
             print(result.exit_code)
             print(result.output)
