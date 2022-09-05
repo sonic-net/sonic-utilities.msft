@@ -12,6 +12,7 @@ import subprocess
 import sys
 import time
 import itertools
+import copy
 
 from collections import OrderedDict
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
@@ -46,7 +47,7 @@ from . import nat
 from . import vlan
 from . import vxlan
 from . import plugins
-from .config_mgmt import ConfigMgmtDPB
+from .config_mgmt import ConfigMgmtDPB, ConfigMgmt
 from . import mclag
 from . import syslog
 
@@ -1885,27 +1886,66 @@ def override_config_table(db, input_config_db, dry_run):
 
     config_db = db.cfgdb
 
+    # Read config from configDB
+    current_config = config_db.get_config()
+    # Serialize to the same format as json input
+    sonic_cfggen.FormatConverter.to_serialized(current_config)
+
+    updated_config = update_config(current_config, config_input)
+
+    yang_enabled = device_info.is_yang_config_validation_enabled(config_db)
+    if yang_enabled:
+        # The ConfigMgmt will load YANG and running
+        # config during initialization.
+        try:
+            cm = ConfigMgmt()
+            cm.validateConfigData()
+        except Exception as ex:
+            click.secho("Failed to validate running config. Error: {}".format(ex), fg="magenta")
+            sys.exit(1)
+
+        # Validate input config
+        validate_config_by_cm(cm, config_input, "config_input")
+        # Validate updated whole config
+        validate_config_by_cm(cm, updated_config, "updated_config")
+
     if dry_run:
-        # Read config from configDB
-        current_config = config_db.get_config()
-        # Serialize to the same format as json input
-        sonic_cfggen.FormatConverter.to_serialized(current_config)
-        # Override current config with golden config
-        for table in config_input:
-            current_config[table] = config_input[table]
-        print(json.dumps(current_config, sort_keys=True,
+        print(json.dumps(updated_config, sort_keys=True,
                          indent=4, cls=minigraph_encoder))
     else:
-        # Deserialized golden config to DB recognized format
-        sonic_cfggen.FormatConverter.to_deserialized(config_input)
-        # Delete table from DB then mod_config to apply golden config
-        click.echo("Removing configDB overriden table first ...")
-        for table in config_input:
-            config_db.delete_table(table)
-        click.echo("Overriding input config to configDB ...")
-        data = sonic_cfggen.FormatConverter.output_to_db(config_input)
-        config_db.mod_config(data)
-        click.echo("Overriding completed. No service is restarted.")
+        override_config_db(config_db, config_input)
+
+
+def validate_config_by_cm(cm, config_json, jname):
+    tmp_config_json = copy.deepcopy(config_json)
+    try:
+        cm.loadData(tmp_config_json)
+        cm.validateConfigData()
+    except Exception as ex:
+        click.secho("Failed to validate {}. Error: {}".format(jname, ex), fg="magenta")
+        sys.exit(1)
+
+
+def update_config(current_config, config_input):
+    updated_config = copy.deepcopy(current_config)
+    # Override current config with golden config
+    for table in config_input:
+        updated_config[table] = config_input[table]
+    return updated_config
+
+
+def override_config_db(config_db, config_input):
+    # Deserialized golden config to DB recognized format
+    sonic_cfggen.FormatConverter.to_deserialized(config_input)
+    # Delete table from DB then mod_config to apply golden config
+    click.echo("Removing configDB overriden table first ...")
+    for table in config_input:
+        config_db.delete_table(table)
+    click.echo("Overriding input config to configDB ...")
+    data = sonic_cfggen.FormatConverter.output_to_db(config_input)
+    config_db.mod_config(data)
+    click.echo("Overriding completed. No service is restarted.")
+
 
 #
 # 'hostname' command
