@@ -281,6 +281,7 @@ class TestDryRunChangeApplier(unittest.TestCase):
 
         # Act
         applier.apply(change)
+        applier.remove_backend_tables_from_config(change)
 
         # Assert
         applier.config_wrapper.apply_change_to_config_db.assert_has_calls([call(change)])

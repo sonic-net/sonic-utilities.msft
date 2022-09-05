@@ -65,6 +65,10 @@ class DryRunChangeApplier:
         self.config_wrapper.apply_change_to_config_db(change)
 
 
+    def remove_backend_tables_from_config(self, data):
+        return data
+
+
 class ChangeApplier:
 
     updater_conf = None
