@@ -25,7 +25,8 @@ PORT_BUFFER_DROP      60000               enable
 QUEUE_WATERMARK_STAT  default (60000)     enable
 PG_WATERMARK_STAT     default (60000)     enable
 PG_DROP_STAT          10000               enable
-ACL                   10000               enable
+ACL                   5000                enable
+TUNNEL_STAT           3000                enable
 FLOW_CNT_TRAP_STAT    10000               enable
 FLOW_CNT_ROUTE_STAT   10000               enable
 """
