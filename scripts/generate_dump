@@ -885,6 +885,10 @@ collect_mellanox() {
     ${CMD_PREFIX}docker exec syncd mkdir -p $sai_dump_folder
     ${CMD_PREFIX}docker exec syncd saisdkdump -f $sai_dump_filename
 
+    if [ $? != 0 ]; then
+        echo "Failed to collect saisdkdump."
+    fi
+
     copy_from_docker syncd $sai_dump_folder $sai_dump_folder
     echo "$sai_dump_folder"
     for file in `ls $sai_dump_folder`; do
