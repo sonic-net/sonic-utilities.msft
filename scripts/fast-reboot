@@ -689,6 +689,12 @@ else
 fi
 
 for service in ${SERVICES_TO_STOP}; do
+    # Skip the masked services
+    state=$(systemctl is-enabled ${service})
+    if [[ $state == "masked" ]]; then
+        continue
+    fi
+
     debug "Stopping ${service} ..."
 
     # TODO: These exceptions for nat, sflow, lldp
