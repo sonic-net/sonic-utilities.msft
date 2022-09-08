@@ -33,10 +33,16 @@ import os
 import sys
 import syslog
 import subprocess
+from swsscommon.swsscommon import events_init_publisher, events_deinit_publisher, event_publish
+from swsscommon.swsscommon import FieldValueMap
 
 UPPER_DIR = "/run/mount/upper"
 WORK_DIR = "/run/mount/work"
 MOUNTS_FILE = "/proc/mounts"
+
+EVENTS_PUBLISHER_SOURCE = "sonic-events-host"
+EVENTS_PUBLISHER_TAG = "event-disk"
+events_handle = None
 
 chk_log_level = syslog.LOG_ERR
 
@@ -44,6 +50,7 @@ def _log_msg(lvl, pfx, msg):
     if lvl <= chk_log_level:
         print("{}: {}".format(pfx, msg))
         syslog.syslog(lvl, msg)
+
 
 def log_err(m):
     _log_msg(syslog.LOG_ERR, "Err", m)
@@ -57,11 +64,18 @@ def log_debug(m):
     _log_msg(syslog.LOG_DEBUG, "Debug", m)
 
 
+def event_pub():
+    param_dict = FieldValueMap()
+    param_dict["fail_type"] = "read_only"
+    event_publish(events_handle, EVENTS_PUBLISHER_TAG, param_dict)
+
+
 def test_writable(dirs): 
     for d in dirs:
         rw = os.access(d, os.W_OK)
         if not rw:
             log_err("{} is not read-write".format(d))
+            event_pub()
             return False
         else:
             log_debug("{} is Read-Write".format(d))
@@ -145,12 +159,13 @@ def do_check(skip_mount, dirs):
     # Check if mounted
     if (not ret) and is_mounted(dirs):
         log_err("READ-ONLY: Mounted {} to make Read-Write".format(dirs))
+        event_pub()
 
     return ret
 
 
 def main():
-    global chk_log_level
+    global chk_log_level, events_handle
 
     parser=argparse.ArgumentParser(
             description="check disk for Read-Write and mount etc & home as Read-Write")
@@ -163,7 +178,12 @@ def main():
     args = parser.parse_args()
 
     chk_log_level = args.loglvl
+
+    events_handle = events_init_publisher(EVENTS_PUBLISHER_SOURCE)
+
     ret = do_check(args.skip_mount, args.dirs.split(","))
+
+    events_deinit_publisher(events_handle)
     return ret
 
 
