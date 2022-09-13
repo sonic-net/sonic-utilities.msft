@@ -3,7 +3,7 @@
         "vrf_name": "Vrf101",
         "admin_status": "up"
     },
-    "VLAN_SUB_INTERFACE|Eth32.10": {
+    "VLAN_SUB_INTERFACE|Eth36.10": {
         "vrf_name": "Vrf102",
         "admin_status": "up",
         "vlan": "100"

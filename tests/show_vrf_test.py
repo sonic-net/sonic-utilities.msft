@@ -29,7 +29,7 @@ Vrf1
 Vrf101  Ethernet0.10
 Vrf102  PortChannel0002
         Vlan40
-        Eth32.10
+        Eth36.10
 Vrf103  Ethernet4
         Loopback0
         Po0002.101
@@ -53,7 +53,7 @@ Vrf1
 Vrf101  Ethernet0.10
 Vrf102  PortChannel0002
         Vlan40
-        Eth32.10
+        Eth36.10
 Vrf103  Ethernet4
         Loopback0
         Po0002.101
@@ -86,10 +86,10 @@ Vrf103  Ethernet4
         assert result.exit_code == 0
         assert 'PortChannel002' not in db.cfgdb.get_table('PORTCHANNEL_INTERFACE')
         
-        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Eth32.10"], obj=obj)
+        result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Eth36.10"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code == 0
-        assert ('vrf_name', 'Vrf102') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Eth32.10']
+        assert ('vrf_name', 'Vrf102') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Eth36.10']
 
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Ethernet0.10"], obj=obj)
         print(result.exit_code, result.output)
@@ -114,7 +114,7 @@ Vrf1
 Vrf101  Ethernet0.10
 Vrf102  PortChannel0002
         Vlan40
-        Eth32.10
+        Eth36.10
 Vrf103  Ethernet4
         Loopback0
         Po0002.101

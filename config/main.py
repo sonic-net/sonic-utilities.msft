@@ -2113,6 +2113,14 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
             ctx.fail(" {} has ip address configured".format(port_name))
             return
 
+    for key in db.get_keys('VLAN_SUB_INTERFACE'):
+        if type(key) == tuple:
+            continue
+        intf = key.split(VLAN_SUB_INTERFACE_SEPARATOR)[0]
+        parent_intf = get_intf_longname(intf)
+        if parent_intf == port_name:
+            ctx.fail(" {} has subinterfaces configured".format(port_name))
+
     # Dont allow a port to be member of port channel if it is configured as a VLAN member
     for k,v in db.get_table('VLAN_MEMBER'):
         if v == port_name:
@@ -6762,23 +6770,24 @@ def add_subinterface(ctx, subinterface_name, vid):
 
     config_db = ctx.obj['db']
     port_dict = config_db.get_table(intf_table_name)
+    parent_intf = get_intf_longname(interface_alias)
     if interface_alias is not None:
         if not port_dict:
             ctx.fail("{} parent interface not found. {} table none".format(interface_alias, intf_table_name))
-        if get_intf_longname(interface_alias) not in port_dict.keys():
+        if parent_intf not in port_dict.keys():
             ctx.fail("{} parent interface not found".format(subinterface_name))
 
     # Validate if parent is portchannel member
     portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
-    if interface_is_in_portchannel(portchannel_member_table, interface_alias):
+    if interface_is_in_portchannel(portchannel_member_table, parent_intf):
         ctx.fail("{} is configured as a member of portchannel. Cannot configure subinterface"
-                .format(interface_alias))
+                .format(parent_intf))
 
     # Validate if parent is vlan member
     vlan_member_table = config_db.get_table('VLAN_MEMBER')
-    if interface_is_in_vlan(vlan_member_table, interface_alias):
+    if interface_is_in_vlan(vlan_member_table, parent_intf):
         ctx.fail("{} is configured as a member of vlan. Cannot configure subinterface"
-                .format(interface_alias))
+                .format(parent_intf))
 
     sub_intfs = [k for k,v in config_db.get_table('VLAN_SUB_INTERFACE').items() if type(k) != tuple]
     if subinterface_name in sub_intfs:

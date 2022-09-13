@@ -7,7 +7,7 @@ from utilities_common.db import Db
 show_ip_interfaces_loopback_action_output="""\
 Interface        Action
 ---------------  --------
-Eth32.10         drop
+Eth36.10         drop
 Ethernet0        forward
 PortChannel0001  drop
 Vlan3000         forward

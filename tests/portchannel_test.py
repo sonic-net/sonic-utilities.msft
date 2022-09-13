@@ -147,6 +147,19 @@ class TestPortChannel(object):
         assert result.exit_code != 0
         assert "Error:  Ethernet0 has ip address configured" in result.output
 
+    def test_add_portchannel_member_which_has_subintf(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # add a portchannel member with port which has ip-address
+        result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["add"], ["PortChannel1001", "Ethernet36"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        print(result.output)
+        assert "Error:  Ethernet36 has subinterfaces configured" in result.output
+
     def test_add_portchannel_member_which_is_member_of_vlan(self):
         runner = CliRunner()
         db = Db()
