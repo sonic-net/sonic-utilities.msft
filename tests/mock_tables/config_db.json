@@ -376,16 +376,16 @@
     "VLAN_SUB_INTERFACE|Ethernet0.10|10.11.12.13/24": {
         "NULL" : "NULL"
     },
-    "VLAN_SUB_INTERFACE|Eth32.10": {
+    "VLAN_SUB_INTERFACE|Eth36.10": {
         "admin_status": "up",
         "loopback_action": "drop",
         "vrf_name": "Vrf1",
         "vlan": "100"
     },
-    "VLAN_SUB_INTERFACE|Eth32.10|32.10.11.12/24": {
+    "VLAN_SUB_INTERFACE|Eth36.10|32.10.11.12/24": {
         "NULL" : "NULL"
     },
-    "VLAN_SUB_INTERFACE|Eth32.10|3210::12/126": {
+    "VLAN_SUB_INTERFACE|Eth36.10|3210::12/126": {
         "NULL" : "NULL"
     },
     "VLAN_SUB_INTERFACE|Po0001.10": {

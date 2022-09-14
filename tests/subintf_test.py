@@ -7,6 +7,12 @@ import config.main as config
 import show.main as show
 from utilities_common.db import Db
 
+SUB_INTF_ON_LAG_MEMBER_ERR="""\
+Usage: add [OPTIONS] <subinterface_name> <vid>
+Try "add --help" for help.
+
+Error: Ethernet32 is configured as a member of portchannel. Cannot configure subinterface
+"""
 
 class TestSubinterface(object):
     @classmethod
@@ -140,6 +146,21 @@ class TestSubinterface(object):
         result = runner.invoke(config.config.commands["subinterface"].commands["add"], ["Po0004.102"], obj=obj)
         print(result.exit_code, result.output)
         assert result.exit_code != 0
+
+    def test_subintf_creation_on_lag_member(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["subinterface"].commands["add"], ["Ethernet32.10"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+        assert(result.output == SUB_INTF_ON_LAG_MEMBER_ERR)
+
+        result = runner.invoke(config.config.commands["subinterface"].commands["add"], ["Eth32.20"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+        assert(result.output == SUB_INTF_ON_LAG_MEMBER_ERR)
 
     def test_subintf_vrf_bind_unbind(self):
         runner = CliRunner()

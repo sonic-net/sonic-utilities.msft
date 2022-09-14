@@ -188,7 +188,7 @@
         "admin_status": "up",
         "vlan": "10"
     },
-    "INTF_TABLE:Eth32.10": {
+    "INTF_TABLE:Eth36.10": {
         "admin_status": "up",
         "vrf_name": "Vrf1",
         "vlan": "100"
@@ -202,7 +202,7 @@
         "family": "IPv4",
         "scope": "global"
     },
-    "INTF_TABLE:Eth32.10|32.10.11.12/24": {
+    "INTF_TABLE:Eth36.10|32.10.11.12/24": {
         "family": "IPv4",
         "scope": "global"
     },
@@ -210,7 +210,7 @@
         "family": "IPv4",
         "scope": "global"
     },
-    "INTF_TABLE:Eth32.10|3210::12/126": {
+    "INTF_TABLE:Eth36.10|3210::12/126": {
         "family": "IPv6",
         "scope": "global"
     },

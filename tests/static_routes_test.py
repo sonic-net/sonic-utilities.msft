@@ -403,16 +403,16 @@ class TestStaticRoutes(object):
         print(result.exit_code, result.output)
         assert not ('2.2.3.5/32') in db.cfgdb.get_table('STATIC_ROUTE')
 
-        # config route add prefix 2.2.3.5/32 nexthop dev Eth32.10
+        # config route add prefix 2.2.3.5/32 nexthop dev Eth36.10
         result = runner.invoke(config.config.commands["route"].commands["add"], \
-        ["prefix", "2.2.3.5/32", "nexthop", "dev", "Eth32.10"], obj=obj)
+        ["prefix", "2.2.3.5/32", "nexthop", "dev", "Eth36.10"], obj=obj)
         print(result.exit_code, result.output)
         assert ('2.2.3.5/32') in db.cfgdb.get_table('STATIC_ROUTE')
-        assert db.cfgdb.get_entry('STATIC_ROUTE', '2.2.3.5/32') == {'nexthop': '', 'blackhole': 'false', 'distance': '0', 'ifname': 'Eth32.10', 'nexthop-vrf': ''}
+        assert db.cfgdb.get_entry('STATIC_ROUTE', '2.2.3.5/32') == {'nexthop': '', 'blackhole': 'false', 'distance': '0', 'ifname': 'Eth36.10', 'nexthop-vrf': ''}
 
-        # config route del prefix 2.2.3.5/32 nexthop dev Eth32.10
+        # config route del prefix 2.2.3.5/32 nexthop dev Eth36.10
         result = runner.invoke(config.config.commands["route"].commands["del"], \
-        ["prefix", "2.2.3.5/32", "nexthop", "dev", "Eth32.10"], obj=obj)
+        ["prefix", "2.2.3.5/32", "nexthop", "dev", "Eth36.10"], obj=obj)
         print(result.exit_code, result.output)
         assert not ('2.2.3.5/32') in db.cfgdb.get_table('STATIC_ROUTE')
 
