@@ -47,7 +47,7 @@ Format of differences output:
 
 RC_OK = 0
 RC_ERR = -1
-
+default_vrf_oid = ""
 
 report_level = syslog.LOG_ERR
 write_to_syslog = True
@@ -211,7 +211,7 @@ def get_vnet_routes_from_app_db():
     vnet_routes = {}
 
     for vnet_route_db_key in vnet_routes_db_keys:
-        vnet_route_list = vnet_route_db_key.split(':')
+        vnet_route_list = vnet_route_db_key.split(':',1)
         vnet_name = vnet_route_list[0]
         vnet_route = vnet_route_list[1]
 
@@ -219,8 +219,22 @@ def get_vnet_routes_from_app_db():
             vnet_routes[vnet_name] = {}
             vnet_routes[vnet_name]['routes'] = []
 
-            intf = vnet_intfs[vnet_name][0]
-            vnet_routes[vnet_name]['vrf_oid'] = vnet_vrfs.get(intf, 'None')
+            if vnet_name not in vnet_intfs:
+                # this route has no vnet_intf and may be part of default VRF.
+                vnet_table = swsscommon.Table(db, 'VNET_TABLE')
+                scope_value = ""
+                # "Vnet_v4_in_v4-0": [("vxlan_tunnel", "tunnel_v4"), ("scope", "default"), ("vni", "10000"), ("peer_list", "")]
+                for key,value in vnet_table.get(vnet_name)[1]:
+                    if key == "scope":
+                        scope_value = value
+                        break
+                if scope_value == 'default':
+                    vnet_routes[vnet_name]['vrf_oid'] = default_vrf_oid
+                else:
+                    assert "Non-default VRF route present without vnet interface."
+            else:
+                intf = vnet_intfs[vnet_name][0]
+                vnet_routes[vnet_name]['vrf_oid'] = vnet_vrfs.get(intf, 'None')
 
         vnet_routes[vnet_name]['routes'].append(vnet_route)
 
@@ -237,10 +251,12 @@ def get_vnet_routes_from_asic_db():
 
     vnet_vrfs = get_vrf_entries()
     vnet_vrfs_oids = [vnet_vrfs[k] for k in vnet_vrfs]
+    vnet_vrfs_oids.append(default_vrf_oid) 
 
     vnet_intfs = get_vnet_intfs()
 
     vrf_oid_to_vnet_map = {}
+    vrf_oid_to_vnet_map[default_vrf_oid] = 'default_VRF'
 
     for vnet_name, vnet_rifs in vnet_intfs.items():
         for vnet_rif, vrf_oid in vnet_vrfs.items():
@@ -276,7 +292,22 @@ def get_vnet_routes_from_asic_db():
     return vnet_routes
 
 
-def get_vnet_routes_diff(routes_1, routes_2):
+def check_routes_with_default_vrf(vnet_name, vnet_attrs, routes_1, routes):
+    for vnet_route in vnet_attrs['routes']:
+        ispresent = False
+        for vnet_name_other, vnet_attrs_other in routes_1.items():
+            if vnet_route in vnet_attrs_other['routes']:
+                ispresent = True
+        if not ispresent:
+            if vnet_name not in routes:
+                routes[vnet_name] = {}
+                routes[vnet_name]['routes'] = []
+            routes[vnet_name]['routes'].append(vnet_route)
+
+    return
+
+
+def get_vnet_routes_diff(routes_1, routes_2, verify_default_vrf_routes = False):
     ''' Returns all routes present in routes_2 dictionary but missed in routes_1
     Format: { <vnet_name>: { 'routes': [ <pfx/pfx_len> ] } }
     '''
@@ -284,15 +315,21 @@ def get_vnet_routes_diff(routes_1, routes_2):
     routes = {}
 
     for vnet_name, vnet_attrs in routes_2.items():
-        if vnet_name not in routes_1:
-            routes[vnet_name] = routes
+        if vnet_attrs['vrf_oid'] == default_vrf_oid:
+            if verify_default_vrf_routes:
+                check_routes_with_default_vrf(vnet_name, vnet_attrs, routes_1, routes)
+            else:
+                continue
         else:
-            for vnet_route in vnet_attrs['routes']:
-                if vnet_route not in routes_1[vnet_name]['routes']:
-                    if vnet_name not in routes:
-                        routes[vnet_name] = {}
-                        routes[vnet_name]['routes'] = []
-                    routes[vnet_name]['routes'].append(vnet_route)
+            if vnet_name not in routes_1:
+                routes[vnet_name] =  vnet_attrs['routes'].copy()
+            else:
+                for vnet_route in vnet_attrs['routes']:
+                    if vnet_route not in routes_1[vnet_name]['routes']:
+                        if vnet_name not in routes:
+                            routes[vnet_name] = {}
+                            routes[vnet_name]['routes'] = []
+                        routes[vnet_name]['routes'].append(vnet_route)
 
     return routes
 
@@ -326,11 +363,16 @@ def main():
     # Don't run VNET routes consistancy logic if there is no VNET configuration
     if not check_vnet_cfg():
         return rc
+    asic_db = swsscommon.DBConnector('ASIC_DB', 0)
+    virtual_router = swsscommon.Table(asic_db, 'ASIC_STATE:SAI_OBJECT_TYPE_VIRTUAL_ROUTER')
+    if virtual_router.getKeys() != []:
+        global default_vrf_oid
+        default_vrf_oid = virtual_router.getKeys()[0]
 
     app_db_vnet_routes = get_vnet_routes_from_app_db()
     asic_db_vnet_routes = get_vnet_routes_from_asic_db()
 
-    missed_in_asic_db_routes = get_vnet_routes_diff(asic_db_vnet_routes, app_db_vnet_routes)
+    missed_in_asic_db_routes = get_vnet_routes_diff(asic_db_vnet_routes, app_db_vnet_routes,True)
     missed_in_app_db_routes = get_vnet_routes_diff(app_db_vnet_routes, asic_db_vnet_routes)
     missed_in_sdk_routes = get_sdk_vnet_routes_diff(asic_db_vnet_routes)
 

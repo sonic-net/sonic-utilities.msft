@@ -27,7 +27,7 @@ VNET_TABLE = "VNET_TABLE"
 VNET_ROUTE_TABLE = "VNET_ROUTE_TABLE"
 INTF_TABLE = "INTF_TABLE"
 ASIC_STATE = "ASIC_STATE"
-
+VNET_ROUTE_TUNNEL_TABLE = "VNET_ROUTE_TUNNEL_TABLE"
 RT_ENTRY_KEY_PREFIX = 'SAI_OBJECT_TYPE_ROUTE_ENTRY:{\"dest":\"'
 RT_ENTRY_KEY_SUFFIX = '\",\"switch_id\":\"oid:0x21000000000000\",\"vr\":\"oid:0x3000000000d4b\"}'
 
@@ -218,6 +218,76 @@ test_data = {
                     "Vnet1": {
                         "routes": [
                             "50.1.1.0/24"
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "4": {
+        DESCR: "All tunnel routes are configured in both APP and ASIC DB",
+        ARGS: "vnet_route_check",
+        PRE: {
+            APPL_DB: {
+                VXLAN_TUNNEL_TABLE: {
+                    "tunnel_v4": { "src_ip": "10.1.0.32" },
+                    "tunnel_v6": { "src_ip": "3001:2000::1" }
+                },
+                VNET_TABLE: {
+                    "Vnet_v4_in_v4-0": [("vxlan_tunnel", "tunnel_v4"), ("scope", "default"), ("vni", "10000"), ("peer_list", "")],
+                    "Vnet_v6_in_v6-0": [("vxlan_tunnel", "tunnel_v6"), ("scope", "default"), ("vni", "10002"), ("peer_list", "")]
+
+                },
+                VNET_ROUTE_TUNNEL_TABLE: {
+                    "Vnet_v4_in_v4-0:150.62.191.1/32" : { "endpoint" : "100.251.7.1,100.251.7.2" },
+                    "Vnet_v6_in_v6-0:fd01:fc00::1/128" : { "endpoint" : "fc02:1000::1,fc02:1000::2" }
+
+                }
+            },
+            ASIC_DB: {
+                "ASIC_STATE:SAI_OBJECT_TYPE_VIRTUAL_ROUTER": {
+                         "oid:0x3000000000d4b" : { "":"" }
+                },
+                ASIC_STATE: {
+                    RT_ENTRY_KEY_PREFIX + "150.62.191.1/32" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "fd01:fc00::1/128" + RT_ENTRY_KEY_SUFFIX: {}
+                }
+            }
+        },
+        RESULT: {
+            "results": {}
+        }
+    },
+    "5": {
+        DESCR: "Tunnel route present in APP DB but mssing in ASIC DB",
+        ARGS: "vnet_route_check",
+        RET: -1,
+        PRE: {
+            APPL_DB: {
+                VXLAN_TUNNEL_TABLE: {
+                    "tunnel_v4": { "src_ip": "10.1.0.32" }
+                },
+                VNET_TABLE: {
+                    "Vnet_v4_in_v4-0": [("vxlan_tunnel", "tunnel_v4"), ("scope", "default"), ("vni", "10000"), ("peer_list", "")]
+                },
+                VNET_ROUTE_TUNNEL_TABLE: {
+                   "Vnet_v4_in_v4-0:150.62.191.1/32" : { "endpoint" : "100.251.7.1,100.251.7.2" }
+                }
+            },
+            ASIC_DB: {
+                "ASIC_STATE:SAI_OBJECT_TYPE_VIRTUAL_ROUTER": {
+                         "oid:0x3000000000d4b" : { "":"" }
+                },
+                ASIC_STATE: {
+                }
+            }
+        },
+        RESULT: {
+            "results": {
+                "missed_in_asic_db_routes": {
+                    "Vnet_v4_in_v4-0": {
+                        "routes": [
+                            "150.62.191.1/32"
                         ]
                     }
                 }
