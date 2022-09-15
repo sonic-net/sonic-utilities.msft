@@ -9582,7 +9582,7 @@ This command displays vnet neighbor information about all the vnets configured i
 
 **show vnet routes all**
 
-This command displays all routes information about all the vnets configured in the device.
+This command displays all routes information about all the vnets configured in the device. It also show the vnet routes which are configured but may or may not be active based on endpoint BFD status.
 
 - Usage:
 
@@ -9599,10 +9599,11 @@ This command displays all routes information about all the vnets configured in t
   Vnet_2000    100.100.3.0/24             Ethernet52
   Vnet_3000    100.100.4.0/24             Vlan2000
 
-  vnet name    prefix          endpoint    mac address        vni
-  -----------  --------------  ----------  -----------------  -----
-  Vnet_2000    100.100.1.1/32  10.10.10.1
-  Vnet_3000    100.100.2.1/32  10.10.10.2  00:00:00:00:03:04
+  vnet name    prefix          endpoint    mac address        vni    status
+  -----------  --------------  ----------  -----------------  -----  -------
+  Vnet_2000    100.100.1.1/32  10.10.10.1                            active
+  Vnet_3000    100.100.2.1/32  10.10.10.2  00:00:00:00:03:04         inactive
+  Vnet_3000    100.100.2.3/32  10.10.10.6  00:00:00:00:03:04
   ```
 
 **show vnet routes tunnel**
@@ -11272,6 +11273,3 @@ Options:
                          the service booted instead of the last clear command.
   -h, -?, --help         Show this message and exit.
 ```
-
-
-

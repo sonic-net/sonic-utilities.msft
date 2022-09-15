@@ -878,5 +878,17 @@
     },
     "SYSTEM_READY|SYSTEM_STATE": {
         "Status":"DOWN"
+    },
+    "VNET_ROUTE_TUNNEL_TABLE|test_v4_in_v4-0|160.162.191.1/32": {
+        "active_endpoints":"100.251.7.1",
+        "state":"active"
+    },
+    "VNET_ROUTE_TUNNEL_TABLE|test_v4_in_v4-0|160.163.191.1/32": {
+        "active_endpoints":"100.251.7.1",
+        "state":"active"
+    },
+    "VNET_ROUTE_TUNNEL_TABLE|Vnet_v6_in_v6-0|fddd:a156:a251::a6:1/128": {
+        "active_endpoints":"fddd:a100:a251::a10:1,fddd:a101:a251::a10:1",
+        "state":"active"
     }
 }
