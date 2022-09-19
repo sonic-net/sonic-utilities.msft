@@ -454,10 +454,13 @@ function save_counters_folder() {
     if [[ "$REBOOT_TYPE" = "warm-reboot" ]]; then
         debug "Saving counters folder before warmboot..."
         counters_folder="/host/counters"
+        counters_cache="/tmp/cache"
         if [[ ! -d $counters_folder ]]; then
             mkdir $counters_folder
         fi
-        cp -rf /tmp/cache $counters_folder
+        if [[ -d $counters_cache ]]; then
+           cp -rf $counters_cache $counters_folder
+        fi
     fi
 }
 
