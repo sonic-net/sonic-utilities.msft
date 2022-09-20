@@ -155,13 +155,21 @@ class ConfigWrapper:
                 port_to_lanes_map[port] = lanes
 
         # Validate lanes are unique
-        existing = {}
-        for port in port_to_lanes_map:
-            lanes = port_to_lanes_map[port]
-            for lane in lanes:
-                if lane in existing:
-                    return False, f"'{lane}' lane is used multiple times in PORT: {set([port, existing[lane]])}"
-                existing[lane] = port
+        # TODO: Move this attribute (platform with duplicated lanes in ports) to YANG models
+        dup_lanes_platforms = [
+            'x86_64-arista_7050cx3_32s',
+            'x86_64-dellemc_s5232f_c3538-r0',
+        ]
+        metadata = config_db.get("DEVICE_METADATA", {})
+        platform = metadata.get("localhost", {}).get("platform", None)
+        if platform not in dup_lanes_platforms:
+            existing = {}
+            for port in port_to_lanes_map:
+                lanes = port_to_lanes_map[port]
+                for lane in lanes:
+                    if lane in existing:
+                        return False, f"'{lane}' lane is used multiple times in PORT: {set([port, existing[lane]])}"
+                    existing[lane] = port
         return True, None
 
     def validate_bgp_peer_group(self, config_db):
