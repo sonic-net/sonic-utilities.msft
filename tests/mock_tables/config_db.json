@@ -708,6 +708,9 @@
     "INTERFACE|Ethernet0|14.14.0.1/24": {
         "NULL": "NULL"
     },
+    "INTERFACE|Ethernet40": {
+        "ipv6_use_link_local_only": "enable"
+    },
     "DEBUG_COUNTER|DEBUG_0": {
         "type": "PORT_INGRESS_DROPS"
     },
