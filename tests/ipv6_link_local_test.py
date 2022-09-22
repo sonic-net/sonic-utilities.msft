@@ -30,7 +30,7 @@ show_ipv6_link_local_mode_output="""\
 +------------------+----------+
 | Ethernet36       | Disabled |
 +------------------+----------+
-| Ethernet40       | Disabled |
+| Ethernet40       | Enabled  |
 +------------------+----------+
 | Ethernet44       | Disabled |
 +------------------+----------+
@@ -223,6 +223,16 @@ class TestIPv6LinkLocal(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == ''
+
+    def test_vlan_member_add_on_link_local_interface(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb, 'namespace':db.db.namespace}
+
+        result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["add"], ["4000", "Ethernet40"], obj=obj)
+        print(result.output)
+        assert result.exit_code != 0
+        assert 'Error: Ethernet40 is a router interface!' in result.output
 
     @classmethod
     def teardown_class(cls):

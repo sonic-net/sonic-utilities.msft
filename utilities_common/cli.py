@@ -294,7 +294,7 @@ def is_port_router_interface(config_db, port):
 
     interface_table = config_db.get_table('INTERFACE')
     for intf in interface_table:
-        if port == intf[0]:
+        if port == intf:
             return True
 
     return False
@@ -304,7 +304,7 @@ def is_pc_router_interface(config_db, pc):
 
     pc_interface_table = config_db.get_table('PORTCHANNEL_INTERFACE')
     for intf in pc_interface_table:
-        if pc == intf[0]:
+        if pc == intf:
             return True
 
     return False
