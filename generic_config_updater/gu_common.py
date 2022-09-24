@@ -16,6 +16,9 @@ SYSLOG_IDENTIFIER = "GenericConfigUpdater"
 class GenericConfigUpdaterError(Exception):
     pass
 
+class EmptyTableError(ValueError):
+    pass
+
 class JsonChange:
     """
     A class that describes a partial change to a JSON object.

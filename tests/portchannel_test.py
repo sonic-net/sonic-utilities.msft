@@ -1,12 +1,16 @@
 import os
 import pytest
 import traceback
+import mock
 
 from click.testing import CliRunner
+from jsonpatch import JsonPatchConflict
 
 import config.main as config
+import config.validated_config_db_connector as validated_config_db_connector
 import show.main as show
 from utilities_common.db import Db
+from mock import patch
 
 class TestPortChannel(object):
     @classmethod
@@ -14,7 +18,23 @@ class TestPortChannel(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         print("SETUP")
 
-    def test_add_portchannel_with_invalid_name(self):
+    @patch("config.main.is_portchannel_present_in_db", mock.Mock(return_value=False))
+    @patch("config.validated_config_db_connector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    def test_add_portchannel_with_invalid_name_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChan005"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: PortChan005 is invalid!, name should have prefix 'PortChannel' and suffix '<0-9999>'" in result.output
+    
+    def test_add_portchannel_with_invalid_name_adhoc_validation(self):
+        config.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
@@ -26,7 +46,23 @@ class TestPortChannel(object):
         assert result.exit_code != 0
         assert "Error: PortChan005 is invalid!, name should have prefix 'PortChannel' and suffix '<0-9999>'" in result.output
 
-    def test_delete_portchannel_with_invalid_name(self):
+    @patch("config.validated_config_db_connector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    def test_delete_nonexistent_portchannel_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # delete a portchannel with invalid name
+        result = runner.invoke(config.config.commands["portchannel"].commands["del"], ["PortChan005"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "PortChan005 is not present" in result.output
+
+    def test_delete_portchannel_with_invalid_name_adhoc_validation(self):
+        config.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
@@ -50,7 +86,8 @@ class TestPortChannel(object):
         assert result.exit_code != 0
         assert "Error: PortChannel0001 already exists!" in result.output
 
-    def test_delete_non_existing_portchannel(self):
+    def test_delete_non_existing_portchannel_adhoc_validation(self):
+        config.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
@@ -63,7 +100,8 @@ class TestPortChannel(object):
         assert "Error: PortChannel0005 is not present." in result.output
 
     @pytest.mark.parametrize("fast_rate", ["False", "True", "false", "true"])
-    def test_add_portchannel_with_fast_rate(self, fast_rate):
+    def test_add_portchannel_with_fast_rate_adhoc_validation(self, fast_rate):
+        config.ADHOC_VALIDATION = True
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
@@ -79,7 +117,7 @@ class TestPortChannel(object):
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
-
+        
         # add a portchannel with invalid fats rate
         result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChannel0005", "--fast-rate", fast_rate], obj=obj)
         print(result.exit_code)
