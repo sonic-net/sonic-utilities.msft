@@ -325,6 +325,7 @@ def vrf(vrf_name):
             vrfs = [vrf_name]
         for vrf in vrfs:
             intfs = get_interface_bind_to_vrf(config_db, vrf)
+            intfs = natsorted(intfs)
             if len(intfs) == 0:
                 body.append([vrf, ""])
             else:
