@@ -3122,6 +3122,13 @@ This command will configure the state for a specific feature.
   admin@sonic:~$ sudo config feature state bgp disabled
   ``` 
 
+To make the command wait until the corresponding feature container stops(starts) use ```--block``` options:
+
+- Usage:
+    ```
+    admin@sonic:~$ config feature state bgp enabled --block
+    ```
+
 **config feature autorestart <feature_name> <autorestart_status>**
 
 This command will configure the status of auto-restart for a specific feature container.
