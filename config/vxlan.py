@@ -38,6 +38,10 @@ def del_vxlan(db, vxlan_name):
     """Del VXLAN"""
     ctx = click.get_current_context()
 
+    vxlan_keys = db.cfgdb.get_keys('VXLAN_TUNNEL')
+    if vxlan_name not in vxlan_keys:
+        ctx.fail("Vxlan tunnel {} does not exist".format(vxlan_name))
+
     vxlan_keys = db.cfgdb.get_keys('VXLAN_EVPN_NVO')
     if not vxlan_keys:
       vxlan_count = 0
@@ -55,6 +59,12 @@ def del_vxlan(db, vxlan_name):
 
     if(vxlan_count > 0):
         ctx.fail("Please delete all VLAN VNI mappings.")  
+
+    vnet_table = db.cfgdb.get_table('VNET')
+    vnet_keys = vnet_table.keys()
+    for vnet_key in vnet_keys:
+        if ('vxlan_tunnel' in vnet_table[vnet_key] and vnet_table[vnet_key]['vxlan_tunnel'] == vxlan_name):
+            ctx.fail("Please delete all VNET configuration referencing the tunnel " + vxlan_name)
 
     db.cfgdb.set_entry('VXLAN_TUNNEL', vxlan_name, None)
 

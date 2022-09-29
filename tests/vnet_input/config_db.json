@@ -1,0 +1,10 @@
+{
+    "VNET|Vnet_2000": {
+        "peer_list": "",
+        "vni": "2000",
+        "vxlan_tunnel": "tunnel1"
+    },
+    "VXLAN_TUNNEL|tunnel1": {
+        "src_ip": "10.10.10.10"
+    }
+}

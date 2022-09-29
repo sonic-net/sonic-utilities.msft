@@ -7,6 +7,10 @@ from click.testing import CliRunner
 import config.main as config
 import show.main as show
 from utilities_common.db import Db
+from .mock_tables import dbconnector
+
+test_path = os.path.dirname(os.path.abspath(__file__))
+mock_db_path = os.path.join(test_path, "vnet_input")
 
 show_vxlan_interface_output="""\
 VTEP Information:
@@ -246,6 +250,24 @@ class TestVxlan(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_vxlan_vlanvnimap_output
+
+    def test_config_vxlan_del(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db')
+        db = Db()
+        runner = CliRunner()
+
+        result = runner.invoke(config.config.commands["vxlan"].commands["del"], ["tunnel_invalid"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Vxlan tunnel tunnel_invalid does not exist" in result.output
+
+        result = runner.invoke(config.config.commands["vxlan"].commands["del"], ["tunnel1"], obj=db)
+        dbconnector.dedicated_dbs = {}
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Please delete all VNET configuration referencing the tunnel" in result.output
 
     @classmethod
     def teardown_class(cls):
