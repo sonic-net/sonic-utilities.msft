@@ -32,10 +32,17 @@ def name(vxlan_name):
         vxlan_map_keys = config_db.keys(config_db.CONFIG_DB,
                                         'VXLAN_TUNNEL_MAP{}{}{}*'.format(config_db.KEY_SEPARATOR, vxlan_name, config_db.KEY_SEPARATOR))
         if vxlan_map_keys:
-            vxlan_map_mapping = config_db.get_all(config_db.CONFIG_DB, vxlan_map_keys[0])
-            r.append(vxlan_map_keys[0].split(config_db.KEY_SEPARATOR, 2)[2])
-            r.append("{} -> {}".format(vxlan_map_mapping.get('vni'), vxlan_map_mapping.get('vlan')))
-        table.append(r)
+            for key in natsorted(vxlan_map_keys):
+                vxlan_map_mapping = config_db.get_all(config_db.CONFIG_DB, key)
+                r.append(key.split(config_db.KEY_SEPARATOR, 2)[2])
+                r.append("{} -> {}".format(vxlan_map_mapping.get('vni'), vxlan_map_mapping.get('vlan')))
+                table.append(r)
+                r = []
+                r.append(' ')
+                r.append(' ')
+                r.append(' ')
+        else:
+            table.append(r)
 
     click.echo(tabulate(table, header))
 
@@ -59,10 +66,17 @@ def tunnel():
         vxlan_map_keys = config_db.keys(config_db.CONFIG_DB,
                                         'VXLAN_TUNNEL_MAP{}{}{}*'.format(config_db.KEY_SEPARATOR, k, config_db.KEY_SEPARATOR))
         if vxlan_map_keys:
-            vxlan_map_mapping = config_db.get_all(config_db.CONFIG_DB, vxlan_map_keys[0])
-            r.append(vxlan_map_keys[0].split(config_db.KEY_SEPARATOR, 2)[2])
-            r.append("{} -> {}".format(vxlan_map_mapping.get('vni'), vxlan_map_mapping.get('vlan')))
-        table.append(r)
+            for key in natsorted(vxlan_map_keys):
+                vxlan_map_mapping = config_db.get_all(config_db.CONFIG_DB, key)
+                r.append(key.split(config_db.KEY_SEPARATOR, 2)[2])
+                r.append("{} -> {}".format(vxlan_map_mapping.get('vni'), vxlan_map_mapping.get('vlan')))
+                table.append(r)
+                r = []
+                r.append(' ')
+                r.append(' ')
+                r.append(' ')
+        else:
+            table.append(r)
 
     click.echo(tabulate(table, header))
 
