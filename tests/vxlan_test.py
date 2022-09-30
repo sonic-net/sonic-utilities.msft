@@ -60,6 +60,15 @@ Total count : 3
 
 """
 
+show_vxlan_name_output="""\
+vxlan tunnel name    source ip    destination ip    tunnel map name    tunnel map mapping(vni -> vlan)
+-------------------  -----------  ----------------  -----------------  ---------------------------------
+vtep1                1.1.1.1                        map_100_Vlan100    100 -> Vlan100
+                                                    map_101_Vlan101    101 -> Vlan101
+                                                    map_102_Vlan102    102 -> Vlan102
+                                                    map_200_Vlan200    200 -> Vlan200
+"""
+
 show_vxlan_remotevni_output="""\
 +---------+--------------+-------+
 | VLAN    | RemoteVTEP   |   VNI |
@@ -140,6 +149,22 @@ class TestVxlan(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_vxlan_tunnel_output
+
+    def test_show_vxlan_tunnel_output(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["vxlan"].commands["tunnel"], [])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_vxlan_name_output
+
+    def test_show_vxlan_name_vtep(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["vxlan"].commands["name"],["vtep1"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_vxlan_name_output
 
     def test_show_vxlan_remotevni(self):
         runner = CliRunner()
