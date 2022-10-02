@@ -228,6 +228,50 @@ def AUTO_TECHSUPPORT_GLOBAL_max_core_limit(db, max_core_limit):
         exit_with_error(f"Error: {err}", fg="red")
 
 
+@AUTO_TECHSUPPORT_GLOBAL.command(name="available-mem-threshold")
+@click.argument(
+    "available-mem-threshold",
+    nargs=1,
+    required=True,
+)
+@clicommon.pass_db
+def AUTO_TECHSUPPORT_GLOBAL_available_mem_threshold(db, available_mem_threshold):
+    """ Memory threshold; 0 to disable techsupport invocation on memory usage threshold crossing.
+    """
+
+    table = "AUTO_TECHSUPPORT"
+    key = "GLOBAL"
+    data = {
+        "available_mem_threshold": available_mem_threshold,
+    }
+    try:
+        update_entry_validated(db.cfgdb, table, key, data, create_if_not_exists=True)
+    except Exception as err:
+        exit_with_error(f"Error: {err}", fg="red")
+
+
+@AUTO_TECHSUPPORT_GLOBAL.command(name="min-available-mem")
+@click.argument(
+    "min-available-mem",
+    nargs=1,
+    required=True,
+)
+@clicommon.pass_db
+def AUTO_TECHSUPPORT_GLOBAL_min_available_mem(db, min_available_mem):
+    """ Minimum free memory amount in Kb when techsupport will be executed.
+    """
+
+    table = "AUTO_TECHSUPPORT"
+    key = "GLOBAL"
+    data = {
+        "min_available_mem": min_available_mem,
+    }
+    try:
+        update_entry_validated(db.cfgdb, table, key, data, create_if_not_exists=True)
+    except Exception as err:
+        exit_with_error(f"Error: {err}", fg="red")
+
+
 @AUTO_TECHSUPPORT_GLOBAL.command(name="since")
 @click.argument(
     "since",
@@ -271,8 +315,12 @@ def AUTO_TECHSUPPORT_FEATURE():
     "--rate-limit-interval",
     help="Rate limit interval for the corresponding feature. Configure 0 to explicitly disable",
 )
+@click.option(
+    "--available-mem-threshold",
+    help="Memory threshold; 0 to disable techsupport invocation on memory usage threshold crossing.",
+)
 @clicommon.pass_db
-def AUTO_TECHSUPPORT_FEATURE_add(db, feature_name, state, rate_limit_interval):
+def AUTO_TECHSUPPORT_FEATURE_add(db, feature_name, state, rate_limit_interval, available_mem_threshold):
     """ Add object in AUTO_TECHSUPPORT_FEATURE. """
 
     table = "AUTO_TECHSUPPORT_FEATURE"
@@ -282,6 +330,8 @@ def AUTO_TECHSUPPORT_FEATURE_add(db, feature_name, state, rate_limit_interval):
         data["state"] = state
     if rate_limit_interval is not None:
         data["rate_limit_interval"] = rate_limit_interval
+    if available_mem_threshold is not None:
+        data["available_mem_threshold"] = available_mem_threshold
 
     try:
         add_entry_validated(db.cfgdb, table, key, data)
@@ -303,8 +353,12 @@ def AUTO_TECHSUPPORT_FEATURE_add(db, feature_name, state, rate_limit_interval):
     "--rate-limit-interval",
     help="Rate limit interval for the corresponding feature. Configure 0 to explicitly disable",
 )
+@click.option(
+    "--available-mem-threshold",
+    help="Memory threshold; 0 to disable techsupport invocation on memory usage threshold crossing.",
+)
 @clicommon.pass_db
-def AUTO_TECHSUPPORT_FEATURE_update(db, feature_name, state, rate_limit_interval):
+def AUTO_TECHSUPPORT_FEATURE_update(db, feature_name, state, rate_limit_interval, available_mem_threshold):
     """ Add object in AUTO_TECHSUPPORT_FEATURE. """
 
     table = "AUTO_TECHSUPPORT_FEATURE"
@@ -314,6 +368,8 @@ def AUTO_TECHSUPPORT_FEATURE_update(db, feature_name, state, rate_limit_interval
         data["state"] = state
     if rate_limit_interval is not None:
         data["rate_limit_interval"] = rate_limit_interval
+    if available_mem_threshold is not None:
+        data["available_mem_threshold"] = available_mem_threshold
 
     try:
         update_entry_validated(db.cfgdb, table, key, data)
