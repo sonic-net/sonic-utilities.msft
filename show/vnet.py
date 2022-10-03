@@ -3,7 +3,7 @@ import utilities_common.cli as clicommon
 from natsort import natsorted
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
 from tabulate import tabulate
-
+import ipaddress
 
 #
 # 'vnet' command ("show vnet")
@@ -194,6 +194,88 @@ def neighbors():
 
     if not bool(vnet_intfs):
         click.echo(tabulate(table, header))
+
+@vnet.command()
+@click.argument('args', metavar='[IPADDRESS]', nargs=1, required=False)
+def endpoint(args):
+    """Show Vxlan tunnel endpoint status"""
+    """Specify IPv4 or IPv6 address for detail"""
+
+    state_db = SonicV2Connector()
+    state_db.connect(state_db.STATE_DB)
+    appl_db = SonicV2Connector()
+    appl_db.connect(appl_db.APPL_DB)
+    filter_by_ip = ''
+    if args and len(args) > 0:
+        try:
+            filter_by_ip = ipaddress.ip_network(args)
+        except ValueError:
+            # Not ip address just ignore it
+            print ("wrong parameter",args)
+            return
+    # Fetching data from appl_db for VNET TUNNEL ROUTES
+    vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TUNNEL_TABLE:*")
+    vnet_rt_keys = natsorted(vnet_rt_keys) if vnet_rt_keys else []
+    bfd_keys = state_db.keys(state_db.STATE_DB, "BFD_SESSION_TABLE|*")
+    if not filter_by_ip:
+        header = ['Endpoint', 'Endpoint Monitor', 'prefix count', 'status']
+        prefix_count = {}
+        monitor_dict = {}
+        table = []
+        for k in vnet_rt_keys:
+            val = appl_db.get_all(appl_db.APPL_DB, k)
+            endpoints = val.get('endpoint').split(',') if 'endpoint' in val else []
+            if 'endpoint_monitor' in val:
+                monitors = val.get('endpoint_monitor').split(',')
+            else:
+                continue
+            for idx, endpoint in enumerate(endpoints):
+                monitor_dict[endpoint] = monitors[idx]
+                if endpoint not in prefix_count:
+                    prefix_count[endpoint] = 0
+                prefix_count[endpoint] += 1
+        for endpoint in prefix_count:
+            r = []
+            r.append(endpoint)
+            r.append(monitor_dict[endpoint])
+            r.append(prefix_count[endpoint])
+            bfd_session_key = "BFD_SESSION_TABLE|default|default|" + monitor_dict[endpoint]
+            if bfd_session_key in bfd_keys:
+                val_state = state_db.get_all(state_db.STATE_DB, bfd_session_key)
+                r.append(val_state.get('state'))
+            else:
+                r.append('Unknown')
+            table.append(r)
+    else:
+        table = []
+        header = ['Endpoint', 'Endpoint Monitor', 'prefix', 'status']
+        state = 'Unknown'
+        prefix = []
+        monitor_list = []
+        have_status = False
+        for k in vnet_rt_keys:
+            val = appl_db.get_all(appl_db.APPL_DB, k)
+            endpoints = val.get('endpoint').split(',')
+            monitors = val.get('endpoint_monitor').split(',')
+            for idx, endpoint in enumerate(endpoints):
+                if args == endpoint:
+                    prefix.append(k.split(":", 2)[2]) 
+                    if not have_status:
+                        bfd_session_key = "BFD_SESSION_TABLE|default|default|" + monitors[idx]
+                        if bfd_session_key in bfd_keys:
+                            val_state = state_db.get_all(state_db.STATE_DB, bfd_session_key)
+                            state = val_state.get('state')
+                            have_status = True
+                            monitor_list.append( monitors[idx])
+                            break
+        if prefix:
+            r = []
+            r.append(args)
+            r.append(monitor_list)
+            r.append(prefix)
+            r.append(state)
+            table.append(r)
+    click.echo(tabulate(table, header))
 
 
 @vnet.group()

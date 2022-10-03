@@ -9524,6 +9524,42 @@ This command displays brief information about all the vnets configured in the de
   Vnet_3000    tunnel1          3000  Vnet_2000,Vnet4000
   ```
 
+**show vnet endpoint <ip/ipv6>**
+
+This command displays the list or vxlan tunnel endpoints and their status. In addition it also shows the number of prefixes associated with each endpoints in the tunnels. If an IP address of an endpoint is provided, this command also shows the associated prefixes a well.
+
+- Usage:
+
+  ```
+  show vnet endpoint <ipv4_address/ipv6_address>
+
+  ```
+
+- Example:
+
+  ```
+  admin@sonic:~$ show vnet endpoint
+  Endpoint                 prefix count  status
+  ---------------------  --------------  --------
+  fddd:a100:a251::a10:1               1  Down
+  fddd:a101:a251::a10:1               1  Up
+  100.251.7.1                         3  Up
+  
+  or
+  
+  admin@sonic:~$ show vnet endpoint fddd:a101:a251::a10:1
+  Endpoint               prefix                        status
+  ---------------------  ----------------------------  --------
+  fddd:a101:a251::a10:1  ['fddd:a150:a251::a6:1/128']  Up
+
+  or
+
+  admin@sonic:~$ show vnet endpoint 100.251.7.1
+  Endpoint     prefix                                                     status
+  -----------  ---------------------------------------------------------  --------
+  100.251.7.1  ['160.62.191.1/32', '160.63.191.1/32', '160.64.191.1/32']  Up
+  ```
+
 **show vnet name <vnet_name>**
 
 This command displays brief information about <vnet_name> configured in the device.
