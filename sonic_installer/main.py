@@ -306,6 +306,15 @@ def update_sonic_environment(bootloader, binary_image_version):
             umount(new_image_mount)
 
 
+def get_docker_opts():
+    """ Get options dockerd is started with """
+    with open("/var/run/docker.pid") as pid_file:
+        pid = int(pid_file.read())
+
+    with open("/proc/{}/cmdline".format(pid)) as cmdline_file:
+        return cmdline_file.read().strip().split("\x00")[1:]
+
+
 def migrate_sonic_packages(bootloader, binary_image_version):
     """ Migrate SONiC packages to new SONiC image. """
 
@@ -325,6 +334,8 @@ def migrate_sonic_packages(bootloader, binary_image_version):
     new_image_docker_dir = os.path.join(new_image_dir, DOCKERDIR_NAME)
     new_image_mount = os.path.join("/", tmp_dir, "image-{0}-fs".format(sonic_version))
     new_image_docker_mount = os.path.join(new_image_mount, "var", "lib", "docker")
+    docker_default_config = os.path.join(new_image_mount, "etc", "default", "docker")
+    docker_default_config_backup = os.path.join(new_image_mount, tmp_dir, "docker_config_backup")
 
     if not os.path.isdir(new_image_docker_dir):
         # NOTE: This codepath can be reached if the installation process did not
@@ -349,6 +360,14 @@ def migrate_sonic_packages(bootloader, binary_image_version):
             if not os.path.exists(os.path.join(new_image_mount, os.path.relpath(DOCKER_CTL_SCRIPT, os.path.abspath(os.sep)))):
                 echo_and_log("Warning: SONiC Application Extension is not supported in this image", LOG_WARN, fg="yellow")
                 return
+
+            # Start dockerd with same docker bridge, iptables configuration as on the host to not override docker configurations on the host.
+            # Dockerd has an option to start without creating a bridge, using --bridge=none option, however dockerd will remove the host docker0 in that case.
+            # Also, it is not possible to configure dockerd to start using a different bridge as it will also override the ip of the default docker0.
+            # Considering that, we start dockerd with same options the host dockerd is started.
+            run_command_or_raise(["cp", docker_default_config, docker_default_config_backup])
+            run_command_or_raise(["sh", "-c", "echo 'DOCKER_OPTS=\"$DOCKER_OPTS {}\"' >> {}".format(" ".join(get_docker_opts()), docker_default_config)])
+
             run_command_or_raise(["chroot", new_image_mount, DOCKER_CTL_SCRIPT, "start"])
             docker_started = True
             run_command_or_raise(["cp", packages_path, os.path.join(new_image_mount, tmp_dir, packages_file)])
@@ -364,6 +383,8 @@ def migrate_sonic_packages(bootloader, binary_image_version):
         finally:
             if docker_started:
                 run_command_or_raise(["chroot", new_image_mount, DOCKER_CTL_SCRIPT, "stop"], raise_exception=False)
+            if os.path.exists(docker_default_config_backup):
+                run_command_or_raise(["mv", docker_default_config_backup, docker_default_config], raise_exception=False);
             umount(new_image_mount, recursive=True, read_only=False, remove_dir=False, raise_exception=False)
             umount(new_image_mount, raise_exception=False)
 
