@@ -25,8 +25,8 @@ def add_vlan(db, vid):
     ctx = click.get_current_context()
     vlan = 'Vlan{}'.format(vid)
     
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
     if ADHOC_VALIDATION:
-        config_db = db.cfgdb
         if not clicommon.is_vlanid_in_range(vid):
             ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
@@ -35,8 +35,6 @@ def add_vlan(db, vid):
     
         if clicommon.check_if_vlanid_exist(db.cfgdb, vlan): # TODO: MISSING CONSTRAINT IN YANG MODEL
             ctx.fail("{} already exists".format(vlan))
-    else:
-        config_db = ValidatedConfigDBConnector(db.cfgdb)
     
     try:
         config_db.set_entry('VLAN', vlan, {'vlanid': str(vid)})
@@ -54,8 +52,8 @@ def del_vlan(db, vid):
     ctx = click.get_current_context()
     vlan = 'Vlan{}'.format(vid)
 
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
     if ADHOC_VALIDATION:
-        config_db = db.cfgdb
         if not clicommon.is_vlanid_in_range(vid):
             ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
@@ -72,12 +70,11 @@ def del_vlan(db, vid):
     
         if keys: # TODO: MISSING CONSTRAINT IN YANG MODEL
             ctx.fail("VLAN ID {} can not be removed. First remove all members assigned to this VLAN.".format(vid))
+        
         vxlan_table = db.cfgdb.get_table('VXLAN_TUNNEL_MAP')
         for vxmap_key, vxmap_data in vxlan_table.items():
             if vxmap_data['vlan'] == 'Vlan{}'.format(vid):
                 ctx.fail("vlan: {} can not be removed. First remove vxlan mapping '{}' assigned to VLAN".format(vid, '|'.join(vxmap_key)) )
-    else:    
-        config_db = ValidatedConfigDBConnector(db.cfgdb)
     
     try: 
         config_db.set_entry('VLAN', 'Vlan{}'.format(vid), None)
@@ -141,8 +138,8 @@ def add_vlan_member(db, vid, port, untagged):
 
     vlan = 'Vlan{}'.format(vid)
     
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
     if ADHOC_VALIDATION:
-        config_db = db.cfgdb
         if not clicommon.is_vlanid_in_range(vid):
             ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
@@ -180,8 +177,6 @@ def add_vlan_member(db, vid, port, untagged):
 
         if (clicommon.interface_is_untagged_member(db.cfgdb, port) and untagged): # TODO: MISSING CONSTRAINT IN YANG MODEL
             ctx.fail("{} is already untagged member!".format(port))
-    else:
-        config_db = ValidatedConfigDBConnector(db.cfgdb)
 
     try:
         config_db.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged" })
@@ -199,8 +194,8 @@ def del_vlan_member(db, vid, port):
     log.log_info("'vlan member del {} {}' executing...".format(vid, port))
     vlan = 'Vlan{}'.format(vid)
     
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
     if ADHOC_VALIDATION:
-        config_db = db.cfgdb
         if not clicommon.is_vlanid_in_range(vid):
             ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
@@ -216,8 +211,6 @@ def del_vlan_member(db, vid, port):
 
         if not clicommon.is_port_vlan_member(db.cfgdb, port, vlan): # TODO: MISSING CONSTRAINT IN YANG MODEL
             ctx.fail("{} is not a member of {}".format(port, vlan))
-    else:
-        config_db = ValidatedConfigDBConnector(db.cfgdb)
 
     try:
         config_db.set_entry('VLAN_MEMBER', (vlan, port), None)

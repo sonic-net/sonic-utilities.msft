@@ -2060,15 +2060,13 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback, fast_rate):
     if fallback != 'false':
         fvs['fallback'] = 'true'
     
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
     if ADHOC_VALIDATION:
-        db = ctx.obj['db']
         if is_portchannel_name_valid(portchannel_name) != True:
             ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
                     .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
         if is_portchannel_present_in_db(db, portchannel_name):
             ctx.fail("{} already exists!".format(portchannel_name)) # TODO: MISSING CONSTRAINT IN YANG MODEL
-    else:
-        db = ValidatedConfigDBConnector(ctx.obj['db']) 
     
     try:
         db.set_entry('PORTCHANNEL', portchannel_name, fvs)
@@ -2081,8 +2079,8 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback, fast_rate):
 def remove_portchannel(ctx, portchannel_name):
     """Remove port channel"""
     
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
     if ADHOC_VALIDATION:
-        db = ctx.obj['db']
         if is_portchannel_name_valid(portchannel_name) != True:
             ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
                     .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
@@ -2098,8 +2096,6 @@ def remove_portchannel(ctx, portchannel_name):
 
         if len([(k, v) for k, v in db.get_table('PORTCHANNEL_MEMBER') if k == portchannel_name]) != 0: # TODO: MISSING CONSTRAINT IN YANG MODEL
             ctx.fail("Error: Portchannel {} contains members. Remove members before deleting Portchannel!".format(portchannel_name))
-    else:
-        db = ValidatedConfigDBConnector(ctx.obj['db'])
     
     try:
         db.set_entry('PORTCHANNEL', portchannel_name, None)
@@ -6177,8 +6173,8 @@ def loopback(ctx, redis_unix_socket_path):
 @click.argument('loopback_name', metavar='<loopback_name>', required=True)
 @click.pass_context
 def add_loopback(ctx, loopback_name):
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     if ADHOC_VALIDATION:
-        config_db = ctx.obj['db']
         if is_loopback_name_valid(loopback_name) is False:
             ctx.fail("{} is invalid, name should have prefix '{}' and suffix '{}' "
                     .format(loopback_name, CFG_LOOPBACK_PREFIX, CFG_LOOPBACK_NO))
@@ -6186,8 +6182,6 @@ def add_loopback(ctx, loopback_name):
         lo_intfs = [k for k, v in config_db.get_table('LOOPBACK_INTERFACE').items() if type(k) != tuple]
         if loopback_name in lo_intfs:
             ctx.fail("{} already exists".format(loopback_name)) # TODO: MISSING CONSTRAINT IN YANG VALIDATION
-    else:
-        config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     
     try:
         config_db.set_entry('LOOPBACK_INTERFACE', loopback_name, {"NULL" : "NULL"})
@@ -6198,7 +6192,7 @@ def add_loopback(ctx, loopback_name):
 @click.argument('loopback_name', metavar='<loopback_name>', required=True)
 @click.pass_context
 def del_loopback(ctx, loopback_name):
-    config_db = ctx.obj['db']
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     lo_config_db = config_db.get_table('LOOPBACK_INTERFACE')
 
     if ADHOC_VALIDATION:
@@ -6208,8 +6202,6 @@ def del_loopback(ctx, loopback_name):
         lo_intfs = [k for k, v in lo_config_db.items() if type(k) != tuple]
         if loopback_name not in lo_intfs:
             ctx.fail("{} does not exist".format(loopback_name))
-    else:
-        config_db = ValidatedConfigDBConnector(ctx.obj['db'])
 
     ips = [ k[1] for k in lo_config_db if type(k) == tuple and k[0] == loopback_name ]
     for ip in ips:
