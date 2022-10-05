@@ -2113,104 +2113,109 @@ def portchannel_member(ctx):
 @click.pass_context
 def add_portchannel_member(ctx, portchannel_name, port_name):
     """Add member to port channel"""
-    db = ctx.obj['db']
-    if clicommon.is_port_mirror_dst_port(db, port_name):
-        ctx.fail("{} is configured as mirror destination port".format(port_name))
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
+    
+    if ADHOC_VALIDATION:
+        if clicommon.is_port_mirror_dst_port(db, port_name):
+            ctx.fail("{} is configured as mirror destination port".format(port_name)) # TODO: MISSING CONSTRAINT IN YANG MODEL
 
-    # Check if the member interface given by user is valid in the namespace.
-    if port_name.startswith("Ethernet") is False or interface_name_is_valid(db, port_name) is False:
-        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+        # Check if the member interface given by user is valid in the namespace.
+        if port_name.startswith("Ethernet") is False or interface_name_is_valid(db, port_name) is False:
+            ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
-    # Dont proceed if the port channel name is not valid
-    if is_portchannel_name_valid(portchannel_name) is False:
-        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
-                 .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+        # Dont proceed if the port channel name is not valid
+        if is_portchannel_name_valid(portchannel_name) is False:
+            ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                     .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
 
-    # Dont proceed if the port channel does not exist
-    if is_portchannel_present_in_db(db, portchannel_name) is False:
-        ctx.fail("{} is not present.".format(portchannel_name))
+        # Dont proceed if the port channel does not exist
+        if is_portchannel_present_in_db(db, portchannel_name) is False:
+            ctx.fail("{} is not present.".format(portchannel_name))
  
-    # Don't allow a port to be member of port channel if it is configured with an IP address
-    for key,value in db.get_table('INTERFACE').items():
-        if type(key) == tuple:
-            continue
-        if key == port_name:
-            ctx.fail(" {} has ip address configured".format(port_name))
-            return
+        # Don't allow a port to be member of port channel if it is configured with an IP address
+        for key,value in db.get_table('INTERFACE').items():
+            if type(key) == tuple:
+                continue
+            if key == port_name:
+                ctx.fail(" {} has ip address configured".format(port_name))  # TODO: MISSING CONSTRAINT IN YANG MODEL
+                return
 
-    for key in db.get_keys('VLAN_SUB_INTERFACE'):
-        if type(key) == tuple:
-            continue
-        intf = key.split(VLAN_SUB_INTERFACE_SEPARATOR)[0]
-        parent_intf = get_intf_longname(intf)
-        if parent_intf == port_name:
-            ctx.fail(" {} has subinterfaces configured".format(port_name))
+        for key in db.get_keys('VLAN_SUB_INTERFACE'):
+            if type(key) == tuple:
+                continue
+            intf = key.split(VLAN_SUB_INTERFACE_SEPARATOR)[0]
+            parent_intf = get_intf_longname(intf)
+            if parent_intf == port_name:
+                ctx.fail(" {} has subinterfaces configured".format(port_name))  # TODO: MISSING CONSTRAINT IN YANG MODEL
 
-    # Dont allow a port to be member of port channel if it is configured as a VLAN member
-    for k,v in db.get_table('VLAN_MEMBER'):
-        if v == port_name:
-            ctx.fail("%s Interface configured as VLAN_MEMBER under vlan : %s" %(port_name,str(k)))
-            return
+        # Dont allow a port to be member of port channel if it is configured as a VLAN member
+        for k,v in db.get_table('VLAN_MEMBER'):
+            if v == port_name:
+                ctx.fail("%s Interface configured as VLAN_MEMBER under vlan : %s" %(port_name,str(k)))   # TODO: MISSING CONSTRAINT IN YANG MODEL
+                return
 
-    # Dont allow a port to be member of port channel if it is already member of a port channel
-    for k,v in db.get_table('PORTCHANNEL_MEMBER'):
-        if v == port_name:
-            ctx.fail("{} Interface is already member of {} ".format(v,k))
+        # Dont allow a port to be member of port channel if it is already member of a port channel
+        for k,v in db.get_table('PORTCHANNEL_MEMBER'):
+            if v == port_name:
+                ctx.fail("{} Interface is already member of {} ".format(v,k))    # TODO: MISSING CONSTRAINT IN YANG MODEL
 
-    # Dont allow a port to be member of port channel if its speed does not match with existing members
-    for k,v in db.get_table('PORTCHANNEL_MEMBER'):
-        if k == portchannel_name:
-            member_port_entry = db.get_entry('PORT', v)
+        # Dont allow a port to be member of port channel if its speed does not match with existing members
+        for k,v in db.get_table('PORTCHANNEL_MEMBER'):
+            if k == portchannel_name:
+                member_port_entry = db.get_entry('PORT', v)
+                port_entry = db.get_entry('PORT', port_name)
+
+                if member_port_entry is not None and port_entry is not None:
+                    member_port_speed = member_port_entry.get(PORT_SPEED)
+
+                    port_speed = port_entry.get(PORT_SPEED) # TODO: MISSING CONSTRAINT IN YANG MODEL
+                    if member_port_speed != port_speed: 
+                        ctx.fail("Port speed of {} is different than the other members of the portchannel {}"
+                                 .format(port_name, portchannel_name))
+
+        # Dont allow a port to be member of port channel if its MTU does not match with portchannel
+        portchannel_entry =  db.get_entry('PORTCHANNEL', portchannel_name)
+        if portchannel_entry and portchannel_entry.get(PORT_MTU) is not None :
             port_entry = db.get_entry('PORT', port_name)
 
-            if member_port_entry is not None and port_entry is not None:
-                member_port_speed = member_port_entry.get(PORT_SPEED)
+            if port_entry and port_entry.get(PORT_MTU) is not None:
+                port_mtu = port_entry.get(PORT_MTU)
 
-                port_speed = port_entry.get(PORT_SPEED)
-                if member_port_speed != port_speed:
-                    ctx.fail("Port speed of {} is different than the other members of the portchannel {}"
+                portchannel_mtu = portchannel_entry.get(PORT_MTU) # TODO: MISSING CONSTRAINT IN YANG MODEL
+                if portchannel_mtu != port_mtu:
+                    ctx.fail("Port MTU of {} is different than the {} MTU size"
                              .format(port_name, portchannel_name))
 
-    # Dont allow a port to be member of port channel if its MTU does not match with portchannel
-    portchannel_entry =  db.get_entry('PORTCHANNEL', portchannel_name)
-    if portchannel_entry and portchannel_entry.get(PORT_MTU) is not None :
+        # Dont allow a port to be member of port channel if its TPID is not at default 0x8100
+        # If TPID is supported at LAG level, when member is added, the LAG's TPID is applied to the
+        # new member by SAI.
         port_entry = db.get_entry('PORT', port_name)
+        if port_entry and port_entry.get(PORT_TPID) is not None:
+            port_tpid = port_entry.get(PORT_TPID) # TODO: MISSING CONSTRAINT IN YANG MODEL
+            if port_tpid != DEFAULT_TPID:
+                ctx.fail("Port TPID of {}: {} is not at default 0x8100".format(port_name, port_tpid))
 
-        if port_entry and port_entry.get(PORT_MTU) is not None:
-            port_mtu = port_entry.get(PORT_MTU)
+        # Don't allow a port to be a member of portchannel if already has ACL bindings
+        try:
+            acl_bindings = get_port_acl_binding(ctx.obj['db_wrap'], port_name, ctx.obj['namespace']) # TODO: MISSING CONSTRAINT IN YANG MODEL
+            if acl_bindings:
+                ctx.fail("Port {} is already bound to following ACL_TABLES: {}".format(port_name, acl_bindings))
+        except Exception as e:
+            ctx.fail(str(e))
 
-            portchannel_mtu = portchannel_entry.get(PORT_MTU)
-            if portchannel_mtu != port_mtu:
-                ctx.fail("Port MTU of {} is different than the {} MTU size"
-                         .format(port_name, portchannel_name))
+        # Don't allow a port to be a member of portchannel if already has PBH bindings
+        try:
+            pbh_bindings = get_port_pbh_binding(ctx.obj['db_wrap'], port_name, DEFAULT_NAMESPACE) # TODO: MISSING CONSTRAINT IN YANG MODEL
+            if pbh_bindings:
+                ctx.fail("Port {} is already bound to following PBH_TABLES: {}".format(port_name, pbh_bindings))
+        except Exception as e:
+            ctx.fail(str(e))
 
-    # Dont allow a port to be member of port channel if its TPID is not at default 0x8100
-    # If TPID is supported at LAG level, when member is added, the LAG's TPID is applied to the
-    # new member by SAI.
-    port_entry = db.get_entry('PORT', port_name)
-    if port_entry and port_entry.get(PORT_TPID) is not None:
-        port_tpid = port_entry.get(PORT_TPID)
-        if port_tpid != DEFAULT_TPID:
-            ctx.fail("Port TPID of {}: {} is not at default 0x8100".format(port_name, port_tpid))
-
-    # Don't allow a port to be a member of portchannel if already has ACL bindings
     try:
-        acl_bindings = get_port_acl_binding(ctx.obj['db_wrap'], port_name, ctx.obj['namespace'])
-        if acl_bindings:
-            ctx.fail("Port {} is already bound to following ACL_TABLES: {}".format(port_name, acl_bindings))
-    except Exception as e:
-        ctx.fail(str(e))
-
-    # Don't allow a port to be a member of portchannel if already has PBH bindings
-    try:
-        pbh_bindings = get_port_pbh_binding(ctx.obj['db_wrap'], port_name, DEFAULT_NAMESPACE)
-        if pbh_bindings:
-            ctx.fail("Port {} is already bound to following PBH_TABLES: {}".format(port_name, pbh_bindings))
-    except Exception as e:
-        ctx.fail(str(e))
-
-    db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
-            {'NULL': 'NULL'})
+        db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name),
+                {'NULL': 'NULL'})
+    except ValueError:
+        ctx.fail("Portchannel or interface name is invalid or nonexistent")
 
 @portchannel_member.command('del')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
@@ -2223,22 +2228,25 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
         ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
                  .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
 
-    db = ctx.obj['db']
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
 
-    # Check if the member interface given by user is valid in the namespace.
-    if interface_name_is_valid(db, port_name) is False:
-        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+    if ADHOC_VALIDATION:
+        # Check if the member interface given by user is valid in the namespace.
+        if interface_name_is_valid(db, port_name) is False:
+            ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
 
-    # Dont proceed if the port channel does not exist
-    if is_portchannel_present_in_db(db, portchannel_name) is False:
-        ctx.fail("{} is not present.".format(portchannel_name))
+        # Dont proceed if the port channel does not exist
+        if is_portchannel_present_in_db(db, portchannel_name) is False:
+            ctx.fail("{} is not present.".format(portchannel_name))
 
-    # Dont proceed if the the port is not an existing member of the port channel
-    if not is_port_member_of_this_portchannel(db, port_name, portchannel_name):
-        ctx.fail("{} is not a member of portchannel {}".format(port_name, portchannel_name))
-
-    db.set_entry('PORTCHANNEL_MEMBER', (portchannel_name, port_name), None)
-    db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
+        # Dont proceed if the the port is not an existing member of the port channel
+        if not is_port_member_of_this_portchannel(db, port_name, portchannel_name):
+            ctx.fail("{} is not a member of portchannel {}".format(port_name, portchannel_name))
+    
+    try:
+        db.set_entry('PORTCHANNEL_MEMBER', portchannel_name + '|' + port_name, None)
+    except JsonPatchConflict:
+        ctx.fail("Invalid or nonexistent portchannel or interface. Please ensure existence of portchannel member.")
 
 
 #
@@ -4302,7 +4310,7 @@ def ip(ctx):
 def add(ctx, interface_name, ip_addr, gw):
     """Add an IP address towards the interface"""
     # Get the config_db connector
-    config_db = ctx.obj['config_db']
+    config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
@@ -4366,7 +4374,7 @@ def add(ctx, interface_name, ip_addr, gw):
 def remove(ctx, interface_name, ip_addr):
     """Remove an IP address from the interface"""
     # Get the config_db connector
-    config_db = ctx.obj['config_db']
+    config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
 
     if clicommon.get_interface_naming_mode() == "alias":
         interface_name = interface_alias_to_name(config_db, interface_name)
