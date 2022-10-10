@@ -1,5 +1,6 @@
 import os
 import sys
+import pytest
 
 import show.main as show
 from click.testing import CliRunner
@@ -11,6 +12,15 @@ modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
 sys.path.insert(0, test_path)
 sys.path.insert(0, modules_path)
+
+
+@pytest.fixture(scope="function")
+def q_multicast_wm_neg():
+    print("Setup watermarkstat sample data: no queue multicast watermark counters")
+    os.environ['WATERMARKSTAT_UNIT_TESTING'] = "1"
+    yield
+    del os.environ['WATERMARKSTAT_UNIT_TESTING']
+    print("Teardown watermarkstat sample data: no queue multicast watermark counters")
 
 
 class TestWatermarkstat(object):
@@ -31,6 +41,9 @@ class TestWatermarkstat(object):
 
     def test_show_queue_multicast_wm(self):
         self.executor(testData['show_q_wm_multicast'])
+
+    def test_show_queue_multicast_wm_neg(self, q_multicast_wm_neg):
+        self.executor(testData['show_q_wm_multicast_neg'])
 
     def test_show_queue_all_wm(self):
         self.executor(testData['show_q_wm_all'])
