@@ -58,15 +58,15 @@ class PgDropStat(object):
                 Get port ID using object ID
             """
             port_id = self.counters_db.get(self.counters_db.COUNTERS_DB, COUNTERS_PG_PORT_MAP, oid)
-            if port_id is None:
-                print("Port is not available for oid '{}'".format(oid), file=sys.stderr)
+            if not port_id:
+                print("Port is not available for oid '{}'".format(oid))
                 sys.exit(1)
             return port_id
 
         # Get all ports
         self.counter_port_name_map = self.counters_db.get_all(self.counters_db.COUNTERS_DB, COUNTERS_PORT_NAME_MAP)
-        if self.counter_port_name_map is None:
-            print("COUNTERS_PORT_NAME_MAP is empty!", file=sys.stderr)
+        if not self.counter_port_name_map:
+            print("COUNTERS_PORT_NAME_MAP is empty!")
             sys.exit(1)
 
         self.port_pg_map = {}
@@ -78,8 +78,8 @@ class PgDropStat(object):
 
         # Get PGs for each port
         counter_pg_name_map = self.counters_db.get_all(self.counters_db.COUNTERS_DB, COUNTERS_PG_NAME_MAP)
-        if counter_pg_name_map is None:
-            print("COUNTERS_PG_NAME_MAP is empty!", file=sys.stderr)
+        if not counter_pg_name_map:
+            print("COUNTERS_PG_NAME_MAP is empty!")
             sys.exit(1)
 
         for pg in counter_pg_name_map:
@@ -101,8 +101,8 @@ class PgDropStat(object):
             oid - object ID for entry in redis
         """
         pg_index = self.counters_db.get(self.counters_db.COUNTERS_DB, COUNTERS_PG_INDEX_MAP, oid)
-        if pg_index is None:
-            print("Priority group index is not available for oid '{}'".format(table_id), file=sys.stderr)
+        if not pg_index:
+            print("Priority group index is not available for oid '{}'".format(oid))
             sys.exit(1)
         return pg_index
 
@@ -111,7 +111,7 @@ class PgDropStat(object):
             Construct header for table with PG counters
         """
         if pg_drop_type is None:
-            print("Header info is not available!", file=sys.stderr)
+            print("Header info is not available!")
             sys.exit(1)
 
         self.header_list = ['Port']

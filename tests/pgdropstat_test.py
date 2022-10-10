@@ -43,18 +43,95 @@ class TestPgDropstat(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
         print("SETUP")
 
-    @pytest.fixture(scope='function')
-    def replace_config_db_file(self):
-        sample_config_db_file = os.path.join(test_path, "pgdrop_input", "config_db.json")
-        mock_config_db_file = os.path.join(test_path, "mock_tables", "config_db.json")
+    def replace_file(self, file_name_src, file_name_dst):
+        sample_config_db_file = os.path.join(test_path, file_name_src)
+        mock_config_db_file = os.path.join(test_path, "mock_tables", file_name_dst)
 
-        #Backup origin config_db and replace it with config_db file with disabled PG_DROP counters 
-        copyfile(mock_config_db_file, "/tmp/config_db.json")
+        #Backup origin config_db and replace it with config_db file with disabled PG_DROP counters
+        copyfile(mock_config_db_file, "/tmp/" + file_name_dst)
         copyfile(sample_config_db_file, mock_config_db_file)
+
+        return mock_config_db_file
+
+    @pytest.fixture(scope='function')
+    def replace_counter_db_file(self):
+        mock_file = self.replace_file("pgdrop_input/counters_db.json", "counters_db.json")
 
         yield
 
-        copyfile("/tmp/config_db.json", mock_config_db_file)
+        copyfile("/tmp/counters_db.json", mock_file)
+
+    @pytest.fixture(scope='function')
+    def replace_config_db_file(self):
+        mock_file = self.replace_file("pgdrop_input/config_db.json", "config_db.json")
+
+        yield
+
+        copyfile("/tmp/config_db.json", mock_file)
+
+    @pytest.fixture(scope='function')
+    def replace_counter_db2_file(self):
+        mock_file = self.replace_file("pgdrop_input/counters_db2.json", "counters_db.json")
+
+        yield
+
+        copyfile("/tmp/counters_db.json", mock_file)
+
+    @pytest.fixture(scope='function')
+    def replace_counter_db3_file(self):
+        mock_file = self.replace_file("pgdrop_input/counters_db3.json", "counters_db.json")
+
+        yield
+
+        copyfile("/tmp/counters_db.json", mock_file)
+
+    @pytest.fixture(scope='function')
+    def replace_counter_db4_file(self):
+        mock_file = self.replace_file("pgdrop_input/counters_db4.json", "counters_db.json")
+
+        yield
+
+        copyfile("/tmp/counters_db.json", mock_file)
+
+    def test_show_pg_drop_pg_port_map(self, replace_counter_db3_file):
+        runner = CliRunner()
+
+        result = runner.invoke(show.cli.commands["priority-group"].commands["drop"].commands["counters"])
+        assert result.exit_code == 1
+        print(result.exit_code)
+
+        assert "Port is not available for oid" in result.output
+        print(result.exit_code)
+
+    def test_show_pg_drop_pg_index_map(self, replace_counter_db4_file):
+        runner = CliRunner()
+
+        result = runner.invoke(show.cli.commands["priority-group"].commands["drop"].commands["counters"])
+        assert result.exit_code == 1
+        print(result.exit_code)
+
+        assert "Priority group index is not available for oid" in result.output
+        print(result.output)
+
+    def test_show_pg_drop_port_name_map(self, replace_counter_db_file):
+        runner = CliRunner()
+
+        result = runner.invoke(show.cli.commands["priority-group"].commands["drop"].commands["counters"])
+        assert result.exit_code == 1
+        print(result.exit_code)
+
+        assert result.output == "COUNTERS_PORT_NAME_MAP is empty!\n"
+        print(result.output)
+
+    def test_show_pg_drop_pg_name_map(self, replace_counter_db2_file):
+        runner = CliRunner()
+
+        result = runner.invoke(show.cli.commands["priority-group"].commands["drop"].commands["counters"])
+        assert result.exit_code == 1
+        print(result.exit_code)
+
+        assert result.output == "COUNTERS_PG_NAME_MAP is empty!\n"
+        print(result.output)
 
     def test_show_pg_drop_disabled(self, replace_config_db_file):
         runner = CliRunner()
