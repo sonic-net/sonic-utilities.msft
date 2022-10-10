@@ -908,5 +908,20 @@
         "rx_interval" : "500",
         "multiplier" : "3",
         "multihop": "true"
+    },
+    "ADVERTISE_NETWORK_TABLE|160.63.191.1/32": {
+        "profile": "FROM_SDN_SLB_ROUTES"
+    },
+    "ADVERTISE_NETWORK_TABLE|160.62.191.1/32": {
+        "profile": "FROM_SDN_SLB_ROUTES"
+    },
+    "ADVERTISE_NETWORK_TABLE|160.64.191.1/32": {
+        "profile": "FROM_SDN_SLB_ROUTES"
+    },
+    "ADVERTISE_NETWORK_TABLE|fddd:a150:a251::a6:1/128": {
+        "profile": "FROM_SDN_SLB_ROUTES"
+    },
+    "ADVERTISE_NETWORK_TABLE|fccc:a250:a251::a6:1/128": {
+        "profile": ""
     }
 }
