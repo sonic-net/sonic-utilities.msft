@@ -44,6 +44,11 @@ CDB_DEFAULT_HOST_PASSWORD = 0x00001011
 
 MAX_LPL_FIRMWARE_BLOCK_SIZE = 116 #Bytes
 
+PAGE_SIZE = 128
+PAGE_OFFSET = 128
+
+SFF8472_A0_SIZE = 256
+
 # TODO: We should share these maps and the formatting functions between sfputil and sfpshow
 QSFP_DATA_MAP = {
     'model': 'Vendor PN',
@@ -688,6 +693,148 @@ def eeprom(port, dump_dom, namespace):
 
     click.echo(output)
 
+# 'eeprom-hexdump' subcommand
+@show.command()
+@click.option('-p', '--port', metavar='<port_name>', required=True, help="Display SFP EEPROM hexdump for port <port_name>")
+@click.option('-n', '--page', metavar='<page_number>', help="Display SFP EEEPROM hexdump for <page_number_in_hex>")
+def eeprom_hexdump(port, page):
+    """Display EEPROM hexdump of SFP transceiver(s) for a given port name and page number"""
+    output = ""
+
+    if platform_sfputil.is_logical_port(port) == 0:
+        click.echo("Error: invalid port {}".format(port))
+        print_all_valid_port_values()
+        sys.exit(ERROR_INVALID_PORT)
+
+    if page is None:
+        page = '0'
+
+    logical_port_name = port
+    physical_port = logical_port_to_physical_port_index(logical_port_name)
+
+    if is_port_type_rj45(logical_port_name):
+        click.echo("{}: SFP EEPROM Hexdump is not applicable for RJ45 port".format(port))
+        sys.exit(ERROR_INVALID_PORT)
+
+    try:
+        presence = platform_chassis.get_sfp(physical_port).get_presence()
+    except NotImplementedError:
+        click.echo("Sfp.get_presence() is currently not implemented for this platform")
+        sys.exit(ERROR_NOT_IMPLEMENTED)
+
+    if not presence:
+        click.echo("SFP EEPROM not detected")
+        sys.exit(ERROR_NOT_IMPLEMENTED)
+    else:
+        try:
+            id = platform_chassis.get_sfp(physical_port).read_eeprom(0, 1)
+            if id is None:
+                click.echo("Error: Failed to read EEPROM for offset 0!")
+                sys.exit(ERROR_NOT_IMPLEMENTED)
+        except NotImplementedError:
+            click.echo("Sfp.read_eeprom() is currently not implemented for this platform")
+            sys.exit(ERROR_NOT_IMPLEMENTED)
+
+        if id[0] == 0x3:
+            output = eeprom_hexdump_sff8472(port, physical_port, page)
+        else:
+            output = eeprom_hexdump_sff8636(port, physical_port, page)
+
+    output += '\n'
+
+    click.echo(output)
+
+def eeprom_hexdump_sff8472(port, physical_port, page):
+    try:
+        output = ""
+        indent = ' ' * 8
+        output += 'EEPROM hexdump for port {} page {}h'.format(port, page)
+        output += '\n{}A0h dump'.format(indent)
+        page_dump = platform_chassis.get_sfp(physical_port).read_eeprom(0, SFF8472_A0_SIZE)
+        if page_dump is None:
+            click.echo("Error: Failed to read EEPROM for A0h!")
+            sys.exit(ERROR_NOT_IMPLEMENTED)
+
+        output += hexdump(indent, page_dump, 0)
+        page_dump = platform_chassis.get_sfp(physical_port).read_eeprom(SFF8472_A0_SIZE, PAGE_SIZE)
+        if page_dump is None:
+            click.echo("Error: Failed to read EEPROM for A2h!")
+            sys.exit(ERROR_NOT_IMPLEMENTED)
+        else:
+            output += '\n\n{}A2h dump (lower 128 bytes)'.format(indent)
+            output += hexdump(indent, page_dump, 0)
+
+        page_dump = platform_chassis.get_sfp(physical_port).read_eeprom(SFF8472_A0_SIZE + PAGE_OFFSET + (int(page, base=16) * PAGE_SIZE), PAGE_SIZE)
+        if page_dump is None:
+            click.echo("Error: Failed to read EEPROM for A2h upper page!")
+            sys.exit(ERROR_NOT_IMPLEMENTED)
+        else:
+            output += '\n\n{}A2h dump (upper 128 bytes) page {}h'.format(indent, page)
+            output += hexdump(indent, page_dump, PAGE_OFFSET)
+    except NotImplementedError:
+        click.echo("Sfp.read_eeprom() is currently not implemented for this platform")
+        sys.exit(ERROR_NOT_IMPLEMENTED)
+    except ValueError:
+        click.echo("Please enter a numeric page number")
+        sys.exit(ERROR_NOT_IMPLEMENTED)
+
+    return output
+
+def eeprom_hexdump_sff8636(port, physical_port, page):
+    try:
+        output = ""
+        indent = ' ' * 8
+        output += 'EEPROM hexdump for port {} page {}h'.format(port, page)
+        output += '\n{}Lower page 0h'.format(indent)
+        page_dump = platform_chassis.get_sfp(physical_port).read_eeprom(0, PAGE_SIZE)
+        if page_dump is None:
+            click.echo("Error: Failed to read EEPROM for page 0!")
+            sys.exit(ERROR_NOT_IMPLEMENTED)
+
+        output += hexdump(indent, page_dump, 0)
+        page_dump = platform_chassis.get_sfp(physical_port).read_eeprom(int(page, base=16) * PAGE_SIZE + PAGE_OFFSET, PAGE_SIZE)
+        if page_dump is None:
+            click.echo("Error: Failed to read EEPROM!")
+            sys.exit(ERROR_NOT_IMPLEMENTED)
+        else:
+            output += '\n\n{}Upper page {}h'.format(indent, page)
+            output += hexdump(indent, page_dump, PAGE_OFFSET)
+    except NotImplementedError:
+        click.echo("Sfp.read_eeprom() is currently not implemented for this platform")
+        sys.exit(ERROR_NOT_IMPLEMENTED)
+    except ValueError:
+        click.echo("Please enter a numeric page number")
+        sys.exit(ERROR_NOT_IMPLEMENTED)
+
+    return output
+
+def convert_byte_to_valid_ascii_char(byte):
+    if byte < 32 or 126 < byte:
+        return '.'
+    else:
+        return chr(byte)
+
+def hexdump(indent, data, mem_address):
+    ascii_string = ''
+    result = ''
+    for byte in data:
+        ascii_string = ascii_string + convert_byte_to_valid_ascii_char(byte)
+        byte_string = "{:02x}".format(byte)
+        if mem_address % 16 == 0:
+            mem_address_string = "{:08x}".format(mem_address)
+            result += '\n{}{} '.format(indent, mem_address_string)
+            result += '{} '.format(byte_string)
+        elif mem_address % 16 == 15:
+            result += '{} '.format(byte_string)
+            result += '|{}|'.format(ascii_string)
+            ascii_string = ""
+        elif mem_address % 16 == 7:
+            result += ' {} '.format(byte_string)
+        else:
+            result += '{} '.format(byte_string)
+        mem_address += 1
+
+    return result
 
 # 'presence' subcommand
 @show.command()
