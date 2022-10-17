@@ -97,6 +97,7 @@ setup(
         'scripts/dropstat',
         'scripts/dump_nat_entries.py',
         'scripts/ecnconfig',
+        'scripts/fabricstat',
         'scripts/fanshow',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',

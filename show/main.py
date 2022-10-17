@@ -40,6 +40,7 @@ from . import acl
 from . import bgp_common
 from . import chassis_modules
 from . import dropcounters
+from . import fabric
 from . import feature
 from . import fgnhg
 from . import flow_counters
@@ -176,6 +177,7 @@ def cli(ctx):
 cli.add_command(acl.acl)
 cli.add_command(chassis_modules.chassis)
 cli.add_command(dropcounters.dropcounters)
+cli.add_command(fabric.fabric)
 cli.add_command(feature.feature)
 cli.add_command(fgnhg.fgnhg)
 cli.add_command(flow_counters.flowcnt_route)

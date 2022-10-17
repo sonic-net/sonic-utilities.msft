@@ -213,5 +213,33 @@
     },
     "MUX_CABLE_TABLE|Ethernet0": {
         "state": "active"
+    },
+    "FABRIC_PORT_TABLE|PORT0" : {
+        "STATUS": "up",
+        "REMOTE_MOD": "0",
+        "REMOTE_PORT": "69"
+    },
+    "FABRIC_PORT_TABLE|PORT1" : {
+        "STATUS": "down"
+    },
+    "FABRIC_PORT_TABLE|PORT2" : {
+        "STATUS": "down"
+    },
+    "FABRIC_PORT_TABLE|PORT3" : {
+        "STATUS": "down"
+    },
+    "FABRIC_PORT_TABLE|PORT4" : {
+        "STATUS": "up",
+        "REMOTE_MOD": "0",
+        "REMOTE_PORT": "75"
+    },
+    "FABRIC_PORT_TABLE|PORT5" : {
+        "STATUS": "down"
+    },
+    "FABRIC_PORT_TABLE|PORT6" : {
+        "STATUS": "down"
+    },
+    "FABRIC_PORT_TABLE|PORT7" : {
+        "STATUS": "down"
     }
 }

@@ -96,19 +96,21 @@ def multi_asic_display_default_option():
         return constants.DISPLAY_EXTERNAL
 
 
+_multi_asic_click_option_display = click.option('--display',
+                                                '-d', 'display',
+                                                default=multi_asic_display_default_option(),
+                                                show_default=True,
+                                                type=click.Choice(multi_asic_display_choices()),
+                                                help='Show internal interfaces')
+_multi_asic_click_option_namespace = click.option('--namespace',
+                                                  '-n', 'namespace',
+                                                  default=None,
+                                                  type=click.Choice(multi_asic_ns_choices()),
+                                                  show_default=True,
+                                                  help='Namespace name or all')
 _multi_asic_click_options = [
-    click.option('--display',
-                 '-d', 'display',
-                 default=multi_asic_display_default_option(),
-                 show_default=True,
-                 type=click.Choice(multi_asic_display_choices()),
-                 help='Show internal interfaces'),
-    click.option('--namespace',
-                 '-n', 'namespace',
-                 default=None,
-                 type=click.Choice(multi_asic_ns_choices()),
-                 show_default=True,
-                 help='Namespace name or all'),
+      _multi_asic_click_option_display,
+      _multi_asic_click_option_namespace,
 ]
 
 def multi_asic_namespace_validation_callback(ctx, param, value):
@@ -122,6 +124,9 @@ def multi_asic_click_options(func):
         func = option(func)
     return func
 
+def multi_asic_click_option_namespace(func):
+   func = _multi_asic_click_option_namespace(func)
+   return func
 
 def run_on_multi_asic(func):
     '''
