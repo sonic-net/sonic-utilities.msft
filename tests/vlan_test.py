@@ -311,6 +311,30 @@ class TestVlan(object):
         assert result.exit_code != 0
         assert "Error: PortChannel0001 is a router interface!" in result.output
 
+    def test_config_vlan_with_vxlanmap_del_vlan(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db': db.cfgdb}
+
+        # create vlan
+        result = runner.invoke(config.config.commands["vlan"].commands["add"], ["1027"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        # create vxlan map
+        result = runner.invoke(config.config.commands["vxlan"].commands["map"].commands["add"], ["vtep1", "1027", "11027"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        # attempt to del vlan with vxlan map, should fail
+        result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1027"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: vlan: 1027 can not be removed. First remove vxlan mapping" in result.output
+
     def test_config_vlan_del_vlan(self):
         runner = CliRunner()
         db = Db()

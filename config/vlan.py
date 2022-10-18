@@ -60,6 +60,10 @@ def del_vlan(db, vid):
     
     if keys:
         ctx.fail("VLAN ID {} can not be removed. First remove all members assigned to this VLAN.".format(vid))
+    vxlan_table = db.cfgdb.get_table('VXLAN_TUNNEL_MAP')
+    for vxmap_key, vxmap_data in vxlan_table.items():
+        if vxmap_data['vlan'] == 'Vlan{}'.format(vid):
+            ctx.fail("vlan: {} can not be removed. First remove vxlan mapping '{}' assigned to VLAN".format(vid, '|'.join(vxmap_key)) )
         
     db.cfgdb.set_entry('VLAN', 'Vlan{}'.format(vid), None)
 
