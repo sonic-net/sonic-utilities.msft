@@ -61,6 +61,10 @@ Ethernet4     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/
 Ethernet8     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A
 """
 
+show_queue_wm_multicast_neg_output="""\
+Object map from the COUNTERS_DB is empty because the multicast queues are not configured in the CONFIG_DB!
+"""
+
 show_queue_wm_all_output="""\
 Egress shared pool occupancy per all queues:
      Port    ALL20    ALL21    ALL22    ALL23    ALL24    ALL25    ALL26    ALL27    ALL28    ALL29
@@ -140,6 +144,10 @@ testData = {
                                          'rc_output': show_queue_wm_multicast_output
                                         }
                                       ],
+             'show_q_wm_multicast_neg' : [ { 'cmd' : ['queue', 'watermark', 'multicast'],
+                                             'rc_output': show_queue_wm_multicast_neg_output
+                                           }
+                                         ],
              'show_q_pwm_multicast' :  [ {'cmd' : ['queue', 'persistent-watermark', 'multicast'],
                                           'rc_output': show_queue_wm_multicast_output
                                          }
