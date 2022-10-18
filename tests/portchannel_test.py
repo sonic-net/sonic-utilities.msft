@@ -19,7 +19,7 @@ class TestPortChannel(object):
         print("SETUP")
 
     @patch("config.main.is_portchannel_present_in_db", mock.Mock(return_value=False))
-    @patch("config.validated_config_db_connector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     def test_add_portchannel_with_invalid_name_yang_validation(self):
         config.ADHOC_VALIDATION = False
@@ -46,7 +46,7 @@ class TestPortChannel(object):
         assert result.exit_code != 0
         assert "Error: PortChan005 is invalid!, name should have prefix 'PortChannel' and suffix '<0-9999>'" in result.output
 
-    @patch("config.validated_config_db_connector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     def test_delete_nonexistent_portchannel_yang_validation(self):
         config.ADHOC_VALIDATION = False

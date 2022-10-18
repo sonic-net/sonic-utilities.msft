@@ -1638,7 +1638,7 @@ class TestConfigLoopback(object):
         importlib.reload(config.main)
     
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
-    @patch("config.validated_config_db_connector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
     def test_add_loopback_with_invalid_name_yang_validation(self):
         config.ADHOC_VALIDATION = False
         runner = CliRunner()
@@ -1687,7 +1687,7 @@ class TestConfigLoopback(object):
         assert result.exit_code != 0
         assert "Loopbax1 is invalid, name should have prefix 'Loopback' and suffix '<0-999>'" in result.output
     
-    @patch("config.validated_config_db_connector.validated_set_entry", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(return_value=True))
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     def test_add_loopback_yang_validation(self):
         config.ADHOC_VALIDATION = False
