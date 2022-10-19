@@ -308,7 +308,7 @@ class AutoTSHelp:
     @classmethod
     def get_entry_running_cfg(cls, table, key):
         if table == "AUTO_TECHSUPPORT_FEATURE" and key == "test":
-            return {"state" : "disabled", "rate_limit_interval" : "1000"}
+            return {"state" : "disabled", "rate_limit_interval" : "1000", "available_mem_threshold": "20.0"}
         else:
             return {}
 
@@ -323,7 +323,8 @@ def test_auto_ts_global_disabled(mock_sonic_db, manifest):
     feature_registry.register(manifest)
     mock_init_cfg.set_entry.assert_any_call("AUTO_TECHSUPPORT_FEATURE", "test", {
             "state" : "disabled",
-            "rate_limit_interval" : "600"
+            "rate_limit_interval" : "600",
+            "available_mem_threshold": "10.0"
         }
     )
 
@@ -338,7 +339,8 @@ def test_auto_ts_global_enabled(mock_sonic_db, manifest):
     feature_registry.register(manifest)
     mock_init_cfg.set_entry.assert_any_call("AUTO_TECHSUPPORT_FEATURE", "test", {
             "state" : "enabled",
-            "rate_limit_interval" : "600"
+            "rate_limit_interval" : "600",
+            "available_mem_threshold": "10.0"
         }
     )
 
@@ -377,7 +379,8 @@ def test_auto_ts_feature_update_flow(mock_sonic_db, manifest):
             call("AUTO_TECHSUPPORT_FEATURE", "test", None),
             call("AUTO_TECHSUPPORT_FEATURE", "test_new", {
                     "state" : "enabled",
-                    "rate_limit_interval" : "600"
+                    "rate_limit_interval" : "600",
+                    "available_mem_threshold": "10.0"
                 })
         ],
         any_order = True
@@ -388,7 +391,8 @@ def test_auto_ts_feature_update_flow(mock_sonic_db, manifest):
             call("AUTO_TECHSUPPORT_FEATURE", "test", None),
             call("AUTO_TECHSUPPORT_FEATURE", "test_new", {
                     "state" : "disabled",
-                    "rate_limit_interval" : "1000"
+                    "rate_limit_interval" : "1000",
+                    "available_mem_threshold": "20.0"
                 })
         ],
         any_order = True
