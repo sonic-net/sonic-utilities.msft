@@ -19,10 +19,10 @@ DEFAULT_FEATURE_CONFIG = {
 AUTO_TS_GLOBAL = "AUTO_TECHSUPPORT"
 AUTO_TS_FEATURE = "AUTO_TECHSUPPORT_FEATURE"
 CFG_STATE = "state"
-# TODO: Enable available_mem_threshold once the mem_leak_auto_ts feature is available
 DEFAULT_AUTO_TS_FEATURE_CONFIG = {
     'state': 'disabled',
-    'rate_limit_interval': '600'
+    'rate_limit_interval': '600',
+    'available_mem_threshold': '10.0'
 }
 
 def is_enabled(cfg):
