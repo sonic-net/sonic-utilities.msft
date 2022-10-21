@@ -365,6 +365,30 @@
         "Name": "CRC-32",
         "Value": "0xAC518FB3"
     },
+    "MUX_CABLE_INFO|Ethernet0": {
+        "version_peer_next": "0.2MS",
+        "version_peer_active": "0.2MS",
+        "version_peer_inactive": "0.2MS",
+        "version_nic_next": "0.2MS",
+        "version_nic_active": "0.2MS",
+        "version_nic_inactive": "0.2MS",
+        "version_self_next": "0.2MS",
+        "version_self_active": "0.2MS",
+        "version_self_inactive": "0.2MS",
+        "Value": "AABB"
+    },
+    "MUX_CABLE_INFO|Ethernet12": {
+        "version_peer_next": "0.1MS",
+        "version_peer_active": "0.1MS",
+        "version_peer_inactive": "0.1MS",
+        "version_nic_next": "0.1MS",
+        "version_nic_active": "0.1MS",
+        "version_nic_inactive": "0.1MS",
+        "version_self_next": "0.1MS",
+        "version_self_active": "0.1MS",
+        "version_self_inactive": "0.1MS",
+        "Value": "AABB"
+    },
     "SWITCH_CAPABILITY|switch": {
         "MIRROR": "true",
         "MIRRORV6": "true",
