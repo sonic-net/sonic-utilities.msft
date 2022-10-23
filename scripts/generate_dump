@@ -528,6 +528,40 @@ save_bgp_neighbor() {
 }
 
 ###############################################################################
+# Iterates all EVPN neighbors and runs save_vtysh to save each neighbor's
+# advertised-routes and received-routes
+# On multi ASIC platform, collects information from all namespaces
+# Globals:
+#  None
+# Arguments:
+#  Optional arg namespace
+# Returns:
+#  None
+###############################################################################
+save_bgp_evpn_neighbor() {
+    trap 'handle_error $? $LINENO' ERR
+    local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
+    local asic_id=${1:-""}
+    local ns=$(get_vtysh_namespace $asic_id)
+
+    evpn_neighbors=$(${timeout_cmd} bash -c "vtysh -c 'show bgp l2vpn evpn summary' | cut -d ' ' -f1")
+    local parse_neighbors=false
+    for word in $evpn_neighbors; do
+        if [[ $word == "Neighbor" ]]; then
+            parse_neighbors=true
+            continue
+        elif [[ $word == "Total" ]]; then
+            parse_neighbors=false
+            continue
+        fi
+        if [ "$parse_neighbors" = true ]; then
+            save_cmd "vtysh $ns -c \"show bgp l2vpn evpn neighbors $word advertised-routes\"" "bgp.evpn.neighbor.$word.adv$asic_id"
+            save_cmd "vtysh $ns -c \"show bgp l2vpn evpn neighbors $word routes\"" "bgp.evpn.neighbor.$word.rcv$asic_id"
+        fi
+    done
+}
+
+###############################################################################
 # Iterates all ASIC namespaces on multi ASIC platform and on default (host)
 # namespace on single ASIC platform
 # Globals:
@@ -545,6 +579,28 @@ save_bgp_neighbor_all_ns() {
         for (( i=0; i<$NUM_ASICS; i++ ))
         do
             save_bgp_neighbor $i
+        done
+    fi
+}
+
+###############################################################################
+# Iterates all ASIC namespaces on multi ASIC platform and on default (host)
+# namespace on single ASIC platform
+# Globals:
+#  NUM_ASICS
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_bgp_evpn_neighbor_all_ns() {
+    trap 'handle_error $? $LINENO' ERR
+    if [[ ( "$NUM_ASICS" == 1 ) ]] ; then
+        save_bgp_evpn_neighbor
+    else
+        for (( i=0; i<$NUM_ASICS; i++ ))
+        do
+            save_bgp_evpn_neighbor $i
         done
     fi
 }
@@ -624,6 +680,23 @@ save_bgp_info() {
     save_bgp_neighbor_all_ns
 }
 
+###############################################################################
+# Save EVPN related info
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_evpn_info() {
+    trap 'handle_error $? $LINENO' ERR
+    save_vtysh "show bgp l2vpn evpn" "bgp.l2vpn.evpn"
+    save_vtysh "show bgp l2vpn evpn route detail" "bgp.evpn.route"
+    save_vtysh "show evpn vni detail" "bgp.evpn.vni"
+    save_vtysh "show evpn arp-cache vni all" "bgp.evpn.arp"
+    save_bgp_evpn_neighbor_all_ns
+}
 ###############################################################################
 # Save FRR related info
 # Globals:
@@ -1323,6 +1396,7 @@ main() {
 
     save_frr_info
     save_bgp_info
+    save_evpn_info
 
     save_cmd "show interface status -d all" "interface.status"
     save_cmd "show interface transceiver presence" "interface.xcvrs.presence"
