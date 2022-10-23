@@ -337,6 +337,32 @@ def vrf(vrf_name):
     click.echo(tabulate(body, header))
 
 #
+# 'events' command ("show event-counters")
+#
+
+@cli.command()
+def event_counters():
+    """Show events counter"""
+    # dump keys as formatted
+    counters_db = SonicV2Connector(host='127.0.0.1')
+    counters_db.connect(counters_db.COUNTERS_DB, retry_on=False)
+
+    header = ['name', 'count']
+    keys = counters_db.keys(counters_db.COUNTERS_DB, 'COUNTERS_EVENTS*')
+    table = []
+
+    for key in natsorted(keys):
+        key_list = key.split(':')
+        data_dict = counters_db.get_all(counters_db.COUNTERS_DB, key)
+        table.append((key_list[1], data_dict["value"]))
+
+    if table:
+        click.echo(tabulate(table, header, tablefmt='simple', stralign='right'))
+    else:
+        click.echo('No data available in COUNTERS_EVENTS\n')
+
+
+#
 # 'arp' command ("show arp")
 #
 
