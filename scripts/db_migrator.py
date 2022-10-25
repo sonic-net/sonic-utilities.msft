@@ -44,7 +44,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_3_0_5'
+        self.CURRENT_VERSION = 'version_3_0_6'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -69,6 +69,10 @@ class DBMigrator():
         self.stateDB = SonicV2Connector(host='127.0.0.1')
         if self.stateDB is not None:
             self.stateDB.connect(self.stateDB.STATE_DB)
+
+        self.loglevelDB = SonicV2Connector(host='127.0.0.1')
+        if self.loglevelDB is not None:
+            self.loglevelDB.connect(self.loglevelDB.LOGLEVEL_DB)
 
         version_info = device_info.get_sonic_version_info()
         asic_type = version_info.get('asic_type')
@@ -717,9 +721,36 @@ class DBMigrator():
 
     def version_3_0_5(self):
         """
-        Current latest version. Nothing to do here.
+        Version 3_0_5
         """
         log.log_info('Handling version_3_0_5')
+        # Removing LOGLEVEL DB and moving it's content to CONFIG DB
+        # Removing Jinja2_cache
+        warmreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'WARM_RESTART_ENABLE_TABLE|system', 'enable')
+        if warmreboot_state == 'true':
+            table_name = "LOGGER"
+            loglevel_field = "LOGLEVEL"
+            logoutput_field = "LOGOUTPUT"
+            keys = self.loglevelDB.keys(self.loglevelDB.LOGLEVEL_DB, "*")
+            if keys is not None:
+                for key in keys:
+                    if key != "JINJA2_CACHE":
+                        fvs = self.loglevelDB.get_all(self.loglevelDB.LOGLEVEL_DB, key)
+                        component = key.split(":")[1]
+                        loglevel = fvs[loglevel_field]
+                        logoutput = fvs[logoutput_field]
+                        self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), loglevel_field, loglevel)
+                        self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), logoutput_field, logoutput)
+                    self.loglevelDB.delete(self.loglevelDB.LOGLEVEL_DB, key)
+        self.set_version('version_3_0_6')
+        return 'version_3_0_6'
+
+    def version_3_0_6(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+
+        log.log_info('Handling version_3_0_6')
         return None
 
     def get_version(self):

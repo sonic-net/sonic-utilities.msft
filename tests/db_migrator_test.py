@@ -409,4 +409,44 @@ class TestGlobalDscpToTcMapMigrator(object):
         dbmgtr_mlnx.migrate()
         resulting_table = dbmgtr_mlnx.configDB.get_table('PORT_QOS_MAP')
         assert resulting_table == {}
+        
+class TestMoveLoggerTablesInWarmUpgrade(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
 
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+        dbconnector.dedicated_dbs['LOGLEVEL_DB'] = None
+        dbconnector.dedicated_dbs['STATE_DB'] = None
+
+    def mock_dedicated_loglevel_db(self, filename):
+        jsonfile = os.path.join(mock_db_path, 'loglevel_db', filename)
+        dbconnector.dedicated_dbs['LOGLEVEL_DB'] = jsonfile
+        loglevel_db = SonicV2Connector(host='127.0.0.1')
+        loglevel_db.connect(loglevel_db.LOGLEVEL_DB)
+        return loglevel_db
+
+    def test_move_logger_tables_in_warm_upgrade(self):
+        device_info.get_sonic_version_info = get_sonic_version_info_mlnx
+
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'logger_tables_input')
+        dbconnector.dedicated_dbs['LOGLEVEL_DB'] = os.path.join(mock_db_path, 'loglevel_db', 'logger_tables_input')
+        dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db')
+
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'logger_tables_expected')
+        dbconnector.dedicated_dbs['LOGLEVEL_DB'] = os.path.join(mock_db_path, 'loglevel_db', 'logger_tables_expected')
+
+        expected_db = Db()
+
+        resulting_table = dbmgtr.configDB.get_table('LOGGER')
+        expected_table = expected_db.cfgdb.get_table('LOGGER')
+
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert not diff
