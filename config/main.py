@@ -1143,6 +1143,8 @@ def validate_ipv4_address(ctx, param, ip_addr):
 def validate_gre_type(ctx, _, value):
     """A validator for validating input gre_type
     """
+    if value is None:
+        return None
     try:
         base = 10
         if value.lower().startswith('0x'):
