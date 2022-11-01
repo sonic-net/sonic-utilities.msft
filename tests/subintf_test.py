@@ -173,14 +173,18 @@ class TestSubinterface(object):
         assert ('Ethernet0.102') in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
         assert db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Ethernet0.102']['admin_status'] == 'up'
 
+        expected_output_bind = "Interface Ethernet0.102 IP disabled and address(es) removed due to binding VRF Vrf1.\n"
         vrf_obj = {'config_db':db.cfgdb, 'namespace':db.db.namespace}
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["bind"], ["Ethernet0.102", "Vrf1"], obj=vrf_obj)
         assert result.exit_code == 0
         assert ('Vrf1') in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Ethernet0.102']['vrf_name']
+        assert result.output == expected_output_bind
 
+        expected_output_unbind = "Interface Ethernet0.102 IP disabled and address(es) removed due to unbinding VRF.\n"
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Ethernet0.102"], obj=vrf_obj)
         assert result.exit_code == 0
         assert ('vrf_name') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Ethernet0.102']
+        assert result.output == expected_output_unbind
 
         result = runner.invoke(config.config.commands["subinterface"].commands["del"], ["Ethernet0.102"], obj=obj)
         print(result.exit_code, result.output)
@@ -193,13 +197,17 @@ class TestSubinterface(object):
         assert result.exit_code == 0
         assert ('Eth0.1002') in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
 
+        expected_output_bind = "Interface Eth0.1002 IP disabled and address(es) removed due to binding VRF Vrf1.\n"
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["bind"], ["Eth0.1002", "Vrf1"], obj=vrf_obj)
         assert result.exit_code == 0
         assert ('Vrf1') in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Eth0.1002']['vrf_name']
+        assert result.output == expected_output_bind
 
+        expected_output_unbind = "Interface Eth0.1002 IP disabled and address(es) removed due to unbinding VRF.\n"
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Eth0.1002"], obj=vrf_obj)
         assert result.exit_code == 0
         assert ('vrf_name') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Eth0.1002']
+        assert result.output == expected_output_unbind
 
         result = runner.invoke(config.config.commands["subinterface"].commands["del"], ["Eth0.1002"], obj=obj)
         print(result.exit_code, result.output)
@@ -212,13 +220,17 @@ class TestSubinterface(object):
         assert result.exit_code == 0
         assert ('Po0004.1004') in db.cfgdb.get_table('VLAN_SUB_INTERFACE')
 
+        expected_output_bind = "Interface Po0004.1004 IP disabled and address(es) removed due to binding VRF Vrf1.\n"
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["bind"], ["Po0004.1004", "Vrf1"], obj=vrf_obj)
         assert result.exit_code == 0
         assert ('Vrf1') in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Po0004.1004']['vrf_name']
+        assert result.output == expected_output_bind
 
+        expected_output_unbind = "Interface Po0004.1004 IP disabled and address(es) removed due to unbinding VRF.\n"
         result = runner.invoke(config.config.commands["interface"].commands["vrf"].commands["unbind"], ["Po0004.1004"], obj=vrf_obj)
         assert result.exit_code == 0
         assert ('vrf_name') not in db.cfgdb.get_table('VLAN_SUB_INTERFACE')['Po0004.1004']
+        assert result.output == expected_output_unbind
 
         result = runner.invoke(config.config.commands["subinterface"].commands["del"], ["Po0004.1004"], obj=obj)
         print(result.exit_code, result.output)
