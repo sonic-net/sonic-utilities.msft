@@ -33,7 +33,7 @@ EXIT_PLATFORM_FW_AU_FAILURE=22
 PLATFORM_FWUTIL_AU_REBOOT_HANDLE="platform_fw_au_reboot_handle"
 REBOOT_SCRIPT_NAME=$(basename $0)
 REBOOT_TYPE="${REBOOT_SCRIPT_NAME}"
-TAG_LATEST=yes
+TAG_LATEST=no
 
 function debug()
 {

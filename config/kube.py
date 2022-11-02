@@ -25,7 +25,7 @@ def _update_kube_server(db, field, val):
     def_data = {
         KUBE_SERVER_IP: "",
         KUBE_SERVER_PORT: "6443",
-        KUBE_SERVER_INSECURE: "False",
+        KUBE_SERVER_INSECURE: "True",
         KUBE_SERVER_DISABLE: "False"
     }
     for f in def_data:
