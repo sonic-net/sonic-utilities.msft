@@ -367,6 +367,33 @@ Ethernet36  Present
 """
         assert result.output == expected_output
 
+    @patch('sfputil.main.is_port_type_rj45', MagicMock(return_value=False))
+    @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
+    def test_show_error_status(self):
+        runner = CliRunner()
+        result = runner.invoke(sfputil.cli.commands['show'].commands['error-status'], [])
+        assert result.exit_code == 0
+        expected_output = """Port        Error Status
+----------  -------------------------------
+Ethernet0   Blocking Error|High temperature
+Ethernet4   OK
+Ethernet8   Unplugged
+Ethernet12  Unknown state: 255
+Ethernet16  Unplugged
+Ethernet28  Unplugged
+Ethernet36  Unknown
+"""
+        assert result.output == expected_output
+
+    @patch('sfputil.main.SonicV2Connector', MagicMock(return_value=None))
+    def test_show_error_status_error_case(self):
+        runner = CliRunner()
+        result = runner.invoke(sfputil.cli.commands['show'].commands['error-status'], [])
+        assert result.exit_code == 0
+        expected_output = """Failed to connect to STATE_DB\n"""
+        assert result.output == expected_output
+
+
     @patch('sfputil.main.platform_chassis')
     @patch('sfputil.main.logical_port_name_to_physical_port_list', MagicMock(return_value=[1]))
     @patch('sfputil.main.platform_sfputil', MagicMock(is_logical_port=MagicMock(return_value=1)))
