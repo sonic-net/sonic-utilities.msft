@@ -1009,15 +1009,15 @@ def error_status(port, fetch_from_hardware):
     if fetch_from_hardware:
         output_table = fetch_error_status_from_platform_api(port)
     else:
-        # Connect to STATE_DB
-        state_db = SonicV2Connector(host='127.0.0.1')
-        if state_db is not None:
-            state_db.connect(state_db.STATE_DB)
-        else:
-            click.echo("Failed to connect to STATE_DB")
-            return
-
-        output_table = fetch_error_status_from_state_db(port, state_db)
+        namespaces = multi_asic.get_front_end_namespaces()
+        for namespace in namespaces:
+            state_db = SonicV2Connector(use_unix_socket_path=False, namespace=namespace)
+            if state_db is not None:
+                state_db.connect(state_db.STATE_DB)
+                output_table.extend(fetch_error_status_from_state_db(port, state_db))
+            else:
+                click.echo("Failed to connect to STATE_DB")
+                return
 
     click.echo(tabulate(output_table, table_header, tablefmt='simple'))
 
