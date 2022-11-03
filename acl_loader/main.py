@@ -842,8 +842,10 @@ class AclLoader(object):
                                          val.get("monitor_port", ""), val.get("src_port", ""), val.get("direction", "").lower()])
 
         print("ERSPAN Sessions")
+        erspan_data = natsorted(erspan_data)
         print(tabulate.tabulate(erspan_data, headers=erspan_header, tablefmt="simple", missingval=""))
         print("\nSPAN Sessions")
+        span_data = natsorted(span_data)
         print(tabulate.tabulate(span_data, headers=span_header, tablefmt="simple", missingval=""))
 
     def show_policer(self, policer_name):
