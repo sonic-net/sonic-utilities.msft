@@ -876,6 +876,24 @@
     "LINK_TRAINING|Ethernet112": {
          "status": "off"
     },
+   "BFD_SESSION_TABLE|default|default|100.251.7.1": {
+        "state":"Up",
+        "type": "async_active",
+        "local_addr" : "10.0.0.1",
+        "tx_interval" :"300",
+        "rx_interval" : "500",
+        "multiplier" : "3",
+        "multihop": "true"
+    },
+    "BFD_SESSION_TABLE|default|default|fddd:a101:a251::a10:1": {
+        "state":"Down",
+        "type": "async_active",
+        "local_addr" : "fddd:c101:a251::a10:2",
+        "tx_interval" :"300",
+        "rx_interval" : "500",
+        "multiplier" : "3",
+        "multihop": "true"
+    },
     "VNET_ROUTE_TUNNEL_TABLE|test_v4_in_v4-0|160.162.191.1/32": {
         "active_endpoints":"100.251.7.1",
         "state":"active"
