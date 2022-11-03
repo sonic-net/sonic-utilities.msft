@@ -207,7 +207,8 @@ def all():
     """Show all vnet routes"""
     appl_db = SonicV2Connector()
     appl_db.connect(appl_db.APPL_DB)
-
+    state_db = SonicV2Connector()
+    state_db.connect(state_db.STATE_DB)
     header = ['vnet name', 'prefix', 'nexthop', 'interface']
 
     # Fetching data from appl_db for VNET ROUTES
@@ -227,7 +228,7 @@ def all():
 
     click.echo()
 
-    header = ['vnet name', 'prefix', 'endpoint', 'mac address', 'vni']
+    header = ['vnet name', 'prefix', 'endpoint', 'mac address', 'vni', 'status']
 
     # Fetching data from appl_db for VNET TUNNEL ROUTES
     vnet_rt_keys = appl_db.keys(appl_db.APPL_DB, "VNET_ROUTE_TUNNEL_TABLE:*")
@@ -237,10 +238,14 @@ def all():
     for k in vnet_rt_keys:
         r = []
         r.extend(k.split(":", 2)[1:])
+        state_db_key = '|'.join(k.split(":",2))
         val = appl_db.get_all(appl_db.APPL_DB, k)
+        val_state = state_db.get_all(state_db.STATE_DB, state_db_key)
         r.append(val.get('endpoint'))
         r.append(val.get('mac_address'))
         r.append(val.get('vni'))
+        if val_state:
+            r.append(val_state.get('state'))
         table.append(r)
 
     click.echo(tabulate(table, header))
