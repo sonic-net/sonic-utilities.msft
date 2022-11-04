@@ -4,8 +4,12 @@ import sys
 
 from click.testing import CliRunner
 from utilities_common.db import Db
+from jsonpatch import JsonPatchConflict
+from unittest import mock
+from mock import patch
 
 import config.main as config
+import config.validated_config_db_connector as validated_config_db_connector
 import show.main as show
 
 test_path = os.path.dirname(os.path.abspath(__file__))
@@ -280,3 +284,27 @@ class TestAaa(object):
         assert result.exit_code == 0
         assert result.output == show_aaa_disable_accounting_output
 
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
+    def test_config_aaa_tacacs_delete_yang_validation(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["tacacs"].commands["delete"], ["10.10.10.10"], obj=obj)
+        print(result.exit_code)
+        assert result.exit_code != 0
+
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value={}))
+    def test_config_aaa_tacacs_add_yang_validation(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["tacacs"].commands["add"], ["10.10.10.10"], obj=obj)
+        print(result.exit_code)
+        assert result.exit_code != 0

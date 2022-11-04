@@ -2,8 +2,11 @@ import click
 import ipaddress
 import re
 from swsscommon.swsscommon import ConfigDBConnector
+from .validated_config_db_connector import ValidatedConfigDBConnector
+from jsonpatch import JsonPatchConflict
 import utilities_common.cli as clicommon
 
+ADHOC_VALIDATION = True
 RADIUS_MAXSERVERS = 8
 RADIUS_PASSKEY_MAX_LEN = 65
 VALID_CHARS_MSG = "Valid chars are ASCII printable except SPACE, '#', and ','"
@@ -13,19 +16,27 @@ def is_secret(secret):
 
 
 def add_table_kv(table, entry, key, val):
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
-    config_db.mod_entry(table, entry, {key:val})
+    try:
+        config_db.mod_entry(table, entry, {key:val})
+    except ValueError as e:
+        ctx = click.get_current_context()
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 
 def del_table_key(table, entry, key):
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
     data = config_db.get_entry(table, entry)
     if data:
         if key in data:
             del data[key]
-        config_db.set_entry(table, entry, data)
+        try:
+            config_db.set_entry(table, entry, data)
+        except (ValueError, JsonPatchConflict) as e:
+            ctx = click.get_current_context()
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 @click.group()
 def aaa():
@@ -246,11 +257,12 @@ default.add_command(passkey)
 @click.option('-m', '--use-mgmt-vrf', help="Management vrf, default is no vrf", is_flag=True)
 def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
     """Specify a TACACS+ server"""
-    if not clicommon.is_ipaddress(address):
-        click.echo('Invalid ip address')
-        return
+    if ADHOC_VALIDATION:
+        if not clicommon.is_ipaddress(address):
+            click.echo('Invalid ip address') # TODO: MISSING CONSTRAINT IN YANG MODEL
+            return
 
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
     old_data = config_db.get_entry('TACPLUS_SERVER', address)
     if old_data != {}:
@@ -268,7 +280,11 @@ def add(address, timeout, key, auth_type, port, pri, use_mgmt_vrf):
             data['passkey'] = key
         if use_mgmt_vrf :
             data['vrf'] = "mgmt"
-        config_db.set_entry('TACPLUS_SERVER', address, data)
+        try:
+            config_db.set_entry('TACPLUS_SERVER', address, data)
+        except ValueError as e:
+            ctx = click.get_current_context()
+            ctx.fail("Invalid ip address. Error: {}".format(e))
 tacacs.add_command(add)
 
 
@@ -278,13 +294,18 @@ tacacs.add_command(add)
 @click.argument('address', metavar='<ip_address>')
 def delete(address):
     """Delete a TACACS+ server"""
-    if not clicommon.is_ipaddress(address):
-        click.echo('Invalid ip address')
-        return
+    if ADHOC_VALIDATION:
+        if not clicommon.is_ipaddress(address):
+            click.echo('Invalid ip address')
+            return
 
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
-    config_db.set_entry('TACPLUS_SERVER', address, None)
+    try:
+        config_db.set_entry('TACPLUS_SERVER', address, None)
+    except JsonPatchConflict as e:
+        ctx = click.get_current_context()
+        ctx.fail("Invalid ip address. Error: {}".format(e))
 tacacs.add_command(delete)
 
 

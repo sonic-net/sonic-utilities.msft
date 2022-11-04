@@ -6760,73 +6760,82 @@ def is_subintf_shortname(intf):
 @click.argument('vid', metavar='<vid>', required=False, type=click.IntRange(1,4094))
 @click.pass_context
 def add_subinterface(ctx, subinterface_name, vid):
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
     sub_intf_sep_idx = subinterface_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
-    if sub_intf_sep_idx == -1:
-        ctx.fail("{} is invalid vlan subinterface".format(subinterface_name))
-
     interface_alias = subinterface_name[:sub_intf_sep_idx]
-    if interface_alias is None:
-        ctx.fail("{} invalid subinterface".format(interface_alias))
+    if ADHOC_VALIDATION:
+        if sub_intf_sep_idx == -1:
+            ctx.fail("{} is invalid vlan subinterface".format(subinterface_name))
 
-    if interface_alias.startswith("Po") is True:
-        intf_table_name = CFG_PORTCHANNEL_PREFIX
-    elif interface_alias.startswith("Eth") is True:
-        intf_table_name = 'PORT'
+        if interface_alias is None:
+            ctx.fail("{} invalid subinterface".format(interface_alias))
 
-    config_db = ctx.obj['db']
-    port_dict = config_db.get_table(intf_table_name)
-    parent_intf = get_intf_longname(interface_alias)
-    if interface_alias is not None:
-        if not port_dict:
-            ctx.fail("{} parent interface not found. {} table none".format(interface_alias, intf_table_name))
-        if parent_intf not in port_dict.keys():
-            ctx.fail("{} parent interface not found".format(subinterface_name))
+        if interface_alias.startswith("Po") is True:
+            intf_table_name = CFG_PORTCHANNEL_PREFIX
+        elif interface_alias.startswith("Eth") is True:
+            intf_table_name = 'PORT'
+        else:
+            ctx.fail("{} is invalid vlan subinterface".format(subinterface_name))
 
-    # Validate if parent is portchannel member
-    portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
-    if interface_is_in_portchannel(portchannel_member_table, parent_intf):
-        ctx.fail("{} is configured as a member of portchannel. Cannot configure subinterface"
-                .format(parent_intf))
+        port_dict = config_db.get_table(intf_table_name)
+        parent_intf = get_intf_longname(interface_alias)
+        if interface_alias is not None:
+            if not port_dict:
+                ctx.fail("{} parent interface not found. {} table none".format(interface_alias, intf_table_name))
+            if parent_intf not in port_dict.keys():
+                ctx.fail("{} parent interface not found".format(subinterface_name))
 
-    # Validate if parent is vlan member
-    vlan_member_table = config_db.get_table('VLAN_MEMBER')
-    if interface_is_in_vlan(vlan_member_table, parent_intf):
-        ctx.fail("{} is configured as a member of vlan. Cannot configure subinterface"
-                .format(parent_intf))
+        # Validate if parent is portchannel member
+        portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
+        if interface_is_in_portchannel(portchannel_member_table, parent_intf): # TODO: MISSING CONSTRAINT IN YANG MODEL
+            ctx.fail("{} is configured as a member of portchannel. Cannot configure subinterface"
+                    .format(parent_intf))
 
-    sub_intfs = [k for k,v in config_db.get_table('VLAN_SUB_INTERFACE').items() if type(k) != tuple]
-    if subinterface_name in sub_intfs:
-        ctx.fail("{} already exists".format(subinterface_name))
+        # Validate if parent is vlan member
+        vlan_member_table = config_db.get_table('VLAN_MEMBER')
+        if interface_is_in_vlan(vlan_member_table, parent_intf): # TODO: MISSING CONSTRAINT IN YANG MODEL
+            ctx.fail("{} is configured as a member of vlan. Cannot configure subinterface"
+                    .format(parent_intf))
+
+        sub_intfs = [k for k,v in config_db.get_table('VLAN_SUB_INTERFACE').items() if type(k) != tuple]
+        if subinterface_name in sub_intfs:
+            ctx.fail("{} already exists".format(subinterface_name)) # TODO: MISSING CONSTRAINT IN YANG MODEL
+
+        if subintf_vlan_check(config_db, get_intf_longname(interface_alias), vid) is True:
+            ctx.fail("Vlan {} encap already configured on other subinterface on {}".format(vid, interface_alias)) # TODO: MISSING CONSTRAINT IN YANG MODEL
+
+        if vid is None and is_subintf_shortname(subinterface_name):
+            ctx.fail("{} Encap vlan is mandatory or short name subinterfaces".format(subinterface_name)) # TODO: MISSING CONSTRAINT IN YANG MODEL
 
     subintf_dict = {}
     if vid is not None:
         subintf_dict.update({"vlan" : vid})
-    elif is_subintf_shortname(subinterface_name):
-        ctx.fail("{} Encap vlan is mandatory for short name subinterfaces".format(subinterface_name))
-
-    if subintf_vlan_check(config_db, get_intf_longname(interface_alias), vid) is True:
-        ctx.fail("Vlan {} encap already configured on other subinterface on {}".format(vid, interface_alias))
-
     subintf_dict.update({"admin_status" : "up"})
-    config_db.set_entry('VLAN_SUB_INTERFACE', subinterface_name, subintf_dict)
+    
+    try:
+        config_db.set_entry('VLAN_SUB_INTERFACE', subinterface_name, subintf_dict)
+    except ValueError as e:
+        ctx.fail("Invalid vlan subinterface. Error: {}".format(e))
 
 @subinterface.command('del')
 @click.argument('subinterface_name', metavar='<subinterface_name>', required=True)
 @click.pass_context
 def del_subinterface(ctx, subinterface_name):
-    sub_intf_sep_idx = subinterface_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
-    if sub_intf_sep_idx == -1:
-        ctx.fail("{} is invalid vlan subinterface".format(subinterface_name))
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
 
-    config_db = ctx.obj['db']
-    #subinterface_name = subintf_get_shortname(subinterface_name)
-    if interface_name_is_valid(config_db, subinterface_name) is False:
-        ctx.fail("{} is invalid ".format(subinterface_name))
+    if ADHOC_VALIDATION:
+        sub_intf_sep_idx = subinterface_name.find(VLAN_SUB_INTERFACE_SEPARATOR)
+        if sub_intf_sep_idx == -1:
+            ctx.fail("{} is invalid vlan subinterface".format(subinterface_name))
 
-    subintf_config_db = config_db.get_table('VLAN_SUB_INTERFACE')
-    sub_intfs = [k for k,v in subintf_config_db.items() if type(k) != tuple]
-    if subinterface_name not in sub_intfs:
-        ctx.fail("{} does not exists".format(subinterface_name))
+        #subinterface_name = subintf_get_shortname(subinterface_name)
+        if interface_name_is_valid(config_db, subinterface_name) is False:
+            ctx.fail("{} is invalid ".format(subinterface_name))
+
+        subintf_config_db = config_db.get_table('VLAN_SUB_INTERFACE')
+        sub_intfs = [k for k,v in subintf_config_db.items() if type(k) != tuple]
+        if subinterface_name not in sub_intfs:
+            ctx.fail("{} does not exists".format(subinterface_name))
 
     ips = {}
     ips = [ k[1] for k in config_db.get_table('VLAN_SUB_INTERFACE') if type(k) == tuple and k[0] == subinterface_name ]
@@ -6842,7 +6851,10 @@ def del_subinterface(ctx, subinterface_name):
     for ip in ips:
         config_db.set_entry('INTERFACE', (subinterface_name, ip), None)
 
-    config_db.set_entry('VLAN_SUB_INTERFACE', subinterface_name, None)
+    try:
+        config_db.set_entry('VLAN_SUB_INTERFACE', subinterface_name, None)
+    except JsonPatchConflict as e:
+        ctx.fail("{} is invalid vlan subinterface. Error: {}".format(subinterface_name, e))
 
 if __name__ == '__main__':
     config()
