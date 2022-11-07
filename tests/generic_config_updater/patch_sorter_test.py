@@ -753,6 +753,41 @@ class TestMoveWrapper(unittest.TestCase):
         # Assert
         self.assertIs(self.any_diff, actual)
 
+class TestJsonPointerFilter(unittest.TestCase):
+    def test_get_paths__common_prefix__exact_match_returned(self):
+        config = {
+            "BUFFER_PG": {
+                "Ethernet1|0": {},
+                "Ethernet12|0": {},
+                "Ethernet120|0": {},  # 'Ethernet12' is a common prefix with the previous line
+            },
+        }
+
+        filter = ps.JsonPointerFilter([["BUFFER_PG", "Ethernet12|*"]], PathAddressing())
+
+        expected_paths = ["/BUFFER_PG/Ethernet12|0"]
+
+        actual_paths = list(filter.get_paths(config))
+
+        self.assertCountEqual(expected_paths, actual_paths)
+
+    def test_get_paths__common_suffix__exact_match_returned(self):
+        config = {
+            "QUEUE": {
+                "Ethernet1|0": {},
+                "Ethernet1|10": {},
+                "Ethernet1|110": {}, # 10 is a common suffix with the previous line
+            },
+        }
+
+        filter = ps.JsonPointerFilter([["QUEUE", "*|10"]], PathAddressing())
+
+        expected_paths = ["/QUEUE/Ethernet1|10"]
+
+        actual_paths = list(filter.get_paths(config))
+
+        self.assertCountEqual(expected_paths, actual_paths)
+
 class TestRequiredValueIdentifier(unittest.TestCase):
     def test_hard_coded_required_value_data(self):
         identifier = ps.RequiredValueIdentifier(PathAddressing())
