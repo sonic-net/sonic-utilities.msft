@@ -399,10 +399,10 @@ class JsonPointerFilter:
         if token == "*":
             matching_keys = config.keys()
         elif token.startswith("*|"):
-            suffix = token[2:]
+            suffix = token[1:]
             matching_keys = [key for key in config.keys() if key.endswith(suffix)]
         elif token.endswith("|*"):
-            prefix = token[:-2]
+            prefix = token[:-1]
             matching_keys = [key for key in config.keys() if key.startswith(prefix)]
         elif token in config:
             matching_keys = [token]
