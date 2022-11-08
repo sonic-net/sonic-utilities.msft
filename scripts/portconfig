@@ -118,6 +118,9 @@ class portconfig(object):
             print(port_tables[port])
 
     def set_speed(self, port, speed):
+        if self.is_lag:
+            raise Exception("Invalid port %s" % (port))
+
         if self.verbose:
             print("Setting speed %s on port %s" % (speed, port))
         supported_speeds_str = self.get_supported_speeds(port) or ''
@@ -129,6 +132,9 @@ class portconfig(object):
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_SPEED_CONFIG_FIELD_NAME: speed})
 
     def set_fec(self, port, fec):
+        if self.is_lag:
+            raise Exception("Invalid port %s" % (port))
+
         if self.verbose:
             print("Setting fec %s on port %s" % (fec, port))
         supported_fecs = self.get_supported_fecs(port)
@@ -141,14 +147,17 @@ class portconfig(object):
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_FEC_CONFIG_FIELD_NAME: fec})
 
     def set_mtu(self, port, mtu):
-        port_tables = self.db.get_table(PORT_TABLE_NAME)
-        if port not in port_tables:
+        if self.is_lag:
             raise Exception("Invalid port %s" % (port))
+
         if self.verbose:
             print("Setting mtu %s on port %s" % (mtu, port))
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_MTU_CONFIG_FIELD_NAME: mtu})
 
     def set_link_training(self, port, mode):
+        if self.is_lag:
+            raise Exception("Invalid port %s" % (port))
+
         if self.verbose:
             print("Setting link-training %s on port %s" % (mode, port))
         lt_modes = ['on', 'off']
@@ -159,20 +168,32 @@ class portconfig(object):
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_LINK_TRAINING_CONFIG_FIELD_NAME: mode})
 
     def set_autoneg(self, port, mode):
+        if self.is_lag:
+            raise Exception("Invalid port %s" % (port))
+
         if self.verbose:
             print("Setting autoneg %s on port %s" % (mode, port))
         mode = 'on' if mode == 'enabled' else 'off'
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_AUTONEG_CONFIG_FIELD_NAME: mode})
 
     def set_tx_power(self, port, tx_power):
+        if self.is_lag:
+            raise Exception("Invalid port %s" % (port))
+
         print("Setting target Tx output power to %s dBm on port %s" % (tx_power, port))
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_XCVR_TX_POWER_FIELD_NAME: tx_power})
 
     def set_laser_freq(self, port, laser_freq):
+        if self.is_lag:
+            raise Exception("Invalid port %s" % (port))
+
         print("Setting laser frequency to %s GHz on port %s" % (laser_freq, port))
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_XCVR_LASER_FREQ_FIELD_NAME: laser_freq})
 
     def set_adv_speeds(self, port, adv_speeds):
+        if self.is_lag:
+            raise Exception("Invalid port %s" % (port))
+
         if self.verbose:
             print("Setting adv_speeds %s on port %s" % (adv_speeds, port))
 
@@ -194,6 +215,9 @@ class portconfig(object):
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_ADV_SPEEDS_CONFIG_FIELD_NAME: adv_speeds})
 
     def set_interface_type(self, port, interface_type):
+        if self.is_lag:
+            raise Exception("Invalid port %s" % (port))
+
         if self.is_rj45_port:
             print("Setting RJ45 ports' type is not supported")
             exit(1)
@@ -206,6 +230,9 @@ class portconfig(object):
         self.db.mod_entry(PORT_TABLE_NAME, port, {PORT_INTERFACE_TYPE_CONFIG_FIELD_NAME: interface_type})
 
     def set_adv_interface_types(self, port, adv_interface_types):
+        if self.is_lag:
+            raise Exception("Invalid port %s" % (port))
+
         if self.is_rj45_port:
             print("Setting RJ45 ports' advertised types is not supported")
             exit(1)
