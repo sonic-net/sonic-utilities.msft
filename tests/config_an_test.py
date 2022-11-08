@@ -33,6 +33,9 @@ class TestConfigInterface(object):
         self.basic_check("autoneg", ["Ethernet0", "disabled"], ctx)
         self.basic_check("autoneg", ["Invalid", "enabled"], ctx, operator.ne)
         self.basic_check("autoneg", ["Ethernet0", "invalid"], ctx, operator.ne)
+        # Setting auto negotiation on a port channel is not supported
+        result = self.basic_check("autoneg", ["PortChannel0001", "enabled"], ctx, operator.ne)
+        assert 'Invalid port PortChannel0001' in result.output
 
     def test_config_speed(self, ctx):
         self.basic_check("speed", ["Ethernet0", "40000"], ctx)
@@ -42,6 +45,9 @@ class TestConfigInterface(object):
         assert 'Invalid speed' in result.output
         assert 'Valid speeds:' in result.output
         self.basic_check("speed", ["Ethernet0", "invalid"], ctx, operator.ne)
+        # Setting speed on a port channel is not supported
+        result = self.basic_check("speed", ["PortChannel0001", "100000"], ctx, operator.ne)
+        assert 'Invalid port PortChannel0001' in result.output
 
     def test_config_adv_speeds(self, ctx):
         self.basic_check("advertised-speeds", ["Ethernet0", "40000,100000"], ctx)
@@ -53,6 +59,9 @@ class TestConfigInterface(object):
         result = self.basic_check("advertised-speeds", ["Ethernet0", "50000,50000"], ctx, operator.ne)
         assert 'Invalid speed' in result.output
         assert 'duplicate' in result.output
+        # Setting advertised speeds on a port channel is not supported
+        result = self.basic_check("advertised-speeds", ["PortChannel0001", "40000,100000"], ctx, operator.ne)
+        assert 'Invalid port PortChannel0001' in result.output
 
     def test_config_type(self, ctx):
         self.basic_check("type", ["Ethernet0", "CR4"], ctx)
@@ -64,6 +73,9 @@ class TestConfigInterface(object):
         assert 'Valid interface types:' in result.output
         result = self.basic_check("type", ["Ethernet16", "Invalid"], ctx, operator.ne)
         assert "Setting RJ45 ports' type is not supported" in result.output
+        # Setting type on a port channel is not supported
+        result = self.basic_check("type", ["PortChannel0001", "CR4"], ctx, operator.ne)
+        assert 'Invalid port PortChannel0001' in result.output
 
     def test_config_adv_types(self, ctx):
         self.basic_check("advertised-types", ["Ethernet0", "CR4,KR4"], ctx)
@@ -78,6 +90,9 @@ class TestConfigInterface(object):
         self.basic_check("advertised-types", ["Ethernet0", ""], ctx, operator.ne)
         result = self.basic_check("advertised-types", ["Ethernet16", "Invalid"], ctx, operator.ne)
         assert "Setting RJ45 ports' advertised types is not supported" in result.output
+        # Setting advertised types on a port channel is not supported
+        result = self.basic_check("advertised-types", ["PortChannel0001", "CR4,KR4"], ctx, operator.ne)
+        assert 'Invalid port PortChannel0001' in result.output
 
     def test_config_mtu(self, ctx):
         self.basic_check("mtu", ["Ethernet0", "1514"], ctx)
@@ -99,6 +114,9 @@ class TestConfigInterface(object):
         # Negative case: set a fec mode on a port where setting fec is not supported
         result = self.basic_check("fec", ["Ethernet112", "test"], ctx, operator.ne)
         assert "Setting fec is not supported" in result.output
+        # Negative case: set a fec mode on a port channel is not supported
+        result = self.basic_check("fec", ["PortChannel0001", "none"], ctx, operator.ne)
+        assert 'Invalid port PortChannel0001' in result.output        
 
     def basic_check(self, command_name, para_list, ctx, op=operator.eq, expect_result=0):
         runner = CliRunner()

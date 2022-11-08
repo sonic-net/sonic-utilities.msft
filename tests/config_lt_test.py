@@ -34,6 +34,9 @@ class TestConfigInterface(object):
         self.basic_check("link-training", ["Invalid", "on"], ctx, operator.ne)
         self.basic_check("link-training", ["Invalid", "off"], ctx, operator.ne)
         self.basic_check("link-training", ["Ethernet0", "invalid"], ctx, operator.ne)
+        # Setting link training on a port channel is not supported
+        result = self.basic_check("link-training", ["PortChannel0001", "on"], ctx, operator.ne)
+        assert 'Invalid port PortChannel0001' in result.output
 
     def basic_check(self, command_name, para_list, ctx, op=operator.eq, expect_result=0):
         runner = CliRunner()
