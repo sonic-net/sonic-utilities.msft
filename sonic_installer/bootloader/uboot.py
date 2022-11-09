@@ -40,7 +40,7 @@ class UbootBootloader(OnieInstallerBootloader):
         proc = subprocess.Popen("/usr/bin/fw_printenv -n boot_next", shell=True, text=True, stdout=subprocess.PIPE)
         (out, _) = proc.communicate()
         image = out.rstrip()
-        if "sonic_image_2" in image:
+        if "sonic_image_2" in image and len(images) == 2:
             next_image_index = 1
         else:
             next_image_index = 0
