@@ -72,9 +72,6 @@ test_data = {
             CNTR_DB: {
                 "COUNTERS_RIF_NAME_MAP": { "Vlan3001": "oid:0x6000000000d76" }
             }
-        },
-        RESULT: {
-            "results": {}
         }
     },
     "1": {
@@ -253,9 +250,6 @@ test_data = {
                     RT_ENTRY_KEY_PREFIX + "fd01:fc00::1/128" + RT_ENTRY_KEY_SUFFIX: {}
                 }
             }
-        },
-        RESULT: {
-            "results": {}
         }
     },
     "5": {
@@ -292,6 +286,24 @@ test_data = {
                     }
                 }
             }
+        }
+    },
+    "6": {
+        DESCR: "Only Vxlan tunnel configured, No routes.",
+        ARGS: "vnet_route_check",
+        PRE: {
+            APPL_DB: {
+                VXLAN_TUNNEL_TABLE: {
+                    "tunnel_v4": { "src_ip": "10.1.0.32" }
+                },
+                VNET_TABLE: {
+                    "Vnet1": { "vxlan_tunnel": "tunnel_v4", "vni": "10001" }
+                },
+                INTF_TABLE: {
+                    "Vlan3001": { "vnet_name": "Vnet1" },
+                    "Vlan3001:30.1.10.1/24": {}
+                },
+            },
         }
     }
 }
@@ -384,9 +396,15 @@ class TestVnetRouteCheck(object):
             do_start_test("route_test", i, ct_data)
 
             with patch('sys.argv', ct_data[ARGS].split()):
-                ret, res = vnet_route_check.main()
                 expect_ret = ct_data[RET] if RET in ct_data else 0
                 expect_res = ct_data[RESULT] if RESULT in ct_data else None
+                res = None
+                if expect_ret == 0:
+                    ret = vnet_route_check.main()
+                    if ret != 0:
+                        ret, res = vnet_route_check.main()
+                else:
+                    ret, res = vnet_route_check.main()
                 if res:
                     print("res={}".format(json.dumps(res, indent=4)))
                 if expect_res:

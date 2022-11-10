@@ -393,8 +393,8 @@ def main():
         rc = RC_ERR
         print_message(syslog.LOG_ERR, json.dumps(res, indent=4))
         print_message(syslog.LOG_ERR, 'Vnet Route Mismatch reported')
-
-    return rc, res
+        return rc, res
+    return rc
 
 
 if __name__ == "__main__":
