@@ -384,6 +384,11 @@ Vendor    Model
 Credo     CACL1X321P2PA1M
 """
 
+expected_muxcable_cableinfo_invalid_port_output = """\
+Invalid port 'abc'
+ERR: Unable to get a port on muxcable port
+"""
+
 show_muxcable_hwmode_muxdirection_active_expected_output = """\
 Port        Direction    Presence
 ----------  -----------  ----------
@@ -1169,6 +1174,21 @@ class TestMuxcable(object):
                                ["Ethernet0"], obj=db)
         assert result.exit_code == 1
 
+    @mock.patch('sonic_y_cable.y_cable.get_part_number', mock.MagicMock(return_value=(False)))
+    @mock.patch('sonic_y_cable.y_cable.get_vendor', mock.MagicMock(return_value=(False)))
+    @mock.patch('show.muxcable.platform_sfputil', mock.MagicMock(return_value=1))
+    def test_show_muxcable_cableinfo_invalid_port(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["cableinfo"],
+                               ["Ethernet0"], obj=db)
+        assert result.exit_code == 1
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["cableinfo"],
+                               ["abc"], obj=db)
+        assert result.exit_code == 1
+        assert result.output == expected_muxcable_cableinfo_invalid_port_output
 
     @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
     @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,

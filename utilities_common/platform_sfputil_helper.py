@@ -53,14 +53,17 @@ def platform_sfputil_read_porttab_mappings():
 
 
 def logical_port_name_to_physical_port_list(port_name):
-    if port_name.startswith("Ethernet"):
-        if platform_sfputil.is_logical_port(port_name):
-            return platform_sfputil.get_logical_to_physical(port_name)
+    try:
+        if port_name.startswith("Ethernet"):
+            if platform_sfputil.is_logical_port(port_name):
+                return platform_sfputil.get_logical_to_physical(port_name)
         else:
-            click.echo("Invalid port '{}'".format(port_name))
-            return None
-    else:
-        return [int(port_name)]
+            return [int(port_name)]
+    except ValueError:
+        pass
+
+    click.echo("Invalid port '{}'".format(port_name))
+    return None
 
 
 def get_logical_list():
