@@ -121,6 +121,7 @@ function show_help_and_exit()
     echo " "
     echo "    Available options:"
     echo "        -h, -? : getting this help"
+    echo "        -f     : execute reboot force"
 
     exit 0
 }
@@ -171,7 +172,7 @@ function check_conflict_boot_in_fw_update()
 
 function parse_options()
 {
-    while getopts "h?v" opt; do
+    while getopts "h?vf" opt; do
         case ${opt} in
             h|\? )
                 show_help_and_exit
