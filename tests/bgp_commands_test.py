@@ -97,6 +97,14 @@ Try "summary --help" for help.
 Error: bgp summary from bgp container not in json format
 """
 
+show_error_no_v6_neighbor = """\
+No IPv6 neighbor is configured
+"""
+
+show_error_no_v4_neighbor = """\
+No IPv4 neighbor is configured
+"""
+
 show_bgp_summary_v4_chassis = """\
 
 IPv4 Unicast Summary:
@@ -319,3 +327,31 @@ class TestBgpCommands(object):
         print("{}".format(result.output))
         assert result.exit_code == 0
         assert result.output == show_bgp_summary_v4_all_chassis
+
+    @pytest.mark.parametrize('setup_single_bgp_instance',
+                             ['show_bgp_summary_no_neigh'], indirect=['setup_single_bgp_instance'])
+    def test_bgp_summary_no_v4_neigh(
+            self,
+            setup_bgp_commands,
+            setup_single_bgp_instance):
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ipv6"].commands["bgp"].commands["summary"], [])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_error_no_v6_neighbor
+
+    @pytest.mark.parametrize('setup_single_bgp_instance',
+                             ['show_bgp_summary_no_neigh'], indirect=['setup_single_bgp_instance'])
+    def test_bgp_summary_no_v6_neigh(
+            self,
+            setup_bgp_commands,
+            setup_single_bgp_instance):
+        show = setup_bgp_commands
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands["ip"].commands["bgp"].commands["summary"], [])
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_error_no_v4_neighbor
