@@ -1231,7 +1231,9 @@ collect_cisco_8000() {
     if [ -d /usr/share/sonic/device/${platform} ]; then
         pushd /usr/share/sonic/device/${platform} > /dev/null
         for file in $(find . -path "./*plugin*" -prune -o -path "./*.xml" -prune -o -path "./*.yaml" -prune -o -print); do
-            save_file ${file} sai false
+            if [ -f ${file} ]; then
+                 save_file ${file} sai false
+            fi
         done
         popd > /dev/null
     else
