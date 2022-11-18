@@ -367,21 +367,15 @@ def show_routes(args, namespace, display, verbose, ipver):
                 # Not ip address just ignore it
                 found_other_parms = 1
 
-    if multi_asic.is_multi_asic():
-        if not found_json and not found_other_parms:
-            arg_strg += "json"
+    # using the same format for both multiasic or non-multiasic
+    if not found_json and not found_other_parms:
+        arg_strg += "json"
 
     combined_route = {}
     for ns in ns_l:
         # Need to add "ns" to form bgpX so it is sent to the correct bgpX docker to handle the request
-        # If not MultiASIC, skip namespace argument
         cmd = "show {} route {}".format(ipver, arg_strg)
-        if multi_asic.is_multi_asic():
-            output = bgp_util.run_bgp_show_command(cmd, ns)
-        else:
-            output = bgp_util.run_bgp_show_command(cmd)
-            print("{}".format(output))
-            return
+        output = bgp_util.run_bgp_show_command(cmd, ns)
 
         # in case no output or something went wrong with user specified cmd argument(s) error it out
         # error from FRR always start with character "%"

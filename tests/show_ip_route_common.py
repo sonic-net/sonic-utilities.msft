@@ -323,6 +323,162 @@ C *fe80::/64 is directly connected, Loopback0, 1d11h34m
 C>*fe80::/64 is directly connected, eth0, 1d11h34m
 """
 
+show_ipv6_route_alias_expected_output = """\
+Codes: K - kernel route, C - connected, S - static, R - RIP,
+       O - OSPF, I - IS-IS, B - BGP, E - EIGRP, N - NHRP,
+       T - Table, v - VNC, V - VNC-Direct, A - Babel, D - SHARP,
+       F - PBR, f - OpenFabric,
+       > - selected route, * - FIB route, q - queued route, r - rejected route
+
+B>*::/0 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *            via fc00::6, PortChannel0005, 1d11h34m
+K *::/0 [210/0] via fd00::1, eth0, 1d11h34m
+B>*2064:100::1/128 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+B>*2064:100::3/128 [20/0] via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                      via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:1::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                          via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:10::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:11::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:20::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:21::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:30::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:31::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:40::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:41::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:50::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:51::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:60::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:61::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:70::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:71::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:80::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:81::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:90::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:91::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:a0::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:a1::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:b0::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:b1::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:c0::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:c1::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:d0::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:d1::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:e0::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:e1::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:f0::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a800:0:f1::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                      via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:1::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                          via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:10::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:11::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:20::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:21::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:30::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:31::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:40::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:41::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:50::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:51::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:60::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:61::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:70::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:71::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:80::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:81::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:90::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:91::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:a0::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:a1::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:b0::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:b1::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:c0::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:c1::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:d0::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:d1::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:e0::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:e1::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:f0::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+B>*20c0:a801:0:f1::/64 [20/0] via fc00::2, PortChannel0002, 1d11h34m
+  *                           via fc00::6, PortChannel0005, 1d11h34m
+C>*2603:10e2:400::/128 is directly connected, Loopback4096, 1d11h34m
+C>*fc00::/126 is directly connected, PortChannel0002, 1d11h34m
+C>*fc00::4/126 is directly connected, PortChannel0005, 1d11h34m
+C>*fc00:1::32/128 is directly connected, Loopback0, 1d11h34m
+C>*fd00::/80 is directly connected, eth0, 1d11h34m
+C *fe80::/64 is directly connected, PortChannel0002, 1d11h34m
+C *fe80::/64 is directly connected, PortChannel0005, 1d11h34m
+C *fe80::/64 is directly connected, etp6, 1d11h34m
+C *fe80::/64 is directly connected, etp5, 1d11h34m
+C *fe80::/64 is directly connected, etp2, 1d11h34m
+C *fe80::/64 is directly connected, etp1, 1d11h34m
+C *fe80::/64 is directly connected, Loopback4096, 1d11h34m
+C *fe80::/64 is directly connected, Loopback0, 1d11h34m
+C>*fe80::/64 is directly connected, eth0, 1d11h34m
+"""
+
 #
 # MULTI ASIC TEST SECTION
 #
@@ -553,6 +709,52 @@ C *fe80::/64 is directly connected, Ethernet20, 2d22h00m
 C *fe80::/64 is directly connected, PortChannel0005, 2d22h00m
 C *fe80::/64 is directly connected, PortChannel1016, 2d22h02m
 C *fe80::/64 is directly connected, Ethernet24, 2d22h02m
+"""
+
+show_ipv6_route_multi_asic_all_namesapce_alias_output = """\
+Codes: K - kernel route, C - connected, S - static, R - RIP,
+       O - OSPF, I - IS-IS, B - BGP, E - EIGRP, N - NHRP,
+       T - Table, v - VNC, V - VNC-Direct, A - Babel, D - SHARP,
+       F - PBR, f - OpenFabric,
+       > - selected route, * - FIB route, q - queued route, r - rejected route
+
+K *::/0 [210/0] via fd00::1, eth0, 2d22h00m
+B>*::/0 [20/0] via fc00::6, PortChannel0005, 2d22h00m
+  *            via fc00::2, PortChannel0002, 2d22h00m
+  *            via fc00::2, PortChannel1015, 2d22h00m
+  *            via fc00::6, PortChannel1016, 2d22h00m
+B>*2064:100::1/128 [20/0] via fc00::2, PortChannel0002, 2d22h00m
+  *                       via fc00::2, PortChannel1015, 2d22h00m
+B>*2064:100::3/128 [20/0] via fc00::6, PortChannel0005, 2d22h00m
+  *                       via fc00::6, PortChannel1016, 2d22h00m
+B>*20c0:a800:0:1::/64 [20/0] via fc00::6, PortChannel0005, 2d22h00m
+  *                          via fc00::2, PortChannel0002, 2d22h00m
+  *                          via fc00::2, PortChannel1015, 2d22h00m
+  *                          via fc00::6, PortChannel1016, 2d22h00m
+B>*20c0:a800:0:10::/64 [20/0] via fc00::6, PortChannel0005, 2d22h00m
+  *                           via fc00::2, PortChannel0002, 2d22h00m
+  *                           via fc00::2, PortChannel1015, 2d22h00m
+  *                           via fc00::6, PortChannel1016, 2d22h00m
+B>*20c0:a800:0:11::/64 [20/0] via fc00::6, PortChannel0002, 2d22h00m
+  *                           via fc00::6, PortChannel1015, 2d22h00m
+B>*20c0:a800:0:20::/64 [20/0] via fc00::2, PortChannel0002, 2d22h00m
+  *                           via fc00::2, PortChannel1015, 2d22h00m
+B>*20c0:a800:0:21::/64 [20/0] via fc00::2, PortChannel0002, 2d22h00m
+  *                           via fc00::2, PortChannel1015, 2d22h00m
+C>*2603:10e2:400::/128 is directly connected, Loopback4096, 2d22h00m
+C>*2603:10e2:400::2/128 is directly connected, Loopback4096, 2d22h02m
+C>*fc00::4/126 is directly connected, PortChannel0005, 2d22h00m
+C>*fc00::4/126 is directly connected, PortChannel1016, 2d22h02m
+C>*fc00:1::32/128 is directly connected, Loopback0, 2d22h00m
+C>*fd00::/80 is directly connected, eth0, 2d22h00m
+C>*fe80::/64 is directly connected, eth0, 2d22h00m
+C *fe80::/64 is directly connected, Loopback0, 2d22h00m
+C *fe80::/64 is directly connected, Loopback4096, 2d22h00m
+C *fe80::/64 is directly connected, Ethernet1/5, 2d22h00m
+C *fe80::/64 is directly connected, Ethernet1/6, 2d22h00m
+C *fe80::/64 is directly connected, PortChannel0005, 2d22h00m
+C *fe80::/64 is directly connected, PortChannel1016, 2d22h02m
+C *fe80::/64 is directly connected, Ethernet1/7, 2d22h02m
 """
 
 show_ipv6_route_multi_asic_single_namesapce_output = """\

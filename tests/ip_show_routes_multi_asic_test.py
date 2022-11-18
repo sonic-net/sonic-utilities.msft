@@ -166,6 +166,22 @@ class TestMultiAiscShowIpRouteDisplayAllCommands(object):
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ipv6_route'], indirect=['setup_multi_asic_bgp_instance'])
+    def test_show_multi_asic_ipv6_route_all_namespace_alias(
+            self,
+            setup_ip_route_commands,
+            setup_multi_asic_bgp_instance):
+        show = setup_ip_route_commands
+        runner = CliRunner()
+        os.environ['SONIC_CLI_IFACE_MODE'] = "alias"
+        result = runner.invoke(
+            show.cli.commands["ipv6"].commands["route"], ["-dfrontend"])
+        os.environ['SONIC_CLI_IFACE_MODE'] = "default"
+        print("{}".format(result.output))
+        assert result.exit_code == 0
+        assert result.output == show_ip_route_common.show_ipv6_route_multi_asic_all_namesapce_alias_output
+
+    @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
+                             ['ipv6_route'], indirect=['setup_multi_asic_bgp_instance'])
     def test_show_multi_asic_ipv6_route_single_namespace(
             self,
             setup_ip_route_commands,

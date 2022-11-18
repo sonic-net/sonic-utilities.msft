@@ -38,6 +38,17 @@
         "speed": "40000",
         "asic_port_name": "Eth1-ASIC0"
     },
+    "PORT|Ethernet16": {
+        "lanes": "17,18,19,20",
+        "description": "ARISTA01T2:Ethernet3/3/1",
+        "pfc_asym": "off",
+        "mtu": "9100",
+        "alias": "Ethernet1/5",
+        "admin_status": "up",
+        "role": "Ext",
+        "speed": "40000",
+        "asic_port_name": "Eth1-ASIC0"
+    },
     "PORT|Ethernet-BP0" : {
         "lanes": "93,94,95,96",
         "description": "ASIC1:Eth0-ASIC1",
