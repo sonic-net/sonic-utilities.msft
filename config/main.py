@@ -4048,27 +4048,11 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         click.secho("[ERROR] port_dict is None!", fg='red')
         raise click.Abort()
 
-    """ Special Case: Dont delete those ports  where the current mode and speed of the parent port
-                      remains unchanged to limit the traffic impact """
-
-    click.secho("\nAfter running Logic to limit the impact", fg="cyan", underline=True)
-    matched_items = [intf for intf in del_intf_dict if intf in add_intf_dict and del_intf_dict[intf] == add_intf_dict[intf]]
-
-    # Remove the interface which remains unchanged from both del_intf_dict and add_intf_dict
-    for item in matched_items:
-        del_intf_dict.pop(item)
-        add_intf_dict.pop(item)
-
     # validate all del_ports before calling breakOutPort
     for intf in del_intf_dict.keys():
         if not interface_name_is_valid(config_db, intf):
             click.secho("[ERROR] Interface name {} is invalid".format(intf))
             raise click.Abort()
-
-    click.secho("\nFinal list of ports to be deleted : \n {} \nFinal list of ports to be added :  \n {}".format(json.dumps(del_intf_dict, indent=4), json.dumps(add_intf_dict, indent=4), fg='green', blink=True))
-    if not add_intf_dict:
-        click.secho("[ERROR] add_intf_dict is None or empty! No interfaces are there to be added", fg='red')
-        raise click.Abort()
 
     port_dict = {}
     for intf in add_intf_dict:
