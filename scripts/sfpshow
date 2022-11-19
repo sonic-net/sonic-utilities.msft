@@ -16,6 +16,8 @@ import click
 from natsort import natsorted
 from sonic_py_common.interface import front_panel_prefix, backplane_prefix, inband_prefix, recirc_prefix
 from sonic_py_common import multi_asic
+from utilities_common.sfp_helper import covert_application_advertisement_to_output_string
+from utilities_common.sfp_helper import QSFP_DATA_MAP
 from tabulate import tabulate
 
 # Mock the redis DB for unit test purposes
@@ -38,25 +40,6 @@ from utilities_common import multi_asic as multi_asic_util
 from utilities_common.platform_sfputil_helper import is_rj45_port, RJ45_PORT_TYPE
 
 # TODO: We should share these maps and the formatting functions between sfputil and sfpshow
-QSFP_DATA_MAP = {
-    'model': 'Vendor PN',
-    'vendor_oui': 'Vendor OUI',
-    'vendor_date': 'Vendor Date Code(YYYY-MM-DD Lot)',
-    'manufacturer': 'Vendor Name',
-    'vendor_rev': 'Vendor Rev',
-    'serial': 'Vendor SN',
-    'type': 'Identifier',
-    'ext_identifier': 'Extended Identifier',
-    'ext_rateselect_compliance': 'Extended RateSelect Compliance',
-    'cable_length': 'cable_length',
-    'cable_type': 'Length',
-    'nominal_bit_rate': 'Nominal Bit Rate(100Mbs)',
-    'specification_compliance': 'Specification compliance',
-    'encoding': 'Encoding',
-    'connector': 'Connector',
-    'application_advertisement': 'Application Advertisement'
-}
-
 SFP_DOM_CHANNEL_MONITOR_MAP = {
     'rx1power': 'RXPower',
     'tx1bias': 'TXBias',
@@ -287,6 +270,8 @@ class SFPShow(object):
                             output += '{}{}: {}\n'.format((indent * 2), compliance_key, spec_compliance_dict[compliance_key])
                     except ValueError as e:
                         output += '{}N/A\n'.format((indent * 2))
+            elif key == 'application_advertisement':
+                output += covert_application_advertisement_to_output_string(indent, sfp_info_dict)
             else:
                 output += '{}{}: {}\n'.format(indent, QSFP_DATA_MAP[key], sfp_info_dict[key])
 

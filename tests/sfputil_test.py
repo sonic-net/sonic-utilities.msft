@@ -80,6 +80,7 @@ class TestSfputil(object):
                                                      sfputil.QSFP_DOM_CHANNEL_MONITOR_MAP,
                                                      sfputil.DOM_VALUE_UNIT_MAP)
         assert output == expected_output
+
     @pytest.mark.parametrize("sfp_info_dict, expected_output",[
         # Non-CMIS module
         (
@@ -140,7 +141,13 @@ class TestSfputil(object):
                 'ext_rateselect_compliance': 'N/A',
                 'cable_type': 'Length Cable Assembly(m)',
                 'cable_length': '0',
-                'application_advertisement': 'N/A',
+                'application_advertisement': "{1: {'host_electrical_interface_id': '400G CR8', \
+                                                  'module_media_interface_id': 'Copper cable', \
+                                                  'media_lane_count': 8, \
+                                                  'host_lane_count': 8, \
+                                                  'host_lane_assignment_options': 1, \
+                                                  'media_lane_assignment_options': 2}, \
+                                              2: {'host_electrical_interface_id': '200GBASE-CR4 (Clause 136)'}}",
                 'specification_compliance': "sm_media_interface",
                 'dom_capability': "{'Tx_power_support': 'no', 'Rx_power_support': 'no', 'Voltage_support': 'no', 'Temp_support': 'no'}",
                 'nominal_bit_rate': '0',
@@ -178,7 +185,8 @@ class TestSfputil(object):
             "        Active App Selection Host Lane 7: 1\n"
             "        Active App Selection Host Lane 8: 1\n"
             "        Active Firmware Version: 0.1\n"
-            "        Application Advertisement: N/A\n"
+            "        Application Advertisement: 400G CR8 - Host Assign (0x1) - Copper cable - Media Assign (0x2)\n"
+            "                                   200GBASE-CR4 (Clause 136) - Host Assign (Unknown) - Unknown - Media Assign (Unknown)\n"
             "        CMIS Revision: 5.0\n"
             "        Connector: LC\n"
             "        Encoding: N/A\n"
@@ -279,7 +287,8 @@ class TestSfputil(object):
                            ['Ethernet12', 'Unknown state: 255'],
                            ['Ethernet16', 'Unplugged'],
                            ['Ethernet28', 'Unplugged'],
-                           ['Ethernet36', 'Unknown']]
+                           ['Ethernet36', 'Unknown'],
+                           ['Ethernet40', 'Unplugged']]
         output = sfputil.fetch_error_status_from_state_db(None, db.db)
         assert output == expected_output
 
@@ -296,7 +305,8 @@ class TestSfputil(object):
                            ['Ethernet12', 'N/A'],
                            ['Ethernet16', 'N/A'],
                            ['Ethernet28', 'N/A'],
-                           ['Ethernet36', 'N/A']]
+                           ['Ethernet36', 'N/A'],
+                           ['Ethernet40', 'N/A']]
         output = sfputil.fetch_error_status_from_state_db(None, db.db)
         assert output == expected_output
 
@@ -382,6 +392,7 @@ Ethernet12  Unknown state: 255
 Ethernet16  Unplugged
 Ethernet28  Unplugged
 Ethernet36  Unknown
+Ethernet40  Unplugged
 """
         assert result.output == expected_output
 

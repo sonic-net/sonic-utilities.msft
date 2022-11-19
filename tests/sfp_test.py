@@ -66,7 +66,6 @@ Ethernet8: SFP EEPROM detected
         Application Advertisement: 400GAUI-8 C2M (Annex 120E) - Active Cable assembly with BER < 2.6x10^-4
 				   IB EDR (Arch.Spec.Vol.2) - Active Cable assembly with BER < 5x10^-5
 				   IB QDR (Arch.Spec.Vol.2) - Active Cable assembly with BER < 10^-12
-				   
         Connector: No separable connector
         Encoding: Not supported for CMIS cables
         Extended Identifier: Power Class 1(10.0W Max)
@@ -75,13 +74,13 @@ Ethernet8: SFP EEPROM detected
         Length Cable Assembly(m): 10
         Nominal Bit Rate(100Mbs): Not supported for CMIS cables
         Specification compliance: Not supported for CMIS cables
-        Vendor Date Code(YYYY-MM-DD Lot): 2020-05-22 
+        Vendor Date Code(YYYY-MM-DD Lot): 2020-05-22
         Vendor Name: INNOLIGHT
         Vendor OUI: 44-7c-7f
         Vendor PN: C-DQ8FNM010-N00
         Vendor Rev: 2A
         Vendor SN: INKAO2900002A
-        ChannelMonitorValues: 
+        ChannelMonitorValues:
                 RX1Power: -3.8595dBm
                 RX2Power: 8.1478dBm
                 RX3Power: -22.9243dBm
@@ -98,15 +97,15 @@ Ethernet8: SFP EEPROM detected
                 TX3Power: 1.175dBm
                 TX4Bias: 0.0000mA
                 TX4Power: 1.175dBm
-                TX5Bias: 0.0000mAmA
+                TX5Bias: 0.0000mA
                 TX5Power: 1.175dBm
-                TX6Bias: 8.2240mAmA
+                TX6Bias: 8.2240mA
                 TX6Power: 1.175dBm
-                TX7Bias: 8.2240mAmA
+                TX7Bias: 8.2240mA
                 TX7Power: 1.175dBm
-                TX8Bias: 8.2240mAmA
+                TX8Bias: 8.2240mA
                 TX8Power: 1.175dBm
-        ChannelThresholdValues: 
+        ChannelThresholdValues:
                 RxPowerHighAlarm  : 6.9999dBm
                 RxPowerHighWarning: 4.9999dBm
                 RxPowerLowAlarm   : -11.9044dBm
@@ -119,10 +118,10 @@ Ethernet8: SFP EEPROM detected
                 TxPowerHighWarning: 4.9999dBm
                 TxPowerLowAlarm   : -10.5012dBm
                 TxPowerLowWarning : -7.5007dBm
-        ModuleMonitorValues: 
+        ModuleMonitorValues:
                 Temperature: 44.9883C
                 Vcc: 3.2999Volts
-        ModuleThresholdValues: 
+        ModuleThresholdValues:
                 TempHighAlarm  : 80.0000C
                 TempHighWarning: 75.0000C
                 TempLowAlarm   : -10.0000C
@@ -158,7 +157,6 @@ Ethernet8: SFP EEPROM detected
         Application Advertisement: 400GAUI-8 C2M (Annex 120E) - Active Cable assembly with BER < 2.6x10^-4
 				   IB EDR (Arch.Spec.Vol.2) - Active Cable assembly with BER < 5x10^-5
 				   IB QDR (Arch.Spec.Vol.2) - Active Cable assembly with BER < 10^-12
-				   
         Connector: No separable connector
         Encoding: Not supported for CMIS cables
         Extended Identifier: Power Class 1(10.0W Max)
@@ -167,7 +165,27 @@ Ethernet8: SFP EEPROM detected
         Length Cable Assembly(m): 10
         Nominal Bit Rate(100Mbs): Not supported for CMIS cables
         Specification compliance: Not supported for CMIS cables
-        Vendor Date Code(YYYY-MM-DD Lot): 2020-05-22 
+        Vendor Date Code(YYYY-MM-DD Lot): 2020-05-22
+        Vendor Name: INNOLIGHT
+        Vendor OUI: 44-7c-7f
+        Vendor PN: C-DQ8FNM010-N00
+        Vendor Rev: 2A
+        Vendor SN: INKAO2900002A
+"""
+
+test_qsfp_dd_eeprom_adv_app_output = """\
+Ethernet40: SFP EEPROM detected
+        Application Advertisement: 400G CR8 - Host Assign (0x1) - Copper cable - Media Assign (0x2)
+                                   200GBASE-CR4 (Clause 136) - Host Assign (Unknown) - Unknown - Media Assign (Unknown)
+        Connector: No separable connector
+        Encoding: Not supported for CMIS cables
+        Extended Identifier: Power Class 1(10.0W Max)
+        Extended RateSelect Compliance: Not supported for CMIS cables
+        Identifier: QSFP-DD Double Density 8X Pluggable Transceiver
+        Length Cable Assembly(m): 10
+        Nominal Bit Rate(100Mbs): Not supported for CMIS cables
+        Specification compliance: Not supported for CMIS cables
+        Vendor Date Code(YYYY-MM-DD Lot): 2020-05-22
         Vendor Name: INNOLIGHT
         Vendor OUI: 44-7c-7f
         Vendor PN: C-DQ8FNM010-N00
@@ -390,7 +408,7 @@ Ethernet36  Present
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet8 -d"])
         assert result.exit_code == 0
-        assert "result.output == test_qsfp_dd_eeprom_with_dom_output"
+        assert result.output == test_qsfp_dd_eeprom_with_dom_output
 
     def test_sfp_eeprom(self):
         runner = CliRunner()
@@ -407,7 +425,14 @@ Ethernet36  Present
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet8"])
         assert result.exit_code == 0
-        assert "result.output == test_qsfp_dd_eeprom_output"
+        assert result.output == test_qsfp_dd_eeprom_output
+
+    def test_qsfp_dd_eeprom_adv_app(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet40"])
+        assert result.exit_code == 0
+        print(result.output)
+        assert result.output == test_qsfp_dd_eeprom_adv_app_output
 
     def test_rj45_eeprom(self):
         runner = CliRunner()
