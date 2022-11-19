@@ -101,7 +101,8 @@ class TestTpid(object):
         
     def test_tpid_add_lag_mbr_with_non_default_tpid(self):
         db = Db()
-        obj = {'db':db.cfgdb}
+        obj = {'db': db.cfgdb}
+        config.ADHOC_VALIDATION = True
         runner = CliRunner()
         result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["add"], ["PortChannel0001","Ethernet20"], obj=obj)
         print(result.exit_code)

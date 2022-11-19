@@ -1944,11 +1944,15 @@ def override_config_db(config_db, config_input):
 @click.argument('new_hostname', metavar='<new_hostname>', required=True)
 def hostname(new_hostname):
     """Change device hostname without impacting the traffic."""
-
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
-    config_db.mod_entry(swsscommon.CFG_DEVICE_METADATA_TABLE_NAME, 'localhost',
-                        {'hostname': new_hostname})
+    try:
+        config_db.mod_entry(swsscommon.CFG_DEVICE_METADATA_TABLE_NAME, 'localhost',
+                            {'hostname': new_hostname})
+    except ValueError as e:
+        ctx = click.get_current_context()
+        ctx.fail("Failed to write new hostname to ConfigDB. Error: {}".format(e))
+
 
     click.echo('Please note loaded setting will be lost after system reboot. To'
                ' preserve setting, run `config save`.')
@@ -1966,17 +1970,22 @@ def synchronous_mode(sync_mode):
                config reload -y \n
             2. systemctl restart swss
     """
-
-    if sync_mode == 'enable' or sync_mode == 'disable':
-        config_db = ConfigDBConnector()
-        config_db.connect()
+    if ADHOC_VALIDATION:
+        if sync_mode != 'enable' and sync_mode != 'disable':
+            raise click.BadParameter("Error: Invalid argument %s, expect either enable or disable" % sync_mode)
+        
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
+    config_db.connect()
+    try:
         config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"synchronous_mode" : sync_mode})
-        click.echo("""Wrote %s synchronous mode into CONFIG_DB, swss restart required to apply the configuration: \n
+    except ValueError as e:
+        ctx = click.get_current_context()
+        ctx.fail("Error: Invalid argument %s, expect either enable or disable" % sync_mode)
+    
+    click.echo("""Wrote %s synchronous mode into CONFIG_DB, swss restart required to apply the configuration: \n
     Option 1. config save -y \n
               config reload -y \n
     Option 2. systemctl restart swss""" % sync_mode)
-    else:
-        raise click.BadParameter("Error: Invalid argument %s, expect either enable or disable" % sync_mode)
 
 #
 # 'yang_config_validation' command ('config yang_config_validation ...')
@@ -1984,14 +1993,19 @@ def synchronous_mode(sync_mode):
 @config.command('yang_config_validation')
 @click.argument('yang_config_validation', metavar='<enable|disable>', required=True)
 def yang_config_validation(yang_config_validation):
-    # Enable or disable YANG validation on updates to ConfigDB
-    if yang_config_validation == 'enable' or yang_config_validation == 'disable':
-        config_db = ConfigDBConnector()
-        config_db.connect()
+    if ADHOC_VALIDATION:
+        if yang_config_validation != 'enable' and yang_config_validation != 'disable':
+            raise click.BadParameter("Error: Invalid argument %s, expect either enable or disable" % yang_config_validation)
+
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
+    config_db.connect()
+    try:
         config_db.mod_entry('DEVICE_METADATA', 'localhost', {"yang_config_validation": yang_config_validation})
-        click.echo("""Wrote %s yang config validation into CONFIG_DB""" % yang_config_validation)
-    else:
-        raise click.BadParameter("Error: Invalid argument %s, expect either enable or disable" % yang_config_validation)
+    except ValueError as e:
+        ctx = click.get_current_context()
+        ctx.fail("Error: Invalid argument %s, expect either enable or disable" % yang_config_validation)
+
+    click.echo("""Wrote %s yang config validation into CONFIG_DB""" % yang_config_validation)
 
 #
 # 'portchannel' group ('config portchannel ...')
@@ -3193,16 +3207,24 @@ def snmp_user_secret_check(snmp_secret):
 def add_community(db, community, string_type):
     """ Add snmp community string"""
     string_type = string_type.upper()
-    if not is_valid_community_type(string_type):
-        sys.exit(1)
-    if not snmp_community_secret_check(community):
-        sys.exit(2)
-    snmp_communities = db.cfgdb.get_table("SNMP_COMMUNITY")
-    if community in snmp_communities:
-        click.echo("SNMP community {} is already configured".format(community))
-        sys.exit(3)
-    db.cfgdb.set_entry('SNMP_COMMUNITY', community, {'TYPE': string_type})
-    click.echo("SNMP community {} added to configuration".format(community))
+    if ADHOC_VALIDATION:
+        if not is_valid_community_type(string_type):
+            sys.exit(1)
+        if not snmp_community_secret_check(community):
+            sys.exit(2)
+        snmp_communities = db.cfgdb.get_table("SNMP_COMMUNITY")
+        if community in snmp_communities:
+            click.echo("SNMP community {} is already configured".format(community))
+            sys.exit(3)
+
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
+    try:
+        config_db.set_entry('SNMP_COMMUNITY', community, {'TYPE': string_type})
+        click.echo("SNMP community {} added to configuration".format(community))
+    except ValueError as e:
+        ctx = click.get_current_context()
+        ctx.fail("SNMP community configuration failed. Error: {}".format(e))
+
     try:
         click.echo("Restarting SNMP service...")
         clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
@@ -3217,20 +3239,27 @@ def add_community(db, community, string_type):
 @clicommon.pass_db
 def del_community(db, community):
     """ Delete snmp community string"""
-    snmp_communities = db.cfgdb.get_table("SNMP_COMMUNITY")
-    if community not in snmp_communities:
-        click.echo("SNMP community {} is not configured".format(community))
-        sys.exit(1)
-    else:
-        db.cfgdb.set_entry('SNMP_COMMUNITY', community, None)
+    if ADHOC_VALIDATION:
+        snmp_communities = db.cfgdb.get_table("SNMP_COMMUNITY")
+        if community not in snmp_communities:
+            click.echo("SNMP community {} is not configured".format(community))
+            sys.exit(1)
+    
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
+    try:
+        config_db.set_entry('SNMP_COMMUNITY', community, None)
         click.echo("SNMP community {} removed from configuration".format(community))
-        try:
-            click.echo("Restarting SNMP service...")
-            clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
-            clicommon.run_command("systemctl restart snmp.service", display_cmd=False)
-        except SystemExit as e:
-            click.echo("Restart service snmp failed with error {}".format(e))
-            raise click.Abort()
+    except JsonPatchConflict as e:
+        ctx = click.get_current_context()
+        ctx.fail("SNMP community {} is not configured. Error: {}".format(community, e))
+
+    try:
+        click.echo("Restarting SNMP service...")
+        clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
+        clicommon.run_command("systemctl restart snmp.service", display_cmd=False)
+    except SystemExit as e:
+        click.echo("Restart service snmp failed with error {}".format(e))
+        raise click.Abort()
 
 
 @community.command('replace')
@@ -3286,7 +3315,7 @@ def add_contact(db, contact, contact_email):
             click.echo("Contact already exists.  Use sudo config snmp contact modify instead")
             sys.exit(1)
         else:
-            db.cfgdb.set_entry('SNMP', 'CONTACT', {contact: contact_email})
+            db.cfgdb.set_entry('SNMP', 'CONTACT', {contact: contact_email}) # TODO: ERROR IN YANG MODEL. Contact name is not defined as key
             click.echo("Contact name {} and contact email {} have been added to "
                        "configuration".format(contact, contact_email))
             try:
@@ -3399,19 +3428,24 @@ def location(db):
 @clicommon.pass_db
 def add_location(db, location):
     """ Add snmp location"""
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
     if isinstance(location, tuple):
         location = " ".join(location)
     elif isinstance(location, list):
         location = " ".join(location)
-    snmp = db.cfgdb.get_table("SNMP")
+    snmp = config_db.get_table("SNMP")
     try:
         if snmp['LOCATION']:
             click.echo("Location already exists")
             sys.exit(1)
     except KeyError:
         if "LOCATION" not in snmp.keys():
-            db.cfgdb.set_entry('SNMP', 'LOCATION', {'Location': location})
-            click.echo("SNMP Location {} has been added to configuration".format(location))
+            try:
+                config_db.set_entry('SNMP', 'LOCATION', {'Location': location})
+                click.echo("SNMP Location {} has been added to configuration".format(location))
+            except ValueError:
+                ctx = click.get_current_context()
+                ctx.fail("Failed to set SNMP location. Error: {}".format(e))
             try:
                 click.echo("Restarting SNMP service...")
                 clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
@@ -3426,6 +3460,7 @@ def add_location(db, location):
 @clicommon.pass_db
 def delete_location(db, location):
     """ Delete snmp location"""
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
     if isinstance(location, tuple):
         location = " ".join(location)
     elif isinstance(location, list):
@@ -3433,8 +3468,12 @@ def delete_location(db, location):
     snmp = db.cfgdb.get_table("SNMP")
     try:
         if location == snmp['LOCATION']['Location']:
-            db.cfgdb.set_entry('SNMP', 'LOCATION', None)
-            click.echo("SNMP Location {} removed from configuration".format(location))
+            try:
+                config_db.set_entry('SNMP', 'LOCATION', None)
+                click.echo("SNMP Location {} removed from configuration".format(location))
+            except (ValueError, JsonPatchConflict) as e:
+                ctx = click.get_current_context()
+                ctx.fail("Failed to remove SNMP location from configuration. Error: {}".format(e))
             try:
                 click.echo("Restarting SNMP service...")
                 clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)
@@ -3456,19 +3495,24 @@ def delete_location(db, location):
 @clicommon.pass_db
 def modify_location(db, location):
     """ Modify snmp location"""
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
     if isinstance(location, tuple):
         location = " ".join(location)
     elif isinstance(location, list):
         location = " ".join(location)
-    snmp = db.cfgdb.get_table("SNMP")
+    snmp = config_db.get_table("SNMP")
     try:
         snmp_location = snmp['LOCATION']['Location']
         if location in snmp_location:
             click.echo("SNMP location {} already exists".format(location))
             sys.exit(1)
         else:
-            db.cfgdb.mod_entry('SNMP', 'LOCATION', {'Location': location})
-            click.echo("SNMP location {} modified in configuration".format(location))
+            try:
+                config_db.mod_entry('SNMP', 'LOCATION', {'Location': location})
+                click.echo("SNMP location {} modified in configuration".format(location))
+            except ValueError as e:
+                ctx = click.get_current_context()
+                ctx.fail("Failed to modify SNMP location. Error: {}".format(e))
             try:
                 click.echo("Restarting SNMP service...")
                 clicommon.run_command("systemctl reset-failed snmp.service", display_cmd=False)

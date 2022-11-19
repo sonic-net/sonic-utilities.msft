@@ -1603,7 +1603,7 @@ class TestConfigHostname(object):
         import config.main
         importlib.reload(config.main)
 
-    @mock.patch('config.main.ConfigDBConnector')
+    @mock.patch('config.main.ValidatedConfigDBConnector')
     def test_hostname_add(self, db_conn_patch, get_cmd_module):
         db_conn_patch().mod_entry = mock.Mock()
         (config, show) = get_cmd_module
@@ -1624,6 +1624,19 @@ class TestConfigHostname(object):
 
         # Check new hostname was part of args
         assert {'hostname': 'new_hostname'} in args
+
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_invalid_hostname_add_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["hostname"],
+                               ["invalid_hostname"], obj=obj)
+        assert result.exit_code != 0
+        assert "Failed to write new hostname" in result.output
 
     @classmethod
     def teardown_class(cls):

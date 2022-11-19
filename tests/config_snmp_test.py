@@ -6,6 +6,7 @@ from click.testing import CliRunner
 import show.main as show
 import clear.main as clear
 import config.main as config
+import config.validated_config_db_connector as validated_config_db_connector
 
 import pytest
 
@@ -864,6 +865,16 @@ class TestSNMPConfigCommands(object):
     def test_is_valid_email(self, invalid_email):
         output = config.is_valid_email(invalid_email)
         assert output == False
+
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    def test_config_snmp_community_add_new_community_with_invalid_type_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands["snmp"].commands["community"].commands["add"], ["Everest", "RT"])
+        print(result.exit_code)
+        assert result.exit_code != 0
+        assert 'SNMP community configuration failed' in result.output
 
     @classmethod
     def teardown_class(cls):
