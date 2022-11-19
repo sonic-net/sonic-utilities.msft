@@ -3,6 +3,7 @@ import sys
 import click
 from swsscommon import swsscommon
 from utilities_common.cli import AbbreviationGroup, pass_db
+from .validated_config_db_connector import ValidatedConfigDBConnector
 
 SELECT_TIMEOUT = 1000  # ms
 
@@ -24,7 +25,12 @@ def set_feature_state(cfgdb_clients, name, state, block):
         raise Exception("Feature '{}' state is always enabled and can not be modified".format(name))
 
     for ns, cfgdb in cfgdb_clients.items():
-        cfgdb.mod_entry('FEATURE', name, {'state': state})
+        try:
+            config_db = ValidatedConfigDBConnector(cfgdb)
+            config_db.mod_entry('FEATURE', name, {'state': state})
+        except ValueError as e:
+            ctx = click.get_current_context()
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
     if block:
         db = swsscommon.DBConnector('STATE_DB', 0)
@@ -66,7 +72,12 @@ def _update_field(db, name, fld, val):
     if name not in tbl:
         click.echo("Unable to retrieve {} from FEATURE table".format(name))
         sys.exit(1)
-    db.cfgdb.mod_entry('FEATURE', name, { fld: val })
+    try:
+        config_db = ValidatedConfigDBConnector(db.cfgdb)
+        config_db.mod_entry('FEATURE', name, { fld: val })
+    except ValueError as e:
+        ctx = click.get_current_context()
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 
 #
@@ -137,5 +148,10 @@ def feature_autorestart(db, name, autorestart):
         return
 
     for ns, cfgdb in db.cfgdb_clients.items():
-        cfgdb.mod_entry('FEATURE', name, {'auto_restart': autorestart})
+        try:
+            config_db = ValidatedConfigDBConnector(cfgdb)
+            config_db.mod_entry('FEATURE', name, {'auto_restart': autorestart})
+        except ValueError as e:
+            ctx = click.get_current_context()
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 

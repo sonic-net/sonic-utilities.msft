@@ -697,17 +697,25 @@ def storm_control_set_entry(port_name, kbps, storm_type, namespace):
         return False
 
     #Validate kbps value
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
     key = port_name + '|' + storm_type
     entry = config_db.get_entry('PORT_STORM_CONTROL', key)
 
     if len(entry) == 0:
-        config_db.set_entry('PORT_STORM_CONTROL', key, {'kbps':kbps})
+        try:
+            config_db.set_entry('PORT_STORM_CONTROL', key, {'kbps':kbps})
+        except ValueError as e:
+            ctx = click.get_current_context()
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
     else:
         kbps_value = int(entry.get('kbps',0))
         if kbps_value != kbps:
-            config_db.mod_entry('PORT_STORM_CONTROL', key, {'kbps':kbps})
+            try:
+                config_db.mod_entry('PORT_STORM_CONTROL', key, {'kbps':kbps})
+            except ValueError as e:
+                ctx = click.get_current_context()
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
     return True
 
@@ -717,7 +725,7 @@ def storm_control_delete_entry(port_name, storm_type):
     if storm_control_interface_validate(port_name) is False:
         return False
 
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
     key = port_name + '|' + storm_type
     entry = config_db.get_entry('PORT_STORM_CONTROL', key)
@@ -726,7 +734,11 @@ def storm_control_delete_entry(port_name, storm_type):
         click.echo("%s storm-control not enabled on interface %s" %(storm_type, port_name))
         return False
     else:
-        config_db.set_entry('PORT_STORM_CONTROL', key, None)
+        try:
+            config_db.set_entry('PORT_STORM_CONTROL', key, None)
+        except JsonPatchConflict as e:
+            ctx = click.get_current_context()
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
     return True
 
@@ -4470,7 +4482,7 @@ def buffer_objects_map_check_legality(ctx, db, interface_name, input_map, is_new
 
 
 def update_buffer_object(db, interface_name, object_map, override_profile, is_pg, add=True):
-    config_db = db.cfgdb
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
     ctx = click.get_current_context()
 
     # Check whether port is legal
@@ -4500,16 +4512,22 @@ def update_buffer_object(db, interface_name, object_map, override_profile, is_pg
         if is_pg:
             if not 'xoff' in profile_dict.keys() and 'size' in profile_dict.keys():
                 ctx.fail("Profile {} doesn't exist or isn't a lossless profile".format(override_profile))
-        config_db.set_entry(buffer_table, (interface_name, object_map), {"profile": override_profile})
+        try:
+            config_db.set_entry(buffer_table, (interface_name, object_map), {"profile": override_profile})
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
     else:
-        config_db.set_entry(buffer_table, (interface_name, object_map), {"profile": "NULL"})
+        try:
+            config_db.set_entry(buffer_table, (interface_name, object_map), {"profile": "NULL"})
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
     if is_pg:
         adjust_pfc_enable(ctx, db, interface_name, object_map, True)
 
 
 def remove_buffer_object_on_port(db, interface_name, buffer_object_map, is_pg=True):
-    config_db = db.cfgdb
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
     ctx = click.get_current_context()
 
     # Check whether port is legal
@@ -4530,7 +4548,10 @@ def remove_buffer_object_on_port(db, interface_name, buffer_object_map, is_pg=Tr
                     ctx.fail("Lossy PG {} can't be removed".format(buffer_object_map))
                 else:
                     continue
-            config_db.set_entry(buffer_table, (interface_name, existing_buffer_object), None)
+            try:
+                config_db.set_entry(buffer_table, (interface_name, existing_buffer_object), None)
+            except JsonPatchConflict as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
             if is_pg:
                 adjust_pfc_enable(ctx, db, interface_name, buffer_object_map, False)
             removed = True
@@ -4543,7 +4564,7 @@ def remove_buffer_object_on_port(db, interface_name, buffer_object_map, is_pg=Tr
 
 
 def adjust_pfc_enable(ctx, db, interface_name, pg_map, add):
-    config_db = db.cfgdb
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
 
     # Fetch the original pfc_enable
     qosmap = config_db.get_entry("PORT_QOS_MAP", interface_name)
@@ -4576,7 +4597,10 @@ def adjust_pfc_enable(ctx, db, interface_name, pg_map, add):
         ctx.fail("Try to add empty priorities")
 
     qosmap["pfc_enable"] = pfc_enable[:-1]
-    config_db.set_entry("PORT_QOS_MAP", interface_name, qosmap)
+    try:
+        config_db.set_entry("PORT_QOS_MAP", interface_name, qosmap)
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 
 #
@@ -5811,6 +5835,7 @@ def _is_shared_headroom_pool_enabled(ctx, config_db):
 
 
 def update_profile(ctx, config_db, profile_name, xon, xoff, size, dynamic_th, pool, profile_entry = None):
+    config_db = ValidatedConfigDBConnector(config_db)
     params = {}
     if profile_entry:
         params = profile_entry
@@ -5882,14 +5907,17 @@ def update_profile(ctx, config_db, profile_name, xon, xoff, size, dynamic_th, po
             else:
                 ctx.fail("No dynamic_th defined in DEFAULT_LOSSLESS_BUFFER_PARAMETER")
 
-    config_db.set_entry("BUFFER_PROFILE", (profile_name), params)
+    try:
+        config_db.set_entry("BUFFER_PROFILE", (profile_name), params)
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 @profile.command('remove')
 @click.argument('profile', metavar='<profile>', required=True)
 @clicommon.pass_db
 def remove_profile(db, profile):
     """Delete a buffer profile"""
-    config_db = db.cfgdb
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
     ctx = click.get_current_context()
 
     existing_pgs = config_db.get_table("BUFFER_PG")
@@ -5901,7 +5929,10 @@ def remove_profile(db, profile):
 
     entry = config_db.get_entry("BUFFER_PROFILE", profile)
     if entry:
-        config_db.set_entry("BUFFER_PROFILE", profile, None)
+        try:
+            config_db.set_entry("BUFFER_PROFILE", profile, None)
+        except JsonPatchConflict as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
     else:
         ctx.fail("Profile {} doesn't exist".format(profile))
 
@@ -5917,7 +5948,7 @@ def shared_headroom_pool(ctx):
 @clicommon.pass_db
 def over_subscribe_ratio(db, ratio):
     """Configure over subscribe ratio"""
-    config_db = db.cfgdb
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
     ctx = click.get_current_context()
 
     port_number = len(config_db.get_table('PORT'))
@@ -5937,7 +5968,10 @@ def over_subscribe_ratio(db, ratio):
         else:
             v["over_subscribe_ratio"] = ratio
 
-        config_db.set_entry("DEFAULT_LOSSLESS_BUFFER_PARAMETER", k, v)
+        try:
+            config_db.set_entry("DEFAULT_LOSSLESS_BUFFER_PARAMETER", k, v)
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 
 @shared_headroom_pool.command()
@@ -5945,7 +5979,7 @@ def over_subscribe_ratio(db, ratio):
 @clicommon.pass_db
 def size(db, size):
     """Configure shared headroom pool size"""
-    config_db = db.cfgdb
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
     state_db = db.db
     ctx = click.get_current_context()
 
@@ -5964,7 +5998,10 @@ def size(db, size):
     else:
         ingress_lossless_pool["xoff"] = size
 
-    config_db.set_entry("BUFFER_POOL", "ingress_lossless_pool", ingress_lossless_pool)
+    try:
+        config_db.set_entry("BUFFER_POOL", "ingress_lossless_pool", ingress_lossless_pool)
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 
 #

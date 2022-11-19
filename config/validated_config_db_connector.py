@@ -53,7 +53,10 @@ class ValidatedConfigDBConnector(object):
 
         """Add patch element to create ConfigDB path if necessary, as GCU is unable to add to a nonexistent path"""
         if op == "add" and not self.get_entry(table, key):
-            path = JsonPointer.from_parts([table, key]).path
+            if type(key) == tuple: 
+                path = JsonPointer.from_parts([table, '|'.join(key)]).path
+            else:
+                path = JsonPointer.from_parts([table, key]).path 
             gcu_json = {"op": "{}".format(op),
                         "path": "{}".format(path),
                         "value": {}}
@@ -106,7 +109,9 @@ class ValidatedConfigDBConnector(object):
             logger.log_notice("Unable to remove entry, as doing so will result in invalid config. Error: {}".format(e))
 
     def validated_mod_entry(self, table, key, value):
-        if value is not None:
+        if isinstance(value, dict) and len(value) == 1 and list(value.values())[0] == "":
+            op = "remove"        
+        elif value is not None:
             op = "add"
         else:
             op = "remove"
@@ -115,7 +120,9 @@ class ValidatedConfigDBConnector(object):
         self.apply_patch(gcu_patch, table)
 
     def validated_set_entry(self, table, key, value):
-        if value is not None:
+        if isinstance(value, dict) and len(value) == 1 and list(value.values())[0] == "":
+            op = "remove"        
+        elif value is not None:
             op = "add"
         else:
             op = "remove"
