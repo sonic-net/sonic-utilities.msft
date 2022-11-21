@@ -271,6 +271,7 @@
         "voltage_max_threshold": "None",
         "current": "8.37",
         "power": "102.7",
+        "power_overload": "True",
         "is_replaceable": "False",
         "led_status": "green"
     },
@@ -287,6 +288,7 @@
         "voltage_max_threshold": "None",
         "current": "10.07",
         "power": "122.0",
+        "power_overload": "False",
         "is_replaceable": "False",
         "led_status": "green"
     },

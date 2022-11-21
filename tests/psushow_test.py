@@ -30,7 +30,7 @@ class TestPsushow(object):
                 'index': '1',
                 'name': 'PSU 1',
                 'presence': 'true',
-                'status': 'OK',
+                'status': 'WARNING',
                 'led_status': 'green',
                 'model': '0J6J4K',
                 'serial': 'CN-0J6J4K-17972-5AF-0086-A00',
@@ -61,7 +61,7 @@ class TestPsushow(object):
         expected_output = '''\
 PSU    Model    Serial                        HW Rev      Voltage (V)    Current (A)    Power (W)  Status    LED
 -----  -------  ----------------------------  --------  -------------  -------------  -----------  --------  -----
-PSU 1  0J6J4K   CN-0J6J4K-17972-5AF-0086-A00  1                 12.19           8.37       102.70  OK        green
+PSU 1  0J6J4K   CN-0J6J4K-17972-5AF-0086-A00  1                 12.19           8.37       102.70  WARNING   green
 PSU 2  0J6J4K   CN-0J6J4K-17972-5AF-008M-A00  A                 12.18          10.07       122.00  OK        green
 '''
         for arg in ['-s', '--status']:
@@ -74,7 +74,7 @@ PSU 2  0J6J4K   CN-0J6J4K-17972-5AF-008M-A00  A                 12.18          1
         expected_output = '''\
 PSU    Model    Serial                          HW Rev    Voltage (V)    Current (A)    Power (W)  Status    LED
 -----  -------  ----------------------------  --------  -------------  -------------  -----------  --------  -----
-PSU 1  0J6J4K   CN-0J6J4K-17972-5AF-0086-A00         1          12.19           8.37       102.70  OK        green
+PSU 1  0J6J4K   CN-0J6J4K-17972-5AF-0086-A00         1          12.19           8.37       102.70  WARNING   green
 '''
         for arg in ['-s', '--status']:
             with mock.patch('sys.argv', ['psushow', arg, '-i', '1']):
@@ -114,7 +114,7 @@ Error: failed to get PSU status from state DB
         "index": "1",
         "name": "PSU 1",
         "presence": "true",
-        "status": "OK",
+        "status": "WARNING",
         "led_status": "green",
         "model": "0J6J4K",
         "serial": "CN-0J6J4K-17972-5AF-0086-A00",
@@ -151,7 +151,7 @@ Error: failed to get PSU status from state DB
         "index": "1",
         "name": "PSU 1",
         "presence": "true",
-        "status": "OK",
+        "status": "WARNING",
         "led_status": "green",
         "model": "0J6J4K",
         "serial": "CN-0J6J4K-17972-5AF-0086-A00",

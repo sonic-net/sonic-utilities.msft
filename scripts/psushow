@@ -38,7 +38,11 @@ def get_psu_status_list():
 
         if presence == 'true':
             oper_status = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'status')
-            status = 'OK' if oper_status == 'true' else "NOT OK"
+            if oper_status == 'true':
+                power_overload = db.get(db.STATE_DB, 'PSU_INFO|{}'.format(psu_name), 'power_overload')
+                status = 'WARNING' if power_overload == 'True' else 'OK'
+            else:
+                status = "NOT OK"
         else:
             status = 'NOT PRESENT'
         psu_status['status'] = status

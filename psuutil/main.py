@@ -84,7 +84,7 @@ def numpsus():
 @click.option('-i', '--index', default=-1, type=int, help='Index of the PSU')
 def status(index):
     """Display PSU status"""
-    header = ['PSU',  'Model', 'Serial', 'Voltage (V)', 'Current (A)', 'Power (W)', 'Status', 'LED']
+    header = ['PSU',  'Model', 'Serial', 'HW Rev', 'Voltage (V)', 'Current (A)', 'Power (W)', 'Power Warn-supp Thres (W)', 'Power Crit Thres (W)', 'Status', 'LED']
     status_table = []
 
     psu_list = platform_chassis.get_all_psus()
@@ -94,14 +94,29 @@ def status(index):
         status = 'NOT PRESENT'
         model = 'N/A'
         serial = 'N/A'
+        revision = 'N/A'
         voltage = 'N/A'
         current = 'N/A'
         power = 'N/A'
         led_color = 'N/A'
+        power_critical_threshold = 'N/A'
+        power_warning_suppress_threshold = 'N/A'
 
         if psu.get_presence():
             try:
                 status = 'OK' if psu.get_powergood_status() else 'NOT OK'
+                if psu.get_powergood_status():
+                    power = psu.get_power()
+                    try:
+                        power_critical_threshold = psu.get_psu_power_critical_threshold()
+                        power_warning_suppress_threshold = psu.get_psu_power_warning_suppress_threshold()
+                    except NotImplementedError:
+                        pass
+                    if power_critical_threshold is None:
+                        power_critical_threshold = 'N/A'
+                    if power_warning_suppress_threshold is None:
+                        power_warning_suppress_threshold = 'N/A'
+                    status = 'OK'
             except NotImplementedError:
                 status = 'UNKNOWN'
 
@@ -112,6 +127,11 @@ def status(index):
 
             try:
                 serial = psu.get_serial()
+            except NotImplementedError:
+                pass
+
+            try:
+                revision = psu.get_revision()
             except NotImplementedError:
                 pass
 
@@ -135,7 +155,7 @@ def status(index):
             except NotImplementedError:
                 pass
 
-        status_table.append([psu_name, model, serial, voltage, current, power, status, led_color])
+        status_table.append([psu_name, model, serial, revision, voltage, current, power, power_warning_suppress_threshold, power_critical_threshold, status, led_color])
 
     if status_table:
         click.echo(tabulate(status_table, header, tablefmt='simple', floatfmt='.2f'))

@@ -834,6 +834,7 @@ This command displays the status of the device's power supply units
   PSU    Model          Serial        HW Rev      Voltage (V)    Current (A)    Power (W)  Status    LED
   -----  -------------  ------------  --------  -------------  -------------  -----------  --------  -----
   PSU 1  MTEF-PSF-AC-A  MT1621X15246  A3                11.97           4.56        54.56  OK        green
+  PSU 2  MTEF-PSF-AC-A  MT1621X15247  A3                11.97           4.56        54.56  WARNING   green
   ```
 
 **show platform fan**
