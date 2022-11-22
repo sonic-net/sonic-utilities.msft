@@ -290,6 +290,16 @@
     "VXLAN_REMOTE_VNI_TABLE:Vlan200:25.25.25.27": {
         "vni": "200"
     },
+    "VXLAN_FDB_TABLE:Vlan200:00:02:00:00:47:e2": {
+        "remote_vtep": "2.2.2.2",
+        "type": "dynamic",
+        "vni": "200"
+    },
+    "VXLAN_FDB_TABLE:Vlan200:00:02:00:00:47:e3": {
+        "remote_vtep": "2.2.2.3",
+        "type": "dynamic",
+        "vni": "200"
+    },
     "MUX_CABLE_TABLE:Ethernet32": {
         "state": "active"
     },

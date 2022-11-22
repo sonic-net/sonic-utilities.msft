@@ -112,6 +112,38 @@ Total count : 1
 
 """
 
+show_vxlan_remotemac_all_output="""\
++---------+-------------------+--------------+-------+---------+
+| VLAN    | MAC               | RemoteVTEP   |   VNI | Type    |
++=========+===================+==============+=======+=========+
+| Vlan200 | 00:02:00:00:47:e2 | 2.2.2.2      |   200 | dynamic |
++---------+-------------------+--------------+-------+---------+
+| Vlan200 | 00:02:00:00:47:e3 | 2.2.2.3      |   200 | dynamic |
++---------+-------------------+--------------+-------+---------+
+Total count : 2
+
+"""
+
+show_vxlan_remotemac_specific_output="""\
++---------+-------------------+--------------+-------+---------+
+| VLAN    | MAC               | RemoteVTEP   |   VNI | Type    |
++=========+===================+==============+=======+=========+
+| Vlan200 | 00:02:00:00:47:e2 | 2.2.2.2      |   200 | dynamic |
++---------+-------------------+--------------+-------+---------+
+Total count : 1
+
+"""
+
+show_vxlan_remotemac_cnt_output="""\
+Total count : 2
+
+"""
+
+show_vxlan_remotemac_specific_cnt_output="""\
+Total count : 1
+
+"""
+
 class TestVxlan(object):
     @classmethod
     def setup_class(cls):
@@ -214,6 +246,38 @@ class TestVxlan(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_vxlan_remotevni_specific_cnt_output
+
+    def test_show_vxlan_remotemac(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["vxlan"].commands["remotemac"], ["all"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_vxlan_remotemac_all_output
+
+    def test_show_vxlan_remotemac_specific(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["vxlan"].commands["remotemac"], ["2.2.2.2"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_vxlan_remotemac_specific_output
+
+    def test_show_vxlan_remotemac_cnt(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["vxlan"].commands["remotemac"], ["all", "count"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_vxlan_remotemac_cnt_output
+
+    def test_show_vxlan_remotemac_specific_cnt(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["vxlan"].commands["remotemac"], ["2.2.2.2", "count"])
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_vxlan_remotemac_specific_cnt_output
 
     def test_config_vxlan_add(self):
         runner = CliRunner()
