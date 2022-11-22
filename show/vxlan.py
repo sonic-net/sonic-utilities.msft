@@ -98,14 +98,14 @@ def interface():
           vtepname = key1.pop();
           if 'src_ip' in vxlan_table[key]:
             vtep_sip = vxlan_table[key]['src_ip']
-          if vtep_sip is not '0.0.0.0':
+          if vtep_sip != '0.0.0.0':
              output = '\tVTEP Name : ' + vtepname + ', SIP  : ' + vxlan_table[key]['src_ip']
           else:
              output = '\tVTEP Name : ' + vtepname
 
           click.echo(output)
 
-    if vtep_sip is not '0.0.0.0':
+    if vtep_sip != '0.0.0.0':
        vxlan_table = config_db.get_table('VXLAN_EVPN_NVO')
        vxlan_keys = vxlan_table.keys()
        if vxlan_keys is not None:
@@ -307,8 +307,8 @@ def remotemac(remote_vtep_ip, count):
             vxlan_table = db.get_all(db.APPL_DB, key);
             if vxlan_table is None:
              continue
-            rmtip = vxlan_table['remote_vtep']
-            if remote_vtep_ip != 'all' and rmtip != remote_vtep_ip:
+            rmtip = vxlan_table.get('remote_vtep')
+            if remote_vtep_ip != 'all' and rmtip != remote_vtep_ip or rmtip is None:
                continue
             if count is None:
                body.append([vlan, mac, rmtip, vxlan_table['vni'], vxlan_table['type']])
