@@ -1099,6 +1099,7 @@
         "buffer_model": "traditional",
         "cloudtype": "None",
         "type": "LeafRouter",
+        "synchronous_mode": "enable",
         "deployment_id": "1"
     },
     "PORT|Ethernet0": {

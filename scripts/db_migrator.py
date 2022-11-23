@@ -8,7 +8,9 @@ import traceback
 import re
 
 from sonic_py_common import device_info, logger
+from swsssdk import ConfigDBConnector, SonicDBConfig
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
+from db_migrator_constants import RESTAPI, TELEMETRY, CONSOLE_SWITCH
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
 
@@ -485,6 +487,61 @@ class DBMigrator():
         self.migrate_qos_db_fieldval_reference_remove(qos_table_list, self.configDB, self.configDB.CONFIG_DB, '|')
         return True
 
+    def migrate_vxlan_config(self):
+        log.log_notice('Migrate VXLAN table config')
+        # Collect VXLAN data from config DB
+        vxlan_data = self.configDB.keys(self.configDB.CONFIG_DB, "VXLAN_TUNNEL*")
+        if not vxlan_data:
+            # do nothing if vxlan entries are not present in configdb
+            return
+        for vxlan_table in vxlan_data:
+            vxlan_map_mapping = self.configDB.get_all(self.configDB.CONFIG_DB, vxlan_table)
+            tunnel_keys = vxlan_table.split(self.configDB.KEY_SEPARATOR)
+            tunnel_keys[0] = tunnel_keys[0] + "_TABLE"
+            vxlan_table = self.appDB.get_db_separator(self.appDB.APPL_DB).join(tunnel_keys)
+            for field, value in vxlan_map_mapping.items():
+                # add entries from configdb to appdb only when they are missing
+                if not self.appDB.hexists(self.appDB.APPL_DB, vxlan_table, field):
+                    log.log_notice('Copying vxlan entries from configdb to appdb: updated {} with {}:{}'.format(
+                        vxlan_table, field, value))
+                    self.appDB.set(self.appDB.APPL_DB, vxlan_table, field, value)
+
+    def migrate_restapi(self):
+        # RESTAPI - add missing key
+        log.log_notice('Migrate RESTAPI configuration')
+        config = self.configDB.get_entry('RESTAPI', 'config')
+        if not config:
+            self.configDB.set_entry("RESTAPI", "config", RESTAPI.get("config"))
+        certs = self.configDB.get_entry('RESTAPI', 'certs')
+        if not certs:
+            self.configDB.set_entry("RESTAPI", "certs", RESTAPI.get("certs"))
+
+    def migrate_telemetry(self):
+        # TELEMETRY - add missing key
+        log.log_notice('Migrate TELEMETRY configuration')
+        gnmi = self.configDB.get_entry('TELEMETRY', 'gnmi')
+        if not gnmi:
+            self.configDB.set_entry("TELEMETRY", "gnmi", TELEMETRY.get("gnmi"))
+        certs = self.configDB.get_entry('TELEMETRY', 'certs')
+        if not certs:
+            self.configDB.set_entry("TELEMETRY", "certs", TELEMETRY.get("certs"))
+
+    def migrate_console_switch(self):
+        # CONSOLE_SWITCH - add missing key
+        log.log_notice('Migrate CONSOLE_SWITCH configuration')
+        console_mgmt = self.configDB.get_entry('CONSOLE_SWITCH', 'console_mgmt')
+        if not console_mgmt:
+            self.configDB.set_entry("CONSOLE_SWITCH", "console_mgmt",
+                CONSOLE_SWITCH.get("console_mgmt"))
+
+    def migrate_device_metadata(self):
+        # DEVICE_METADATA - synchronous_mode entry
+        log.log_notice('Migrate DEVICE_METADATA missing configuration (synchronous_mode=enable)')
+        metadata = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
+        if 'synchronous_mode' not in metadata:
+            metadata['synchronous_mode'] = 'enable'
+            self.configDB.set_entry('DEVICE_METADATA', 'localhost', metadata)
+
     def migrate_port_qos_map_global(self):
         """
         Generate dscp_to_tc_map for switch.
@@ -647,10 +704,25 @@ class DBMigrator():
 
     def version_2_0_1(self):
         """
-        Version 2_0_1.
-        This is the latest version for 202012 branch 
+        Handle and migrate missing config that results from cross branch upgrade to
+        202012 as target.
         """
         log.log_info('Handling version_2_0_1')
+        self.migrate_vxlan_config()
+        self.migrate_restapi()
+        self.migrate_telemetry()
+        self.migrate_console_switch()
+        self.migrate_device_metadata()
+
+        self.set_version('version_2_0_2')
+        return 'version_2_0_2'
+
+    def version_2_0_2(self):
+        """
+        Version 2_0_2
+        This is the latest version for 202012 branch 
+        """
+        log.log_info('Handling version_2_0_2')
         self.set_version('version_3_0_0')
         return 'version_3_0_0'
 

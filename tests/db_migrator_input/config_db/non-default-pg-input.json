@@ -952,6 +952,7 @@
         "hwsku": "ACS-MSN4700",
         "default_bgp_status": "up",
         "type": "ToRRouter",
+        "synchronous_mode": "enable",
         "region": "None",
         "hostname": "sonic",
         "platform": "x86_64-mlnx_msn4700-r0",

@@ -832,7 +832,8 @@
         "bgp_asn": "65100",
         "buffer_model": "traditional",
         "deployment_id": "1",
-        "docker_routing_config_mode": "unified"
+        "docker_routing_config_mode": "unified",
+        "synchronous_mode": "enable"
     },
     "PORT|Ethernet0": {
         "lanes": "0,1,2,3",

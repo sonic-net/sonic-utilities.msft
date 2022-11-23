@@ -827,7 +827,8 @@
         "buffer_model": "traditional",
         "cloudtype": "None",
         "type": "LeafRouter",
-        "deployment_id": "1"
+        "deployment_id": "1",
+        "synchronous_mode": "enable"
     },
     "PORT|Ethernet0": {
         "index": "0",

@@ -734,7 +734,8 @@
         "bgp_asn": "65100",
         "buffer_model": "traditional",
         "deployment_id": "1",
-        "type": "ToRRouter"
+        "type": "ToRRouter",
+        "synchronous_mode": "enable"
     },
     "PORT|Ethernet0": {
         "lanes": "0,1,2,3",

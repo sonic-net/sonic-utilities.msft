@@ -817,7 +817,8 @@
         "buffer_model": "dynamic",
         "deployment_id": "1",
         "docker_routing_config_mode": "separated",
-        "cloudtype": "None"
+        "cloudtype": "None",
+        "synchronous_mode": "enable"
     },
     "LOSSLESS_TRAFFIC_PATTERN|AZURE": {
         "small_packet_percentage": "100",

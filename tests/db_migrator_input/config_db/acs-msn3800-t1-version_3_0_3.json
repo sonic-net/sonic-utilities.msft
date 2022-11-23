@@ -1019,7 +1019,8 @@
         "buffer_model": "dynamic",
         "cloudtype": "None",
         "type": "LeafRouter",
-        "deployment_id": "1"
+        "deployment_id": "1",
+        "synchronous_mode": "enable"
     },
     "LOSSLESS_TRAFFIC_PATTERN|AZURE": {
         "small_packet_percentage": "100",

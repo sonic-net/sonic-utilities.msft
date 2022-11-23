@@ -1,5 +1,8 @@
 {
     "VERSIONS|DATABASE": {
         "VERSION": "version_3_0_3"
+    },
+    "DEVICE_METADATA|localhost": {
+        "synchronous_mode": "enable"
     }
 }
