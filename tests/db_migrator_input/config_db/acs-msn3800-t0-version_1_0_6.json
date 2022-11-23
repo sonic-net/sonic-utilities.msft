@@ -988,6 +988,7 @@
         "bgp_asn": "65100",
         "cloudtype": "None",
         "type": "ToRRouter",
+        "synchronous_mode": "enable",
         "deployment_id": "1"
     },
     "PORT|Ethernet0": {

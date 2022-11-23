@@ -726,6 +726,7 @@
         "hwsku": "Mellanox-SN2700-C28D8",
         "default_bgp_status": "up",
         "type": "ToRRouter",
+        "synchronous_mode": "enable",
         "hostname": "sonic",
         "platform": "x86_64-mlnx_msn2700-r0",
         "mac": "00:01:02:03:04:00",

@@ -450,3 +450,29 @@ class TestMoveLoggerTablesInWarmUpgrade(object):
 
         diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
         assert not diff
+
+class TestWarmUpgrade_to_2_0_2(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_warm_upgrade_to_2_0_2(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'cross_branch_upgrade_to_version_2_0_2_input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'cross_branch_upgrade_to_version_2_0_2_expected')
+        expected_db = Db()
+
+        expected_db
+        new_tables = ["RESTAPI", "TELEMETRY", "CONSOLE_SWITCH"]
+        for table in new_tables:
+            resulting_table = dbmgtr.configDB.get_table(table)
+            expected_table = expected_db.cfgdb.get_table(table)
+            diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+            assert not diff

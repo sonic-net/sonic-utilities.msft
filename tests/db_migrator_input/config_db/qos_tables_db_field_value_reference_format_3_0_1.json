@@ -1050,7 +1050,8 @@
             "hwsku": "DellEMC-Z9264f-C64",
             "mac": "50:9a:4c:d3:86:70",
             "platform": "x86_64-dellemc_z9264f_c3538-r0",
-            "type": "LeafRouter"
+            "type": "LeafRouter",
+            "synchronous_mode": "enable"
         }
     },
     "DSCP_TO_TC_MAP": {

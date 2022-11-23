@@ -971,6 +971,7 @@
         "buffer_model": "dynamic",
         "cloudtype": "None",
         "type": "ToRRouter",
+        "synchronous_mode": "enable",
         "deployment_id": "1"
     },
     "LOSSLESS_TRAFFIC_PATTERN|AZURE": {
