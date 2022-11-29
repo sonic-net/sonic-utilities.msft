@@ -180,10 +180,19 @@ Vrf103  Ethernet4
         assert result.exit_code == 0
         assert result.output == expected_output
 
-    def test_vrf_del(self):
+    def test_vrf_add_del(self):
         runner = CliRunner()
         db = Db()
         vrf_obj = {'config_db':db.cfgdb, 'namespace':db.db.namespace}
+        
+        result = runner.invoke(config.config.commands["vrf"].commands["add"], ["Vrf100"], obj=vrf_obj)
+        assert ('Vrf100') in db.cfgdb.get_table('VRF')
+        assert result.exit_code == 0
+        
+        result = runner.invoke(config.config.commands["vrf"].commands["add"], ["Vrf1"], obj=vrf_obj)
+        assert "VRF Vrf1 already exists!" in result.output
+        assert ('Vrf1') in db.cfgdb.get_table('VRF')
+        assert result.exit_code != 0
         
         expected_output_del = "VRF Vrf1 deleted and all associated IP addresses removed.\n"
         result = runner.invoke(config.config.commands["vrf"].commands["del"], ["Vrf1"], obj=vrf_obj)
@@ -191,20 +200,41 @@ Vrf103  Ethernet4
         assert result.output == expected_output_del
         assert ('Vrf1') not in db.cfgdb.get_table('VRF')
 
-        expected_output_del = "VRF Vrf101 deleted and all associated IP addresses removed.\n"
-        result = runner.invoke(config.config.commands["vrf"].commands["del"], ["Vrf101"], obj=vrf_obj)
-        assert result.exit_code == 0
-        assert result.output == expected_output_del
-        assert ('Vrf101') not in db.cfgdb.get_table('VRF')
+        result = runner.invoke(config.config.commands["vrf"].commands["del"], ["Vrf200"], obj=vrf_obj)
+        assert result.exit_code != 0       
+        assert ('Vrf200') not in db.cfgdb.get_table('VRF')
+        assert "VRF Vrf200 does not exist!" in result.output
 
-        expected_output_del = "VRF Vrf102 deleted and all associated IP addresses removed.\n"
-        result = runner.invoke(config.config.commands["vrf"].commands["del"], ["Vrf102"], obj=vrf_obj)
-        assert result.exit_code == 0
-        assert result.output == expected_output_del
-        assert ('Vrf102') not in db.cfgdb.get_table('VRF')
-
-        expected_output_del = "VRF Vrf103 deleted and all associated IP addresses removed.\n"
-        result = runner.invoke(config.config.commands["vrf"].commands["del"], ["Vrf103"], obj=vrf_obj)
-        assert result.exit_code == 0
-        assert result.output == expected_output_del
-        assert ('Vrf103') not in db.cfgdb.get_table('VRF')
+    def test_invalid_vrf_name(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'config_db':db.cfgdb}
+        expected_output = """\
+Error: 'vrf_name' must begin with 'Vrf' or named 'mgmt'/'management' in case of ManagementVRF.
+"""
+        result = runner.invoke(config.config.commands["vrf"].commands["add"], ["vrf-blue"], obj=obj)
+        assert result.exit_code != 0
+        assert ('vrf-blue') not in db.cfgdb.get_table('VRF')
+        assert expected_output in result.output
+        
+        result = runner.invoke(config.config.commands["vrf"].commands["add"], ["VRF2"], obj=obj)
+        assert result.exit_code != 0
+        assert ('VRF2') not in db.cfgdb.get_table('VRF')
+        assert expected_output in result.output
+        
+        result = runner.invoke(config.config.commands["vrf"].commands["add"], ["VrF10"], obj=obj)
+        assert result.exit_code != 0
+        assert ('VrF10') not in db.cfgdb.get_table('VRF')
+        assert expected_output in result.output
+        
+        result = runner.invoke(config.config.commands["vrf"].commands["del"], ["vrf-blue"], obj=obj)
+        assert result.exit_code != 0
+        assert expected_output in result.output
+        
+        result = runner.invoke(config.config.commands["vrf"].commands["del"], ["VRF2"], obj=obj)
+        assert result.exit_code != 0
+        assert expected_output in result.output
+        
+        result = runner.invoke(config.config.commands["vrf"].commands["del"], ["VrF10"], obj=obj)
+        assert result.exit_code != 0
+        assert expected_output in result.output
