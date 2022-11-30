@@ -45,7 +45,7 @@ def config(db):
             # (<header name>, <field name>, <default val>)
             ("ip", "ip" "", False),
             ("port", "port", "6443"),
-            ("insecure", "insecure", "False"),
+            ("insecure", "insecure", "True"),
             ("disable","disable", "False")
             ]
 
