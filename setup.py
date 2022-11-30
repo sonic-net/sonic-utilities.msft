@@ -90,6 +90,7 @@ setup(
         'scripts/coredump-compress',
         'scripts/configlet',
         'scripts/db_migrator.py',
+        'scripts/db_migrator_constants.py',
         'scripts/decode-syseeprom',
         'scripts/dropcheck',
         'scripts/disk_check.py',
