@@ -743,7 +743,24 @@ def storm_control_delete_entry(port_name, storm_type):
     return True
 
 
-def _clear_qos():
+def _wait_until_clear(table, interval=0.5, timeout=30):
+    start = time.time()
+    empty = False
+    app_db = SonicV2Connector(host='127.0.0.1')
+    app_db.connect(app_db.APPL_DB)
+
+    while not empty and time.time() - start < timeout:
+        current_profiles = app_db.keys(app_db.APPL_DB, table)
+        if not current_profiles:
+            empty = True
+        else:
+            time.sleep(interval)
+    if not empty:
+        click.echo("Operation not completed successfully, please save and reload configuration.")
+    return empty
+
+
+def _clear_qos(delay = False):
     QOS_TABLE_NAMES = [
             'PORT_QOS_MAP',
             'QUEUE',
@@ -779,6 +796,8 @@ def _clear_qos():
         config_db.connect()
         for qos_table in QOS_TABLE_NAMES:
             config_db.delete_table(qos_table)
+    if delay:
+        _wait_until_clear("BUFFER_POOL_TABLE:*",interval=0.5, timeout=30)
 
 def _get_sonic_generated_services(num_asic):
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
@@ -1759,7 +1778,7 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, 
         click.secho("Failed to load port_config.json, Error: {}".format(str(e)), fg='magenta')
 
     # generate QoS and Buffer configs
-    clicommon.run_command("config qos reload --no-dynamic-buffer", display_cmd=True)
+    clicommon.run_command("config qos reload --no-dynamic-buffer --no-delay", display_cmd=True)
 
     if device_type != 'MgmtToRRouter' and device_type != 'MgmtTsToR' and device_type != 'BmcMgmtToRRouter' and device_type != 'EPMS':
         clicommon.run_command("pfcwd start_default", display_cmd=True)
@@ -2604,6 +2623,7 @@ def _update_buffer_calculation_model(config_db, model):
 @click.pass_context
 @click.option('--ports', is_flag=False, required=False, help="List of ports that needs to be updated")
 @click.option('--no-dynamic-buffer', is_flag=True, help="Disable dynamic buffer calculation")
+@click.option('--no-delay', is_flag=True, hidden=True)
 @click.option(
     '--json-data', type=click.STRING,
     help="json string with additional data, valid with --dry-run option"
@@ -2612,7 +2632,7 @@ def _update_buffer_calculation_model(config_db, model):
     '--dry_run', type=click.STRING,
     help="Dry run, writes config to the given file"
 )
-def reload(ctx, no_dynamic_buffer, dry_run, json_data, ports):
+def reload(ctx, no_dynamic_buffer, no_delay, dry_run, json_data, ports):
     """Reload QoS configuration"""
     if ports:
         log.log_info("'qos reload --ports {}' executing...".format(ports))
@@ -2620,7 +2640,8 @@ def reload(ctx, no_dynamic_buffer, dry_run, json_data, ports):
         return
 
     log.log_info("'qos reload' executing...")
-    _clear_qos()
+    if not dry_run:
+        _clear_qos(delay = not no_delay)
 
     _, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
     sonic_version_file = device_info.get_sonic_version_file()
