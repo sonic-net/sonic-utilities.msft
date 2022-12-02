@@ -1189,6 +1189,17 @@ def load_backend_acl(cfg_db, device_type):
         if os.path.isfile(BACKEND_ACL_FILE):
             clicommon.run_command("acl-loader update incremental {}".format(BACKEND_ACL_FILE), display_cmd=True)
 
+def validate_config_file(file):
+    """
+    A validator to check config files for syntax errors
+    """
+    try:
+        # Load golden config json
+        read_json_file(file)
+    except Exception as e:
+        click.secho("Bad format: json file '{}' broken.\n{}".format(file, str(e)),
+                    fg='magenta')
+        sys.exit(1)
 
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
@@ -1567,10 +1578,8 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
             click.echo("Input {} config file(s) separated by comma for multiple files ".format(num_cfg_file))
             return
 
-    #Stop services before config push
-    if not no_service_restart:
-        log.log_info("'reload' stopping services...")
-        _stop_services()
+    # Create a dictionary to store each cfg_file, namespace, and a bool representing if a the file exists
+    cfg_file_dict = {}
 
     # In Single ASIC platforms we have single DB service. In multi-ASIC platforms we have a global DB
     # service running in the host + DB services running in each ASIC namespace created per ASIC.
@@ -1595,9 +1604,27 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
             else:
                 file = DEFAULT_CONFIG_YANG_FILE
 
-
-        # Check the file exists before proceeding.
+        # Check if the file exists before proceeding
+        # Instead of exiting, skip the current namespace and check the next one
         if not os.path.exists(file):
+            cfg_file_dict[inst] = [file, namespace, False]
+            continue
+        cfg_file_dict[inst] = [file, namespace, True]
+
+        # Check the file is properly formatted before proceeding.
+        validate_config_file(file) 
+            
+    #Validate INIT_CFG_FILE if it exits
+    if os.path.isfile(INIT_CFG_FILE):
+        validate_config_file(INIT_CFG_FILE)
+
+    #Stop services before config push
+    if not no_service_restart:
+        log.log_info("'reload' stopping services...")
+        _stop_services()
+
+    for file, namespace, file_exists in cfg_file_dict.values():
+        if not file_exists:
             click.echo("The config file {} doesn't exist".format(file))
             continue
 
