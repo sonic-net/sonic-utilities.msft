@@ -1884,6 +1884,22 @@ class TestRequiredValueMoveValidator(unittest.TestCase):
                     }
                 })
             },
+            # Additional cases where the full port is getting deleted
+            # If port is getting deleted, there is no point in checking if there are critical changes depending on it
+            "NOT_PORT_UP__STATUS_CHANGING__UNDER_PORT__PORT_EXIST__PORT_DELETION": {
+                "expected": True,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "move": ps.JsonMove.from_operation({ "op": "remove", "path": "/PORT/Ethernet32" })
+            },
+            "NOT_PORT_UP__STATUS_CHANGING__NOT_UNDER_PORT__PORT_EXIST__PORT_DELETION": {
+                "expected": True,
+                "config": Files.CONFIG_DB_WITH_PORT_CRITICAL,
+                "target_config": self._apply_operations(Files.CONFIG_DB_WITH_PORT_CRITICAL, [
+                    { "op": "remove", "path": "/PORT/Ethernet28" },
+                    { "op": "remove", "path": "/BUFFER_PG/Ethernet28|0" },
+                ]),
+                "move": ps.JsonMove.from_operation({ "op": "remove", "path": "/PORT/Ethernet28" })
+            },
         }
 
     def test_validate__no_critical_port_changes(self):
@@ -1936,6 +1952,106 @@ class TestRequiredValueMoveValidator(unittest.TestCase):
 
     def _apply_operations(self, config, operations):
         return jsonpatch.JsonPatch(operations).apply(config)
+
+class RemoveCreateOnlyDependencyMoveValidator(unittest.TestCase):
+    def setUp(self):
+        path_addressing = PathAddressing(ConfigWrapper())
+        self.validator = ps.RemoveCreateOnlyDependencyMoveValidator(path_addressing)
+
+    def test_validate__lane_replacement_change(self):
+        test_cases = self._get_lane_replacement_change_test_cases()
+        for test_case_name in test_cases:
+            with self.subTest(name=test_case_name):
+                self._run_single_test(test_cases[test_case_name])
+
+    def _run_single_test(self, test_case):
+        # Arrange
+        expected = test_case['expected']
+        current_config = test_case['config']
+        move = test_case['move']
+        target_config = test_case.get('target_config', move.apply(current_config))
+        diff = ps.Diff(current_config, target_config)
+
+        # Act and Assert
+        self.assertEqual(expected, self.validator.validate(move, diff))
+
+    def _apply_operations(self, config, operations):
+        return jsonpatch.JsonPatch(operations).apply(config)
+
+    def _get_lane_replacement_change_test_cases(self):
+        return {
+            "PORT_NOT_IN_CURRENT_CONFIG": {
+                "expected": True,
+                "config": {},
+                "move": Mock(),
+                "target_config": Files.DPB_1_SPLIT_FULL_CONFIG
+            },
+            "PORT_NOT_IN_TARGET_CONFIG": {
+                "expected": True,
+                "config": Files.DPB_1_SPLIT_FULL_CONFIG,
+                "move": Mock(),
+                "target_config": {}
+            },
+            "PORT_EMPTY_IN_CURRENT_CONFIG": {
+                "expected": True,
+                "config": {"PORT": {}},
+                "move": Mock(),
+                "target_config": Files.DPB_1_SPLIT_FULL_CONFIG
+            },
+            "PORT_EMPTY_IN_TARGET_CONFIG": {
+                "expected": True,
+                "config": Files.DPB_1_SPLIT_FULL_CONFIG,
+                "move": Mock(),
+                "target_config": {"PORT": {}}
+            },
+            "SAME_LANE_IN_BOTH_CONFIG": {
+                "expected": True,
+                "config": Files.DPB_1_SPLIT_FULL_CONFIG,
+                "move": ps.JsonMove.from_operation({
+                    "op": "remove",
+                    "path": "/ACL_TABLE"
+                })
+            },
+            "LANE_DIFF__CURRENT_DOWN__SIMULATED_UP": {
+                "expected": False,
+                "config": Files.DPB_1_SPLIT_FULL_CONFIG,
+                "move": ps.JsonMove.from_operation({
+                    "op": "add",
+                    "path": "/PORT/Ethernet0/admin_status",
+                    "value": "up"
+                }),
+                "target_config":Files.DPB_4_SPLITS_FULL_CONFIG,
+            },
+            "LANE_DIFF__STATUS_SAME__SIMULATED_EXTRA_DEPDENDENCY": {
+                "expected": False,
+                "config": self._apply_operations(Files.DPB_1_SPLIT_FULL_CONFIG, [
+                    {"op": "remove", "path": "/ACL_TABLE"},
+                ]),
+                "move": ps.JsonMove.from_operation({
+                    "op": "add",
+                    "path": "/ACL_TABLE",
+                    "value": {
+                        "NO-NSW-PACL-V4": {
+                            "type": "L3",
+                            "policy_desc": "NO-NSW-PACL-V4",
+                            "ports": [
+                                "Ethernet0"
+                            ]
+                        }
+                    }
+                }),
+                "target_config": Files.DPB_4_SPLITS_FULL_CONFIG
+            },
+            "LANE_DIFF__STATUS_SAME__SIMULATED_LESS_DEPDENDENCY": {
+                "expected": True,
+                "config": Files.DPB_1_SPLIT_FULL_CONFIG,
+                "move": ps.JsonMove.from_operation({
+                    "op": "remove",
+                    "path": "/ACL_TABLE"
+                }),
+                "target_config": Files.DPB_4_SPLITS_FULL_CONFIG
+            }
+        }
 
 class TestTableLevelMoveGenerator(unittest.TestCase):
     def setUp(self):
@@ -2313,6 +2429,85 @@ class TestLowLevelMoveGenerator(unittest.TestCase):
 
         return ps.Diff(current_config, target_config)
 
+class RemoveCreateOnlyDependencyMoveGenerator(unittest.TestCase):
+    def setUp(self):
+        config_wrapper = ConfigWrapper()
+        path_addressing = PathAddressing(config_wrapper)
+        self.generator = ps.RemoveCreateOnlyDependencyMoveGenerator(path_addressing)
+
+    def test_generate__no_port_table__no_moves(self):
+        current_config = {}
+        target_config = {"PORT": {"Ethernet0": {}}}
+
+        # No PORT table in current_config
+        diff = ps.Diff(current_config, target_config)
+        moves = list(self.generator.generate(diff))
+        self.verify_moves([], moves)
+
+        # No PORT table in target_config
+        diff = ps.Diff(target_config, current_config)
+        moves = list(self.generator.generate(diff))
+        self.verify_moves([], moves)
+
+    def test_generate__empty_port_content__no_moves(self):
+        current_config = {"PORT": {}}
+        target_config = {"PORT": {"Ethernet0": {}}}
+
+        # Empty PORT content in current_config
+        diff = ps.Diff(current_config, target_config)
+        moves = list(self.generator.generate(diff))
+        self.verify_moves([], moves)
+
+        # Empty PORT content in target_config
+        diff = ps.Diff(target_config, current_config)
+        moves = list(self.generator.generate(diff))
+        self.verify_moves([], moves)
+
+    def test_generate__same_lanes__no_moves(self):
+        current_config = Files.CROPPED_CONFIG_DB_AS_JSON
+        patch = jsonpatch.JsonPatch([
+            {'op': 'remove', 'path': '/VLAN_MEMBER'}
+        ])
+        target_config = patch.apply(Files.CROPPED_CONFIG_DB_AS_JSON)
+
+        # Remove VLAN_MEMBER in target_config, lanes are same
+        diff = ps.Diff(current_config, target_config)
+        moves = list(self.generator.generate(diff))
+        self.verify_moves([], moves)
+
+        # Add VLAN_MEMBER in current_config, lanes are same
+        diff = ps.Diff(target_config, current_config)
+        moves = list(self.generator.generate(diff))
+        self.verify_moves([], moves)
+
+    def test_generate__dpb_4_to_1_example(self):
+        # Arrange
+        diff = ps.Diff(Files.DPB_4_SPLITs_FULL_CONFIG, Files.DPB_1_SPLIT_FULL_CONFIG)
+
+        # Act
+        moves = list(self.generator.generate(diff))
+
+        # Assert
+        self.verify_moves([{'op': 'remove', 'path': '/ACL_TABLE/NO-NSW-PACL-V4/ports/0'},
+                           {'op': 'remove', 'path': '/VLAN_MEMBER/Vlan100|Ethernet0'}],
+                          moves)
+
+    def test_generate__dpb_1_to_4_example(self):
+        # Arrange
+        diff = ps.Diff(Files.DPB_1_SPLIT_FULL_CONFIG, Files.DPB_4_SPLITS_FULL_CONFIG)
+
+        # Act
+        moves = list(self.generator.generate(diff))
+
+        # Assert
+        self.verify_moves([{'op': 'remove', 'path': '/ACL_TABLE/NO-NSW-PACL-V4/ports/0'},
+                           {'op': 'remove', 'path': '/VLAN_MEMBER/Vlan100|Ethernet0'}],
+                          moves)
+
+    def verify_moves(self, ops, moves):
+        moves_ops = [list(move.patch)[0] for move in moves]
+        self.assertCountEqual(ops, moves_ops)
+
 class TestRequiredValueMoveExtender(unittest.TestCase):
     def setUp(self):
         path_addressing = PathAddressing()
@@ -2536,6 +2731,26 @@ class TestRequiredValueMoveExtender(unittest.TestCase):
                 ])
             }
         ]
+
+        # Act
+        actual = self.extender.extend(move, diff)
+
+        # Assert
+        self._verify_moves(expected, actual)
+
+    def test_extend__port_deletion__no_extension(self):
+        # Arrange
+        move = ps.JsonMove.from_operation({
+            "op":"remove",
+            "path":"/PORT/Ethernet28"
+        })
+        current_config = Files.CONFIG_DB_WITH_PORT_CRITICAL
+        target_config = self._apply_operations(Files.CONFIG_DB_WITH_PORT_CRITICAL, [
+            { "op": "remove", "path": "/PORT/Ethernet28" },
+            { "op": "remove", "path": "/BUFFER_PG/Ethernet28|0" }
+        ])
+        diff = ps.Diff(current_config, target_config)
+        expected = []
 
         # Act
         actual = self.extender.extend(move, diff)
@@ -3021,7 +3236,8 @@ class TestSortAlgorithmFactory(unittest.TestCase):
         # Arrange
         config_wrapper = ConfigWrapper()
         factory = ps.SortAlgorithmFactory(OperationWrapper(), config_wrapper, PathAddressing(config_wrapper))
-        expected_generators = [ps.LowLevelMoveGenerator]
+        expected_generators = [ps.RemoveCreateOnlyDependencyMoveGenerator,
+                               ps.LowLevelMoveGenerator]
         expected_non_extendable_generators = [ps.KeyLevelMoveGenerator]
         expected_extenders = [ps.RequiredValueMoveExtender,
                               ps.UpperLevelMoveExtender,
@@ -3032,6 +3248,7 @@ class TestSortAlgorithmFactory(unittest.TestCase):
                               ps.NoDependencyMoveValidator,
                               ps.CreateOnlyMoveValidator,
                               ps.RequiredValueMoveValidator,
+                              ps.RemoveCreateOnlyDependencyMoveValidator,
                               ps.NoEmptyTableMoveValidator]
 
         # Act

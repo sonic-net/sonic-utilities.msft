@@ -36,6 +36,23 @@
             "lanes": "41,42,43,44",
             "pfc_asym": "off",
             "speed": "40000"
+        },
+        "Ethernet28": {
+            "alias": "fortyGigE0/28",
+            "description": "Servers5:eth0",
+            "index": "6",
+            "lanes": "53,54,55,56",
+            "pfc_asym": "off",
+            "speed": "40000"
+        },
+        "Ethernet32": {
+            "alias": "fortyGigE0/32",
+            "description": "Servers6:eth0",
+            "index": "7",
+            "lanes": "57,58,59,60",
+            "mtu": "9100",
+            "pfc_asym": "off",
+            "speed": "40000"
         }
     },
     "BUFFER_PG": {
@@ -43,6 +60,9 @@
             "profile": "ingress_lossy_profile"
         },
         "Ethernet12|0": {
+            "profile": "ingress_lossy_profile"
+        },
+        "Ethernet28|0": {
             "profile": "ingress_lossy_profile"
         }
     }
