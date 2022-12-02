@@ -544,6 +544,125 @@ class RequiredValueIdentifier:
 
         return None
 
+class CreateOnlyFilter:
+    """
+    A filtering class for create-only fields.
+    """
+    def __init__(self, path_addressing):
+        # TODO: create-only fields are hard-coded for now, it should be moved to YANG model
+        self.path_addressing = path_addressing
+        self.patterns = [
+            ["PORT", "*", "lanes"],
+            ["LOOPBACK_INTERFACE", "*", "vrf_name"],
+            ["BGP_NEIGHBOR", "*", "holdtime"],
+            ["BGP_NEIGHBOR", "*", "keepalive"],
+            ["BGP_NEIGHBOR", "*", "name"],
+            ["BGP_NEIGHBOR", "*", "asn"],
+            ["BGP_NEIGHBOR", "*", "local_addr"],
+            ["BGP_NEIGHBOR", "*", "nhopself"],
+            ["BGP_NEIGHBOR", "*", "rrclient"],
+            ["BGP_PEER_RANGE", "*", "*"],
+            ["BGP_MONITORS", "*", "holdtime"],
+            ["BGP_MONITORS", "*", "keepalive"],
+            ["BGP_MONITORS", "*", "name"],
+            ["BGP_MONITORS", "*", "asn"],
+            ["BGP_MONITORS", "*", "local_addr"],
+            ["BGP_MONITORS", "*", "nhopself"],
+            ["BGP_MONITORS", "*", "rrclient"],
+            ["MIRROR_SESSION", "*", "*"],
+        ]
+
+    def get_filter(self):
+        return JsonPointerFilter(self.patterns,
+                                 self.path_addressing)
+
+class RemoveCreateOnlyDependencyMoveValidator:
+    """
+    A class to validate all dependencies of create-only fields have been removed before
+    modifying the create-only fields.
+    """
+    def __init__(self, path_addressing):
+        self.path_addressing = path_addressing
+        self.create_only_filter = CreateOnlyFilter(path_addressing).get_filter()
+
+    def validate(self, move, diff):
+        current_config = diff.current_config
+        target_config = diff.target_config # Final config after applying whole patch
+
+        processed_tables = set()
+        for path in self.create_only_filter.get_paths(current_config):
+            tokens = self.path_addressing.get_path_tokens(path)
+            table_to_check = tokens[0]
+
+            if table_to_check in processed_tables:
+                continue
+            else:
+                processed_tables.add(table_to_check)
+
+            if table_to_check not in current_config:
+                continue
+
+            current_members = current_config[table_to_check]
+            if not current_members:
+                continue
+
+            if table_to_check not in target_config:
+                continue
+
+            target_members = target_config[table_to_check]
+            if not target_members:
+                continue
+
+            simulated_config = move.apply(current_config) # Config after applying just this move
+
+            for member_name in current_members:
+                if member_name not in target_members:
+                    continue
+
+                if not self._validate_member(tokens, member_name,
+                                             current_config, target_config, simulated_config):
+                    return False
+
+        return True
+
+    def _validate_member(self, tokens, member_name, current_config, target_config, simulated_config):
+        table_to_check, create_only_field = tokens[0], tokens[-1]
+
+        current_field = self._get_create_only_field(
+            current_config, table_to_check, member_name, create_only_field)
+        target_field = self._get_create_only_field(
+            target_config, table_to_check, member_name, create_only_field)
+
+        if current_field == target_field:
+            return True
+
+        simulated_member = self.path_addressing.get_from_path(
+            simulated_config, f"/{table_to_check}/{member_name}")
+
+        if simulated_member is None:
+            return True
+
+        if table_to_check == "PORT":
+            current_admin_status = self.path_addressing.get_from_path(
+                current_config, f"/{table_to_check}/{member_name}/admin_status"
+            )
+            simulated_admin_status = self.path_addressing.get_from_path(
+                simulated_config, f"/{table_to_check}/{member_name}/admin_status"
+            )
+            if current_admin_status != simulated_admin_status and current_admin_status != "up":
+                return False
+
+        member_path = f"/{table_to_check}/{member_name}"
+        for ref_path in self.path_addressing.find_ref_paths(member_path, simulated_config):
+            if not self.path_addressing.has_path(current_config, ref_path):
+                return False
+
+        return True
+
+    def _get_create_only_field(self, config, table_to_check,
+                               member_name, create_only_field):
+        return config[table_to_check][member_name].get(create_only_field, None)
+
 class DeleteWholeConfigMoveValidator:
     """
     A class to validate not deleting whole config as it is not supported by JsonPatch lib.
@@ -576,27 +695,7 @@ class CreateOnlyMoveValidator:
         self.path_addressing = path_addressing
 
         # TODO: create-only fields are hard-coded for now, it should be moved to YANG models
-        self.create_only_filter = JsonPointerFilter([
-                ["PORT", "*", "lanes"],
-                ["LOOPBACK_INTERFACE", "*", "vrf_name"],
-                ["BGP_NEIGHBOR", "*", "holdtime"],
-                ["BGP_NEIGHBOR", "*", "keepalive"],
-                ["BGP_NEIGHBOR", "*", "name"],
-                ["BGP_NEIGHBOR", "*", "asn"],
-                ["BGP_NEIGHBOR", "*", "local_addr"],
-                ["BGP_NEIGHBOR", "*", "nhopself"],
-                ["BGP_NEIGHBOR", "*", "rrclient"],
-                ["BGP_PEER_RANGE", "*", "*"],
-                ["BGP_MONITORS", "*", "holdtime"],
-                ["BGP_MONITORS", "*", "keepalive"],
-                ["BGP_MONITORS", "*", "name"],
-                ["BGP_MONITORS", "*", "asn"],
-                ["BGP_MONITORS", "*", "local_addr"],
-                ["BGP_MONITORS", "*", "nhopself"],
-                ["BGP_MONITORS", "*", "rrclient"],
-                ["MIRROR_SESSION", "*", "*"],
-            ],
-            path_addressing)
+        self.create_only_filter = CreateOnlyFilter(path_addressing).get_filter()
 
     def validate(self, move, diff):
         simulated_config = move.apply(diff.current_config)
@@ -921,6 +1020,8 @@ class RequiredValueMoveValidator:
                 for required_path, required_value in data[path]:
                     current_value = self.identifier.get_value_or_default(current_config, required_path)
                     simulated_value = self.identifier.get_value_or_default(simulated_config, required_path)
+                    if simulated_value is None: # Simulated config does not have this value at all.
+                        continue
                     if current_value != simulated_value and simulated_value != required_value:
                         return False
 
@@ -999,6 +1100,65 @@ class LowLevelMoveGenerator:
         single_run_generator = SingleRunLowLevelMoveGenerator(diff, self.path_addressing)
         for move in single_run_generator.generate():
             yield move
+
+class RemoveCreateOnlyDependencyMoveGenerator:
+    """
+    A class to generate the create-only fields' dependency removing moves
+    """
+    def __init__(self, path_addressing):
+        self.path_addressing = path_addressing
+        self.create_only_filter = CreateOnlyFilter(path_addressing).get_filter()
+
+    def generate(self, diff):
+        current_config = diff.current_config
+        target_config = diff.target_config # Final config after applying whole patch
+
+        processed_tables = set()
+        for path in self.create_only_filter.get_paths(current_config):
+            tokens = self.path_addressing.get_path_tokens(path)
+            table_to_check, create_only_field = tokens[0], tokens[-1]
+
+            if table_to_check in processed_tables:
+                continue
+            else:
+                processed_tables.add(table_to_check)
+
+            if table_to_check not in current_config:
+                continue
+
+            current_members = current_config[table_to_check]
+            if not current_members:
+                continue
+
+            if table_to_check not in target_config:
+                continue
+
+            target_members = target_config[table_to_check]
+            if not target_members:
+                continue
+
+            for member_name in current_members:
+                if member_name not in target_members:
+                    continue
+
+                current_field = self._get_create_only_field(
+                    current_config, table_to_check, member_name, create_only_field)
+                target_field = self._get_create_only_field(
+                    target_config, table_to_check, member_name, create_only_field)
+
+                if current_field == target_field:
+                    continue
+
+                member_path = f"/{table_to_check}/{member_name}"
+
+                for ref_path in self.path_addressing.find_ref_paths(member_path, current_config):
+                    yield JsonMove(diff, OperationType.REMOVE,
+                                   self.path_addressing.get_path_tokens(ref_path))
+
+    def _get_create_only_field(self, config, table_to_check,
+                               member_name, create_only_field):
+        return config[table_to_check][member_name].get(create_only_field, None)
+
 
 class SingleRunLowLevelMoveGenerator:
     """
@@ -1271,6 +1431,8 @@ class RequiredValueMoveExtender:
                 for required_path, required_value in data[path]:
                     current_value = self.identifier.get_value_or_default(current_config, required_path)
                     simulated_value = self.identifier.get_value_or_default(simulated_config, required_path)
+                    if simulated_value is None: # Simulated config does not have this value at all.
+                        continue
                     if current_value != simulated_value and simulated_value != required_value:
                         flip_path_value_tuples.add((required_path, required_value))
 
@@ -1473,7 +1635,8 @@ class SortAlgorithmFactory:
         self.path_addressing = path_addressing
 
     def create(self, algorithm=Algorithm.DFS):
-        move_generators = [LowLevelMoveGenerator(self.path_addressing)]
+        move_generators = [RemoveCreateOnlyDependencyMoveGenerator(self.path_addressing),
+                           LowLevelMoveGenerator(self.path_addressing)]
         # TODO: Enable TableLevelMoveGenerator once it is confirmed whole table can be updated at the same time
         move_non_extendable_generators = [KeyLevelMoveGenerator()]
         move_extenders = [RequiredValueMoveExtender(self.path_addressing, self.operation_wrapper),
@@ -1485,6 +1648,7 @@ class SortAlgorithmFactory:
                            NoDependencyMoveValidator(self.path_addressing, self.config_wrapper),
                            CreateOnlyMoveValidator(self.path_addressing),
                            RequiredValueMoveValidator(self.path_addressing),
+                           RemoveCreateOnlyDependencyMoveValidator(self.path_addressing),
                            NoEmptyTableMoveValidator(self.path_addressing)]
 
         move_wrapper = MoveWrapper(move_generators, move_non_extendable_generators, move_extenders, move_validators)
