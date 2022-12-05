@@ -31,7 +31,9 @@
         "tx1power": "N/A",
         "tx2power": "N/A",
         "tx3power": "N/A",
-        "tx4power": "N/A",
+        "tx4power": "N/A"
+    },
+    "TRANSCEIVER_DOM_THRESHOLD|Ethernet64": {
         "rxpowerhighalarm": "3.4001",
         "rxpowerhighwarning": "2.4000",
         "rxpowerlowalarm": "-13.5067",

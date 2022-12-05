@@ -49,7 +49,9 @@
         "tx1power": "N/A",
         "tx2power": "N/A",
         "tx3power": "N/A",
-        "tx4power": "N/A",
+        "tx4power": "N/A"
+    },
+    "TRANSCEIVER_DOM_THRESHOLD|Ethernet0": {
         "rxpowerhighalarm": "3.4001",
         "rxpowerhighwarning": "2.4000",
         "rxpowerlowalarm": "-13.5067",
@@ -111,7 +113,9 @@
         "tx5power": "1.175",
         "tx6power": "1.175",
         "tx7power": "1.175",
-        "tx8power": "1.175",
+        "tx8power": "1.175"
+    },
+    "TRANSCEIVER_DOM_THRESHOLD|Ethernet8": {
         "rxpowerhighalarm": "6.9999",
         "rxpowerhighwarning": "4.9999",
         "rxpowerlowalarm": "-11.9044",
