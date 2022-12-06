@@ -84,7 +84,7 @@ System status summary
   System status LED  red
   Services:
     Status: Not OK
-    Not Running: 'telemetry', 'snmp_subagent'
+    Not Running: telemetry, snmp_subagent
   Hardware:
     Status: OK
 """
@@ -171,7 +171,7 @@ System status summary
   System status LED  red
   Services:
     Status: Not OK
-    Not Running: 'telemetry', 'sflowmgrd'
+    Not Running: telemetry, sflowmgrd
   Hardware:
     Status: Not OK
     Reasons: Failed to get voltage minimum threshold data for PSU 1
@@ -243,7 +243,7 @@ System status summary
   System status LED  red
   Services:
     Status: Not OK
-    Not Running: 'telemetry', 'sflowmgrd'
+    Not Running: telemetry, sflowmgrd
   Hardware:
     Status: OK
 
