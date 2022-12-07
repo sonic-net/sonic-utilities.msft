@@ -25,6 +25,12 @@ DEFAULT_AUTO_TS_FEATURE_CONFIG = {
     'available_mem_threshold': '10.0'
 }
 
+SYSLOG_CONFIG = 'SYSLOG_CONFIG_FEATURE'
+DEFAULT_SYSLOG_FEATURE_CONFIG = {
+    'rate_limit_interval': '300',
+    'rate_limit_burst': '20000'
+}
+
 def is_enabled(cfg):
     return cfg.get('state', 'disabled').lower() == 'enabled'
 
@@ -36,7 +42,7 @@ def is_multi_instance(cfg):
 class FeatureRegistry:
     """ 1) FeatureRegistry class provides an interface to
     register/de-register new feature tables persistently.
-        2) Writes persistent configuration to FEATURE & 
+        2) Writes persistent configuration to FEATURE &
     AUTO_TECHSUPPORT_FEATURE tables
     """
 
@@ -72,9 +78,13 @@ class FeatureRegistry:
             new_cfg = {**new_cfg, **non_cfg_entries}
 
             conn.set_entry(FEATURE, name, new_cfg)
-        
+
         if self.register_auto_ts(name):
             log.info(f'{name} entry is added to {AUTO_TS_FEATURE} table')
+
+        if 'syslog' in manifest['service'] and 'support-rate-limit' in manifest['service']['syslog'] and manifest['service']['syslog']['support-rate-limit']:
+            self.register_syslog_config(name)
+            log.info(f'{name} entry is added to {SYSLOG_CONFIG} table')
 
     def deregister(self, name: str):
         """ Deregister feature by name.
@@ -89,6 +99,7 @@ class FeatureRegistry:
         for conn in db_connetors:
             conn.set_entry(FEATURE, name, None)
             conn.set_entry(AUTO_TS_FEATURE, name, None)
+            conn.set_entry(SYSLOG_CONFIG, name, None)
 
     def update(self,
                old_manifest: Manifest,
@@ -119,9 +130,13 @@ class FeatureRegistry:
             new_cfg = {**new_cfg, **non_cfg_entries}
 
             conn.set_entry(FEATURE, new_name, new_cfg)
-        
+
         if self.register_auto_ts(new_name, old_name):
             log.info(f'{new_name} entry is added to {AUTO_TS_FEATURE} table')
+
+        if 'syslog' in new_manifest['service'] and 'support-rate-limit' in new_manifest['service']['syslog'] and new_manifest['service']['syslog']['support-rate-limit']:
+            self.register_syslog_config(new_name, old_name)
+            log.info(f'{new_name} entry is added to {SYSLOG_CONFIG} table')
 
     def is_feature_enabled(self, name: str) -> bool:
         """ Returns whether the feature is current enabled
@@ -178,9 +193,25 @@ class FeatureRegistry:
                 current_cfg = conn.get_entry(AUTO_TS_FEATURE, old_name)
                 conn.set_entry(AUTO_TS_FEATURE, old_name, None)
                 new_cfg.update(current_cfg)
-            
+
             conn.set_entry(AUTO_TS_FEATURE, new_name, new_cfg)
         return True
+
+    def register_syslog_config(self, new_name, old_name=None):
+        """ Registers syslog configuration
+
+        Args:
+            new_name (str): new table name
+            old_name (str, optional): old table name. Defaults to None.
+        """
+        for conn in self._sonic_db.get_connectors():
+            new_cfg = copy.deepcopy(DEFAULT_SYSLOG_FEATURE_CONFIG)
+            if old_name:
+                current_cfg = conn.get_entry(SYSLOG_CONFIG, old_name)
+                conn.set_entry(SYSLOG_CONFIG, old_name, None)
+                new_cfg.update(current_cfg)
+
+            conn.set_entry(SYSLOG_CONFIG, new_name, new_cfg)
 
     @staticmethod
     def get_default_feature_entries(state=None, owner=None) -> Dict[str, str]:
@@ -203,4 +234,5 @@ class FeatureRegistry:
             'has_global_scope': str(manifest['service']['host-service']),
             'has_timer': str(manifest['service']['delayed']),
             'check_up_status': str(manifest['service']['check_up_status']),
+            'support_syslog_rate_limit': str(manifest['service']['syslog']['support-rate-limit']),
         }

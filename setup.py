@@ -48,6 +48,7 @@ setup(
         'pddf_psuutil',
         'pddf_thermalutil',
         'pddf_ledutil',
+        'syslog_util',
         'show',
         'show.interfaces',
         'show.plugins',

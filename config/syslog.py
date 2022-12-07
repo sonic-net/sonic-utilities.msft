@@ -6,6 +6,7 @@ import subprocess
 
 import utilities_common.cli as clicommon
 from sonic_py_common import logger
+from syslog_util import common as syslog_common
 
 
 SYSLOG_TABLE_CDB = "SYSLOG_SERVER"
@@ -447,3 +448,26 @@ def delete(db, server_ip_address):
     except Exception as e:
         log.log_error("Failed to remove remote syslog logging: {}".format(str(e)))
         ctx.fail(str(e))
+
+
+@syslog.command("rate-limit-host")
+@click.option("-i", "--interval", help="Configures syslog rate limit interval in seconds for host", type=click.IntRange(0, 2147483647))
+@click.option("-b", "--burst", help="Configures syslog rate limit burst in number of messages for host", type=click.IntRange(0, 2147483647))
+@clicommon.pass_db
+def rate_limit_host(db, interval, burst):
+    """ Configure syslog rate limit for host """
+    syslog_common.rate_limit_validator(interval, burst)
+    syslog_common.save_rate_limit_to_db(db, None, interval, burst, log)
+
+
+@syslog.command("rate-limit-container")
+@click.argument("service_name", required=True)
+@click.option("-i", "--interval", help="Configures syslog rate limit interval in seconds for specified containers", type=click.IntRange(0, 2147483647))
+@click.option("-b", "--burst", help="Configures syslog rate limit burst in number of messages for specified containers", type=click.IntRange(0, 2147483647))
+@clicommon.pass_db
+def rate_limit_container(db, service_name, interval, burst):
+    """ Configure syslog rate limit for containers """
+    syslog_common.rate_limit_validator(interval, burst)
+    feature_data = db.cfgdb.get_table(syslog_common.FEATURE_TABLE)
+    syslog_common.service_validator(feature_data, service_name)
+    syslog_common.save_rate_limit_to_db(db, service_name, interval, burst, log)

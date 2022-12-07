@@ -36,6 +36,9 @@ def manifest():
             'fast-shutdown': {
                 'before': ['swss'],
             },
+            'syslog': {
+                'support-rate-limit': False
+            }
         },
         'container': {
             'privileged': True,
@@ -217,6 +220,7 @@ def test_feature_registration(mock_sonic_db, manifest):
         'has_global_scope': 'True',
         'has_timer': 'False',
         'check_up_status': 'False',
+        'support_syslog_rate_limit': 'False',
     })
 
 
@@ -230,6 +234,7 @@ def test_feature_update(mock_sonic_db, manifest):
         'has_global_scope': 'True',
         'has_timer': 'False',
         'check_up_status': 'False',
+        'support_syslog_rate_limit': 'False',
     }
     mock_connector = Mock()
     mock_connector.get_entry = Mock(return_value=curr_feature_config)
@@ -253,6 +258,7 @@ def test_feature_update(mock_sonic_db, manifest):
             'has_global_scope': 'True',
             'has_timer': 'True',
             'check_up_status': 'False',
+            'support_syslog_rate_limit': 'False',
         }),
     ], any_order=True)
 
@@ -274,6 +280,7 @@ def test_feature_registration_with_timer(mock_sonic_db, manifest):
         'has_global_scope': 'True',
         'has_timer': 'True',
         'check_up_status': 'False',
+        'support_syslog_rate_limit': 'False',
     })
 
 
@@ -293,6 +300,7 @@ def test_feature_registration_with_non_default_owner(mock_sonic_db, manifest):
         'has_global_scope': 'True',
         'has_timer': 'False',
         'check_up_status': 'False',
+        'support_syslog_rate_limit': 'False',
     })
 
 
@@ -309,7 +317,7 @@ class AutoTSHelp:
             return {"state" : "enabled", "rate_limit_interval" : "600"}
         else:
             return {}
-        
+
     @classmethod
     def get_entry_running_cfg(cls, table, key):
         if table == "AUTO_TECHSUPPORT_FEATURE" and key == "test":
@@ -362,7 +370,7 @@ def test_auto_ts_feature_update_flow(mock_sonic_db, manifest):
     new_manifest = copy.deepcopy(manifest)
     new_manifest['service']['name'] = 'test_new'
     new_manifest['service']['delayed'] = True
-    
+
     AutoTSHelp.GLOBAL_STATE = {"state" : "enabled"}
     # Mock init_cfg connector
     mock_init_cfg = Mock()
@@ -402,3 +410,80 @@ def test_auto_ts_feature_update_flow(mock_sonic_db, manifest):
         ],
         any_order = True
     )
+
+
+class TestSyslogRateLimit:
+    """ Helper class for Syslog rate limit Tests
+    """
+    @classmethod
+    def get_entry_running_cfg(cls, table, key):
+        if table == "SYSLOG_CONFIG_FEATURE" and key == "test":
+            return {"rate_limit_burst" : "10000", "rate_limit_interval" : "20"}
+        else:
+            return {}
+
+    def test_rate_limit_register(self, mock_sonic_db, manifest):
+        mock_init_cfg = Mock()
+        mock_init_cfg.get_entry = Mock(side_effect=AutoTSHelp.get_entry)
+        mock_sonic_db.get_connectors = Mock(return_value=[mock_init_cfg])
+        mock_sonic_db.get_initial_db_connector = Mock(return_value=mock_init_cfg)
+        feature_registry = FeatureRegistry(mock_sonic_db)
+        new_manifest = copy.deepcopy(manifest)
+        new_manifest['service']['syslog']['support-rate-limit'] = True
+        feature_registry.register(new_manifest)
+        mock_init_cfg.set_entry.assert_any_call("SYSLOG_CONFIG_FEATURE", "test", {
+                "rate_limit_interval" : "300",
+                "rate_limit_burst" : "20000"
+            }
+        )
+
+    def test_rate_limit_deregister(self, mock_sonic_db):
+        mock_connector = Mock()
+        mock_sonic_db.get_connectors = Mock(return_value=[mock_connector])
+        feature_registry = FeatureRegistry(mock_sonic_db)
+        feature_registry.deregister("test")
+        mock_connector.set_entry.assert_any_call("SYSLOG_CONFIG_FEATURE", "test", None)
+
+    def test_rate_limit_update(self, mock_sonic_db, manifest):
+        rate_limit_manifest = copy.deepcopy(manifest)
+        rate_limit_manifest['service']['syslog']['support-rate-limit'] = True
+        new_rate_limit_manifest = copy.deepcopy(rate_limit_manifest)
+        new_rate_limit_manifest['service']['name'] = 'test_new'
+        new_rate_limit_manifest['service']['delayed'] = True
+
+        # Mock init_cfg connector
+        mock_init_cfg = Mock()
+        mock_init_cfg.get_entry = Mock(side_effect=AutoTSHelp.get_entry)
+
+        # Mock running/peristent cfg connector
+        mock_other_cfg = Mock()
+        mock_other_cfg.get_entry = Mock(side_effect=TestSyslogRateLimit.get_entry_running_cfg)
+
+        # Setup sonic_db class
+        mock_sonic_db.get_connectors = Mock(return_value=[mock_init_cfg, mock_other_cfg])
+        mock_sonic_db.get_initial_db_connector = Mock(return_value=mock_init_cfg)
+
+        feature_registry = FeatureRegistry(mock_sonic_db)
+        feature_registry.update(rate_limit_manifest, new_rate_limit_manifest)
+
+        mock_init_cfg.set_entry.assert_has_calls(
+            [
+                call("SYSLOG_CONFIG_FEATURE", "test", None),
+                call("SYSLOG_CONFIG_FEATURE", "test_new", {
+                        "rate_limit_interval" : "300",
+                        "rate_limit_burst" : "20000"
+                    })
+            ],
+            any_order = True
+        )
+
+        mock_other_cfg.set_entry.assert_has_calls(
+            [
+                call("SYSLOG_CONFIG_FEATURE", "test", None),
+                call("SYSLOG_CONFIG_FEATURE", "test_new", {
+                        "rate_limit_interval" : "20",
+                        "rate_limit_burst" : "10000"
+                    })
+            ],
+            any_order = True
+        )
