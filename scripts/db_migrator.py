@@ -8,7 +8,6 @@ import traceback
 import re
 
 from sonic_py_common import device_info, logger
-from swsssdk import ConfigDBConnector, SonicDBConfig
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
 from db_migrator_constants import RESTAPI, TELEMETRY, CONSOLE_SWITCH
 
