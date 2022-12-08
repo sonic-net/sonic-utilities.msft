@@ -1776,6 +1776,167 @@ class TestConfigHostname(object):
         print("TEARDOWN")
 
 
+class TestConfigWarmRestart(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        import config.main
+        importlib.reload(config.main)
+
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_warm_restart_neighsyncd_timer_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["warm_restart"].commands["neighsyncd_timer"], ["2000"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Invalid ConfigDB. Error" in result.output
+    
+    def test_warm_restart_neighsyncd_timer(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+        
+        result = runner.invoke(config.config.commands["warm_restart"].commands["neighsyncd_timer"], ["0"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "neighsyncd warm restart timer must be in range 1-9999" in result.output
+    
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_warm_restart_bgp_timer_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["warm_restart"].commands["bgp_timer"], ["2000"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Invalid ConfigDB. Error" in result.output
+    
+    def test_warm_restart_bgp_timer(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["warm_restart"].commands["bgp_timer"], ["0"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "bgp warm restart timer must be in range 1-3600" in result.output
+    
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_warm_restart_teamsyncd_timer_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["warm_restart"].commands["teamsyncd_timer"], ["2000"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Invalid ConfigDB. Error" in result.output
+
+    def test_warm_restart_teamsyncd_timer(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["warm_restart"].commands["teamsyncd_timer"], ["0"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "teamsyncd warm restart timer must be in range 1-3600" in result.output
+    
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_warm_restart_bgp_eoiu_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["warm_restart"].commands["bgp_eoiu"], ["true"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Invalid ConfigDB. Error" in result.output
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+
+
+class TestConfigCableLength(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        import config.main
+        importlib.reload(config.main)
+
+    @patch("config.main.is_dynamic_buffer_enabled", mock.Mock(return_value=True))
+    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value=False))
+    def test_add_cablelength_with_nonexistent_name_valid_length(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["interface"].commands["cable-length"], ["Ethernet0","40m"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Port Ethernet0 doesn't exist" in result.output
+
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value="Port Info"))
+    @patch("config.main.is_dynamic_buffer_enabled", mock.Mock(return_value=True))
+    @patch("config.main.ConfigDBConnector.get_keys", mock.Mock(return_value=["sample_key"]))
+    def test_add_cablelength_invalid_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["interface"].commands["cable-length"], ["Ethernet0","40"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Invalid ConfigDB. Error" in result.output
+    
+    @patch("config.main.ConfigDBConnector.get_entry", mock.Mock(return_value="Port Info"))
+    @patch("config.main.is_dynamic_buffer_enabled", mock.Mock(return_value=True))
+    def test_add_cablelength_with_invalid_name_invalid_length(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["interface"].commands["cable-length"], ["Ethernet0","40x"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Invalid cable length" in result.output
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+
+
 class TestConfigLoopback(object):
     @classmethod
     def setup_class(cls):

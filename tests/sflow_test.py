@@ -5,9 +5,11 @@ from unittest import mock
 
 from click.testing import CliRunner
 from utilities_common.db import Db
+from mock import patch
 
 import show.main as show
 import config.main as config
+import config.validated_config_db_connector as validated_config_db_connector
 
 config.asic_type = mock.MagicMock(return_value = "broadcom")
 
@@ -58,6 +60,21 @@ class TestShowSflow(object):
         print(result.exit_code, result.output)
         assert result.exit_code == 0
         assert result.output == show_sflow_intf_output
+
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_config_sflow_disable_enable_yang_validation(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["sflow"].commands["enable"], [], obj=obj)
+        print(result.exit_code, result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+
+        result = runner.invoke(config.config.commands["sflow"].commands["disable"], [], obj=obj)
+        print(result.exit_code, result.output)
+        assert "Invalid ConfigDB. Error" in result.output
 
     def test_config_sflow_disable_enable(self):
         # config sflow <enable|disable>
@@ -176,11 +193,31 @@ class TestShowSflow(object):
         assert result.output == show_sflow_output
 
         return
+    
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_config_sflow_polling_interval_yang_validation(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'db':db.cfgdb}
+
+        config.ADHOC_VALIDATION = False
+        result = runner.invoke(config.config.commands["sflow"].
+            commands["polling-interval"], ["500"], obj=obj)
+        print(result.exit_code, result.output)
+        assert "Invalid ConfigDB. Error" in result.output
 
     def test_config_sflow_polling_interval(self):
         db = Db()
         runner = CliRunner()
         obj = {'db':db.cfgdb}
+        config.ADHOC_VALIDATION = True
+
+        # set to 500 out of range
+        result = runner.invoke(config.config.commands["sflow"].
+            commands["polling-interval"], ["500"], obj=obj)
+        print(result.exit_code, result.output)
+        assert "Polling interval must be between 5-300" in result.output
 
         # set to 20
         result = runner.invoke(config.config.commands["sflow"].
@@ -208,10 +245,38 @@ class TestShowSflow(object):
 
         return
 
+    @patch("config.main.ConfigDBConnector.get_table", mock.Mock(return_value={'Ethernet1': {'admin_state': 'sample_state'}}))
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_config_sflow_existing_intf_enable_yang_validation(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'db':db.cfgdb}
+        config.ADHOC_VALIDATION = False
+
+        result = runner.invoke(config.config.commands["sflow"].
+            commands["interface"].commands["enable"], ["Ethernet1"], obj=obj)
+        print(result.exit_code, result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+    
+    @patch("config.main.ConfigDBConnector.get_table", mock.Mock(return_value=None))
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_config_sflow_nonexistent_intf_enable_yang_validation(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'db':db.cfgdb}
+ 
+        result = runner.invoke(config.config.commands["sflow"].
+            commands["interface"].commands["enable"], ["Ethernet1"], obj=obj)
+        print(result.exit_code, result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+
     def test_config_sflow_intf_enable_disable(self):
         db = Db()
         runner = CliRunner()
         obj = {'db':db.cfgdb}
+        config.ADHOC_VALIDATION = True
 
         # mock interface_name_is_valid
         config.interface_name_is_valid = mock.MagicMock(return_value = True)
@@ -236,6 +301,17 @@ class TestShowSflow(object):
         # verify in configDb
         sflowSession = db.cfgdb.get_table('SFLOW_SESSION')
         assert sflowSession["Ethernet1"]["admin_state"] == "down"
+
+        config.interface_name_is_valid = mock.MagicMock(return_value = False)
+        result = runner.invoke(config.config.commands["sflow"].
+            commands["interface"].commands["enable"], ["Ethernetx"], obj=obj)
+        print(result.exit_code, result.output)
+        assert "Invalid interface name" in result.output
+
+        result = runner.invoke(config.config.commands["sflow"].
+            commands["interface"].commands["disable"], ["Ethernetx"], obj=obj)
+        print(result.exit_code, result.output)
+        assert "Invalid interface name" in result.output
 
         return
 
