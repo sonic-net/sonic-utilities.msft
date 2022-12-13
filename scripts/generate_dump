@@ -1216,6 +1216,36 @@ collect_broadcom() {
 }
 
 ###############################################################################
+# Collect Cisco-8000 specific information
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+collect_cisco_8000() {
+    trap 'handle_error $? $LINENO' ERR
+    local platform=$(show platform summary --json | python -c 'import sys, json; \
+        print(json.load(sys.stdin)["platform"])')
+
+    if [ -d /usr/share/sonic/device/${platform} ]; then
+        pushd /usr/share/sonic/device/${platform} > /dev/null
+        for file in $(find . -path "./*plugin*" -prune -o -path "./*.xml" -prune -o -path "./*.yaml" -prune -o -print); do
+            if [ -f ${file} ]; then
+                 save_file ${file} sai false
+            fi
+        done
+        popd > /dev/null
+    else
+        echo "'/usr/share/sonic/device/${platform}' does not exist" > /tmp/error
+        save_file /tmp/error sai false
+    fi
+
+    save_cmd "show platform versions" "platform.versions"
+}
+
+###############################################################################
 # Save log file
 # Globals:
 #  TAR, TARFILE, DUMPDIR, BASE, TARDIR, TECHSUPPORT_TIME_INFO
@@ -1535,6 +1565,10 @@ main() {
 
     if [ "$asic" = "broadcom" ]; then
         collect_broadcom
+    fi
+
+    if [ "$asic" = "cisco-8000" ]; then
+        collect_cisco_8000
     fi
 
     # 2nd counter snapshot late. Need 2 snapshots to make sense of counters trend.
