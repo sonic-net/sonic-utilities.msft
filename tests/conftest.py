@@ -145,8 +145,12 @@ def setup_single_bgp_instance_chassis(request):
         bgp_mocked_json = os.path.join(
             test_path, 'mock_tables', 'ipv6_bgp_summary_chassis.json')
 
+    _old_run_bgp_command = bgp_util.run_bgp_command
     bgp_util.run_bgp_command = mock.MagicMock(
         return_value=mock_show_bgp_summary("", ""))
+
+    yield
+    bgp_util.run_bgp_command = _old_run_bgp_command
 
 
 @pytest.fixture
@@ -213,6 +217,7 @@ def setup_single_bgp_instance(request):
         else:
             return ""
 
+    _old_run_bgp_command = bgp_util.run_bgp_command
     if any ([request.param == 'ip_route',\
              request.param == 'ip_specific_route', request.param == 'ip_special_route',\
              request.param == 'ipv6_route', request.param == 'ipv6_specific_route']):
@@ -230,7 +235,6 @@ def setup_single_bgp_instance(request):
         bgp_util.run_bgp_command = mock.MagicMock(
             return_value=mock_show_bgp_network_single_asic(request))
     elif request.param == 'ip_route_for_int_ip':
-        _old_run_bgp_command = bgp_util.run_bgp_command
         bgp_util.run_bgp_command = mock_run_bgp_command_for_static
     elif request.param == "show_bgp_summary_no_neigh":
         bgp_util.run_bgp_command = mock.MagicMock(
@@ -241,8 +245,7 @@ def setup_single_bgp_instance(request):
 
     yield
 
-    if request.param == 'ip_route_for_int_ip':
-        bgp_util.run_bgp_command = _old_run_bgp_command
+    bgp_util.run_bgp_command = _old_run_bgp_command
 
 
 @pytest.fixture
