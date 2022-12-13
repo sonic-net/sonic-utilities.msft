@@ -831,8 +831,7 @@
         "mac": "1d:34:db:16:a6:00",
         "platform": "x86_64-mlnx_msn3800-r0",
         "peer_switch": "sonic-switch",
-        "type": "ToRRouter",
-        "subtype": "DualToR"
+        "type": "ToRRouter"
     },
     "SNMP_COMMUNITY|msft": {
         "TYPE": "RO"

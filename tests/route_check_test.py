@@ -1,374 +1,38 @@
 import copy
 import json
 import os
+import logging
 import sys
 import syslog
 import time
 from sonic_py_common import device_info
 from unittest.mock import MagicMock, patch
+from tests.route_check_test_data import APPL_DB, ARGS, ASIC_DB, CONFIG_DB, DEFAULT_CONFIG_DB, DESCR, OP_DEL, OP_SET, PRE, RESULT, RET, TEST_DATA, UPD
 
 import pytest
+
+logger = logging.getLogger(__name__)
 
 sys.path.append("scripts")
 import route_check
 
-DESCR = "Description"
-ARGS = "args"
-RET = "return"
-APPL_DB = 0
-ASIC_DB = 1
-PRE = "pre-value"
-UPD = "update"
-RESULT = "res"
-
-OP_SET = "SET"
-OP_DEL = "DEL"
-
-NEIGH_TABLE = 'NEIGH_TABLE'
-ROUTE_TABLE = 'ROUTE_TABLE'
-VNET_ROUTE_TABLE = 'VNET_ROUTE_TABLE'
-INTF_TABLE = 'INTF_TABLE'
-RT_ENTRY_TABLE = 'ASIC_STATE'
-SEPARATOR = ":"
-
-RT_ENTRY_KEY_PREFIX = 'SAI_OBJECT_TYPE_ROUTE_ENTRY:{\"dest":\"'
-RT_ENTRY_KEY_SUFFIX = '\",\"switch_id\":\"oid:0x21000000000000\",\"vr\":\"oid:0x3000000000023\"}'
-
-current_test_name = None
-current_test_no = None
 current_test_data = None
 
 tables_returned = {}
-
 selector_returned = None
 subscribers_returned = {}
 
-test_data = {
-    "0": {
-        DESCR: "basic good one",
-        ARGS: "route_check -m INFO -i 1000",
-        PRE: {
-            APPL_DB: {
-                ROUTE_TABLE: {
-                    "0.0.0.0/0" : { "ifname": "portchannel0" },
-                    "10.10.196.12/31" : { "ifname": "portchannel0" },
-                    "10.10.196.20/31" : { "ifname": "portchannel0" },
-                    "10.10.196.30/31" : { "ifname": "lo" }
-                },
-                INTF_TABLE: {
-                    "PortChannel1013:10.10.196.24/31": {},
-                    "PortChannel1023:2603:10b0:503:df4::5d/126": {},
-                    "PortChannel1024": {}
-                }
-            },
-            ASIC_DB: {
-                RT_ENTRY_TABLE: {
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.20/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
-                }
-            }
-        }
-    },
-    "1": {
-        DESCR: "With updates",
-        ARGS: "route_check -m DEBUG -i 1",
-        PRE: {
-            APPL_DB: {
-                ROUTE_TABLE: {
-                    "0.0.0.0/0" : { "ifname": "portchannel0" },
-                    "10.10.196.12/31" : { "ifname": "portchannel0" },
-                    "10.10.196.20/31" : { "ifname": "portchannel0" },
-                    "10.10.196.30/31" : { "ifname": "lo" }
-                },
-                INTF_TABLE: {
-                    "PortChannel1013:10.10.196.24/31": {},
-                    "PortChannel1023:2603:10b0:503:df4::5d/126": {}
-                }
-            },
-            ASIC_DB: {
-                RT_ENTRY_TABLE: {
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.20/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.10.10/32" + RT_ENTRY_KEY_SUFFIX: {}
-                }
-            }
-        },
-        UPD: {
-            ASIC_DB: {
-                RT_ENTRY_TABLE: {
-                    OP_SET: {
-                        RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    },
-                    OP_DEL: {
-                        RT_ENTRY_KEY_PREFIX + "10.10.10.10/32" + RT_ENTRY_KEY_SUFFIX: {}
-                    }
-                }
-            }
-        }
-    },
-    "2": {
-        DESCR: "basic failure one",
-        ARGS: "route_check -i 15",
-        RET: -1,
-        PRE: {
-            APPL_DB: {
-                ROUTE_TABLE: {
-                    "0.0.0.0/0" : { "ifname": "portchannel0" },
-                    "10.10.196.12/31" : { "ifname": "portchannel0" },
-                    "10.10.196.20/31" : { "ifname": "portchannel0" },
-                    "10.10.196.30/31" : { "ifname": "lo" }
-                },
-                INTF_TABLE: {
-                    "PortChannel1013:90.10.196.24/31": {},
-                    "PortChannel1023:9603:10b0:503:df4::5d/126": {},
-                    "PortChannel1024": {}
-                }
-            },
-            ASIC_DB: {
-                RT_ENTRY_TABLE: {
-                    RT_ENTRY_KEY_PREFIX + "20.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "20.10.196.20/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "20.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "3603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
-                }
-            }
-        },
-        RESULT: {
-            "missed_ROUTE_TABLE_routes": [
-                "10.10.196.12/31",
-                "10.10.196.20/31"
-            ],
-            "missed_INTF_TABLE_entries": [
-                "90.10.196.24/32",
-                "9603:10b0:503:df4::5d/128"
-            ],
-            "Unaccounted_ROUTE_ENTRY_TABLE_entries": [
-                "20.10.196.12/31",
-                "20.10.196.20/31",
-                "20.10.196.24/32",
-                "3603:10b0:503:df4::5d/128"
-            ]
-        }
-    },
-    "3": {
-        DESCR: "basic good one with no args",
-        ARGS: "route_check",
-        PRE: {
-            APPL_DB: {
-                ROUTE_TABLE: {
-                    "0.0.0.0/0" : { "ifname": "portchannel0" },
-                    "10.10.196.12/31" : { "ifname": "portchannel0" },
-                    "10.10.196.20/31" : { "ifname": "portchannel0" },
-                    "10.10.196.30/31" : { "ifname": "lo" }
-                },
-                INTF_TABLE: {
-                    "PortChannel1013:10.10.196.24/31": {},
-                    "PortChannel1023:2603:10b0:503:df4::5d/126": {},
-                    "PortChannel1024": {}
-                }
-            },
-            ASIC_DB: {
-                RT_ENTRY_TABLE: {
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.20/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
-                }
-            }
-        }
-    },
-    "4": {
-        DESCR: "Good one with routes on voq inband interface",
-        ARGS: "route_check",
-        PRE: {
-            APPL_DB: {
-                ROUTE_TABLE: {
-                    "0.0.0.0/0" : { "ifname": "portchannel0" },
-                    "10.10.196.12/31" : { "ifname": "portchannel0" },
-                    "10.10.196.20/31" : { "ifname": "portchannel0" },
-                    "10.10.196.30/31" : { "ifname": "lo" },
-                    "10.10.197.1" : { "ifname": "Ethernet-IB0", "nexthop": "0.0.0.0"},
-                    "2603:10b0:503:df5::1" : { "ifname": "Ethernet-IB0", "nexthop": "::"},
-                    "100.0.0.2/32" : { "ifname": "Ethernet-IB0", "nexthop": "0.0.0.0" },
-                    "2064:100::2/128" : { "ifname": "Ethernet-IB0", "nexthop": "::" },
-                    "101.0.0.0/24" : { "ifname": "Ethernet-IB0", "nexthop": "100.0.0.2"}
-                },
-                INTF_TABLE: {
-                    "PortChannel1013:10.10.196.24/31": {},
-                    "PortChannel1023:2603:10b0:503:df4::5d/126": {},
-                    "PortChannel1024": {},
-                    "Ethernet-IB0:10.10.197.1/24": {},
-                    "Ethernet-IB0:2603:10b0:503:df5::1/64": {}
-                }
-            },
-            ASIC_DB: {
-                RT_ENTRY_TABLE: {
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.20/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.197.1/32" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df5::1/128" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "101.0.0.0/24" + RT_ENTRY_KEY_SUFFIX: {}
-                }
-            }
-        }
-    },
-    "5": {
-        DESCR: "local route with nexthop - fail",
-        ARGS: "route_check -m INFO -i 1000",
-        RET: -1,
-        PRE: {
-            APPL_DB: {
-                ROUTE_TABLE: {
-                    "0.0.0.0/0" : { "ifname": "portchannel0" },
-                    "10.10.196.12/31" : { "ifname": "portchannel0" },
-                    "10.10.196.20/31" : { "ifname": "portchannel0" },
-                    "10.10.196.30/31" : { "ifname": "lo", "nexthop": "100.0.0.2" }
-                },
-                INTF_TABLE: {
-                    "PortChannel1013:10.10.196.24/31": {},
-                    "PortChannel1023:2603:10b0:503:df4::5d/126": {},
-                    "PortChannel1024": {}
-                }
-            },
-            ASIC_DB: {
-                RT_ENTRY_TABLE: {
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.20/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
-                }
-            }
-        },
-        RESULT: {
-            "missed_ROUTE_TABLE_routes": [
-                "10.10.196.30/31"
-            ]
-        }
-    },
-    "6": {
-        DESCR: "Good one with VNET routes",
-        ARGS: "route_check",
-        PRE: {
-            APPL_DB: {
-                ROUTE_TABLE: {
-                    "0.0.0.0/0" : { "ifname": "portchannel0" },
-                    "10.10.196.12/31" : { "ifname": "portchannel0" },
-                    "10.10.196.20/31" : { "ifname": "portchannel0" },
-                    "10.10.196.30/31" : { "ifname": "lo" }
-                },
-                VNET_ROUTE_TABLE: {
-                    "Vnet1:30.1.10.0/24": { "ifname": "Vlan3001" },
-                    "Vnet1:50.1.1.0/24": { "ifname": "Vlan3001" },
-                    "Vnet1:50.2.2.0/24": { "ifname": "Vlan3001" }
-                },
-                INTF_TABLE: {
-                    "PortChannel1013:10.10.196.24/31": {},
-                    "PortChannel1023:2603:10b0:503:df4::5d/126": {},
-                    "PortChannel1024": {},
-                    "Vlan3001": { "vnet_name": "Vnet1" },
-                    "Vlan3001:30.1.10.1/24": {}
-                }
-            },
-            ASIC_DB: {
-                RT_ENTRY_TABLE: {
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.20/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "30.1.10.1/32" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "30.1.10.0/24" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "50.1.1.0/24" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "50.2.2.0/24" + RT_ENTRY_KEY_SUFFIX: {}
-                }
-            }
-        }
-    },
-    "7": {
-        DESCR: "dualtor standalone tunnel route case",
-        ARGS: "route_check",
-        PRE: {
-            APPL_DB: {
-                NEIGH_TABLE: {
-                    "Vlan1000:fc02:1000::99": { "neigh": "00:00:00:00:00:00", "family": "IPv6"}
-                }
-            },
-            ASIC_DB: {
-                RT_ENTRY_TABLE: {
-                    RT_ENTRY_KEY_PREFIX + "fc02:1000::99/128" + RT_ENTRY_KEY_SUFFIX: {},
-                }
-            }
-        }
-    },
-    "8": {
-        DESCR: "Good one with VRF routes",
-        ARGS: "route_check",
-        PRE: {
-            APPL_DB: {
-                ROUTE_TABLE: {
-                    "Vrf1:0.0.0.0/0" : { "ifname": "portchannel0" },
-                    "Vrf1:10.10.196.12/31" : { "ifname": "portchannel0" },
-                    "Vrf1:10.10.196.20/31" : { "ifname": "portchannel0" }
-                },
-                INTF_TABLE: {
-                    "PortChannel1013:10.10.196.24/31": {},
-                    "PortChannel1023:2603:10b0:503:df4::5d/126": {},
-                    "PortChannel1024": {}
-                }
-            },
-            ASIC_DB: {
-                RT_ENTRY_TABLE: {
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.20/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
-                }
-            }
-        }
-    }
-}
+def set_test_case_data(ctdata):
+    """
+    Setup global variables for each test case
+    """
+    global current_test_data, tables_returned, selector_returned, subscribers_returned
 
-def do_start_test(tname, tno, ctdata):
-    global current_test_name, current_test_no, current_test_data
-    global tables_returned, selector_returned, subscribers_returned
-
-    current_test_name = tname
-    current_test_no = tno
     current_test_data = ctdata
     tables_returned = {}
 
     selector_returned = None
     subscribers_returned = {}
-
-    print("Starting test case {} number={}".format(tname, tno))
-
-
-def check_subset(d_sub, d_all):
-    if type(d_sub) != type(d_all):
-        return -1
-    if not type(d_sub) is dict:
-        ret = 0 if d_sub == d_all else -2
-        return ret
-
-    for (k, v) in d_sub.items():
-        if not k in d_all:
-            return -3
-        ret = check_subset(v, d_all[k])
-        if ret != 0:
-            return ret
-    return 0
 
 
 def recursive_update(d, t):
@@ -552,12 +216,22 @@ def table_side_effect(db, tbl):
     return tables_returned[db][tbl]
 
 
-def set_mock(mock_table, mock_conn, mock_sel, mock_subs):
+def config_db_side_effect(table):
+    if CONFIG_DB not in current_test_data[PRE]:
+        return DEFAULT_CONFIG_DB[table]
+    if not CONFIG_DB in tables_returned:
+        tables_returned[CONFIG_DB] = {}
+    if not table in tables_returned[CONFIG_DB]:
+        tables_returned[CONFIG_DB][table] = current_test_data[PRE][CONFIG_DB].get(table, {})
+    return tables_returned[CONFIG_DB][table]
+
+
+def set_mock(mock_table, mock_conn, mock_sel, mock_subs, mock_config_db):
     mock_conn.side_effect = conn_side_effect
     mock_table.side_effect = table_side_effect
     mock_sel.side_effect = select_side_effect
     mock_subs.side_effect = subscriber_side_effect
-
+    mock_config_db.get_table = MagicMock(side_effect=config_db_side_effect)
 
 class TestRouteCheck(object):
     def setup(self):
@@ -566,39 +240,58 @@ class TestRouteCheck(object):
     def init(self):
         route_check.UNIT_TESTING = 1
 
+    @pytest.fixture
+    def force_hang(self):
+        old_timeout = route_check.TIMEOUT_SECONDS
+        route_check.TIMEOUT_SECONDS = 5
+        mock_selector.EMULATE_HANG = True
 
-    @patch("route_check.swsscommon.DBConnector")
-    @patch("route_check.swsscommon.Table")
-    @patch("route_check.swsscommon.Select")
-    @patch("route_check.swsscommon.SubscriberStateTable")
-    def test_server(self, mock_subs, mock_sel, mock_table, mock_conn):
+        yield
+
+        route_check.TIMEOUT_SECONDS = old_timeout
+        mock_selector.EMULATE_HANG = False
+
+    @pytest.fixture
+    def mock_dbs(self):
+        mock_config_db = MagicMock()
+        with patch("route_check.swsscommon.DBConnector") as mock_conn, \
+             patch("route_check.swsscommon.Table") as mock_table, \
+             patch("route_check.swsscommon.Select") as mock_sel, \
+             patch("route_check.swsscommon.SubscriberStateTable") as mock_subs, \
+             patch("route_check.swsscommon.ConfigDBConnector", return_value=mock_config_db):
+            device_info.get_platform = MagicMock(return_value='unittest')
+            set_mock(mock_table, mock_conn, mock_sel, mock_subs, mock_config_db)
+            yield
+
+    @pytest.mark.parametrize("test_num", TEST_DATA.keys())
+    def test_route_check(self, mock_dbs, test_num):
         self.init()
         ret = 0
 
-        device_info.get_platform = MagicMock(return_value='unittest')
-        set_mock(mock_table, mock_conn, mock_sel, mock_subs)
-        for (i, ct_data) in test_data.items():
-            do_start_test("route_test", i, ct_data)
+        ct_data = TEST_DATA[test_num]
+        set_test_case_data(ct_data)
+        logger.info("Running test case {}: {}".format(test_num, ct_data[DESCR]))
 
-            with patch('sys.argv', ct_data[ARGS].split()):
-                ret, res = route_check.main()
-                expect_ret = ct_data[RET] if RET in ct_data else 0
-                expect_res = ct_data[RESULT] if RESULT in ct_data else None
-                if res:
-                    print("res={}".format(json.dumps(res, indent=4)))
-                if expect_res:
-                    print("expect_res={}".format(json.dumps(expect_res, indent=4)))
-                assert ret == expect_ret
-                assert res == expect_res
+        with patch('sys.argv', ct_data[ARGS].split()):
+            ret, res = route_check.main()
+            expect_ret = ct_data[RET] if RET in ct_data else 0
+            expect_res = ct_data[RESULT] if RESULT in ct_data else None
+            if res:
+                print("res={}".format(json.dumps(res, indent=4)))
+            if expect_res:
+                print("expect_res={}".format(json.dumps(expect_res, indent=4)))
+            assert ret == expect_ret
+            assert res == expect_res
 
-
+    def test_timeout(self, mock_dbs, force_hang):
         # Test timeout
-        route_check.TIMEOUT_SECONDS = 5
-        mock_selector.EMULATE_HANG = True
         ex_raised = False
+        # Use an expected failing test case to trigger the select
+        set_test_case_data(TEST_DATA['2'])
 
         try:
-            ret, res = route_check.main()
+            with patch('sys.argv', [route_check.__file__.split('/')[-1]]):
+                ret, res = route_check.main()
         except Exception as err:
             ex_raised = True
             expect = "timeout occurred"
@@ -606,6 +299,7 @@ class TestRouteCheck(object):
             assert ex_str == expect, "{} != {}".format(ex_str, expect)
         assert ex_raised, "Exception expected"
 
+    def test_logging(self):
         # Test print_msg
         route_check.PRINT_MSG_LEN_MAX = 5
         msg = route_check.print_message(syslog.LOG_ERR, "abcdefghi")
@@ -616,10 +310,3 @@ class TestRouteCheck(object):
         assert len(msg) == 5
         msg = route_check.print_message(syslog.LOG_ERR, "a", "b", "c", "d", "e", "f")
         assert len(msg) == 5
-               
-        
-
-
-
-
-
