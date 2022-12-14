@@ -539,7 +539,7 @@ def run_command(command, display_cmd=False, ignore_error=False, return_cmd=False
 
     if return_cmd:
         output = proc.communicate()[0]
-        return output
+        return output, proc.returncode
 
     if not interactive_mode:
         (out, err) = proc.communicate()

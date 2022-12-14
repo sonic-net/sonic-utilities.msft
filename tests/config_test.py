@@ -142,13 +142,13 @@ def mock_run_command_side_effect(*args, **kwargs):
 
     if kwargs.get('return_cmd'):
         if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
-            return 'snmp.timer'
+            return 'snmp.timer' , 0
         elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
-            return 'swss'
+            return 'swss', 0
         elif command == "systemctl is-enabled snmp.timer":
-            return 'enabled'
+            return 'enabled', 0
         else:
-            return ''
+            return '', 0
 
 def mock_run_command_side_effect_disabled_timer(*args, **kwargs):
     command = args[0]
@@ -158,17 +158,17 @@ def mock_run_command_side_effect_disabled_timer(*args, **kwargs):
 
     if kwargs.get('return_cmd'):
         if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
-            return 'snmp.timer'
+            return 'snmp.timer', 0
         elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
-            return 'swss'
+            return 'swss', 0
         elif command == "systemctl is-enabled snmp.timer":
-            return 'masked'
+            return 'masked', 0
         elif command == "systemctl show swss.service --property ActiveState --value":
-            return 'active'
+            return 'active', 0
         elif command == "systemctl show swss.service --property ActiveEnterTimestampMonotonic --value":
-            return '0'
+            return '0', 0
         else:
-            return ''
+            return '', 0
 
 def mock_run_command_side_effect_untriggered_timer(*args, **kwargs):
     command = args[0]
@@ -178,15 +178,15 @@ def mock_run_command_side_effect_untriggered_timer(*args, **kwargs):
 
     if kwargs.get('return_cmd'):
         if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
-            return 'snmp.timer'
+            return 'snmp.timer', 0
         elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
-            return 'swss'
+            return 'swss', 0
         elif command == "systemctl is-enabled snmp.timer":
-            return 'enabled'
+            return 'enabled', 0
         elif command == "systemctl show snmp.timer --property=LastTriggerUSecMonotonic --value":
-            return '0'
+            return '0', 0
         else:
-            return ''
+            return '', 0
 
 def mock_run_command_side_effect_gnmi(*args, **kwargs):
     command = args[0]
@@ -196,13 +196,13 @@ def mock_run_command_side_effect_gnmi(*args, **kwargs):
 
     if kwargs.get('return_cmd'):
         if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
-            return 'gnmi.timer'
+            return 'gnmi.timer', 0
         elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
-            return 'swss'
+            return 'swss', 0
         elif command == "systemctl is-enabled gnmi.timer":
-            return 'enabled'
+            return 'enabled', 0
         else:
-            return ''
+            return '', 0
 
 
 # Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.

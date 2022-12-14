@@ -858,13 +858,13 @@ def _stop_services():
 
 
 def _get_sonic_services():
-    out = clicommon.run_command("systemctl list-dependencies --plain sonic.target | sed '1d'", return_cmd=True)
+    out, _ = clicommon.run_command("systemctl list-dependencies --plain sonic.target | sed '1d'", return_cmd=True)
     return (unit.strip() for unit in out.splitlines())
 
 
 def _get_delayed_sonic_units(get_timers=False):
-    rc1 = clicommon.run_command("systemctl list-dependencies --plain sonic-delayed.target | sed '1d'", return_cmd=True)
-    rc2 = clicommon.run_command("systemctl is-enabled {}".format(rc1.replace("\n", " ")), return_cmd=True)
+    rc1, _ = clicommon.run_command("systemctl list-dependencies --plain sonic-delayed.target | sed '1d'", return_cmd=True)
+    rc2, _ = clicommon.run_command("systemctl is-enabled {}".format(rc1.replace("\n", " ")), return_cmd=True)
     timer = [line.strip() for line in rc1.splitlines()]
     state = [line.strip() for line in rc2.splitlines()]
     services = []
@@ -899,16 +899,16 @@ def _restart_services():
 
 def _delay_timers_elapsed():
     for timer in _get_delayed_sonic_units(get_timers=True):
-        out = clicommon.run_command("systemctl show {} --property=LastTriggerUSecMonotonic --value".format(timer), return_cmd=True)
+        out, _ = clicommon.run_command("systemctl show {} --property=LastTriggerUSecMonotonic --value".format(timer), return_cmd=True)
         if out.strip() == "0":
             return False
     return True
 
 def _per_namespace_swss_ready(service_name):
-    out = clicommon.run_command("systemctl show {} --property ActiveState --value".format(service_name), return_cmd=True)
+    out, _ = clicommon.run_command("systemctl show {} --property ActiveState --value".format(service_name), return_cmd=True)
     if out.strip() != "active":
         return False
-    out = clicommon.run_command("systemctl show {} --property ActiveEnterTimestampMonotonic --value".format(service_name), return_cmd=True)
+    out, _ = clicommon.run_command("systemctl show {} --property ActiveEnterTimestampMonotonic --value".format(service_name), return_cmd=True)
     swss_up_time = float(out.strip())/1000000
     now =  time.monotonic()
     if (now - swss_up_time > 120):
@@ -933,7 +933,7 @@ def _swss_ready():
     return True
 
 def _is_system_starting():
-    out = clicommon.run_command("sudo systemctl is-system-running", return_cmd=True)
+    out, _ = clicommon.run_command("sudo systemctl is-system-running", return_cmd=True)
     return out.strip() == "starting"
 
 def interface_is_in_vlan(vlan_member_table, interface_name):
@@ -2813,7 +2813,7 @@ def _qos_update_ports(ctx, ports, dry_run, json_data):
         command = "{} {} {} -t {},config-db -t {},config-db -y {} --print-data".format(
             SONIC_CFGGEN_PATH, cmd_ns, from_db, buffer_template_file, qos_template_file, sonic_version_file
         )
-        jsonstr = clicommon.run_command(command, display_cmd=False, return_cmd=True)
+        jsonstr, _ = clicommon.run_command(command, display_cmd=False, return_cmd=True)
 
         jsondict = json.loads(jsonstr)
         port_table = jsondict.get('PORT')

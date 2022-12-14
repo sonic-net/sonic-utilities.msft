@@ -49,7 +49,7 @@ def get_kdump_oper_mode():
                   returns "Not Ready";
     """
     oper_mode = "Not Ready"
-    command_stdout = clicommon.run_command("/usr/sbin/kdump-config status", return_cmd=True)
+    command_stdout, _ = clicommon.run_command("/usr/sbin/kdump-config status", return_cmd=True)
 
     for line in command_stdout.splitlines():
         if ": ready to kdump" in line:
@@ -99,7 +99,7 @@ def get_kdump_core_files():
     dump_file_list = []
     cmd_message = None
 
-    command_stdout = clicommon.run_command(find_core_dump_files, return_cmd=True)
+    command_stdout, _ = clicommon.run_command(find_core_dump_files, return_cmd=True)
 
     dump_file_list = command_stdout.splitlines()
     if not dump_file_list:
@@ -123,7 +123,7 @@ def get_kdump_dmesg_files():
     dmesg_file_list = []
     cmd_message = None
 
-    command_stdout = clicommon.run_command(find_dmesg_files, return_cmd=True)
+    command_stdout, _ = clicommon.run_command(find_dmesg_files, return_cmd=True)
 
     dmesg_file_list = command_stdout.splitlines()
     if not dmesg_file_list:

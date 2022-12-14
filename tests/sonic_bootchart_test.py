@@ -51,9 +51,9 @@ class TestSonicBootchart:
     def test_config_show(self, mock_run_command):
         def run_command_side_effect(command, **kwargs):
             if "is-enabled" in command:
-                return "enabled"
+                return "enabled", 0
             elif "is-active" in command:
-                return "active"
+                return "active", 0
             else:
                 raise Exception("unknown command")
 

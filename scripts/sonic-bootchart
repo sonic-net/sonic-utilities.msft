@@ -50,11 +50,13 @@ def check_bootchart_installed():
 
 def get_enabled_status():
     """ Get systemd-bootchart status """
-    return clicommon.run_command("systemctl is-enabled systemd-bootchart", return_cmd=True)
+    output, _ = clicommon.run_command("systemctl is-enabled systemd-bootchart", return_cmd=True)
+    return output
 
 def get_active_status():
     """ Get systemd-bootchart status """
-    return clicommon.run_command("systemctl is-active systemd-bootchart", return_cmd=True)
+    output, _ = clicommon.run_command("systemctl is-active systemd-bootchart", return_cmd=True)
+    return output
 
 def get_output_files():
     bootchart_output_files = []

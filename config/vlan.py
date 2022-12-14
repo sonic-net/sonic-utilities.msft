@@ -87,7 +87,7 @@ def restart_ndppd():
     ndppd_config_gen_cmd = "sonic-cfggen -d -t /usr/share/sonic/templates/ndppd.conf.j2,/etc/ndppd.conf"
     ndppd_restart_cmd = "supervisorctl restart ndppd"
 
-    output = clicommon.run_command(verify_swss_running_cmd, return_cmd=True)
+    output, _ = clicommon.run_command(verify_swss_running_cmd, return_cmd=True)
 
     if output and output.strip() != "running":
         click.echo(click.style('SWSS container is not running, changes will take effect the next time the SWSS container starts', fg='red'),)

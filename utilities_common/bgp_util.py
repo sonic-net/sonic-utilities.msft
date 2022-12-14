@@ -1,6 +1,7 @@
 import ipaddress
 import json
 import re
+import sys
 
 import click
 import utilities_common.cli as clicommon
@@ -185,7 +186,10 @@ def run_bgp_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE, vtysh
     cmd = 'sudo {} {} -c "{}"'.format(
         vtysh_shell_cmd, bgp_instance_id, vtysh_cmd)
     try:
-        output = clicommon.run_command(cmd, return_cmd=True)
+        output, ret = clicommon.run_command(cmd, return_cmd=True)
+        if ret != 0:
+            click.echo(output.rstrip('\n'))
+            sys.exit(ret)
     except Exception:
         ctx = click.get_current_context()
         ctx.fail("Unable to get summary from bgp {}".format(bgp_instance_id))

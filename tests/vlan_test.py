@@ -8,6 +8,7 @@ import config.main as config
 import show.main as show
 from utilities_common.db import Db
 from importlib import reload
+import utilities_common.bgp_util as bgp_util
 
 show_vlan_brief_output="""\
 +-----------+-----------------+-----------------+----------------+-------------+
@@ -143,15 +144,22 @@ config_add_del_vlan_and_vlan_member_in_alias_mode_output="""\
 +-----------+-----------------+-----------------+----------------+-------------+
 """
 class TestVlan(object):
+    _old_run_bgp_command = None
     @classmethod
     def setup_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
         # ensure that we are working with single asic config
+        cls._old_run_bgp_command = bgp_util.run_bgp_command
+        bgp_util.run_bgp_command = mock.MagicMock(
+            return_value=cls.mock_run_bgp_command())
         from .mock_tables import dbconnector
         from .mock_tables import mock_single_asic
         reload(mock_single_asic)
         dbconnector.load_namespace_config()
         print("SETUP")
+
+    def mock_run_bgp_command():
+        return ""
 
     def test_show_vlan(self):
         runner = CliRunner()
@@ -579,4 +587,5 @@ class TestVlan(object):
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        bgp_util.run_bgp_command = cls._old_run_bgp_command
         print("TEARDOWN")

@@ -12,6 +12,7 @@ import config.main as config
 import show.main as show
 import config.validated_config_db_connector as validated_config_db_connector
 from utilities_common.db import Db
+import utilities_common.bgp_util as bgp_util
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 ip_config_input_path = os.path.join(test_path, "ip_config_input")
@@ -33,12 +34,19 @@ Error: VRF mgmt does not exist!
 """
 
 class TestConfigIP(object):
+    _old_run_bgp_command = None
     @classmethod
     def setup_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        cls._old_run_bgp_command = bgp_util.run_bgp_command
+        bgp_util.run_bgp_command = mock.MagicMock(
+            return_value=cls.mock_run_bgp_command())
         print("SETUP")
 
     ''' Tests for IPv4  '''
+
+    def mock_run_bgp_command():
+        return ""
 
     def test_add_del_interface_valid_ipv4(self):
         db = Db()
@@ -330,4 +338,5 @@ class TestConfigIP(object):
     @classmethod
     def teardown_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        bgp_util.run_bgp_command = cls._old_run_bgp_command
         print("TEARDOWN")
