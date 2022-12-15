@@ -106,7 +106,6 @@ save_bcmcmd() {
     local filename=$2
     local filepath="${LOGDIR}/$filename"
     local do_gzip=${3:-false}
-    local tarpath="${BASE}/dump/$filename"
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
     local cmd=$(escape_quotes "$cmd")
     if [ ! -d $LOGDIR ]; then
@@ -141,12 +140,9 @@ save_bcmcmd() {
     fi
     if $do_gzip; then
         gzip ${filepath} 2>/dev/null
-        tarpath="${tarpath}.gz"
         filepath="${filepath}.gz"
     fi
-    ($TAR $V -rhf $TARFILE -C $DUMPDIR "$tarpath" \
-        || abort "${EXT_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
-        && $RM $V -rf "$filepath"
+
     end_t=$(date +%s%3N)
     echo "[ save_bcmcmd:$cmd ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 }
@@ -180,7 +176,7 @@ save_bcmcmd_all_ns() {
 }
 
 ###############################################################################
-# Runs a comamnd and saves its output to the incrementally built tar.
+# Runs a comamnd and saves its output to the file.
 # Command gets timedout if it runs for more than TIMEOUT_MIN minutes.
 # Globals:
 #  LOGDIR
@@ -208,7 +204,6 @@ save_cmd() {
     local filename=$2
     local filepath="${LOGDIR}/$filename"
     local do_gzip=${3:-false}
-    local tarpath="${BASE}/dump/$filename"
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
     local cleanup_method=${4:-dummy_cleanup_method}
     local redirect='&>'
@@ -230,7 +225,6 @@ save_cmd() {
     # as one argument, e.g. vtysh -c "COMMAND HERE" needs to have
     # "COMMAND HERE" bunched together as 1 arg to vtysh -c
     if $do_gzip; then
-        tarpath="${tarpath}.gz"
         filepath="${filepath}.gz"
         # cleanup_method will run in a sub-shell, need declare it first
         local cmds="$cleanup_method_declration; $cmd $redirect_eval | $cleanup_method | gzip -c > '${filepath}'"
@@ -260,11 +254,33 @@ save_cmd() {
         fi
     fi
 
-    ($TAR $V -rhf $TARFILE -C $DUMPDIR "$tarpath" \
-        || abort "${EXT_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
-        && $RM $V -rf "$filepath"
     end_t=$(date +%s%3N)
     echo "[ save_cmd:$cmd ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
+}
+
+###############################################################################
+# Save all collected data to tar archive.
+# Globals:
+#  DUMPDIR
+#  TAR
+#  TARFILE
+#  V
+#  BASE
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_to_tar() {
+    trap 'handle_error $? $LINENO' ERR
+    local start_t=$(date +%s%3N)
+    local end_t=0
+
+    cd $DUMPDIR
+    $TAR $V -rhf $TARFILE "$BASE"
+
+    end_t=$(date +%s%3N)
+    echo "[ save_to_tar ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 }
 
 ###############################################################################
@@ -407,7 +423,7 @@ get_vtysh_namespace() {
 ###############################################################################
 # Runs a vtysh command in all namesapces for a multi ASIC platform, and in
 # default (host) namespace in single ASIC platforms. Saves its output to the
-# incrementally built tar.
+# file.
 # Globals:
 #  None
 # Arguments:
@@ -437,7 +453,7 @@ save_vtysh() {
 }
 
 ###############################################################################
-# Runs an ip command and saves its output to the incrementally built tar.
+# Runs an ip command and saves its output to the file.
 # Globals:
 #  None
 # Arguments:
@@ -456,7 +472,7 @@ save_ip() {
 }
 
 ###############################################################################
-# Runs a bridge command and saves its output to the incrementally built tar.
+# Runs a bridge command and saves its output to the file.
 # Globals:
 #  None
 # Arguments:
@@ -770,8 +786,8 @@ save_proc() {
             ( [ -e $f ] && $CP $V -r $f $TARDIR/proc ) || echo "$f not found" > $TARDIR/$f
         fi
     done
-    $TAR $V -rhf $TARFILE -C $DUMPDIR --mode=+rw $BASE/proc
-    $RM $V -rf $TARDIR/proc
+
+    chmod ugo+rw -R $DUMPDIR/$BASE/proc
 }
 
 ###############################################################################
@@ -822,9 +838,7 @@ save_proc_stats() {
         ( $CP $V -r $stats_file $TARDIR/proc_stats ) || echo "$stats_file error" > $TARDIR/$stats_file
     fi
 
-    $TAR $V -rhf $TARFILE -C $DUMPDIR --mode=+rw $BASE/proc_stats
-    $RM $V -rf $TARDIR/proc_stats
-    $RM -rf $stats_file
+    chmod ugo+rw -R $DUMPDIR/$BASE/proc_stats
 }
 
 ###############################################################################
@@ -916,16 +930,13 @@ save_file() {
     local orig_path=$1
     local supp_dir=$2
     local gz_path="$TARDIR/$supp_dir/$(basename $orig_path)"
-    local tar_path="${BASE}/$supp_dir/$(basename $orig_path)"
     local do_gzip=${3:-true}
-    local do_tar_append=${4:-true}
     if [ ! -d "$TARDIR/$supp_dir" ]; then
         $MKDIR $V -p "$TARDIR/$supp_dir"
     fi
 
     if $do_gzip; then
         gz_path="${gz_path}.gz"
-        tar_path="${tar_path}.gz"
         if $NOOP; then
             echo "gzip -c $orig_path > $gz_path"
         else
@@ -939,11 +950,6 @@ save_file() {
         fi
     fi
 
-    if $do_tar_append; then
-        ($TAR $V -rhf $TARFILE -C $DUMPDIR "$tar_path" \
-            || abort "${EXT_PROCFS_SAVE_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
-            && $RM $V -f "$gz_path"
-    fi
     end_t=$(date +%s%3N)
     echo "[ save_file:$orig_path] : $(($end_t-$start_t)) msec"  >> $TECHSUPPORT_TIME_INFO
 }
@@ -1290,7 +1296,7 @@ collect_barefoot() {
     done
 
     for file in $(find /tmp/bf_logs -type f); do
-        save_file "${file}" log true true
+        save_file "${file}" log true
     done
 } 
 
@@ -1346,16 +1352,12 @@ save_log_files() {
         # don't gzip already-gzipped log files :)
         # do not append the individual files to the main tarball
         if [ -z "${file##*.gz}" ]; then
-            save_file $file log false false
+            save_file $file log false
         else
-            save_file $file log true false
+            save_file $file log true
         fi
     done
 
-    # Append the log folder to the main tarball
-    ($TAR $V -rhf $TARFILE -C $DUMPDIR ${BASE}/log \
-        || abort "${EXT_TAR_FAILED}" "tar append operation failed. Aborting for safety") \
-        && $RM $V -rf $TARDIR/log
     end_t=$(date +%s%3N)
     echo "[ TAR /var/log Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 
@@ -1380,11 +1382,7 @@ save_warmboot_files() {
     else
         mkdir -p $TARDIR
         $CP $V -rf /host/warmboot $TARDIR
-
-        ($TAR $V --warning=no-file-removed  -rhf $TARFILE -C $DUMPDIR --mode=+rw \
-            $BASE/warmboot \
-            || abort "${EXT_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
-            && $RM $V -rf $TARDIR
+        chmod ugo+rw -R $DUMPDIR/$BASE/warmboot
     fi
     end_t=$(date +%s%3N)
     echo "[ Warm-boot Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
@@ -1546,8 +1544,7 @@ main() {
         /proc/pagetypeinfo /proc/partitions /proc/sched_debug /proc/slabinfo \
         /proc/softirqs /proc/stat /proc/swaps /proc/sysvipc /proc/timer_list \
         /proc/uptime /proc/version /proc/vmallocinfo /proc/vmstat \
-        /proc/zoneinfo \
-        || abort "${EXT_PROCFS_SAVE_FAILED}" "Proc saving operation failed. Aborting for safety."
+        /proc/zoneinfo
     save_proc_stats
     end_t=$(date +%s%3N)
     echo "[ Capture Proc State ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
@@ -1567,7 +1564,6 @@ main() {
     save_cmd "systemd-analyze plot" "systemd.analyze.plot.svg"
 
     save_platform_info
-
     save_cmd "show vlan brief" "vlan.summary"
     save_cmd "show version" "version"
     save_cmd "show platform summary" "platform.summary"
@@ -1582,8 +1578,8 @@ main() {
 
     save_ip_info
     save_bridge_info
-
     save_frr_info
+
     save_bgp_info
     save_evpn_info
 
@@ -1663,9 +1659,6 @@ main() {
     # 2nd counter snapshot late. Need 2 snapshots to make sense of counters trend.
     save_counter_snapshot $asic 2
 
-    $RM $V -rf $TARDIR
-    $MKDIR $V -p $TARDIR
-    $MKDIR $V -p $LOGDIR
     # Copying the /etc files to a directory and then tar it
     $CP -r /etc $TARDIR/etc
     rm_list=$(find -L $TARDIR/etc -maxdepth 5 -type l)
@@ -1677,30 +1670,13 @@ main() {
     # Remove secret from /etc files before tar
     remove_secret_from_etc_files $TARDIR
 
-    start_t=$(date +%s%3N)
-    ($TAR $V --warning=no-file-removed -rhf $TARFILE -C $DUMPDIR --mode=+rw \
-        --exclude="etc/alternatives" \
-        --exclude="*/etc/passwd*" \
-        --exclude="*/etc/shadow*" \
-        --exclude="*/etc/group*" \
-        --exclude="*/etc/gshadow*" \
-        --exclude="*/etc/ssh*" \
-        --exclude="*get_creds*" \
-        --exclude="*snmpd.conf*" \
-        --exclude="*/etc/mlnx" \
-        --exclude="*/etc/mft" \
-        --exclude="*/etc/sonic/*.cer" \
-        --exclude="*/etc/sonic/*.crt" \
-        --exclude="*/etc/sonic/*.pem" \
-        --exclude="*/etc/sonic/*.key" \
-        --exclude="*/etc/ssl/*.pem" \
-        --exclude="*/etc/ssl/certs/*" \
-        --exclude="*/etc/ssl/private/*" \
-        $BASE/etc \
-        || abort "${EXT_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
-        && $RM $V -rf $TARDIR
-    end_t=$(date +%s%3N)
-    echo "[ TAR /etc Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
+    # Remove unecessary files
+    $RM $V -rf $TARDIR/etc/alternatives $TARDIR/etc/passwd* \
+    $TARDIR/etc/shadow* $TARDIR/etc/group* $TARDIR/etc/gshadow* \
+    $TARDIR/etc/ssh* $TARDIR/get_creds* $TARDIR/snmpd.conf* \
+    $TARDIR/etc/mlnx $TARDIR/etc/mft $TARDIR/etc/sonic/*.cer \
+    $TARDIR/etc/sonic/*.crt $TARDIR/etc/sonic/*.pem $TARDIR/etc/sonic/*.key \
+    $TARDIR/etc/ssl/*.pem $TARDIR/etc/ssl/certs/ $TARDIR/etc/ssl/private/*
 
     save_log_files
     save_crash_files
@@ -1719,6 +1695,8 @@ main() {
 finalize() {
     # Save techsupport timing profile info
     save_file $TECHSUPPORT_TIME_INFO log false
+
+    save_to_tar
 
     if $DO_COMPRESS; then
         RC=0
