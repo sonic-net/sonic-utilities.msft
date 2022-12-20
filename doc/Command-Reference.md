@@ -3357,7 +3357,7 @@ This command displays basic information about the gearbox phys configured on the
     PHY Id     Name    Firmware
   --------  -------  ----------
         1  sesto-1        v0.1
-  
+
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#gearbox)
@@ -8702,7 +8702,7 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#subint
 
 ### Syslog Show Commands
 
-This subsection explains how to display configured syslog servers.
+This subsection explains how to display syslog related configuration.
 
 **show syslog**
 
@@ -8721,9 +8721,58 @@ This command displays configured syslog servers.
   2.2.2.2      1.1.1.1      514     default
   ```
 
+**show syslog rate-limit-host**
+
+This command displays rate limit configuration for host.
+
+- Usage
+  ```
+  show syslog rate-limit-host
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show syslog rate-limit-host
+  INTERVAL     BURST
+  ----------   --------
+  500          50000
+  ```
+
+**show syslog rate-limit-container**
+
+This command displays rate limit configuration for containers.
+
+- Usage
+  ```
+  show syslog rate-limit-container [<service_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show syslog rate-limit-container
+  SERVICE         INTERVAL    BURST
+  --------------  ----------  -------
+  bgp             0           0
+  database        300         20000
+  lldp            300         20000
+  mgmt-framework  300         20000
+  pmon            300         20000
+  radv            300         20000
+  snmp            300         20000
+  swss            300         20000
+  syncd           300         20000
+  teamd           300         20000
+  telemetry       300         20000
+
+  admin@sonic:~$ show syslog rate-limit-container bgp
+  SERVICE         INTERVAL    BURST
+  --------------  ----------  -------
+  bgp             0           0
+  ```
+
 ### Syslog Config Commands
 
-This subsection explains how to configure syslog servers.
+This subsection explains how to configure syslog.
 
 **config syslog add**
 
@@ -8766,6 +8815,43 @@ This command is used to delete the configured syslog server.
   Running command: systemctl reset-failed rsyslog-config
   Running command: systemctl restart rsyslog-config
   ```
+
+**config syslog rate-limit-host**
+
+This command is used to configure syslog rate limit for host.
+
+- Usage:
+  ```
+  config syslog rate-limit-host
+  ```
+
+- Parameters:
+  - _interval_: determines the amount of time that is being measured for rate limiting.
+  - _burst_: defines the amount of messages, that have to occur in the time limit of interval, to trigger rate limiting
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config syslog rate-limit-host --interval 300 --burst 20000
+  ```
+
+**config syslog rate-limit-container**
+
+This command is used to configure syslog rate limit for containers.
+
+- Usage:
+  ```
+  config syslog rate-limit-container <container-name>
+  ```
+
+- Parameters:
+  - _interval_: determines the amount of time that is being measured for rate limiting.
+  - _burst_: defines the amount of messages, that have to occur in the time limit of interval, to trigger rate limiting
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config syslog rate-limit-container bgp --interval 300 --burst 20000
+  ```
+
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#syslog)
 
