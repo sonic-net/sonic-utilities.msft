@@ -1544,101 +1544,121 @@ main() {
         /proc/pagetypeinfo /proc/partitions /proc/sched_debug /proc/slabinfo \
         /proc/softirqs /proc/stat /proc/swaps /proc/sysvipc /proc/timer_list \
         /proc/uptime /proc/version /proc/vmallocinfo /proc/vmstat \
-        /proc/zoneinfo
-    save_proc_stats
+        /proc/zoneinfo &
+    save_proc_stats &
     end_t=$(date +%s%3N)
     echo "[ Capture Proc State ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
+    wait
 
     # Save all the processes within each docker
-    save_cmd "show services" services.summary
+    save_cmd "show services" services.summary &
 
     # Save reboot cause information
-    save_cmd "show reboot-cause" reboot.cause
+    save_cmd "show reboot-cause" reboot.cause &
+    wait
 
     local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
     # 1st counter snapshot early. Need 2 snapshots to make sense of counters trend.
     save_counter_snapshot $asic 1
 
-    save_cmd "systemd-analyze blame" "systemd.analyze.blame"
-    save_cmd "systemd-analyze dump" "systemd.analyze.dump"
-    save_cmd "systemd-analyze plot" "systemd.analyze.plot.svg"
+    save_cmd "systemd-analyze blame" "systemd.analyze.blame" &
+    save_cmd "systemd-analyze dump" "systemd.analyze.dump" &
+    save_cmd "systemd-analyze plot" "systemd.analyze.plot.svg" &
+    wait
 
-    save_platform_info
-    save_cmd "show vlan brief" "vlan.summary"
-    save_cmd "show version" "version"
-    save_cmd "show platform summary" "platform.summary"
-    save_cmd "cat /host/machine.conf" "machine.conf"
-    save_cmd "cat /boot/config-$(uname -r)" "boot.conf"
-    save_cmd "docker stats --no-stream" "docker.stats"
+    save_platform_info &
+    save_cmd "show vlan brief" "vlan.summary" &
+    save_cmd "show version" "version" &
+    save_cmd "show platform summary" "platform.summary" &
+    wait
 
-    save_cmd "sensors" "sensors"
-    save_cmd "lspci -vvv -xx" "lspci"
-    save_cmd "lsusb -v" "lsusb"
-    save_cmd "sysctl -a" "sysctl"
+    save_cmd "cat /host/machine.conf" "machine.conf" &
+    save_cmd "cat /boot/config-$(uname -r)" "boot.conf" &
+    save_cmd "docker stats --no-stream" "docker.stats" &
+    wait
 
-    save_ip_info
-    save_bridge_info
-    save_frr_info
+    save_cmd "sensors" "sensors" &
+    save_cmd "lspci -vvv -xx" "lspci" &
+    save_cmd "lsusb -v" "lsusb" &
+    save_cmd "sysctl -a" "sysctl" &
+    wait
 
-    save_bgp_info
-    save_evpn_info
+    save_ip_info &
+    save_bridge_info &
+    wait
 
-    save_cmd "show interface status -d all" "interface.status"
-    save_cmd "show interface transceiver presence" "interface.xcvrs.presence"
-    save_cmd "show interface transceiver eeprom --dom" "interface.xcvrs.eeprom"
-    save_cmd "show ip interface -d all" "ip.interface"
+    save_frr_info &
 
-    save_cmd "lldpctl" "lldpctl"
+    save_bgp_info &
+    save_evpn_info &
+    wait
+
+    save_cmd "show interface status -d all" "interface.status" &
+    save_cmd "show interface transceiver presence" "interface.xcvrs.presence" &
+    save_cmd "show interface transceiver eeprom --dom" "interface.xcvrs.eeprom" &
+    save_cmd "show ip interface -d all" "ip.interface" &
+    wait
+
+    save_cmd "lldpctl" "lldpctl" &
     if [[ ( "$NUM_ASICS" > 1 ) ]]; then
         for (( i=0; i<$NUM_ASICS; i++ ))
         do
-            save_cmd "docker exec lldp$i lldpcli show statistics" "lldp$i.statistics"
-            save_cmd "docker logs bgp$i" "docker.bgp$i.log"
-            save_cmd "docker logs swss$i" "docker.swss$i.log"
+            save_cmd "docker exec lldp$i lldpcli show statistics" "lldp$i.statistics" &
+            save_cmd "docker logs bgp$i" "docker.bgp$i.log" &
+            save_cmd "docker logs swss$i" "docker.swss$i.log" &
         done
     else
-        save_cmd "docker exec lldp lldpcli show statistics" "lldp.statistics"
-        save_cmd "docker logs bgp" "docker.bgp.log"
-        save_cmd "docker logs swss" "docker.swss.log"
+        save_cmd "docker exec lldp lldpcli show statistics" "lldp.statistics" &
+        save_cmd "docker logs bgp" "docker.bgp.log" &
+        save_cmd "docker logs swss" "docker.swss.log" &
     fi
+    wait
 
-    save_cmd "ps aux" "ps.aux"
-    save_cmd "top -b -n 1" "top"
-    save_cmd "free" "free"
-    save_cmd "vmstat 1 5" "vmstat"
-    save_cmd "vmstat -m" "vmstat.m"
-    save_cmd "vmstat -s" "vmstat.s"
-    save_cmd "mount" "mount"
-    save_cmd "df" "df"
-    save_cmd "dmesg" "dmesg"
+    save_cmd "ps aux" "ps.aux" &
+    save_cmd "top -b -n 1" "top" &
+    save_cmd "free" "free" &
+    wait
+    save_cmd "vmstat 1 5" "vmstat" &
+    save_cmd "vmstat -m" "vmstat.m" &
+    save_cmd "vmstat -s" "vmstat.s" &
+    wait
+    save_cmd "mount" "mount" &
+    save_cmd "df" "df" &
+    save_cmd "dmesg" "dmesg" &
+    wait
 
-    save_nat_info
-    save_bfd_info
-    save_redis_info
+    save_nat_info &
+    save_bfd_info &
+    wait
+    save_redis_info &
 
     if $DEBUG_DUMP
     then
-        save_dump_state_all_ns
+        save_dump_state_all_ns &
     fi
+    wait
 
-    save_cmd "docker ps -a" "docker.ps"
-    save_cmd "docker top pmon" "docker.pmon"
+    save_cmd "docker ps -a" "docker.ps" &
+    save_cmd "docker top pmon" "docker.pmon" &
 
     if [[ -d ${PLUGINS_DIR} ]]; then
         local -r dump_plugins="$(find ${PLUGINS_DIR} -type f -executable)"
         for plugin in $dump_plugins; do
             # save stdout output of plugin and gzip it
-            save_cmd "$plugin" "$(basename $plugin)" true
+            save_cmd "$plugin" "$(basename $plugin)" true &
         done
     fi
+    wait
 
-    save_cmd "dpkg -l" "dpkg"
-    save_cmd "who -a" "who"
-    save_cmd "swapon -s" "swapon"
-    save_cmd "hdparm -i /dev/sda" "hdparm"
-    save_cmd "ps -AwwL -o user,pid,lwp,ppid,nlwp,pcpu,pri,nice,vsize,rss,tty,stat,wchan:12,start,bsdtime,command" "ps.extended"
+    save_cmd "dpkg -l" "dpkg" &
+    save_cmd "who -a" "who" &
+    save_cmd "swapon -s" "swapon" &
+    wait
+    save_cmd "hdparm -i /dev/sda" "hdparm" &
+    save_cmd "ps -AwwL -o user,pid,lwp,ppid,nlwp,pcpu,pri,nice,vsize,rss,tty,stat,wchan:12,start,bsdtime,command" "ps.extended" &
 
-    save_saidump
+    save_saidump &
+    wait
 
     if [ "$asic" = "barefoot" ]; then
         collect_barefoot
@@ -1659,6 +1679,10 @@ main() {
     # 2nd counter snapshot late. Need 2 snapshots to make sense of counters trend.
     save_counter_snapshot $asic 2
 
+    $RM $V -rf $TARDIR
+    $MKDIR $V -p $TARDIR
+    $MKDIR $V -p $LOGDIR
+
     # Copying the /etc files to a directory and then tar it
     $CP -r /etc $TARDIR/etc
     rm_list=$(find -L $TARDIR/etc -maxdepth 5 -type l)
@@ -1678,9 +1702,10 @@ main() {
     $TARDIR/etc/sonic/*.crt $TARDIR/etc/sonic/*.pem $TARDIR/etc/sonic/*.key \
     $TARDIR/etc/ssl/*.pem $TARDIR/etc/ssl/certs/ $TARDIR/etc/ssl/private/*
 
-    save_log_files
-    save_crash_files
-    save_warmboot_files
+    save_log_files &
+    save_crash_files &
+    save_warmboot_files &
+    wait
 
     if [[ "$asic" = "mellanox" ]]; then
         collect_mellanox_dfw_dumps
