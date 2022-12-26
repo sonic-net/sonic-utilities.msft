@@ -217,17 +217,13 @@ class Watermarkstat(object):
         self.header_list = ['Port']
         header_map = wm_type["obj_map"]
 
-        max_idx = 0
-        min_idx = sys.maxsize
+        header_idx_set = set()
         for port in header_map.keys():
             for element in header_map[port].keys():
                 element_idx = int(element.split(':')[1])
-                if element_idx > max_idx:
-                    max_idx = element_idx
-                if min_idx > element_idx:
-                    min_idx = element_idx
+                header_idx_set.add(element_idx)
 
-        if min_idx == sys.maxsize:
+        if len(header_idx_set) == 0:
             if counter_type != 'q_shared_multi':
                 print("Object map is empty!", file=sys.stderr)
                 sys.exit(1)
@@ -235,8 +231,15 @@ class Watermarkstat(object):
                 print("Object map from the COUNTERS_DB is empty because the multicast queues are not configured in the CONFIG_DB!")
                 sys.exit(0)
 
-        self.min_idx = min_idx
-        self.header_list += ["{}{}".format(wm_type["header_prefix"], idx) for idx in range(self.min_idx, max_idx + 1)]
+        header_idx_list = list(header_idx_set)
+        header_idx_list.sort()
+
+        self.header_idx_to_pos = {}
+        for i in header_idx_list:
+            self.header_idx_to_pos[i] = header_idx_list.index(i)
+
+        self.min_idx = header_idx_list[0]
+        self.header_list += ["{}{}".format(wm_type["header_prefix"], idx) for idx in header_idx_list]
 
     def get_counters(self, table_prefix, port_obj, idx_func, watermark):
         """
@@ -252,7 +255,7 @@ class Watermarkstat(object):
         for name, obj_id in port_obj.items():
             full_table_id = table_prefix + obj_id
             idx = int(idx_func(obj_id))
-            pos = idx - self.min_idx
+            pos = self.header_idx_to_pos[idx]
             counter_data = self.counters_db.get(self.counters_db.COUNTERS_DB, full_table_id, watermark)
             if counter_data is None or counter_data == '':
                 fields[pos] = STATUS_NA

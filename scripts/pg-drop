@@ -117,22 +117,25 @@ class PgDropStat(object):
         self.header_list = ['Port']
         header_map = pg_drop_type["obj_map"]
 
-        max_idx = 0
-        min_idx = sys.maxsize
+        header_idx_set = set()
         for port in header_map.keys():
             for element in header_map[port].keys():
                 element_idx = int(element.split(':')[1])
-                if element_idx > max_idx:
-                    max_idx = element_idx
-                if min_idx > element_idx:
-                    min_idx = element_idx
+                header_idx_set.add(element_idx)
 
-        if min_idx == sys.maxsize:
+        if len(header_idx_set) == 0:
             print("Header info is not available!")
             sys.exit(1)
 
-        self.min_idx = min_idx
-        self.header_list += ["{}{}".format(pg_drop_type["header_prefix"], idx) for idx in range(self.min_idx, max_idx + 1)]
+        header_idx_list = list(header_idx_set)
+        header_idx_list.sort()
+
+        self.header_idx_to_pos = {}
+        for i in header_idx_list:
+            self.header_idx_to_pos[i] = header_idx_list.index(i)
+
+        self.min_idx = header_idx_list[0]
+        self.header_list += ["{}{}".format(pg_drop_type["header_prefix"], idx) for idx in header_idx_list]
 
     def get_counters(self, table_prefix, port_obj, idx_func, counter_name):
         """
@@ -150,7 +153,7 @@ class PgDropStat(object):
             full_table_id = table_prefix + obj_id
             old_collected_data = port_drop_ckpt.get(name,{})[full_table_id] if len(port_drop_ckpt) > 0 else 0
             idx = int(idx_func(obj_id))
-            pos = idx - self.min_idx
+            pos = self.header_idx_to_pos[idx]
             counter_data = self.counters_db.get(self.counters_db.COUNTERS_DB, full_table_id, counter_name)
             if counter_data is None:
                 fields[pos] = STATUS_NA
