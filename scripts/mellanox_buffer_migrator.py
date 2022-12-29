@@ -101,7 +101,7 @@ class MellanoxBufferMigrator():
             self.sku = device_data.get('hwsku')
             self.ready = True
         if not self.platform or not self.sku:
-            log.log_error("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
+            log.log_notice("Trying to get DEVICE_METADATA from DB but doesn't exist, skip migration")
             self.ready = False
 
         self.spc1_platforms = ["x86_64-mlnx_msn2010-r0", "x86_64-mlnx_msn2100-r0", "x86_64-mlnx_msn2410-r0", "x86_64-mlnx_msn2700-r0", "x86_64-mlnx_msn2740-r0"]
