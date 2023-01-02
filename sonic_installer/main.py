@@ -318,13 +318,15 @@ def get_docker_opts():
 def migrate_sonic_packages(bootloader, binary_image_version):
     """ Migrate SONiC packages to new SONiC image. """
 
+    TMP_DIR = "tmp"
     SONIC_PACKAGE_MANAGER = "sonic-package-manager"
     PACKAGE_MANAGER_DIR = "/var/lib/sonic-package-manager/"
     DOCKER_CTL_SCRIPT = "/usr/lib/docker/docker.sh"
     DOCKERD_SOCK = "docker.sock"
     VAR_RUN_PATH = "/var/run/"
+    RESOLV_CONF_FILE = os.path.join("etc", "resolv.conf")
+    RESOLV_CONF_BACKUP_FILE = os.path.join("/", TMP_DIR, "resolv.conf.backup")
 
-    tmp_dir = "tmp"
     packages_file = "packages.json"
     packages_path = os.path.join(PACKAGE_MANAGER_DIR, packages_file)
     sonic_version = re.sub(IMAGE_PREFIX, '', binary_image_version, 1)
@@ -332,10 +334,10 @@ def migrate_sonic_packages(bootloader, binary_image_version):
     new_image_upper_dir = os.path.join(new_image_dir, UPPERDIR_NAME)
     new_image_work_dir = os.path.join(new_image_dir, WORKDIR_NAME)
     new_image_docker_dir = os.path.join(new_image_dir, DOCKERDIR_NAME)
-    new_image_mount = os.path.join("/", tmp_dir, "image-{0}-fs".format(sonic_version))
+    new_image_mount = os.path.join("/", TMP_DIR, "image-{0}-fs".format(sonic_version))
     new_image_docker_mount = os.path.join(new_image_mount, "var", "lib", "docker")
     docker_default_config = os.path.join(new_image_mount, "etc", "default", "docker")
-    docker_default_config_backup = os.path.join(new_image_mount, tmp_dir, "docker_config_backup")
+    docker_default_config_backup = os.path.join(new_image_mount, TMP_DIR, "docker_config_backup")
 
     if not os.path.isdir(new_image_docker_dir):
         # NOTE: This codepath can be reached if the installation process did not
@@ -370,21 +372,26 @@ def migrate_sonic_packages(bootloader, binary_image_version):
 
             run_command_or_raise(["chroot", new_image_mount, DOCKER_CTL_SCRIPT, "start"])
             docker_started = True
-            run_command_or_raise(["cp", packages_path, os.path.join(new_image_mount, tmp_dir, packages_file)])
+            run_command_or_raise(["cp", packages_path, os.path.join(new_image_mount, TMP_DIR, packages_file)])
             run_command_or_raise(["touch", os.path.join(new_image_mount, "tmp", DOCKERD_SOCK)])
             run_command_or_raise(["mount", "--bind",
                                 os.path.join(VAR_RUN_PATH, DOCKERD_SOCK),
                                 os.path.join(new_image_mount, "tmp", DOCKERD_SOCK)])
+
+            run_command_or_raise(["cp", os.path.join(new_image_mount, RESOLV_CONF_FILE), RESOLV_CONF_BACKUP_FILE])
+            run_command_or_raise(["cp", os.path.join("/", RESOLV_CONF_FILE), os.path.join(new_image_mount, RESOLV_CONF_FILE)])
+
             run_command_or_raise(["chroot", new_image_mount, "sh", "-c", "command -v {}".format(SONIC_PACKAGE_MANAGER)])
             run_command_or_raise(["chroot", new_image_mount, SONIC_PACKAGE_MANAGER, "migrate",
-                                os.path.join("/", tmp_dir, packages_file),
-                                "--dockerd-socket", os.path.join("/", tmp_dir, DOCKERD_SOCK),
+                                os.path.join("/", TMP_DIR, packages_file),
+                                "--dockerd-socket", os.path.join("/", TMP_DIR, DOCKERD_SOCK),
                                 "-y"])
         finally:
             if docker_started:
                 run_command_or_raise(["chroot", new_image_mount, DOCKER_CTL_SCRIPT, "stop"], raise_exception=False)
             if os.path.exists(docker_default_config_backup):
                 run_command_or_raise(["mv", docker_default_config_backup, docker_default_config], raise_exception=False);
+            run_command_or_raise(["cp", RESOLV_CONF_BACKUP_FILE, os.path.join(new_image_mount, RESOLV_CONF_FILE)], raise_exception=False)
             umount(new_image_mount, recursive=True, read_only=False, remove_dir=False, raise_exception=False)
             umount(new_image_mount, raise_exception=False)
 
