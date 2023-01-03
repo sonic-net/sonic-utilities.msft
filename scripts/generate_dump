@@ -1697,10 +1697,14 @@ main() {
     # Remove unecessary files
     $RM $V -rf $TARDIR/etc/alternatives $TARDIR/etc/passwd* \
     $TARDIR/etc/shadow* $TARDIR/etc/group* $TARDIR/etc/gshadow* \
-    $TARDIR/etc/ssh* $TARDIR/get_creds* $TARDIR/snmpd.conf* \
-    $TARDIR/etc/mlnx $TARDIR/etc/mft $TARDIR/etc/sonic/*.cer \
-    $TARDIR/etc/sonic/*.crt $TARDIR/etc/sonic/*.pem $TARDIR/etc/sonic/*.key \
-    $TARDIR/etc/ssl/*.pem $TARDIR/etc/ssl/certs/ $TARDIR/etc/ssl/private/*
+    $TARDIR/etc/ssh* $TARDIR/etc/mlnx $TARDIR/etc/mft \
+    $TARDIR/etc/ssl/certs/ $TARDIR/etc/ssl/private/*
+    rm_list=$(find -L $TARDIR -type f \( -iname \*.cer -o -iname \*.crt -o \
+        -iname \*.pem -o -iname \*.key -o -iname \*snmpd.conf\* -o -iname \*get_creds\* \))
+    if [ ! -z "$rm_list" ]
+    then
+        rm $rm_list
+    fi
 
     save_log_files &
     save_crash_files &
