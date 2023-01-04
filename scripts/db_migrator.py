@@ -844,7 +844,8 @@ class DBMigrator():
                 new_cfg = {**init_cfg, **curr_cfg}
                 self.configDB.set_entry(init_cfg_table, key, new_cfg)
 
-        self.migrate_copp_table()
+        if self.asic_type != "mellanox":
+            self.migrate_copp_table()
         if self.asic_type == "broadcom" and 'Force10-S6100' in self.hwsku:            
             self.migrate_mgmt_ports_on_s6100()
         else:
