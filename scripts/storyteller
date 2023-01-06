@@ -20,6 +20,7 @@ regex_dict = {
                 'lag'       : r'link becomes\|addLag\|PortChannel.*oper state',
                 'reboot'    : r'BOOT\|rc.local\|old_config\|minigraph.xml\|Rebooting\|reboot\|executeOperationsOnAsic\|getAsicView\|dumpVidToAsicOperatioId\|neighbor_adv\|Pausing\|shutdown\|warm',
                 'service'   : r'Starting\|Stopping\|Started\|Stopped',
+                'linkprober': r'Received link prober event, new state'
              }
 
 
@@ -86,7 +87,7 @@ def main():
 
     parser.add_argument('-l', '--log', help='log file prefix, e.g. syslog; default: syslog',
                         type=str, required=False, default='syslog')
-    parser.add_argument('-c', '--category', help='Categories: bgp, crash, interface, lag, reboot, service Specify multiple categories as c1,c2,c3; default: reboot',
+    parser.add_argument('-c', '--category', help='Categories: bgp, crash, interface, lag, reboot, service, linkprober Specify multiple categories as c1,c2,c3; default: reboot',
                         type=str, required=False, default='reboot')
     parser.add_argument('-p', '--logpath', help='log file path, e.g. /var/log; default: /var/log',
                         type=str, required=False, default='/var/log')
