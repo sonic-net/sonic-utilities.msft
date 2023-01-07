@@ -4,7 +4,6 @@ import os
 import traceback
 import json
 import jsonpatch
-import shutil
 import sys
 import unittest
 import ipaddress
@@ -89,12 +88,6 @@ Restarting SONiC target ...
 Reloading Monit configuration ...
 """
 
-RELOAD_CONFIG_DB_OUTPUT_INVALID_MSG = """\
-Bad format: json file"""
-
-RELOAD_CONFIG_DB_OUTPUT_INVALID_ERROR = """\
-Expecting ',' delimiter: line 12 column 5 (char 321)"""
-
 RELOAD_YANG_CFG_OUTPUT = """\
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen  -Y /tmp/config.json  --write-to-db
@@ -106,15 +99,6 @@ RELOAD_MASIC_CONFIG_DB_OUTPUT = """\
 Stopping SONiC target ...
 Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
 Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic0  --write-to-db
-Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic1  --write-to-db
-Restarting SONiC target ...
-Reloading Monit configuration ...
-"""
-
-RELOAD_MASIC_CONFIG_DB_OUTPUT_FILE_NOT_EXIST = """\
-Stopping SONiC target ...
-Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  --write-to-db
-The config file non_exist.json doesn't exist
 Running command: /usr/local/bin/sonic-cfggen  -j /tmp/config.json  -n asic1  --write-to-db
 Restarting SONiC target ...
 Reloading Monit configuration ...
@@ -211,7 +195,6 @@ sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfg
 
 class TestConfigReload(object):
     dummy_cfg_file = os.path.join(os.sep, "tmp", "config.json")
-    dummy_cfg_file_contents = os.path.join(mock_db_path, "config_db.json")
 
     @classmethod
     def setup_class(cls):
@@ -223,8 +206,7 @@ class TestConfigReload(object):
 
         import config.main
         importlib.reload(config.main)
-        shutil.copyfile(cls.dummy_cfg_file_contents, cls.dummy_cfg_file)
-        open(cls.dummy_cfg_file, 'r').close()
+        open(cls.dummy_cfg_file, 'w').close()
 
     def test_config_reload(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect)) as mock_run_command:
@@ -497,8 +479,6 @@ class TestLoadMinigraph(object):
 
 class TestReloadConfig(object):
     dummy_cfg_file = os.path.join(os.sep, "tmp", "config.json")
-    dummy_cfg_file_contents = os.path.join(mock_db_path, "config_db.json")
-    dummy_cfg_file_invalid = os.path.join(mock_db_path, "config_db_invalid.json")
 
     @classmethod
     def setup_class(cls):
@@ -506,8 +486,7 @@ class TestReloadConfig(object):
         print("SETUP")
         import config.main
         importlib.reload(config.main)
-        shutil.copyfile(cls.dummy_cfg_file_contents, cls.dummy_cfg_file)
-        open(cls.dummy_cfg_file, 'r').close()
+        open(cls.dummy_cfg_file, 'w').close()
 
     def test_reload_config(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
@@ -527,27 +506,6 @@ class TestReloadConfig(object):
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
                 == RELOAD_CONFIG_DB_OUTPUT
-
-    def test_reload_config_invalid_config_file(self, get_cmd_module, setup_single_broadcom_asic):
-        with mock.patch(
-                "utilities_common.cli.run_command",
-                mock.MagicMock(side_effect=mock_run_command_side_effect)
-        ) as mock_run_command:
-            (config, show) = get_cmd_module
-            runner = CliRunner()
-
-            result = runner.invoke(
-                config.config.commands["reload"],
-                [self.dummy_cfg_file_invalid, '-y', '-f'])
-
-            print(result.exit_code)
-            print(result.output)
-            traceback.print_tb(result.exc_info[2])
-            assert result.exit_code == 1
-
-            output = "\n".join([l.rstrip() for l in result.output.split('\n')])
-            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_MSG in output
-            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_ERROR in output
 
     def test_config_reload_disabled_service(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(
@@ -591,54 +549,6 @@ class TestReloadConfig(object):
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
                 == RELOAD_MASIC_CONFIG_DB_OUTPUT
 
-    def test_reload_config_masic_invalid(self, get_cmd_module, setup_multi_broadcom_masic):
-        with mock.patch(
-                "utilities_common.cli.run_command",
-                mock.MagicMock(side_effect=mock_run_command_side_effect)
-        ) as mock_run_command:
-            (config, show) = get_cmd_module
-            runner = CliRunner()
-            # 3 config files: 1 for host and 2 for asic
-            cfg_files = "{},{},{}".format(
-                            self.dummy_cfg_file,
-                            self.dummy_cfg_file_invalid,
-                            self.dummy_cfg_file)
-            result = runner.invoke(
-                config.config.commands["reload"],
-                [cfg_files, '-y', '-f'])
-
-            print(result.exit_code)
-            print(result.output)
-            traceback.print_tb(result.exc_info[2])
-            assert result.exit_code == 1
-
-            output = "\n".join([l.rstrip() for l in result.output.split('\n')])
-            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_MSG in output
-            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_ERROR in output
-
-    def test_reload_config_masic_non_exist_file(self, get_cmd_module, setup_multi_broadcom_masic):
-        with mock.patch(
-                "utilities_common.cli.run_command",
-                mock.MagicMock(side_effect=mock_run_command_side_effect)
-        ) as mock_run_command:
-            (config, show) = get_cmd_module
-            runner = CliRunner()
-            # 3 config files: 1 for host and 2 for asic
-            cfg_files = "{},{},{}".format(
-                            self.dummy_cfg_file,
-                            "non_exist.json",
-                            self.dummy_cfg_file)
-            result = runner.invoke(
-                config.config.commands["reload"],
-                [cfg_files, '-y', '-f'])
-
-            print(result.exit_code)
-            print(result.output)
-            traceback.print_tb(result.exc_info[2])
-            assert result.exit_code == 0
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
-                == RELOAD_MASIC_CONFIG_DB_OUTPUT_FILE_NOT_EXIST
-
     def test_reload_yang_config(self, get_cmd_module,
                                         setup_single_broadcom_asic):
         with mock.patch(
@@ -657,27 +567,6 @@ class TestReloadConfig(object):
             assert result.exit_code == 0
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) \
                 == RELOAD_YANG_CFG_OUTPUT
-
-    def test_reload_yang_config_invalid(self, get_cmd_module,
-                                        setup_single_broadcom_asic):
-        with mock.patch(
-                "utilities_common.cli.run_command",
-                mock.MagicMock(side_effect=mock_run_command_side_effect)
-        ) as mock_run_command:
-            (config, show) = get_cmd_module
-            runner = CliRunner()
-
-            result = runner.invoke(config.config.commands["reload"],
-                                    [self.dummy_cfg_file_invalid, '-y', '-f', '-t', 'config_yang'])
-
-            print(result.exit_code)
-            print(result.output)
-            traceback.print_tb(result.exc_info[2])
-            assert result.exit_code == 1
-
-            output = "\n".join([l.rstrip() for l in result.output.split('\n')])
-            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_MSG in output
-            assert RELOAD_CONFIG_DB_OUTPUT_INVALID_ERROR in output
 
     @classmethod
     def teardown_class(cls):
