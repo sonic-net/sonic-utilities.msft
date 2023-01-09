@@ -708,6 +708,30 @@ Ethernet0  N/A
 
     @patch('sfputil.main.platform_chassis')
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    @pytest.mark.parametrize("mock_response, expected", [
+        ({'status': False, 'result': None}                                 , -1),
+        ({'status': True,  'result': ("1.0.1", 1, 1, 0, "1.0.2", 0, 0, 0)} , -1),
+        ({'status': True,  'result': ("1.0.1", 0, 0, 0, "1.0.2", 1, 1, 0)} , -1),
+        ({'status': True,  'result': ("1.0.1", 1, 0, 0, "1.0.2", 0, 1, 0)} ,  1),
+        ({'status': True,  'result': ("1.0.1", 0, 1, 0, "1.0.2", 1, 0, 0)} ,  1),
+        ({'status': True,  'result': ("1.0.1", 1, 0, 1, "1.0.2", 0, 1, 0)} , -1),
+        ({'status': True,  'result': ("1.0.1", 0, 1, 0, "1.0.2", 1, 0, 1)} , -1),
+
+        # "is_fw_switch_done" function will waiting until timeout under below condition, so that this test will spend around 1min.
+        ({'status': False, 'result': 0}                                    , -1),
+    ])
+    def test_is_fw_switch_done(self, mock_chassis, mock_response, expected):
+        mock_sfp = MagicMock()
+        mock_api = MagicMock()
+        mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
+        mock_sfp.get_presence.return_value = True
+        mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
+        mock_api.get_module_fw_info.return_value = mock_response
+        status = sfputil.is_fw_switch_done("Ethernet0")
+        assert status == expected
+
+    @patch('sfputil.main.platform_chassis')
+    @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
     def test_commit_firmwre(self, mock_chassis):
         mock_sfp = MagicMock()
         mock_api = MagicMock()
