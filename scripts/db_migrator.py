@@ -884,7 +884,12 @@ class DBMigrator():
                 new_cfg = {**init_cfg, **curr_cfg}
                 self.configDB.set_entry(init_cfg_table, key, new_cfg)
 
-        self.migrate_copp_table()
+        # Avoiding copp table migration is platform specific at the moment as I understood this might cause issues for some
+        # vendors, probably Broadcom. This change can be checked with any specific vendor and if this works fine the platform
+        # condition can be modified and extend. If no vendor has an issue with not clearing copp tables the condition can be
+        # removed together with calling to migrate_copp_table function.
+        if self.asic_type != "mellanox":
+            self.migrate_copp_table()
         if self.asic_type == "broadcom" and 'Force10-S6100' in self.hwsku:            
             self.migrate_mgmt_ports_on_s6100()
         else:
