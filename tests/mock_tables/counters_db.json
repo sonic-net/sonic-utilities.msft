@@ -398,6 +398,150 @@
         "SAI_QUEUE_STAT_PACKETS": "20",
         "SAI_QUEUE_STAT_SHARED_WATERMARK_BYTES": "81"
     },
+    "COUNTERS:oid:0x15000000000657": {
+        "SAI_QUEUE_STAT_BYTES": "30",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "74",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "56",
+        "SAI_QUEUE_STAT_PACKETS": "68"
+    },
+    "COUNTERS:oid:0x15000000000658": {
+        "SAI_QUEUE_STAT_BYTES": "43",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "1",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "39",
+        "SAI_QUEUE_STAT_PACKETS": "60"
+    },
+    "COUNTERS:oid:0x15000000000659": {
+        "SAI_QUEUE_STAT_BYTES": "7",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "21",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "39",
+        "SAI_QUEUE_STAT_PACKETS": "82"
+    },
+    "COUNTERS:oid:0x1500000000065a": {
+        "SAI_QUEUE_STAT_BYTES": "59",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "94",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "12",
+        "SAI_QUEUE_STAT_PACKETS": "11"
+    },
+    "COUNTERS:oid:0x1500000000065b": {
+        "SAI_QUEUE_STAT_BYTES": "62",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "40",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "35",
+        "SAI_QUEUE_STAT_PACKETS": "36"
+    },
+    "COUNTERS:oid:0x1500000000065c": {
+        "SAI_QUEUE_STAT_BYTES": "91",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "88",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "2",
+        "SAI_QUEUE_STAT_PACKETS": "49"
+    },
+    "COUNTERS:oid:0x1500000000065d": {
+        "SAI_QUEUE_STAT_BYTES": "17",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "74",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "94",
+        "SAI_QUEUE_STAT_PACKETS": "33"
+    },
+    "COUNTERS:oid:0x1500000000065e": {
+        "SAI_QUEUE_STAT_BYTES": "71",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "33",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "95",
+        "SAI_QUEUE_STAT_PACKETS": "40"
+    },
+    "COUNTERS:oid:0x15000000000667": {
+        "SAI_QUEUE_STAT_BYTES": "8",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "78",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "93",
+        "SAI_QUEUE_STAT_PACKETS": "54"
+    },
+    "COUNTERS:oid:0x15000000000668": {
+        "SAI_QUEUE_STAT_BYTES": "96",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "9",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "74",
+        "SAI_QUEUE_STAT_PACKETS": "83"
+    },
+    "COUNTERS:oid:0x15000000000669": {
+        "SAI_QUEUE_STAT_BYTES": "60",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "31",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "61",
+        "SAI_QUEUE_STAT_PACKETS": "15"
+    },
+    "COUNTERS:oid:0x1500000000066a": {
+        "SAI_QUEUE_STAT_BYTES": "52",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "94",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "82",
+        "SAI_QUEUE_STAT_PACKETS": "45"
+    },
+    "COUNTERS:oid:0x1500000000066b": {
+        "SAI_QUEUE_STAT_BYTES": "88",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "52",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "89",
+        "SAI_QUEUE_STAT_PACKETS": "55"
+    },
+    "COUNTERS:oid:0x1500000000066c": {
+        "SAI_QUEUE_STAT_BYTES": "70",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "79",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "95",
+        "SAI_QUEUE_STAT_PACKETS": "14"
+    },
+    "COUNTERS:oid:0x1500000000066d": {
+        "SAI_QUEUE_STAT_BYTES": "60",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "81",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "66",
+        "SAI_QUEUE_STAT_PACKETS": "68"
+    },
+    "COUNTERS:oid:0x1500000000066e": {
+        "SAI_QUEUE_STAT_BYTES": "4",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "76",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "48",
+        "SAI_QUEUE_STAT_PACKETS": "63"
+    },
+    "COUNTERS:oid:0x15000000000677": {
+        "SAI_QUEUE_STAT_BYTES": "73",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "74",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "77",
+        "SAI_QUEUE_STAT_PACKETS": "41"
+    },
+    "COUNTERS:oid:0x15000000000678": {
+        "SAI_QUEUE_STAT_BYTES": "21",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "54",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "56",
+        "SAI_QUEUE_STAT_PACKETS": "60"
+    },
+    "COUNTERS:oid:0x15000000000679": {
+        "SAI_QUEUE_STAT_BYTES": "31",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "39",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "12",
+        "SAI_QUEUE_STAT_PACKETS": "57"
+    },
+    "COUNTERS:oid:0x1500000000067a": {
+        "SAI_QUEUE_STAT_BYTES": "96",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "98",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "70",
+        "SAI_QUEUE_STAT_PACKETS": "41"
+    },
+    "COUNTERS:oid:0x1500000000067b": {
+        "SAI_QUEUE_STAT_BYTES": "49",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "36",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "63",
+        "SAI_QUEUE_STAT_PACKETS": "18"
+    },
+    "COUNTERS:oid:0x1500000000067c": {
+        "SAI_QUEUE_STAT_BYTES": "90",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "15",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "3",
+        "SAI_QUEUE_STAT_PACKETS": "99"
+    },
+    "COUNTERS:oid:0x1500000000067d": {
+        "SAI_QUEUE_STAT_BYTES": "84",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "94",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "82",
+        "SAI_QUEUE_STAT_PACKETS": "8"
+    },
+    "COUNTERS:oid:0x1500000000067e": {
+        "SAI_QUEUE_STAT_BYTES": "15",
+        "SAI_QUEUE_STAT_DROPPED_BYTES": "92",
+        "SAI_QUEUE_STAT_DROPPED_PACKETS": "75",
+        "SAI_QUEUE_STAT_PACKETS": "83"
+    },
     "COUNTERS:oid:0x60000000005a3": {
             "SAI_ROUTER_INTERFACE_STAT_IN_ERROR_OCTETS": "0",
             "SAI_ROUTER_INTERFACE_STAT_IN_ERROR_PACKETS": "0",
@@ -904,7 +1048,40 @@
     "COUNTERS:oid:0x1a0000000003a6" : {
         "SAI_INGRESS_PRIORITY_GROUP_STAT_DROPPED_PACKETS" : "107"
     },
+    
+    "COUNTERS_SYSTEM_PORT_NAME_MAP": {
+        "Ethernet0": "oid:0x1000000000042",
+        "Ethernet4": "oid:0x1000000000043",
+        "Ethernet8": "oid:0x1000000000044"
+    },
 
+    "COUNTERS_VOQ_NAME_MAP": {
+        "Ethernet0:0": "oid:0x15000000000657",
+        "Ethernet0:1": "oid:0x15000000000658",
+        "Ethernet0:2": "oid:0x15000000000659",
+        "Ethernet0:3": "oid:0x1500000000065a",
+        "Ethernet0:4": "oid:0x1500000000065b",
+        "Ethernet0:5": "oid:0x1500000000065c",
+        "Ethernet0:6": "oid:0x1500000000065d",
+        "Ethernet0:7": "oid:0x1500000000065e",
+        "Ethernet4:0": "oid:0x15000000000667",
+        "Ethernet4:1": "oid:0x15000000000668",
+        "Ethernet4:2": "oid:0x15000000000669",
+        "Ethernet4:3": "oid:0x1500000000066a",
+        "Ethernet4:4": "oid:0x1500000000066b",
+        "Ethernet4:5": "oid:0x1500000000066c",
+        "Ethernet4:6": "oid:0x1500000000066d",
+        "Ethernet4:7": "oid:0x1500000000066e",
+        "Ethernet8:0": "oid:0x15000000000677",
+        "Ethernet8:1": "oid:0x15000000000678",
+        "Ethernet8:2": "oid:0x15000000000679",
+        "Ethernet8:3": "oid:0x1500000000067a",
+        "Ethernet8:4": "oid:0x1500000000067b",
+        "Ethernet8:5": "oid:0x1500000000067c",
+        "Ethernet8:6": "oid:0x1500000000067d",
+        "Ethernet8:7": "oid:0x1500000000067e"
+    },
+  
     "COUNTERS_PORT_NAME_MAP": {
         "Ethernet0": "oid:0x1000000000012",
         "Ethernet4": "oid:0x1000000000013",
@@ -1155,8 +1332,33 @@
         "oid:0x150000000003c3": "oid:0x1000000000014",
         "oid:0x150000000003c4": "oid:0x1000000000014",
         "oid:0x150000000003c5": "oid:0x1000000000014",
-        "oid:0x150000000003c6": "oid:0x1000000000014"
+        "oid:0x150000000003c6": "oid:0x1000000000014",
+        "oid:0x15000000000657": "oid:0x1000000000042",
+        "oid:0x15000000000658": "oid:0x1000000000042",
+        "oid:0x15000000000659": "oid:0x1000000000042",
+        "oid:0x1500000000065a": "oid:0x1000000000042",
+        "oid:0x1500000000065b": "oid:0x1000000000042",
+        "oid:0x1500000000065c": "oid:0x1000000000042",
+        "oid:0x1500000000065d": "oid:0x1000000000042",
+        "oid:0x1500000000065e": "oid:0x1000000000042",
+        "oid:0x15000000000667": "oid:0x1000000000043",
+        "oid:0x15000000000668": "oid:0x1000000000043",
+        "oid:0x15000000000669": "oid:0x1000000000043",
+        "oid:0x1500000000066a": "oid:0x1000000000043",
+        "oid:0x1500000000066b": "oid:0x1000000000043",
+        "oid:0x1500000000066c": "oid:0x1000000000043",
+        "oid:0x1500000000066d": "oid:0x1000000000043",
+        "oid:0x1500000000066e": "oid:0x1000000000043",
+        "oid:0x15000000000677": "oid:0x1000000000044",
+        "oid:0x15000000000678": "oid:0x1000000000044",
+        "oid:0x15000000000679": "oid:0x1000000000044",
+        "oid:0x1500000000067a": "oid:0x1000000000044",
+        "oid:0x1500000000067b": "oid:0x1000000000044",
+        "oid:0x1500000000067c": "oid:0x1000000000044",
+        "oid:0x1500000000067d": "oid:0x1000000000044",
+        "oid:0x1500000000067e": "oid:0x1000000000044"
     },
+
     "COUNTERS_PG_INDEX_MAP": {
         "oid:0x1a00000000034f": "0",
         "oid:0x1a000000000350": "1",
@@ -1273,7 +1475,31 @@
         "oid:0x150000000003c3": "26",
         "oid:0x150000000003c4": "27",
         "oid:0x150000000003c5": "28",
-        "oid:0x150000000003c6": "29"
+        "oid:0x150000000003c6": "29",
+        "oid:0x15000000000657":  "0",
+        "oid:0x15000000000658":  "1",
+        "oid:0x15000000000659":  "2",
+        "oid:0x1500000000065a":  "3",
+        "oid:0x1500000000065b":  "4",
+        "oid:0x1500000000065c":  "5",
+        "oid:0x1500000000065d":  "6",
+        "oid:0x1500000000065e":  "7",
+        "oid:0x15000000000667":  "0",
+        "oid:0x15000000000668":  "1",
+        "oid:0x15000000000669":  "2",
+        "oid:0x1500000000066a":  "3",
+        "oid:0x1500000000066b":  "4",
+        "oid:0x1500000000066c":  "5",
+        "oid:0x1500000000066d":  "6",
+        "oid:0x1500000000066e":  "7",
+        "oid:0x15000000000677":  "0",
+        "oid:0x15000000000678":  "1",
+        "oid:0x15000000000679":  "2",
+        "oid:0x1500000000067a":  "3",
+        "oid:0x1500000000067b":  "4",
+        "oid:0x1500000000067c":  "5",
+        "oid:0x1500000000067d":  "6",
+        "oid:0x1500000000067e":  "7"
     },
     "COUNTERS_QUEUE_TYPE_MAP": {
         "oid:0x15000000000357": "SAI_QUEUE_TYPE_UNICAST",
@@ -1365,7 +1591,31 @@
         "oid:0x150000000003c3": "SAI_QUEUE_TYPE_ALL",
         "oid:0x150000000003c4": "SAI_QUEUE_TYPE_ALL",
         "oid:0x150000000003c5": "SAI_QUEUE_TYPE_ALL",
-        "oid:0x150000000003c6": "SAI_QUEUE_TYPE_ALL"
+        "oid:0x150000000003c6": "SAI_QUEUE_TYPE_ALL",
+        "oid:0x15000000000657": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x15000000000658": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x15000000000659": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x1500000000065a": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x1500000000065b": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x1500000000065c": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x1500000000065d": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x1500000000065e": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x15000000000667": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x15000000000668": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x15000000000669": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x1500000000066a": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x1500000000066b": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x1500000000066c": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x1500000000066d": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x1500000000066e": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x15000000000677": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x15000000000678": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x15000000000679": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x1500000000067a": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x1500000000067b": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x1500000000067c": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x1500000000067d": "SAI_QUEUE_TYPE_UNICAST_VOQ",
+        "oid:0x1500000000067e": "SAI_QUEUE_TYPE_UNICAST_VOQ"
     },
     "COUNTERS_DEBUG_NAME_PORT_STAT_MAP": {
         "DEBUG_0": "SAI_PORT_STAT_IN_DROP_REASON_RANGE_BASE",
