@@ -532,7 +532,7 @@ case "$REBOOT_TYPE" in
         check_warm_restart_in_progress
         BOOT_TYPE_ARG=$REBOOT_TYPE
         trap clear_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
-        sonic-db-cli STATE_DB SET "FAST_REBOOT|system" "1" "EX" "180" &>/dev/null
+        sonic-db-cli STATE_DB SET "FAST_REBOOT|system" "1" "EX" "210" &>/dev/null
         config warm_restart enable system
         ;;
     "warm-reboot")
