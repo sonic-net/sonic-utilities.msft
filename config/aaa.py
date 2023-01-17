@@ -4,6 +4,7 @@ import re
 from swsscommon.swsscommon import ConfigDBConnector
 from .validated_config_db_connector import ValidatedConfigDBConnector
 from jsonpatch import JsonPatchConflict
+from jsonpointer import JsonPointerException
 import utilities_common.cli as clicommon
 
 ADHOC_VALIDATION = True
@@ -498,15 +499,16 @@ radius.add_command(statistics)
 def add(address, retransmit, timeout, key, auth_type, auth_port, pri, use_mgmt_vrf, source_interface):
     """Specify a RADIUS server"""
 
-    if key:
-        if len(key) > RADIUS_PASSKEY_MAX_LEN:
-            click.echo('--key: Maximum of %d chars can be configured' % RADIUS_PASSKEY_MAX_LEN)
-            return
-        elif not is_secret(key):
-            click.echo('--key: ' + VALID_CHARS_MSG)
-            return
+    if ADHOC_VALIDATION:
+        if key:
+            if len(key) > RADIUS_PASSKEY_MAX_LEN:
+                click.echo('--key: Maximum of %d chars can be configured' % RADIUS_PASSKEY_MAX_LEN)
+                return
+            elif not is_secret(key):
+                click.echo('--key: ' + VALID_CHARS_MSG)
+                return
 
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
     old_data = config_db.get_table('RADIUS_SERVER')
     if address in old_data :
@@ -529,16 +531,24 @@ def add(address, retransmit, timeout, key, auth_type, auth_port, pri, use_mgmt_v
             data['passkey'] = key
         if use_mgmt_vrf :
             data['vrf'] = "mgmt"
-        if source_interface :
-            if (source_interface.startswith("Ethernet") or \
-                source_interface.startswith("PortChannel") or \
-                source_interface.startswith("Vlan") or \
-                source_interface.startswith("Loopback") or \
-                source_interface == "eth0"):
+        if ADHOC_VALIDATION:
+            if source_interface :
+                if (source_interface.startswith("Ethernet") or \
+                    source_interface.startswith("PortChannel") or \
+                    source_interface.startswith("Vlan") or \
+                    source_interface.startswith("Loopback") or \
+                    source_interface == "eth0"):
+                    data['src_intf'] = source_interface
+                else:
+                    click.echo('Not supported interface name (valid interface name: Etherent<id>/PortChannel<id>/Vlan<id>/Loopback<id>/eth0)')
+        else:
+            if source_interface:
                 data['src_intf'] = source_interface
-            else:
-                click.echo('Not supported interface name (valid interface name: Etherent<id>/PortChannel<id>/Vlan<id>/Loopback<id>/eth0)')
-        config_db.set_entry('RADIUS_SERVER', address, data)
+        try:
+            config_db.set_entry('RADIUS_SERVER', address, data)
+        except ValueError as e:
+            ctx = click.get_current_context()
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 radius.add_command(add)
 
 
@@ -549,7 +559,11 @@ radius.add_command(add)
 def delete(address):
     """Delete a RADIUS server"""
 
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
-    config_db.set_entry('RADIUS_SERVER', address, None)
+    try:
+        config_db.set_entry('RADIUS_SERVER', address, None)
+    except (JsonPointerException, JsonPatchConflict) as e:
+        ctx = click.get_current_context()
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 radius.add_command(delete)
