@@ -727,8 +727,6 @@ for service in ${SERVICES_TO_STOP}; do
             sonic-db-cli FLEX_COUNTER_DB FLUSHDB > /dev/null
         fi
 
-        # TODO: backup_database preserves FDB_TABLE
-        # need to cleanup as well for fastfast boot case
         backup_database
 
     fi
