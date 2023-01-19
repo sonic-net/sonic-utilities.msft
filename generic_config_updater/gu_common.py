@@ -16,6 +16,9 @@ SYSLOG_IDENTIFIER = "GenericConfigUpdater"
 class GenericConfigUpdaterError(Exception):
     pass
 
+class IllegalPatchOperationError(ValueError):
+    pass
+
 class EmptyTableError(ValueError):
     pass
 
@@ -135,6 +138,22 @@ class ConfigWrapper:
             return False, ex
 
         return True, None
+
+    def validate_field_operation(self, old_config, target_config):
+        """
+        Some fields in ConfigDB are restricted and may not allow third-party addition, replacement, or removal. 
+        Because YANG only validates state and not transitions, this method helps to JsonPatch operations/transitions for the specified fields. 
+        """
+        patch = jsonpatch.JsonPatch.from_diff(old_config, target_config)
+        
+        # illegal_operations_to_fields_map['remove'] yields a list of fields for which `remove` is an illegal operation 
+        illegal_operations_to_fields_map = {'add':[],
+                                            'replace': [],
+                                            'remove': ['/PFC_WD/GLOBAL/POLL_INTERVAL', '/PFC_WD/GLOBAL']}
+        for operation, field_list in illegal_operations_to_fields_map.items():
+            for field in field_list:
+                if any(op['op'] == operation and field == op['path'] for op in patch):
+                    raise IllegalPatchOperationError("Given patch operation is invalid. Operation: {} is illegal on field: {}".format(operation, field))
 
     def validate_lanes(self, config_db):
         if "PORT" not in config_db:

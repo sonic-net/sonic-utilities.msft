@@ -57,6 +57,18 @@ class TestConfigWrapper(unittest.TestCase):
         self.config_wrapper_mock = gu_common.ConfigWrapper()
         self.config_wrapper_mock.get_config_db_as_json=MagicMock(return_value=Files.CONFIG_DB_AS_JSON)
 
+    def test_validate_field_operation_legal(self):
+        old_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "60"}}}
+        target_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "40"}}}
+        config_wrapper = gu_common.ConfigWrapper()
+        config_wrapper.validate_field_operation(old_config, target_config)
+    
+    def test_validate_field_operation_illegal(self):
+        old_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": 60}}}
+        target_config = {"PFC_WD": {"GLOBAL": {}}}
+        config_wrapper = gu_common.ConfigWrapper()
+        self.assertRaises(gu_common.IllegalPatchOperationError, config_wrapper.validate_field_operation, old_config, target_config)
+
     def test_ctor__default_values_set(self):
         config_wrapper = gu_common.ConfigWrapper()
 
