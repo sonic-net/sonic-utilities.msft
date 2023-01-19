@@ -12,7 +12,7 @@ EXPECTED_BASE_COMMAND = 'sudo '
             ([], 'generate_dump -v -t 5'),
             (['--since', '2 days ago'], "generate_dump -v -s '2 days ago' -t 5"),
             (['-g', '50'], 'timeout --kill-after=300s -s SIGTERM --foreground 50m generate_dump -v -t 5'),
-            (['--allow-process-stop'], '-a generate_dump -v -t 5'),
+            (['--allow-process-stop'], 'generate_dump -v -a -t 5'),
             (['--silent'], 'generate_dump -t 5'),
             (['--debug-dump', '--redirect-stderr'], 'generate_dump -v -d -t 5 -r'),
         ]

@@ -1352,14 +1352,14 @@ def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop,
     if global_timeout:
         cmd += " timeout --kill-after={}s -s SIGTERM --foreground {}m".format(COMMAND_TIMEOUT, global_timeout)
 
-    if allow_process_stop:
-        cmd += " -a"
-
     if silent:
         cmd += " generate_dump"
         click.echo("Techsupport is running with silent option. This command might take a long time.")
     else:
         cmd += " generate_dump -v"
+
+    if allow_process_stop:
+        cmd += " -a"
 
     if since:
         cmd += " -s '{}'".format(since)
