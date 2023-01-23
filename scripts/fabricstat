@@ -178,6 +178,33 @@ class FabricQueueStat(FabricStat):
         print(tabulate(table, queuestat_header, tablefmt='simple', stralign='right'))
         print()
 
+class FabricReachability(FabricStat):
+    def reachability_print(self):
+        # Connect to database
+        self.db = multi_asic.connect_to_all_dbs_for_ns(self.namespace)
+        # Get the set of all fabric port keys
+        port_keys = self.db.keys(self.db.STATE_DB, FABRIC_PORT_STATUS_TABLE_PREFIX + '*')
+        # Create a new dictionary. The key values are the local port values
+        # in integer format. Only ports that have remote port data are added.
+        # Only ports that are "up" will be connected to a remote peer.
+        port_dict = {}
+        for port_key in port_keys:
+           port_data = self.db.get_all(self.db.STATE_DB, port_key)
+           if "REMOTE_PORT" in port_data:
+              port_number = int(port_key.replace("FABRIC_PORT_TABLE|PORT", ""))
+              port_dict.update({port_number: port_data})
+        # Create ordered table of port data
+        header = ["Local Link", "Remote Module", "Remote Link", "Status"]
+        body = []
+        for port_number in sorted(port_dict.keys()):
+              port_data = port_dict[port_number]
+              body.append((port_number, port_data["REMOTE_MOD"], \
+                           port_data["REMOTE_PORT"], port_data["STATUS"]))
+        if self.namespace:
+           print(f"\n{self.namespace}")
+        print(tabulate(body, header, tablefmt='simple', stralign='right'))
+        return
+
 def main():
     parser  = argparse.ArgumentParser(description='Display the fabric port state and counters',
                                       formatter_class=argparse.RawTextHelpFormatter,
@@ -191,16 +218,25 @@ Examples:
 """)
 
     parser.add_argument('-q','--queue', action='store_true', help='Display fabric queue stat, otherwise port stat')
+    parser.add_argument('-r','--reachability', action='store_true', help='Display reachability, otherwise port stat')
     parser.add_argument('-n','--namespace', default=None, help='Display fabric ports counters for specific namespace')
     parser.add_argument('-e', '--errors', action='store_true', help='Display errors')
 
     args = parser.parse_args()
     queue = args.queue
+    reachability = args.reachability
     namespace = args.namespace
     errors_only = args.errors
 
     def nsStat(ns, errors_only):
-        stat = FabricQueueStat(ns) if queue else FabricPortStat(ns)
+        if queue:
+           stat = FabricQueueStat(ns)
+        elif reachability:
+           stat = FabricReachability(ns)
+           stat.reachability_print()
+           return
+        else:
+           stat = FabricPortStat(ns)
         cnstat_dict = stat.get_cnstat_dict()
         stat.cnstat_print(cnstat_dict, errors_only)
 
