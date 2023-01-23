@@ -370,6 +370,22 @@ def mode(db, state, port, json_output):
         sys.exit(CONFIG_SUCCESSFUL)
 
 
+# 'muxcable' command ("config muxcable kill-radv <enable|disable> ")
+@muxcable.command(short_help="Kill radv service when it is meant to be stopped, so no good-bye packet is sent for ceasing To Be an Advertising Interface")
+@click.argument('knob', metavar='<feature_knob>', required=True, type=click.Choice(["enable", "disable"]))
+@clicommon.pass_db
+def kill_radv(db, knob):
+    """config muxcable kill radv"""
+
+    namespaces = multi_asic.get_front_end_namespaces()
+    for namespace in namespaces:
+        config_db = ConfigDBConnector(use_unix_socket_path=True, namespace=namespace)
+        config_db.connect()
+
+        mux_lmgrd_cfg_tbl = config_db.get_table("MUX_LINKMGR")
+        config_db.mod_entry("MUX_LINKMGR", "SERVICE_MGMT", {"kill_radv": "True" if knob == "enable" else "False"})
+
+
  #'muxcable' command ("config muxcable packetloss reset <port|all>")
 @muxcable.command()
 @click.argument('action', metavar='<action_name>', required=True, type=click.Choice(["reset"]))
