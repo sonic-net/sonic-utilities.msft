@@ -797,10 +797,8 @@ class IntfLinkTrainingStatus(object):
                     continue
                 lt_admin = appl_db_port_status_get(self.db, key, PORT_LINK_TRAINING)
                 if lt_admin not in ['on', 'off']:
-                    lt_admin = '-'
+                    lt_admin = 'N/A'
                 lt_status = state_db_port_status_get(self.db, key, PORT_LINK_TRAINING_STATUS)
-                if lt_status in ['N/A', '', None]:
-                    lt_status = 'off'
                 table.append((key,
                               lt_status.replace('_', ' '),
                               lt_admin,

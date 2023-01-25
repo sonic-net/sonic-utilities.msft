@@ -441,14 +441,15 @@ The same syntax applies to all subgroups of `show` which themselves contain subc
     -?, -h, --help  Show this message and exit.
 
   Commands:
-    counters     Show interface counters
-    description  Show interface status, protocol and...
-    naming_mode  Show interface naming_mode status
-    neighbor     Show neighbor related information
-    portchannel  Show PortChannel information
-    status       Show Interface status information
-    tpid         Show Interface tpid information
-    transceiver  Show SFP Transceiver information
+    counters       Show interface counters
+    description    Show interface status, protocol and...
+    link-training  Show interface link-training information
+    naming_mode    Show interface naming_mode status
+    neighbor       Show neighbor related information
+    portchannel    Show PortChannel information
+    status         Show Interface status information
+    tpid           Show Interface tpid information
+    transceiver    Show SFP Transceiver information
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#getting-help)
@@ -3643,6 +3644,35 @@ This command displays the key fields of the interfaces such as Operational Statu
   Ethernet4    down       up  hundredGigE1/2  T0-2:hundredGigE1/30
   ```
 
+**show interfaces link-training (Versions >= 202211)**
+
+This command is to display the link-training status of the selected interfaces. If **interface_name** is not specicied, this command shows the link-training status of all interfaces.
+
+- Usage:
+  ```
+  show interfaces link-training status [<interface_name>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show interfaces link-training status
+    Interface      LT Oper    LT Admin    Oper    Admin
+  -----------  -----------  ----------  ------  -------
+    Ethernet0      trained          on      up       up
+    Ethernet8      trained          on      up       up
+   Ethernet16          off         off    down       up
+   Ethernet24  not trained          on    down       up
+   Ethernet32          off         off    down       up
+  ```
+
+- Example (to only display the link-training status of interface Ethernet8):
+  ```
+  admin@sonic:~$ show interfaces link-training status Ethernet8
+    Interface      LT Oper    LT Admin    Oper    Admin
+  -----------  -----------  ----------  ------  -------
+    Ethernet8      trained          on      up       up
+  ```
+
 **show interfaces mpls**
 
 This command is used to display the configured MPLS state for the list of configured interfaces.
@@ -3841,6 +3871,7 @@ This sub-section explains the following list of configuration on the interfaces.
 10) type - to set interface type
 11) mpls - To add or remove MPLS operation for the interface
 12) loopback-action - to set action for packet that ingress and gets routed on the same IP interface
+13) link-training - to set interface link-training mode
 
 From 201904 release onwards, the “config interface” command syntax is changed and the format is as follows:
 
@@ -4411,6 +4442,29 @@ Loopback action can be drop or forward.
   admin@sonic:~$ config interface ip loopback-action Ethernet0 forward
 
   ```
+
+**config interface link-training <interface_name> (Versions >= 202211)**
+
+This command is used for setting link-training mode of a interface.
+
+- Usage:
+  ```
+  sudo config interface link-training --help
+  Usage: config interface link-training [OPTIONS] <interface_name> <mode>
+
+    Set interface link-training mode
+
+  Options:
+    -v, --verbose   Enable verbose output
+    -h, -?, --help  Show this message and exit.
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config interface link-training Ethernet0 on
+  admin@sonic:~$ sudo config interface link-training Ethernet0 off
+  ```
+
 Go Back To [Beginning of the document](#) or [Beginning of this section](#interfaces)
 
 ## Interface Naming Mode
