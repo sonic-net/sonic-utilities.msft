@@ -29,7 +29,7 @@ class TestShowBfd(object):
                         "tx_interval" :"300", "rx_interval" : "500", "multiplier" : "3", "multihop": "true"})
         self.set_db_values(dbconnector, "BFD_SESSION_TABLE|default|Ethernet12|10.0.2.1",
                         {"state": "UP", "type": "async_active", "local_addr" : "10.0.0.1",
-                        "tx_interval" :"200", "rx_interval" : "600", "multiplier" : "3", "multihop": "false"})
+                        "tx_interval" :"200", "rx_interval" : "600", "multiplier" : "3", "multihop": "false", "local_discriminator": "88"})
         self.set_db_values(dbconnector, "BFD_SESSION_TABLE|default|default|2000::10:1",
                         {"state": "UP", "type": "async_active", "local_addr" : "2000::1",
                         "tx_interval" :"100", "rx_interval" : "700", "multiplier" : "3", "multihop": "false"})
@@ -39,14 +39,14 @@ class TestShowBfd(object):
 
         expected_output = """\
 Total number of BFD sessions: 6
-Peer Addr              Interface    Vrf      State    Type          Local Addr               TX Interval    RX Interval    Multiplier  Multihop
----------------------  -----------  -------  -------  ------------  ---------------------  -------------  -------------  ------------  ----------
-100.251.7.1            default      default  Up       async_active  10.0.0.1                         300            500             3  true
-fddd:a101:a251::a10:1  default      default  Down     async_active  fddd:c101:a251::a10:2            300            500             3  true
-10.0.1.1               default      default  DOWN     async_active  10.0.0.1                         300            500             3  true
-10.0.2.1               Ethernet12   default  UP       async_active  10.0.0.1                         200            600             3  false
-2000::10:1             default      default  UP       async_active  2000::1                          100            700             3  false
-10.0.1.1               default      VrfRed   UP       async_active  10.0.0.1                         400            500             5  false
+Peer Addr              Interface    Vrf      State    Type          Local Addr               TX Interval    RX Interval    Multiplier  Multihop    Local Discriminator
+---------------------  -----------  -------  -------  ------------  ---------------------  -------------  -------------  ------------  ----------  ---------------------
+100.251.7.1            default      default  Up       async_active  10.0.0.1                         300            500             3  true        NA
+fddd:a101:a251::a10:1  default      default  Down     async_active  fddd:c101:a251::a10:2            300            500             3  true        NA
+10.0.1.1               default      default  DOWN     async_active  10.0.0.1                         300            500             3  true        NA
+10.0.2.1               Ethernet12   default  UP       async_active  10.0.0.1                         200            600             3  false       88
+2000::10:1             default      default  UP       async_active  2000::1                          100            700             3  false       NA
+10.0.1.1               default      VrfRed   UP       async_active  10.0.0.1                         400            500             5  false       NA
 """
 
         result = runner.invoke(show.cli.commands['bfd'].commands['summary'], [], obj=db)
@@ -55,10 +55,10 @@ fddd:a101:a251::a10:1  default      default  Down     async_active  fddd:c101:a2
 
         expected_output = """\
 Total number of BFD sessions for peer IP 10.0.1.1: 2
-Peer Addr    Interface    Vrf      State    Type          Local Addr      TX Interval    RX Interval    Multiplier  Multihop
------------  -----------  -------  -------  ------------  ------------  -------------  -------------  ------------  ----------
-10.0.1.1     default      default  DOWN     async_active  10.0.0.1                300            500             3  true
-10.0.1.1     default      VrfRed   UP       async_active  10.0.0.1                400            500             5  false
+Peer Addr    Interface    Vrf      State    Type          Local Addr      TX Interval    RX Interval    Multiplier  Multihop    Local Discriminator
+-----------  -----------  -------  -------  ------------  ------------  -------------  -------------  ------------  ----------  ---------------------
+10.0.1.1     default      default  DOWN     async_active  10.0.0.1                300            500             3  true        NA
+10.0.1.1     default      VrfRed   UP       async_active  10.0.0.1                400            500             5  false       NA
 """
 
         result = runner.invoke(show.cli.commands['bfd'].commands['peer'], ['10.0.1.1'], obj=db)
@@ -67,9 +67,9 @@ Peer Addr    Interface    Vrf      State    Type          Local Addr      TX Int
 
         expected_output = """\
 Total number of BFD sessions for peer IP 10.0.2.1: 1
-Peer Addr    Interface    Vrf      State    Type          Local Addr      TX Interval    RX Interval    Multiplier  Multihop
------------  -----------  -------  -------  ------------  ------------  -------------  -------------  ------------  ----------
-10.0.2.1     Ethernet12   default  UP       async_active  10.0.0.1                200            600             3  false
+Peer Addr    Interface    Vrf      State    Type          Local Addr      TX Interval    RX Interval    Multiplier  Multihop      Local Discriminator
+-----------  -----------  -------  -------  ------------  ------------  -------------  -------------  ------------  ----------  ---------------------
+10.0.2.1     Ethernet12   default  UP       async_active  10.0.0.1                200            600             3  false                          88
 """
 
         result = runner.invoke(show.cli.commands['bfd'].commands['peer'], ['10.0.2.1'], obj=db)
@@ -91,10 +91,10 @@ No BFD sessions found for peer IP 10.0.3.1
 
         expected_output = """\
 Total number of BFD sessions: 2
-Peer Addr              Interface    Vrf      State    Type          Local Addr               TX Interval    RX Interval    Multiplier  Multihop
----------------------  -----------  -------  -------  ------------  ---------------------  -------------  -------------  ------------  ----------
-100.251.7.1            default      default  Up       async_active  10.0.0.1                         300            500             3  true
-fddd:a101:a251::a10:1  default      default  Down     async_active  fddd:c101:a251::a10:2            300            500             3  true
+Peer Addr              Interface    Vrf      State    Type          Local Addr               TX Interval    RX Interval    Multiplier  Multihop    Local Discriminator
+---------------------  -----------  -------  -------  ------------  ---------------------  -------------  -------------  ------------  ----------  ---------------------
+100.251.7.1            default      default  Up       async_active  10.0.0.1                         300            500             3  true        NA
+fddd:a101:a251::a10:1  default      default  Down     async_active  fddd:c101:a251::a10:2            300            500             3  true        NA
 """
 
         result = runner.invoke(show.cli.commands['bfd'].commands['summary'], [], obj=db)
