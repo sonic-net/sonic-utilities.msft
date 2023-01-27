@@ -76,7 +76,6 @@ class ChangeApplier:
     def __init__(self):
         self.config_db = get_config_db()
         self.backend_tables = [
-            "bgpraw",
             "BUFFER_PG",
             "BUFFER_PROFILE",
             "FLEX_COUNTER_TABLE"

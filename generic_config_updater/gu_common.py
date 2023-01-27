@@ -54,7 +54,9 @@ class ConfigWrapper:
 
     def get_config_db_as_json(self):
         text = self._get_config_db_as_text()
-        return json.loads(text)
+        config_db_json = json.loads(text)
+        config_db_json.pop("bgpraw", None)
+        return config_db_json
 
     def _get_config_db_as_text(self):
         # TODO: Getting configs from CLI is very slow, need to get it from sonic-cffgen directly
