@@ -7,7 +7,7 @@ import utilities_common.cli as clicommon
 
 
 def get_system_health_status():
-    if os.environ["UTILITIES_UNIT_TESTING"] == "1":
+    if os.environ.get("UTILITIES_UNIT_TESTING") == "1":
         modules_path = os.path.join(os.path.dirname(__file__), "..")
         sys.path.insert(0, modules_path)
         from tests.system_health_test import MockerManager
