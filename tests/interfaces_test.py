@@ -3,6 +3,7 @@ import traceback
 
 from click.testing import CliRunner
 from unittest import mock
+from utilities_common.intf_filter import parse_interface_in_filter
 
 import show.main as show
 
@@ -314,6 +315,27 @@ class TestInterfaces(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code != 0
+
+    def test_parse_interface_in_filter(self):
+        intf_filter = "Ethernet0"
+        intf_list = parse_interface_in_filter(intf_filter)
+        assert len(intf_list) == 1
+        assert intf_list[0] == "Ethernet0"
+
+        intf_filter = "Ethernet1-3"
+        intf_list = parse_interface_in_filter(intf_filter)
+        assert len(intf_list) == 3
+        assert intf_list == ["Ethernet1", "Ethernet2", "Ethernet3"]
+
+        intf_filter = "Ethernet-BP10"
+        intf_list = parse_interface_in_filter(intf_filter)
+        assert len(intf_list) == 1
+        assert intf_list[0] == "Ethernet-BP10"
+
+        intf_filter = "Ethernet-BP10-12"
+        intf_list = parse_interface_in_filter(intf_filter)
+        assert len(intf_list) == 3
+        assert intf_list == ["Ethernet-BP10", "Ethernet-BP11", "Ethernet-BP12"]
 
     @classmethod
     def teardown_class(cls):
