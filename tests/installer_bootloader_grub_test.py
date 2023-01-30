@@ -53,3 +53,11 @@ def test_set_fips_grub():
 
     # Cleanup the _tmp_host folder
     shutil.rmtree(tmp_host_path)
+
+def test_verify_image():
+
+    bootloader = grub.GrubBootloader()
+    image = f'{grub.IMAGE_PREFIX}expeliarmus-{grub.IMAGE_PREFIX}abcde'
+
+    # command should fail
+    assert not bootloader.verify_image_sign(image)
