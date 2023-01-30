@@ -15,6 +15,7 @@ import sys
 from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
+from sonic_py_common import multi_asic
 
 # mock the redis for unit test purposes #
 try:
@@ -24,12 +25,17 @@ try:
         sys.path.insert(0, modules_path)
         sys.path.insert(0, tests_path)
         import mock_tables.dbconnector # lgtm [py/unused-import]
+    if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+        import mock_tables.mock_multi_asic
+        mock_tables.dbconnector.load_namespace_config()
 
 except KeyError:
     pass
 
 from swsscommon.swsscommon import SonicV2Connector
 from utilities_common.cli import UserCache
+from utilities_common import constants
+import utilities_common.multi_asic as multi_asic_util
 
 QueueStats = namedtuple("QueueStats", "queueindex, queuetype, totalpacket, totalbytes, droppacket, dropbytes")
 header = ['Port', 'TxQ', 'Counter/pkts', 'Counter/bytes', 'Drop/pkts', 'Drop/bytes']
@@ -85,9 +91,15 @@ def build_json(port, cnstat):
 
 
 class Queuestat(object):
-    def __init__(self, voq=False):
-        self.db = SonicV2Connector(use_unix_socket_path=False)
-        self.db.connect(self.db.COUNTERS_DB)
+    def __init__(self, namespace, voq=False):
+        self.db = None
+        self.multi_asic = multi_asic_util.MultiAsic(constants.DISPLAY_ALL, namespace)
+        if namespace is not None:
+            for ns in self.multi_asic.get_ns_list_based_on_options():
+                self.db = multi_asic.connect_to_all_dbs_for_ns(ns)
+        else:
+            self.db = SonicV2Connector(use_unix_socket_path=False)
+            self.db.connect(self.db.COUNTERS_DB)
         self.voq = voq
 
         def get_queue_port(table_id):
@@ -345,12 +357,14 @@ Examples:
     parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
     parser.add_argument('-j', '--json_opt', action='store_true', help='Print in JSON format')
     parser.add_argument('-V', '--voq', action='store_true', help='display voq stats')
+    parser.add_argument('-n','--namespace', default=None, help='Display queue counters for specific namespace')
     args = parser.parse_args()
 
     save_fresh_stats = args.clear
     delete_stats = args.delete
     voq = args.voq
     json_opt = args.json_opt
+    namespace = args.namespace
 
     port_to_show_stats = args.port
 
@@ -362,7 +376,7 @@ Examples:
     if delete_stats:
         cache.remove()
 
-    queuestat = Queuestat( voq )
+    queuestat = Queuestat( namespace, voq )
 
     if save_fresh_stats:
         queuestat.save_fresh_stats()

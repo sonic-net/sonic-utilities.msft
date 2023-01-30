@@ -704,10 +704,11 @@ def queue():
 # 'counters' subcommand ("show queue counters")
 @queue.command()
 @click.argument('interfacename', required=False)
+@multi_asic_util.multi_asic_click_options
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.option('--json', is_flag=True, help="JSON output")
 @click.option('--voq', is_flag=True, help="VOQ counters")
-def counters(interfacename, verbose, json, voq):
+def counters(interfacename, namespace, display, verbose, json, voq):
     """Show queue counters"""
 
     cmd = "queuestat"
@@ -718,6 +719,9 @@ def counters(interfacename, verbose, json, voq):
 
     if interfacename is not None:
         cmd += " -p {}".format(interfacename)
+
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
 
     if json:
         cmd += " -j"
