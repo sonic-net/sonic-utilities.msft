@@ -130,6 +130,32 @@ teamd       enabled
 telemetry   enabled
 """
 
+show_feature_autorestart_missing_output="""\
+Feature     AutoRestart
+----------  --------------
+bar         unknown
+bgp         enabled
+database    always_enabled
+dhcp_relay  enabled
+lldp        enabled
+nat         enabled
+pmon        enabled
+radv        enabled
+restapi     enabled
+sflow       enabled
+snmp        enabled
+swss        enabled
+syncd       enabled
+teamd       enabled
+telemetry   enabled
+"""
+
+show_feature_autorestart_bar_missing_output="""\
+Feature    AutoRestart
+---------  -------------
+bar        unknown
+"""
+
 show_feature_bgp_autorestart_output="""\
 Feature    AutoRestart
 ---------  -------------
@@ -276,6 +302,25 @@ class TestFeature(object):
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 1
+
+    def test_show_feature_autorestart_missing(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        db = Db()
+        dbconn = db.db
+        db.cfgdb.set_entry("FEATURE", "bar", { "state": "enabled" })
+        runner = CliRunner()
+
+        result = runner.invoke(show.cli.commands["feature"].commands["autorestart"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_feature_autorestart_missing_output
+
+        result = runner.invoke(show.cli.commands["feature"].commands["autorestart"], ["bar"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+        assert result.output == show_feature_autorestart_bar_missing_output
 
     def test_config_bgp_feature_state(self, get_cmd_module):
         (config, show) = get_cmd_module
