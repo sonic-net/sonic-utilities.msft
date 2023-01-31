@@ -2349,6 +2349,74 @@ This command is used to delete a configured DHCP Relay Destination IP address or
   Restarting DHCP relay service...
   ```
 
+**config dhcp_relay ipv4 helper add/del**
+
+This command is used to add or delete IPv4 DHCP Relay helper addresses to a VLAN. Note that more than one DHCP Relay helper addresses can be operated on a VLAN interface.
+
+- Usage:
+  ```
+  config dhcp_relay ipv4 helper (add | del) <vlan_id> <dhcp_helper_ips>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv4 helper add 1000 7.7.7.7
+  Added DHCP relay address [7.7.7.7] to Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv4 helper add 1000 7.7.7.7 1.1.1.1
+  Added DHCP relay address [7.7.7.7, 1.1.1.1] to Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv4 helper del 1000 7.7.7.7
+  Removed DHCP relay address [7.7.7.7] from Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv4 helper del 1000 7.7.7.7 1.1.1.1
+  Removed DHCP relay address [7.7.7.7, 1.1.1.1] from Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+**config dhcp_relay ipv6 destination add/del**
+
+This command is used to add or del IPv6 DHCP Relay destination addresses to a VLAN. Note that more than one DHCP Relay Destination addresses can be operated on a VLAN interface.
+
+- Usage:
+  ```
+  config dhcp_relay ipv6 destination (add | del) <vlan_id> <dhcp_destination_ips>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv6 destination add 1000 fc02:2000::1
+  Added DHCP relay address [fc02:2000::1] to Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv6 destination add 1000 fc02:2000::1 fc02:2000::2
+  Added DHCP relay address [fc02:2000::1, fc02:2000::2] to Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv6 destination del 1000 fc02:2000::1
+  Removed DHCP relay address [fc02:2000::1] from Vlan1000
+  Restarting DHCP relay service...
+  ```
+
+  ```
+  admin@sonic:~$ sudo config dhcp_relay ipv6 destination del 1000 fc02:2000::1 fc02:2000::2
+  Removed DHCP relay address [fc02:2000::1, fc02:2000::2] from Vlan1000
+  Restarting DHCP relay service...
+  ```
+
 Go Back To [Beginning of the document](#) or [Beginning of this section](#dhcp-relay)
 
 
