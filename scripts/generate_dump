@@ -1560,6 +1560,7 @@ main() {
     save_cmd "show reboot-cause" reboot.cause
 
     local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
+    local device_type=`sonic-db-cli CONFIG_DB hget 'DEVICE_METADATA|localhost' type`
     # 1st counter snapshot early. Need 2 snapshots to make sense of counters trend.
     save_counter_snapshot $asic 1
 
@@ -1643,7 +1644,9 @@ main() {
     save_cmd "hdparm -i /dev/sda" "hdparm"
     save_cmd "ps -AwwL -o user,pid,lwp,ppid,nlwp,pcpu,pri,nice,vsize,rss,tty,stat,wchan:12,start,bsdtime,command" "ps.extended"
 
-    save_saidump
+    if [[ "$device_type" != "SpineRouter" ]]; then
+        save_saidump
+    fi
 
     if [ "$asic" = "barefoot" ]; then
         collect_barefoot
