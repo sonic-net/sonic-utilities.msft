@@ -1439,10 +1439,40 @@ def ports(portname, verbose):
 # 'bgp' subcommand ("show runningconfiguration bgp")
 @runningconfiguration.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
-def bgp(verbose):
-    """Show BGP running configuration"""
-    cmd = 'sudo {} -c "show running-config"'.format(constants.RVTYSH_COMMAND)
-    run_command(cmd, display_cmd=verbose)
+@click.option('--namespace', '-n', 'namespace', required=False, default=None, type=str, show_default=False,
+              help='Option needed for multi-asic only: provide namespace name',
+              callback=multi_asic_util.multi_asic_namespace_validation_callback)
+def bgp(namespace, verbose):
+    """
+    Show BGP running configuration
+    Note:
+        multi-asic can run 'show run bgp' and show from all asics, or 'show run bgp -n <ns>'
+        single-asic only run 'show run bgp', '-n' is not available
+    """
+
+    if multi_asic.is_multi_asic():
+        if namespace and namespace not in multi_asic.get_namespace_list():
+            ctx = click.get_current_context()
+            ctx.fail("invalid value for -n/--namespace option. provide namespace from list {}".format(multi_asic.get_namespace_list()))
+    if not multi_asic.is_multi_asic() and namespace:
+        ctx = click.get_current_context()
+        ctx.fail("-n/--namespace is not available for single asic")
+
+    output = ""
+    cmd = "show running-config bgp"
+    import utilities_common.bgp_util as bgp_util
+    if multi_asic.is_multi_asic():
+        if not namespace:
+            ns_list = multi_asic.get_namespace_list()
+            for ns in ns_list:
+                output += "\n------------Showing running config bgp on {}------------\n".format(ns)
+                output += bgp_util.run_bgp_show_command(cmd, ns)
+        else:
+            output += "\n------------Showing running config bgp on {}------------\n".format(namespace)
+            output += bgp_util.run_bgp_show_command(cmd, namespace)
+    else:
+        output += bgp_util.run_bgp_show_command(cmd)
+    print(output)
 
 
 # 'interfaces' subcommand ("show runningconfiguration interfaces")
