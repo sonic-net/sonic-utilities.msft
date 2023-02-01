@@ -1121,5 +1121,39 @@
     },
     "ADVERTISE_NETWORK_TABLE|fccc:a250:a251::a6:1/128": {
         "profile": ""
+    },
+    "FABRIC_PORT_TABLE|PORT0" : {
+        "STATUS": "up",
+        "REMOTE_MOD": "0",
+        "REMOTE_PORT": "79"
+    },
+    "FABRIC_PORT_TABLE|PORT1" : {
+        "STATUS": "down"
+    },
+    "FABRIC_PORT_TABLE|PORT2" : {
+        "STATUS": "up",
+        "REMOTE_MOD": "0",
+        "REMOTE_PORT": "94"
+    },
+    "FABRIC_PORT_TABLE|PORT3" : {
+        "STATUS": "down"
+    },
+    "FABRIC_PORT_TABLE|PORT4" : {
+        "STATUS": "up",
+        "REMOTE_MOD": "0",
+        "REMOTE_PORT": "85"
+    },
+    "FABRIC_PORT_TABLE|PORT5" : {
+        "STATUS": "down"
+    },
+    "FABRIC_PORT_TABLE|PORT6" : {
+        "STATUS": "up",
+        "REMOTE_MOD": "0",
+        "REMOTE_PORT": "84"
+    },
+    "FABRIC_PORT_TABLE|PORT7" : {
+        "STATUS": "up",
+        "REMOTE_MOD": "0",
+        "REMOTE_PORT": "93"
     }
 }

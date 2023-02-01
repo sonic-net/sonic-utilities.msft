@@ -14,7 +14,7 @@ import utilities_common.multi_asic as multi_asic_util
 
 # mock the redis for unit test purposes #
 try:
-    if os.environ["UTILITIES_UNIT_TESTING"] == "2":
+    if os.environ["UTILITIES_UNIT_TESTING"] == "1" or os.environ["UTILITIES_UNIT_TESTING"] == "2":
         modules_path = os.path.join(os.path.dirname(__file__), "..")
         tests_path = os.path.join(modules_path, "tests")
         sys.path.insert(0, modules_path)
@@ -122,17 +122,21 @@ class FabricPortStat(FabricStat):
 
         table = []
         header = None
-        asic = multi_asic.get_asic_id_from_name(self.namespace)
+        # Default ASIC name is 0 for single-ASIC systems. For multi-ASIC systems,
+        # derive name from namespace.
+        asic_name = '0'
+        if self.namespace:
+            asic_name = multi_asic.get_asic_id_from_name(self.namespace)
         for key, data in cnstat_dict.items():
             port_id = key[len(PORT_NAME_PREFIX):]
             if errors_only:
                 header = portstat_header_errors_only
-                table.append((asic, port_id, self.get_port_state(key),
+                table.append((asic_name, port_id, self.get_port_state(key),
                               data.crc, data.fec_correctable, data.fec_uncorrectable,
                               data.symbol_err))
             else:
                 header = portstat_header_all
-                table.append((asic, port_id, self.get_port_state(key),
+                table.append((asic_name, port_id, self.get_port_state(key),
                               data.in_cell, data.in_octet, data.out_cell, data.out_octet,
                               data.crc, data.fec_correctable, data.fec_uncorrectable,
                               data.symbol_err))
@@ -168,11 +172,15 @@ class FabricQueueStat(FabricStat):
             return
 
         table = []
-        asic = multi_asic.get_asic_id_from_name(self.namespace)
+        # Default ASIC name is 0 for single-ASIC systems. For multi-ASIC systems,
+        # derive name from namespace.
+        asic_name = '0'
+        if self.namespace:
+            asic_name = multi_asic.get_asic_id_from_name(self.namespace)
         for key, data in cnstat_dict.items():
             port_name, queue_id = key.split(':')
             port_id = port_name[len(PORT_NAME_PREFIX):]
-            table.append((asic, port_id, self.get_port_state(port_name), queue_id,
+            table.append((asic_name, port_id, self.get_port_state(port_name), queue_id,
                           data.curbyte, data.curlevel, data.watermarklevel))
 
         print(tabulate(table, queuestat_header, tablefmt='simple', stralign='right'))
