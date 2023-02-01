@@ -1257,14 +1257,18 @@ def table(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def logging(process, lines, follow, verbose):
     """Show system log"""
+    if os.path.exists("/var/log.tmpfs"):
+        log_path = "/var/log.tmpfs"
+    else:
+        log_path = "/var/log"
     if follow:
-        cmd = "sudo tail -F /var/log/syslog"
+        cmd = "sudo tail -F {}/syslog".format(log_path)
         run_command(cmd, display_cmd=verbose)
     else:
-        if os.path.isfile("/var/log/syslog.1"):
-            cmd = "sudo cat /var/log/syslog.1 /var/log/syslog"
+        if os.path.isfile("{}/syslog.1".format(log_path)):
+            cmd = "sudo cat {}/syslog.1 {}/syslog".format(log_path, log_path)
         else:
-            cmd = "sudo cat /var/log/syslog"
+            cmd = "sudo cat {}/syslog".format(log_path)
 
         if process is not None:
             cmd += " | grep '{}'".format(process)
