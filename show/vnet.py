@@ -333,6 +333,29 @@ def routes():
     """Show vnet routes related information"""
     pass
 
+def pretty_print(table, r, epval, mac_addr, vni, state):
+    endpoints = epval.split(',')
+    row_width = 3
+    max_len = 0
+    for ep in endpoints:
+        max_len = len(ep) if len(ep) > max_len else max_len
+    if max_len > 15:
+        row_width = 2
+    iter = 0
+    while iter < len(endpoints):
+        if iter +row_width > len(endpoints):
+            r.append(",".join(endpoints[iter:]))
+        else:
+            r.append(",".join(endpoints[iter:iter + row_width]))
+        if iter == 0:
+            r.append(mac_addr)
+            r.append(vni)
+            r.append(state)
+        else:
+            r.extend(["", "", ""])
+        iter += row_width
+        table.append(r)
+        r = ["",""]
 
 @routes.command()
 def all():
@@ -373,12 +396,17 @@ def all():
         state_db_key = '|'.join(k.split(":",2))
         val = appl_db.get_all(appl_db.APPL_DB, k)
         val_state = state_db.get_all(state_db.STATE_DB, state_db_key)
-        r.append(val.get('endpoint'))
-        r.append(val.get('mac_address'))
-        r.append(val.get('vni'))
-        if val_state:
-            r.append(val_state.get('state'))
-        table.append(r)
+        epval = val.get('endpoint')
+        if len(epval) < 40:
+            r.append(epval)
+            r.append(val.get('mac_address'))
+            r.append(val.get('vni'))
+            if val_state:
+                r.append(val_state.get('state'))
+            table.append(r)
+            continue
+        state = val_state.get('state') if val_state else ""
+        pretty_print(table, r, epval, val.get('mac_address'), val.get('vni'), state )
 
     click.echo(tabulate(table, header))
 
