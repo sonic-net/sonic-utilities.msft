@@ -822,14 +822,18 @@ class DBMigrator():
             keys = self.loglevelDB.keys(self.loglevelDB.LOGLEVEL_DB, "*")
             if keys is not None:
                 for key in keys:
-                    if key != "JINJA2_CACHE":
-                        fvs = self.loglevelDB.get_all(self.loglevelDB.LOGLEVEL_DB, key)
-                        component = key.split(":")[1]
-                        loglevel = fvs[loglevel_field]
-                        logoutput = fvs[logoutput_field]
-                        self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), loglevel_field, loglevel)
-                        self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), logoutput_field, logoutput)
-                    self.loglevelDB.delete(self.loglevelDB.LOGLEVEL_DB, key)
+                    try:
+                        if key != "JINJA2_CACHE":
+                            fvs = self.loglevelDB.get_all(self.loglevelDB.LOGLEVEL_DB, key)
+                            component = key.split(":")[1]
+                            loglevel = fvs[loglevel_field]
+                            logoutput = fvs[logoutput_field]
+                            self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), loglevel_field, loglevel)
+                            self.configDB.set(self.configDB.CONFIG_DB, '{}|{}'.format(table_name, component), logoutput_field, logoutput)
+                    except Exception as err:
+                        log.log_warning('Error occured during LOGLEVEL_DB migration for {}. Ignoring key {}'.format(err, key))
+                    finally:
+                        self.loglevelDB.delete(self.loglevelDB.LOGLEVEL_DB, key)
         self.set_version('version_3_0_6')
         return 'version_3_0_6'
 
