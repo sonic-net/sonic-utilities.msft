@@ -549,6 +549,24 @@
         "version_self_next": "0.2MS",
         "version_self_active": "0.2MS",
         "version_self_inactive": "0.2MS",
+        "peer_mux_direction": "active",
+        "self_mux_direction": "active",
+        "grpc_connection_status": "READY",
+        "Value": "AABB"
+     },
+    "MUX_CABLE_INFO|Ethernet4": {
+        "version_peer_next": "0.2MS",
+        "version_peer_active": "0.2MS",
+        "version_peer_inactive": "0.2MS",
+        "version_nic_next": "0.2MS",
+        "version_nic_active": "0.2MS",
+        "version_nic_inactive": "0.2MS",
+        "version_self_next": "0.2MS",
+        "version_self_active": "0.2MS",
+        "version_self_inactive": "0.2MS",
+        "peer_mux_direction": "active",
+        "self_mux_direction": "standby",
+        "grpc_connection_status": "READY",
         "Value": "AABB"
     },
     "MUX_CABLE_INFO|Ethernet12": {
