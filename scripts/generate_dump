@@ -1053,21 +1053,26 @@ collect_mellanox() {
     local sai_dump_folder="/tmp/saisdkdump"
     local sai_dump_filename="${sai_dump_folder}/sai_sdk_dump_$(date +"%m_%d_%Y_%I_%M_%p")"
 
-    ${CMD_PREFIX}docker exec syncd mkdir -p $sai_dump_folder
-    ${CMD_PREFIX}docker exec syncd saisdkdump -f $sai_dump_filename
+    if [[ "$( docker container inspect -f '{{.State.Running}}' syncd )" == "true" ]]; then
+        if [[ x"$(sonic-db-cli APPL_DB EXISTS PORT_TABLE:PortInitDone)" == x"1" ]]; then
+            # Run saisdkdump only after the create_switch is known to be successful
+            ${CMD_PREFIX}docker exec syncd mkdir -p $sai_dump_folder
+            ${CMD_PREFIX}docker exec syncd saisdkdump -f $sai_dump_filename
 
-    if [ $? != 0 ]; then
-        echo "Failed to collect saisdkdump."
+            if [ $? != 0 ]; then
+                echo "Failed to collect saisdkdump."
+            fi
+
+            copy_from_docker syncd $sai_dump_folder $sai_dump_folder
+            echo "$sai_dump_folder"
+            for file in `ls $sai_dump_folder`; do
+                save_file ${sai_dump_folder}/${file} sai_sdk_dump true
+            done
+
+            ${CMD_PREFIX}rm -rf $sai_dump_folder
+            ${CMD_PREFIX}docker exec syncd rm -rf $sai_dump_folder
+        fi
     fi
-
-    copy_from_docker syncd $sai_dump_folder $sai_dump_folder
-    echo "$sai_dump_folder"
-    for file in `ls $sai_dump_folder`; do
-        save_file ${sai_dump_folder}/${file} sai_sdk_dump true
-    done
-
-    ${CMD_PREFIX}rm -rf $sai_dump_folder
-    ${CMD_PREFIX}docker exec syncd rm -rf $sai_dump_folder
 
     # run 'hw-management-generate-dump.sh' script and save the result file
     HW_DUMP_FILE=/usr/bin/hw-management-generate-dump.sh
@@ -1430,6 +1435,38 @@ save_crash_files() {
 }
 
 ###############################################################################
+# Collect SAI failure dump files under /var/log/sai_failure_dump/. These files are
+#  created because of the orchagent abort triggered by SAI programming failure
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_sai_failure_dump(){
+    for file in $(find_files "/var/log/sai_failure_dump/"); do
+        if $TAR -tf $TARFILE | grep $BASE/log/$(basename $file); then
+            # if the files are already collected under the log/ dir
+            # just add a symbolic link
+            if [ ! -z "${file##*.gz}" ]; then
+                # files saved under log/ are zipped with gz
+                file=$file.gz
+            fi
+            ${CMD_PREFIX}save_symlink ${file} sai_failure_dump log
+        else
+            if [ ! -z "${file##*.gz}" ]; then
+                ${CMD_PREFIX}save_file ${file} sai_failure_dump true
+            else
+                ${CMD_PREFIX}save_file ${file} sai_failure_dump false
+            fi
+        fi
+        #Clean up the file once its part of tech support
+        rm -f $file
+    done
+}
+
+###############################################################################
 # Get number of ASICs in the platform
 # Globals:
 #  None
@@ -1709,6 +1746,7 @@ main() {
     save_log_files
     save_crash_files
     save_warmboot_files
+    save_sai_failure_dump 
 
     if [[ "$asic" = "mellanox" ]]; then
         collect_mellanox_dfw_dumps
