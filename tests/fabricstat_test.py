@@ -90,6 +90,36 @@ multi_asic_fabric_counters_queue_asic0 = """\
 
 """
 
+class TestFabricStat(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        os.environ["PATH"] += os.pathsep + scripts_path
+        os.environ["UTILITIES_UNIT_TESTING"] = "1"
+
+    def test_single_show_fabric_counters(self):
+        from .mock_tables import mock_single_asic
+        import importlib
+        importlib.reload(mock_single_asic)
+        from .mock_tables import dbconnector
+        dbconnector.load_database_config
+        dbconnector.load_namespace_config()
+
+        return_code, result = get_result_and_return_code('fabricstat')
+        print("return_code: {}".format(return_code))
+        print("result = {}".format(result))
+        assert return_code == 0
+        assert result == multi_asic_fabric_counters_asic0
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ["PATH"] = os.pathsep.join(
+            os.environ["PATH"].split(os.pathsep)[:-1])
+        os.environ["UTILITIES_UNIT_TESTING"] = "0"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
+
+
 class TestMultiAsicFabricStat(object):
     @classmethod
     def setup_class(cls):
