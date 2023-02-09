@@ -202,6 +202,36 @@ QSFP_DD_DOM_VALUE_UNIT_MAP = {
     'voltage': 'Volts'
 }
 
+ZR_PM_HEADER = ['Parameter', 'Unit', 'Min', 'Avg', 'Max',
+                'Threshold\nHigh\nAlarm', 'Threshold\nHigh\nWarning',
+                'Threshold\nCrossing\nAlert-High',
+                'Threshold\nLow\nAlarm', 'Threshold\nLow\nWarning',
+                'Threshold\nCrossing\nAlert-Low']
+
+ZR_PM_VALUE_KEY_SUFFIXS = ['min', 'avg', 'max']
+
+ZR_PM_THRESHOLD_KEY_SUFFIXS = ['highalarm',
+                               'highwarning', 'lowalarm', 'lowwarning']
+
+# mapping from parameter_name to [unit, parameter_key_prefix]
+ZR_PM_INFO_MAP = {
+    'Tx Power': ['dBm', 'tx_power'],
+    'Rx Total Power': ['dBm', 'rx_tot_power'],
+    'Rx Signal Power': ['dBm', 'rx_sig_power'],
+    'CD-short link': ['ps/nm', 'cd'],
+    'PDL': ['dB', 'pdl'],
+    'OSNR': ['dB', 'osnr'],
+    'eSNR': ['dB', 'esnr'],
+    'CFO': ['MHz', 'cfo'],
+    'DGD': ['ps', 'dgd'],
+    'SOPMD': ['ps^2', 'sopmd'],
+    'SOP ROC': ['krad/s', 'soproc'],
+    'Pre-FEC BER': ['N/A', 'prefec_ber'],
+    'Post-FEC BER': ['N/A', 'uncorr_frames'],
+    'EVM': ['%', 'evm']
+}
+
+ZR_PM_NOT_APPLICABLE_STR = 'Transceiver performance monitoring not applicable'
 
 def display_invalid_intf_eeprom(intf_name):
     output = intf_name + ': SFP EEPROM Not detected\n'
@@ -215,6 +245,10 @@ def display_invalid_intf_presence(intf_name):
     click.echo(tabulate(port_table, header))
 
 
+def display_invalid_intf_pm(intf_name):
+    output = intf_name + ': %s\n' % ZR_PM_NOT_APPLICABLE_STR
+    click.echo(output)
+
 class SFPShow(object):
     def __init__(self, intf_name, namespace_option, dump_dom=False):
         super(SFPShow, self).__init__()
@@ -223,6 +257,7 @@ class SFPShow(object):
         self.dump_dom = dump_dom
         self.table = []
         self.intf_eeprom: Dict[str, str] = {}
+        self.intf_pm: Dict[str, str] = {}
         self.multi_asic = multi_asic_util.MultiAsic(namespace_option=namespace_option)
 
     # Convert dict values to cli output string
@@ -402,6 +437,66 @@ class SFPShow(object):
 
         return output
 
+    def convert_pm_prefix_to_threshold_prefix(self, pm_prefix):
+        if pm_prefix == 'uncorr_frames':
+            return 'postfecber'
+        elif pm_prefix == 'cd':
+            return 'cdshort'
+        else:
+            return pm_prefix.replace('_', '')
+
+    def beautify_pm_field(self, prefix, field):
+        if field is None:
+            return 'N/A'
+        elif prefix in {'prefec_ber'}:
+            return "{:.2E}".format(field) if field != 0 else '0.0'
+        else:
+            return str(field)
+
+    def convert_interface_sfp_pm_to_cli_output_string(self, state_db, interface_name):
+        sfp_pm_dict = state_db.get_all(
+            self.db.STATE_DB, 'TRANSCEIVER_PM|{}'.format(interface_name))
+        sfp_threshold_dict = state_db.get_all(
+            state_db.STATE_DB, 'TRANSCEIVER_DOM_THRESHOLD|{}'.format(interface_name))
+        table = []
+        indent_num = 4
+        indent = ' ' * indent_num
+        if sfp_pm_dict:
+            output = '\n' + indent
+            for param_name, (unit, prefix) in ZR_PM_INFO_MAP.items():
+                row = [param_name, unit]
+                values = []
+                for suffix in ZR_PM_VALUE_KEY_SUFFIXS:
+                    key = prefix + '_' + suffix
+                    values.append(
+                        float(sfp_pm_dict[key]) if key in sfp_pm_dict else None)
+
+                thresholds = []
+                for suffix in ZR_PM_THRESHOLD_KEY_SUFFIXS:
+                    key = self.convert_pm_prefix_to_threshold_prefix(
+                        prefix) + suffix
+                    thresholds.append(
+                        float(sfp_threshold_dict[key]) if key in sfp_threshold_dict else None)
+
+                tca_high, tca_low = None, None
+                if values[2] is not None and thresholds[0] is not None:
+                    # TCA-High: max > high_alarm
+                    tca_high = values[2] > thresholds[0]
+                if values[0] is not None and thresholds[2] is not None:
+                    # TCA-low: min < low_alarm
+                    tca_low = values[0] < thresholds[2]
+
+                for field in values + thresholds[:2] + [tca_high] + thresholds[2:] + [tca_low]:
+                    row.append(self.beautify_pm_field(prefix, field))
+                table.append(row)
+
+            output += tabulate(table,
+                               ZR_PM_HEADER, disable_numparse=True).replace('\n', '\n' + indent)
+            output += '\n'
+        else:
+            output = ZR_PM_NOT_APPLICABLE_STR + '\n'
+        return output
+
     @multi_asic_util.run_on_multi_asic
     def get_eeprom(self):
         if self.intf_name is not None:
@@ -441,6 +536,19 @@ class SFPShow(object):
 
         self.table += port_table
 
+    @multi_asic_util.run_on_multi_asic
+    def get_pm(self):
+        if self.intf_name is not None:
+            self.intf_pm[self.intf_name] = self.convert_interface_sfp_pm_to_cli_output_string(
+                self.db, self.intf_name)
+        else:
+            port_table_keys = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
+            for i in port_table_keys:
+                interface = re.split(':', i, maxsplit=1)[-1].strip()
+                if interface and interface.startswith(front_panel_prefix()) and not interface.startswith((backplane_prefix(), inband_prefix(), recirc_prefix())):
+                    self.intf_pm[interface] = self.convert_interface_sfp_pm_to_cli_output_string(
+                        self.db, interface)
+
     def display_eeprom(self):
         click.echo("\n".join([f"{k}: {v}" for k, v in natsorted(self.intf_eeprom.items())]))
 
@@ -449,6 +557,9 @@ class SFPShow(object):
         sorted_port_table = natsorted(self.table)
         click.echo(tabulate(sorted_port_table, header))
 
+    def display_pm(self):
+        click.echo(
+            "\n".join([f"{k}: {v}" for k, v in natsorted(self.intf_pm.items())]))
 # This is our main entrypoint - the main 'sfpshow' command
 
 
@@ -493,6 +604,24 @@ def presence(port, namespace):
     sfp = SFPShow(port, namespace)
     sfp.get_presence()
     sfp.display_presence()
+
+# 'pm' subcommand
+
+
+@cli.command()
+@click.option('-p', '--port', metavar='<port_name>', help="Display SFP PM for port <port_name> only")
+@click.option('-n', '--namespace', default=None, help="Display interfaces for specific namespace")
+def pm(port, namespace):
+    if port and multi_asic.is_multi_asic() and namespace is None:
+        try:
+            namespace = multi_asic.get_namespace_for_port(port)
+        except Exception:
+            display_invalid_intf_pm(port)
+            sys.exit(1)
+
+    sfp = SFPShow(port, namespace)
+    sfp.get_pm()
+    sfp.display_pm()
 
 
 if __name__ == "__main__":
