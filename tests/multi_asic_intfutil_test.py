@@ -10,18 +10,18 @@ modules_path = os.path.dirname(root_path)
 scripts_path = os.path.join(modules_path, "scripts")
 
 intf_status_all = """\
-      Interface         Lanes    Speed    MTU    FEC           Alias             Vlan    Oper    Admin             Type    Asym PFC
----------------  ------------  -------  -----  -----  --------------  ---------------  ------  -------  ---------------  ----------
-      Ethernet0   33,34,35,36      40G   9100    N/A     Ethernet1/1  PortChannel1002      up       up  QSFP28 or later         off
-      Ethernet4   29,30,31,32      40G   9100    N/A     Ethernet1/2  PortChannel1002      up       up              N/A         off
-     Ethernet64   29,30,31,32      40G   9100    N/A    Ethernet1/17           routed      up       up  QSFP28 or later         off
-   Ethernet-BP0   93,94,95,96      40G   9100    N/A    Ethernet-BP0  PortChannel4001      up       up              N/A         off
-   Ethernet-BP4  97,98,99,100      40G   9100    N/A    Ethernet-BP4  PortChannel4001      up       up              N/A         off
- Ethernet-BP256   61,62,63,64      40G   9100    N/A  Ethernet-BP256  PortChannel4009      up       up              N/A         off
- Ethernet-BP260   57,58,59,60      40G   9100    N/A  Ethernet-BP260  PortChannel4009      up       up              N/A         off
-PortChannel1002           N/A      80G   9100    N/A             N/A            trunk      up       up              N/A         N/A
-PortChannel4001           N/A      80G   9100    N/A             N/A           routed      up       up              N/A         N/A
-PortChannel4009           N/A      80G   9100    N/A             N/A           routed      up       up              N/A         N/A
+      Interface         Lanes    Speed    MTU    FEC           Alias             Vlan    Oper    Admin                                             Type    Asym PFC
+---------------  ------------  -------  -----  -----  --------------  ---------------  ------  -------  -----------------------------------------------  ----------
+      Ethernet0   33,34,35,36      40G   9100    N/A     Ethernet1/1  PortChannel1002      up       up                                  QSFP28 or later         off
+      Ethernet4   29,30,31,32      40G   9100    N/A     Ethernet1/2  PortChannel1002      up       up                                              N/A         off
+     Ethernet64   29,30,31,32      40G   9100    N/A    Ethernet1/17           routed      up       up  QSFP-DD Double Density 8X Pluggable Transceiver         off
+   Ethernet-BP0   93,94,95,96      40G   9100    N/A    Ethernet-BP0  PortChannel4001      up       up                                              N/A         off
+   Ethernet-BP4  97,98,99,100      40G   9100    N/A    Ethernet-BP4  PortChannel4001      up       up                                              N/A         off
+ Ethernet-BP256   61,62,63,64      40G   9100    N/A  Ethernet-BP256  PortChannel4009      up       up                                              N/A         off
+ Ethernet-BP260   57,58,59,60      40G   9100    N/A  Ethernet-BP260  PortChannel4009      up       up                                              N/A         off
+PortChannel1002           N/A      80G   9100    N/A             N/A            trunk      up       up                                              N/A         N/A
+PortChannel4001           N/A      80G   9100    N/A             N/A           routed      up       up                                              N/A         N/A
+PortChannel4009           N/A      80G   9100    N/A             N/A           routed      up       up                                              N/A         N/A
 """
 intf_status = """\
       Interface        Lanes    Speed    MTU    FEC        Alias             Vlan    Oper    Admin             Type    Asym PFC

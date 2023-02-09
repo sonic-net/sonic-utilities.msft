@@ -927,7 +927,7 @@ This command displays information for all the interfaces for the transceiver req
 
 - Usage:
   ```
-  show interfaces transceiver (eeprom [-d|--dom] | lpmode | presence | error-status [-hw|--fetch-from-hardware] | pm) [<interface_name>]
+  show interfaces transceiver (eeprom [-d|--dom] | info | lpmode | presence | error-status [-hw|--fetch-from-hardware] | pm) [<interface_name>]
   ```
 
 - Example (Decode and display information stored on the EEPROM of SFP transceiver connected to Ethernet0):
@@ -963,6 +963,48 @@ This command displays information for all the interfaces for the transceiver req
           ModuleMonitorValues :
                   Temperature : 1.1111C
                   Vcc : 0.0000Volts
+  ```
+
+- Example (Decode and display information stored on the EEPROM of SFP transceiver connected to Ethernet16):
+  ```
+  admin@sonic:~$ show interfaces transceiver info Ethernet16
+  Ethernet16: SFP EEPROM detected
+          Active Firmware: 61.20
+          Active application selected code assigned to host lane 1: 1
+          Active application selected code assigned to host lane 2: 1
+          Active application selected code assigned to host lane 3: 1
+          Active application selected code assigned to host lane 4: 1
+          Active application selected code assigned to host lane 5: 1
+          Active application selected code assigned to host lane 6: 1
+          Active application selected code assigned to host lane 7: 1
+          Active application selected code assigned to host lane 8: 1
+          Application Advertisement: 400GAUI-8 C2M (Annex 120E) - Host Assign (0x1) - 400ZR, DWDM, amplified - Media Assign (0x1)
+                                    400GAUI-8 C2M (Annex 120E) - Host Assign (0x1) - 400ZR, Single Wavelength, Unamplified - Media Assign (0x1)
+                                    100GAUI-2 C2M (Annex 135G) - Host Assign (0x55) - 400ZR, DWDM, amplified - Media Assign (0x1)
+          CMIS Rev: 4.1
+          Connector: LC
+          Encoding: N/A
+          Extended Identifier: Power Class 8 (20.0W Max)
+          Extended RateSelect Compliance: N/A
+          Host Lane Count: 8
+          Identifier: QSFP-DD Double Density 8X Pluggable Transceiver
+          Inactive Firmware: 61.20
+          Length Cable Assembly(m): 0.0
+          Media Interface Technology: 1550 nm DFB
+          Media Lane Count: 1
+          Module Hardware Rev: 49.49
+          Nominal Bit Rate(100Mbs): 0
+          Specification Compliance: sm_media_interface
+          Supported Max Laser Frequency: 196100
+          Supported Max TX Power: 4.0
+          Supported Min Laser Frequency: 191300
+          Supported Min TX Power: -22.9
+          Vendor Date Code(YYYY-MM-DD Lot): 2020-21-02 17
+          Vendor Name: Acacia Comm Inc.
+          Vendor OUI: 7c-b2-5c
+          Vendor PN: DP04QSDD-E20-00E
+          Vendor Rev: 01
+          Vendor SN: 210753986
   ```
 
 - Example (Display status of low-power mode of SFP transceiver connected to Ethernet100):

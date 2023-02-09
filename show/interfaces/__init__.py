@@ -471,6 +471,28 @@ def pm(interfacename, namespace, verbose):
 
 @transceiver.command()
 @click.argument('interfacename', required=False)
+@click.option('--namespace', '-n', 'namespace', default=None, show_default=True,
+              type=click.Choice(multi_asic_util.multi_asic_ns_choices()), help='Namespace name or all')
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def info(interfacename, namespace, verbose):
+    """Show interface transceiver information"""
+
+    ctx = click.get_current_context()
+
+    cmd = "sfpshow info"
+
+    if interfacename is not None:
+        interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
+
+        cmd += " -p {}".format(interfacename)
+
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
+
+    clicommon.run_command(cmd, display_cmd=verbose)
+
+@transceiver.command()
+@click.argument('interfacename', required=False)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def lpmode(interfacename, verbose):
     """Show interface transceiver low-power mode status"""
