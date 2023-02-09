@@ -1793,7 +1793,7 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, 
                 cfggen_namespace_option = " -n {}".format(namespace)
             clicommon.run_command(db_migrator + ' -o set_version' + cfggen_namespace_option)
 
-    # Keep device isolated with TSA 
+    # Keep device isolated with TSA
     if traffic_shift_away:
         clicommon.run_command("TSA", display_cmd=True)
         if override_config:
@@ -2007,8 +2007,20 @@ def synchronous_mode(sync_mode):
     Option 2. systemctl restart swss""" % sync_mode)
 
 #
+# 'suppress-fib-pending' command ('config suppress-fib-pending ...')
+#
+@config.command('suppress-fib-pending')
+@click.argument('state', metavar='<enabled|disabled>', required=True, type=click.Choice(['enabled', 'disabled']))
+@clicommon.pass_db
+def suppress_pending_fib(db, state):
+    ''' Enable or disable pending FIB suppression. Once enabled, BGP will not advertise routes that are not yet installed in the hardware '''
+
+    config_db = db.cfgdb
+    config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"suppress-fib-pending" : state})
+
+#
 # 'yang_config_validation' command ('config yang_config_validation ...')
-# 
+#
 @config.command('yang_config_validation')
 @click.argument('yang_config_validation', metavar='<enable|disable>', required=True)
 def yang_config_validation(yang_config_validation):
