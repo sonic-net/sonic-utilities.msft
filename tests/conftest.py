@@ -20,6 +20,7 @@ from .bgp_commands_input.bgp_network_test_vector import (
     )
 from . import config_int_ip_common
 import utilities_common.constants as constants
+import config.main as config
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -356,3 +357,13 @@ def setup_fib_commands():
     import show.main as show
     return show
 
+
+@pytest.fixture(scope='function')
+def mock_restart_dhcp_relay_service():
+    print("We are mocking restart dhcp_relay")
+    origin_func = config.vlan.dhcp_relay_util.handle_restart_dhcp_relay_service
+    config.vlan.dhcp_relay_util.handle_restart_dhcp_relay_service = mock.MagicMock(return_value=0)
+
+    yield
+
+    config.vlan.dhcp_relay_util.handle_restart_dhcp_relay_service = origin_func

@@ -448,7 +448,7 @@ class TestMclag(object):
 
 
 
-    def test_mclag_add_unique_ip(self):
+    def test_mclag_add_unique_ip(self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
@@ -483,7 +483,7 @@ class TestMclag(object):
         keys = db.cfgdb.get_keys('MCLAG_UNIQUE_IP')
         assert MCLAG_UNIQUE_IP_VLAN not in keys, "unique ip not conifgured" 
 
-    def test_mclag_add_unique_ip_non_default_vrf(self):
+    def test_mclag_add_unique_ip_non_default_vrf(self, mock_restart_dhcp_relay_service):
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
