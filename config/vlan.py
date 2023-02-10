@@ -1,5 +1,6 @@
 import click
 import utilities_common.cli as clicommon
+import utilities_common.dhcp_relay_util as dhcp_relay_util
 
 from time import sleep
 from .utils import log
@@ -11,6 +12,11 @@ from .utils import log
 def vlan():
     """VLAN-related configuration tasks"""
     pass
+
+
+def set_dhcp_relay_table(table, config_db, vlan_name, value):
+    config_db.set_entry(table, vlan_name, value)
+
 
 @vlan.command('add')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
@@ -24,14 +30,24 @@ def add_vlan(db, vid):
         ctx.fail("Invalid VLAN ID {} (1-4094)".format(vid))
 
     vlan = 'Vlan{}'.format(vid)
-    
+
     if vid == 1:
         ctx.fail("{} is default VLAN".format(vlan))
-    
+
     if clicommon.check_if_vlanid_exist(db.cfgdb, vlan):
         ctx.fail("{} already exists".format(vlan))
 
-    db.cfgdb.set_entry('VLAN', vlan, {'vlanid': vid})
+    if clicommon.check_if_vlanid_exist(db.cfgdb, vlan, "DHCP_RELAY"):
+        ctx.fail("DHCPv6 relay config for {} already exists".format(vlan))
+
+    # set dhcpv4_relay table
+    set_dhcp_relay_table('VLAN', db.cfgdb, vlan, {'vlanid': str(vid)})
+
+    # set dhcpv6_relay table
+    set_dhcp_relay_table('DHCP_RELAY', db.cfgdb, vlan, {'vlanid': str(vid)})
+    # We need to restart dhcp_relay service after dhcpv6_relay config change
+    dhcp_relay_util.handle_restart_dhcp_relay_service()
+
 
 @vlan.command('del')
 @click.argument('vid', metavar='<vid>', required=True, type=int)
@@ -57,15 +73,22 @@ def del_vlan(db, vid):
             ctx.fail("{} can not be removed. First remove IP addresses assigned to this VLAN".format(vlan))
 
     keys = [ (k, v) for k, v in db.cfgdb.get_table('VLAN_MEMBER') if k == 'Vlan{}'.format(vid) ]
-    
+
     if keys:
         ctx.fail("VLAN ID {} can not be removed. First remove all members assigned to this VLAN.".format(vid))
     vxlan_table = db.cfgdb.get_table('VXLAN_TUNNEL_MAP')
     for vxmap_key, vxmap_data in vxlan_table.items():
         if vxmap_data['vlan'] == 'Vlan{}'.format(vid):
             ctx.fail("vlan: {} can not be removed. First remove vxlan mapping '{}' assigned to VLAN".format(vid, '|'.join(vxmap_key)) )
-        
-    db.cfgdb.set_entry('VLAN', 'Vlan{}'.format(vid), None)
+
+    # set dhcpv4_relay table
+    set_dhcp_relay_table('VLAN', db.cfgdb, vlan, None)
+
+    # set dhcpv6_relay table
+    set_dhcp_relay_table('DHCP_RELAY', db.cfgdb, vlan, None)
+    # We need to restart dhcp_relay service after dhcpv6_relay config change
+    dhcp_relay_util.handle_restart_dhcp_relay_service()
+
 
 def restart_ndppd():
     verify_swss_running_cmd = "docker container inspect -f '{{.State.Status}}' swss"
