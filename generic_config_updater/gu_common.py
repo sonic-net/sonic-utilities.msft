@@ -149,9 +149,14 @@ class ConfigWrapper:
         patch = jsonpatch.JsonPatch.from_diff(old_config, target_config)
         
         # illegal_operations_to_fields_map['remove'] yields a list of fields for which `remove` is an illegal operation 
-        illegal_operations_to_fields_map = {'add':[],
-                                            'replace': [],
-                                            'remove': ['/PFC_WD/GLOBAL/POLL_INTERVAL', '/PFC_WD/GLOBAL']}
+        illegal_operations_to_fields_map = {
+            'add':[],
+            'replace': [],
+            'remove': [
+                '/PFC_WD/GLOBAL/POLL_INTERVAL',
+                '/PFC_WD/GLOBAL',
+                '/LOOPBACK_INTERFACE/Loopback0']
+        }
         for operation, field_list in illegal_operations_to_fields_map.items():
             for field in field_list:
                 if any(op['op'] == operation and field == op['path'] for op in patch):
