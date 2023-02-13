@@ -17,6 +17,7 @@ from collections import OrderedDict, namedtuple
 from natsort import natsorted
 from tabulate import tabulate
 from sonic_py_common import multi_asic
+from sonic_py_common import device_info
 
 # mock the redis for unit test purposes #
 try:
@@ -337,8 +338,8 @@ class Portstat(object):
             print(table_as_json(table, header))
         else:
             print(tabulate(table, header, tablefmt='simple', stralign='right'))
-        if multi_asic.is_multi_asic(): 
-            print("\nReminder: Please execute 'show interface counters -d all' to include internal links\n")
+            if multi_asic.is_multi_asic() or device_info.is_chassis():
+                print("\nReminder: Please execute 'show interface counters -d all' to include internal links\n")
 
     def cnstat_intf_diff_print(self, cnstat_new_dict, cnstat_old_dict, intf_list):
         """
@@ -555,8 +556,8 @@ class Portstat(object):
             print(table_as_json(table, header))
         else:
             print(tabulate(table, header, tablefmt='simple', stralign='right'))
-        if multi_asic.is_multi_asic(): 
-            print("\nReminder: Please execute 'show interface counters -d all' to include internal links\n")
+            if multi_asic.is_multi_asic() or device_info.is_chassis():
+                print("\nReminder: Please execute 'show interface counters -d all' to include internal links\n")
 
 def main():
     parser  = argparse.ArgumentParser(description='Display the ports state and counters',
