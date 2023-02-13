@@ -106,7 +106,6 @@ save_bcmcmd() {
     local filename=$2
     local filepath="${LOGDIR}/$filename"
     local do_gzip=${3:-false}
-    local tarpath="${BASE}/dump/$filename"
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
     local cmd=$(escape_quotes "$cmd")
     if [ ! -d $LOGDIR ]; then
@@ -141,12 +140,9 @@ save_bcmcmd() {
     fi
     if $do_gzip; then
         gzip ${filepath} 2>/dev/null
-        tarpath="${tarpath}.gz"
         filepath="${filepath}.gz"
     fi
-    ($TAR $V -rhf $TARFILE -C $DUMPDIR "$tarpath" \
-        || abort "${EXT_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
-        && $RM $V -rf "$filepath"
+
     end_t=$(date +%s%3N)
     echo "[ save_bcmcmd:$cmd ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 }
@@ -180,7 +176,7 @@ save_bcmcmd_all_ns() {
 }
 
 ###############################################################################
-# Runs a comamnd and saves its output to the incrementally built tar.
+# Runs a comamnd and saves its output to the file.
 # Command gets timedout if it runs for more than TIMEOUT_MIN minutes.
 # Globals:
 #  LOGDIR
@@ -208,7 +204,6 @@ save_cmd() {
     local filename=$2
     local filepath="${LOGDIR}/$filename"
     local do_gzip=${3:-false}
-    local tarpath="${BASE}/dump/$filename"
     local timeout_cmd="timeout --foreground ${TIMEOUT_MIN}m"
     local cleanup_method=${4:-dummy_cleanup_method}
     local redirect='&>'
@@ -230,7 +225,6 @@ save_cmd() {
     # as one argument, e.g. vtysh -c "COMMAND HERE" needs to have
     # "COMMAND HERE" bunched together as 1 arg to vtysh -c
     if $do_gzip; then
-        tarpath="${tarpath}.gz"
         filepath="${filepath}.gz"
         # cleanup_method will run in a sub-shell, need declare it first
         local cmds="$cleanup_method_declration; $cmd $redirect_eval | $cleanup_method | gzip -c > '${filepath}'"
@@ -260,11 +254,32 @@ save_cmd() {
         fi
     fi
 
-    ($TAR $V -rhf $TARFILE -C $DUMPDIR "$tarpath" \
-        || abort "${EXT_TAR_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
-        && $RM $V -rf "$filepath"
     end_t=$(date +%s%3N)
     echo "[ save_cmd:$cmd ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
+}
+
+###############################################################################
+# Save all collected data to tar archive.
+# Globals:
+#  DUMPDIR
+#  TAR
+#  TARFILE
+#  V
+#  BASE
+# Arguments:
+#  None
+# Returns:
+#  None
+###############################################################################
+save_to_tar() {
+    trap 'handle_error $? $LINENO' ERR
+    local start_t=$(date +%s%3N)
+    local end_t=0
+
+    $TAR $V -rhf $TARFILE -C $DUMPDIR "$BASE"
+
+    end_t=$(date +%s%3N)
+    echo "[ save_to_tar ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 }
 
 ###############################################################################
@@ -407,7 +422,7 @@ get_vtysh_namespace() {
 ###############################################################################
 # Runs a vtysh command in all namesapces for a multi ASIC platform, and in
 # default (host) namespace in single ASIC platforms. Saves its output to the
-# incrementally built tar.
+# file.
 # Globals:
 #  None
 # Arguments:
@@ -437,7 +452,7 @@ save_vtysh() {
 }
 
 ###############################################################################
-# Runs an ip command and saves its output to the incrementally built tar.
+# Runs an ip command and saves its output to the file.
 # Globals:
 #  None
 # Arguments:
@@ -456,7 +471,7 @@ save_ip() {
 }
 
 ###############################################################################
-# Runs a bridge command and saves its output to the incrementally built tar.
+# Runs a bridge command and saves its output to the file.
 # Globals:
 #  None
 # Arguments:
@@ -771,8 +786,8 @@ save_proc() {
             ( [ -e $f ] && $CP $V -r $f $TARDIR/proc ) || echo "$f not found" > $TARDIR/$f
         fi
     done
-    $TAR $V -rhf $TARFILE -C $DUMPDIR --mode=+rw $BASE/proc
-    $RM $V -rf $TARDIR/proc
+
+    chmod ugo+rw -R $DUMPDIR/$BASE/proc
 }
 
 ###############################################################################
@@ -823,9 +838,7 @@ save_proc_stats() {
         ( $CP $V -r $stats_file $TARDIR/proc_stats ) || echo "$stats_file error" > $TARDIR/$stats_file
     fi
 
-    $TAR $V -rhf $TARFILE -C $DUMPDIR --mode=+rw $BASE/proc_stats
-    $RM $V -rf $TARDIR/proc_stats
-    $RM -rf $stats_file
+    chmod ugo+rw -R $DUMPDIR/$BASE/proc_stats
 }
 
 ###############################################################################
@@ -907,6 +920,7 @@ save_platform_info() {
 #  filename: the full path of the file to save
 #  base_dir: the directory in $TARDIR/ to stage the file
 #  do_gzip: (OPTIONAL) true or false. Should the output be gzipped
+#  do_tar_append: (OPTIONAL) true or false. Should the output be added to final tar archive
 # Returns:
 #  None
 ###############################################################################
@@ -919,7 +933,7 @@ save_file() {
     local gz_path="$TARDIR/$supp_dir/$(basename $orig_path)"
     local tar_path="${BASE}/$supp_dir/$(basename $orig_path)"
     local do_gzip=${3:-true}
-    local do_tar_append=${4:-true}
+    local do_tar_append=${4:-false}
     if [ ! -d "$TARDIR/$supp_dir" ]; then
         $MKDIR $V -p "$TARDIR/$supp_dir"
     fi
@@ -945,6 +959,7 @@ save_file() {
             || abort "${EXT_PROCFS_SAVE_FAILED}" "tar append operation failed. Aborting to prevent data loss.") \
             && $RM $V -f "$gz_path"
     fi
+
     end_t=$(date +%s%3N)
     echo "[ save_file:$orig_path] : $(($end_t-$start_t)) msec"  >> $TECHSUPPORT_TIME_INFO
 }
@@ -1134,9 +1149,9 @@ collect_mellanox_dfw_dumps() {
             ${CMD_PREFIX}save_symlink ${file} sai_sdk_dump log
         else
             if [ ! -z "${file##*.gz}" ]; then
-                ${CMD_PREFIX}save_file ${file} sai_sdk_dump true
+                ${CMD_PREFIX}save_file ${file} sai_sdk_dump true true
             else
-                ${CMD_PREFIX}save_file ${file} sai_sdk_dump false
+                ${CMD_PREFIX}save_file ${file} sai_sdk_dump false true
             fi
         fi
     done
@@ -1296,7 +1311,7 @@ collect_barefoot() {
     done
 
     for file in $(find /tmp/bf_logs -type f); do
-        save_file "${file}" log true true
+        save_file "${file}" log true
     done
 } 
 
@@ -1352,16 +1367,12 @@ save_log_files() {
         # don't gzip already-gzipped log files :)
         # do not append the individual files to the main tarball
         if [ -z "${file##*.gz}" ]; then
-            save_file $file log false false
+            save_file $file log false
         else
-            save_file $file log true false
+            save_file $file log true
         fi
     done
 
-    # Append the log folder to the main tarball
-    ($TAR $V -rhf $TARFILE -C $DUMPDIR ${BASE}/log \
-        || abort "${EXT_TAR_FAILED}" "tar append operation failed. Aborting for safety") \
-        && $RM $V -rf $TARDIR/log
     end_t=$(date +%s%3N)
     echo "[ TAR /var/log Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
 
@@ -1386,11 +1397,7 @@ save_warmboot_files() {
     else
         mkdir -p $TARDIR
         $CP $V -rf /host/warmboot $TARDIR
-
-        ($TAR $V --warning=no-file-removed  -rhf $TARFILE -C $DUMPDIR --mode=+rw \
-            $BASE/warmboot \
-            || abort "${EXT_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
-            && $RM $V -rf $TARDIR
+        chmod ugo+rw -R $DUMPDIR/$BASE/warmboot
     fi
     end_t=$(date +%s%3N)
     echo "[ Warm-boot Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
@@ -1456,9 +1463,9 @@ save_sai_failure_dump(){
             ${CMD_PREFIX}save_symlink ${file} sai_failure_dump log
         else
             if [ ! -z "${file##*.gz}" ]; then
-                ${CMD_PREFIX}save_file ${file} sai_failure_dump true
+                ${CMD_PREFIX}save_file ${file} sai_failure_dump true true
             else
-                ${CMD_PREFIX}save_file ${file} sai_failure_dump false
+                ${CMD_PREFIX}save_file ${file} sai_failure_dump false true
             fi
         fi
         #Clean up the file once its part of tech support
@@ -1584,102 +1591,120 @@ main() {
         /proc/pagetypeinfo /proc/partitions /proc/sched_debug /proc/slabinfo \
         /proc/softirqs /proc/stat /proc/swaps /proc/sysvipc /proc/timer_list \
         /proc/uptime /proc/version /proc/vmallocinfo /proc/vmstat \
-        /proc/zoneinfo \
-        || abort "${EXT_PROCFS_SAVE_FAILED}" "Proc saving operation failed. Aborting for safety."
-    save_proc_stats
+        /proc/zoneinfo &
+    save_proc_stats &
     end_t=$(date +%s%3N)
     echo "[ Capture Proc State ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
+    wait
 
     # Save all the processes within each docker
-    save_cmd "show services" services.summary
+    save_cmd "show services" services.summary &
 
     # Save reboot cause information
-    save_cmd "show reboot-cause" reboot.cause
+    save_cmd "show reboot-cause" reboot.cause &
+    wait
 
     local asic="$(/usr/local/bin/sonic-cfggen -y /etc/sonic/sonic_version.yml -v asic_type)"
     local device_type=`sonic-db-cli CONFIG_DB hget 'DEVICE_METADATA|localhost' type`
     # 1st counter snapshot early. Need 2 snapshots to make sense of counters trend.
     save_counter_snapshot $asic 1
 
-    save_cmd "systemd-analyze blame" "systemd.analyze.blame"
-    save_cmd "systemd-analyze dump" "systemd.analyze.dump"
-    save_cmd "systemd-analyze plot" "systemd.analyze.plot.svg"
+    save_cmd "systemd-analyze blame" "systemd.analyze.blame" &
+    save_cmd "systemd-analyze dump" "systemd.analyze.dump" &
+    save_cmd "systemd-analyze plot" "systemd.analyze.plot.svg" &
+    wait
 
-    save_platform_info
+    save_platform_info &
+    save_cmd "show vlan brief" "vlan.summary" &
+    save_cmd "show version" "version" &
+    save_cmd "show platform summary" "platform.summary" &
+    wait
 
-    save_cmd "show vlan brief" "vlan.summary"
-    save_cmd "show version" "version"
-    save_cmd "show platform summary" "platform.summary"
-    save_cmd "cat /host/machine.conf" "machine.conf"
-    save_cmd "cat /boot/config-$(uname -r)" "boot.conf"
-    save_cmd "docker stats --no-stream" "docker.stats"
+    save_cmd "cat /host/machine.conf" "machine.conf" &
+    save_cmd "cat /boot/config-$(uname -r)" "boot.conf" &
+    save_cmd "docker stats --no-stream" "docker.stats" &
+    wait
 
-    save_cmd "sensors" "sensors"
-    save_cmd "lspci -vvv -xx" "lspci"
-    save_cmd "lsusb -v" "lsusb"
-    save_cmd "sysctl -a" "sysctl"
+    save_cmd "sensors" "sensors" &
+    save_cmd "lspci -vvv -xx" "lspci" &
+    save_cmd "lsusb -v" "lsusb" &
+    save_cmd "sysctl -a" "sysctl" &
+    wait
 
-    save_ip_info
-    save_bridge_info
+    save_ip_info &
+    save_bridge_info &
+    wait
 
-    save_frr_info
-    save_bgp_info
-    save_evpn_info
+    save_frr_info &
 
-    save_cmd "show interface status -d all" "interface.status"
-    save_cmd "show interface transceiver presence" "interface.xcvrs.presence"
-    save_cmd "show interface transceiver eeprom --dom" "interface.xcvrs.eeprom"
-    save_cmd "show ip interface -d all" "ip.interface"
+    save_bgp_info &
+    save_evpn_info &
+    wait
 
-    save_cmd "lldpctl" "lldpctl"
+    save_cmd "show interface status -d all" "interface.status" &
+    save_cmd "show interface transceiver presence" "interface.xcvrs.presence" &
+    save_cmd "show interface transceiver eeprom --dom" "interface.xcvrs.eeprom" &
+    save_cmd "show ip interface -d all" "ip.interface" &
+    wait
+
+    save_cmd "lldpctl" "lldpctl" &
     if [[ ( "$NUM_ASICS" > 1 ) ]]; then
         for (( i=0; i<$NUM_ASICS; i++ ))
         do
-            save_cmd "docker exec lldp$i lldpcli show statistics" "lldp$i.statistics"
-            save_cmd "docker logs bgp$i" "docker.bgp$i.log"
-            save_cmd "docker logs swss$i" "docker.swss$i.log"
+            save_cmd "docker exec lldp$i lldpcli show statistics" "lldp$i.statistics" &
+            save_cmd "docker logs bgp$i" "docker.bgp$i.log" &
+            save_cmd "docker logs swss$i" "docker.swss$i.log" &
         done
     else
-        save_cmd "docker exec lldp lldpcli show statistics" "lldp.statistics"
-        save_cmd "docker logs bgp" "docker.bgp.log"
-        save_cmd "docker logs swss" "docker.swss.log"
+        save_cmd "docker exec lldp lldpcli show statistics" "lldp.statistics" &
+        save_cmd "docker logs bgp" "docker.bgp.log" &
+        save_cmd "docker logs swss" "docker.swss.log" &
     fi
+    wait
 
-    save_cmd "ps aux" "ps.aux"
-    save_cmd "top -b -n 1" "top"
-    save_cmd "free" "free"
-    save_cmd "vmstat 1 5" "vmstat"
-    save_cmd "vmstat -m" "vmstat.m"
-    save_cmd "vmstat -s" "vmstat.s"
-    save_cmd "mount" "mount"
-    save_cmd "df" "df"
-    save_cmd "dmesg" "dmesg"
+    save_cmd "ps aux" "ps.aux" &
+    save_cmd "top -b -n 1" "top" &
+    save_cmd "free" "free" &
+    wait
+    save_cmd "vmstat 1 5" "vmstat" &
+    save_cmd "vmstat -m" "vmstat.m" &
+    save_cmd "vmstat -s" "vmstat.s" &
+    wait
+    save_cmd "mount" "mount" &
+    save_cmd "df" "df" &
+    save_cmd "dmesg" "dmesg" &
+    wait
 
-    save_nat_info
-    save_bfd_info
-    save_redis_info
+    save_nat_info &
+    save_bfd_info &
+    wait
+    save_redis_info &
 
     if $DEBUG_DUMP
     then
-        save_dump_state_all_ns
+        save_dump_state_all_ns &
     fi
+    wait
 
-    save_cmd "docker ps -a" "docker.ps"
-    save_cmd "docker top pmon" "docker.pmon"
+    save_cmd "docker ps -a" "docker.ps" &
+    save_cmd "docker top pmon" "docker.pmon" &
 
     if [[ -d ${PLUGINS_DIR} ]]; then
         local -r dump_plugins="$(find ${PLUGINS_DIR} -type f -executable)"
         for plugin in $dump_plugins; do
             # save stdout output of plugin and gzip it
-            save_cmd "$plugin" "$(basename $plugin)" true
+            save_cmd "$plugin" "$(basename $plugin)" true &
         done
     fi
+    wait
 
-    save_cmd "dpkg -l" "dpkg"
-    save_cmd "who -a" "who"
-    save_cmd "swapon -s" "swapon"
-    save_cmd "hdparm -i /dev/sda" "hdparm"
-    save_cmd "ps -AwwL -o user,pid,lwp,ppid,nlwp,pcpu,pri,nice,vsize,rss,tty,stat,wchan:12,start,bsdtime,command" "ps.extended"
+    save_cmd "dpkg -l" "dpkg" &
+    save_cmd "who -a" "who" &
+    save_cmd "swapon -s" "swapon" &
+    wait
+    save_cmd "hdparm -i /dev/sda" "hdparm" &
+    save_cmd "ps -AwwL -o user,pid,lwp,ppid,nlwp,pcpu,pri,nice,vsize,rss,tty,stat,wchan:12,start,bsdtime,command" "ps.extended" &
+    wait
 
     if [[ "$device_type" != "SpineRouter" ]]; then
         save_saidump
@@ -1704,9 +1729,6 @@ main() {
     # 2nd counter snapshot late. Need 2 snapshots to make sense of counters trend.
     save_counter_snapshot $asic 2
 
-    $RM $V -rf $TARDIR
-    $MKDIR $V -p $TARDIR
-    $MKDIR $V -p $LOGDIR
     # Copying the /etc files to a directory and then tar it
     $CP -r /etc $TARDIR/etc
     rm_list=$(find -L $TARDIR/etc -maxdepth 5 -type l)
@@ -1718,34 +1740,25 @@ main() {
     # Remove secret from /etc files before tar
     remove_secret_from_etc_files $TARDIR
 
-    start_t=$(date +%s%3N)
-    ($TAR $V --warning=no-file-removed -rhf $TARFILE -C $DUMPDIR --mode=+rw \
-        --exclude="etc/alternatives" \
-        --exclude="*/etc/passwd*" \
-        --exclude="*/etc/shadow*" \
-        --exclude="*/etc/group*" \
-        --exclude="*/etc/gshadow*" \
-        --exclude="*/etc/ssh*" \
-        --exclude="*get_creds*" \
-        --exclude="*snmpd.conf*" \
-        --exclude="*/etc/mlnx" \
-        --exclude="*/etc/mft" \
-        --exclude="*/etc/sonic/*.cer" \
-        --exclude="*/etc/sonic/*.crt" \
-        --exclude="*/etc/sonic/*.pem" \
-        --exclude="*/etc/sonic/*.key" \
-        --exclude="*/etc/ssl/*.pem" \
-        --exclude="*/etc/ssl/certs/*" \
-        --exclude="*/etc/ssl/private/*" \
-        $BASE/etc \
-        || abort "${EXT_TAR_FAILED}" "Tar append operation failed. Aborting for safety.") \
-        && $RM $V -rf $TARDIR
-    end_t=$(date +%s%3N)
-    echo "[ TAR /etc Files ] : $(($end_t-$start_t)) msec" >> $TECHSUPPORT_TIME_INFO
+    # Remove unecessary files
+    $RM $V -rf $TARDIR/etc/alternatives $TARDIR/etc/passwd* \
+    $TARDIR/etc/shadow* $TARDIR/etc/group* $TARDIR/etc/gshadow* \
+    $TARDIR/etc/ssh* $TARDIR/etc/mlnx $TARDIR/etc/mft \
+    $TARDIR/etc/ssl/certs/* $TARDIR/etc/ssl/private/*
+    rm_list=$(find -L $TARDIR -type f \( -iname \*.cer -o -iname \*.crt -o \
+        -iname \*.pem -o -iname \*.key -o -iname \*snmpd.conf\* -o -iname \*get_creds\* \))
+    if [ ! -z "$rm_list" ]
+    then
+        rm $rm_list
+    fi
 
-    save_log_files
-    save_crash_files
-    save_warmboot_files
+    save_log_files &
+    save_crash_files &
+    save_warmboot_files &
+    wait
+
+    save_to_tar
+
     save_sai_failure_dump 
 
     if [[ "$asic" = "mellanox" ]]; then
@@ -1760,7 +1773,7 @@ main() {
 ###############################################################################
 finalize() {
     # Save techsupport timing profile info
-    save_file $TECHSUPPORT_TIME_INFO log false
+    save_file $TECHSUPPORT_TIME_INFO log false true
 
     if $DO_COMPRESS; then
         RC=0
