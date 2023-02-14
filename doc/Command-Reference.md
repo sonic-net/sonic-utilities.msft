@@ -40,6 +40,8 @@
   * [Console connect commands](#console-connect-commands)
   * [Console clear commands](#console-clear-commands)
 * [DHCP Relay](#dhcp-relay)
+  * [DHCP Relay show commands](#dhcp-relay-show-commands)
+  * [DHCP Relay clear commands](#dhcp-relay-clear-commands)
   * [DHCP Relay config commands](#dhcp-relay-config-commands)
 * [Drop Counters](#drop-counters)
   * [Drop Counter show commands](#drop-counters-show-commands)
@@ -2406,6 +2408,97 @@ Go Back To [Beginning of the document](#) or [Beginning of this section](#consol
 
 
 ## DHCP Relay
+
+### DHCP Relay show commands
+
+This sub-section of commands is used to show the DHCP Relay IP address(es) in a VLAN interface and show dhcpv6_relay counter of a VLAN.
+
+**show dhcp_relay ipv4 helper**
+
+This command is used to show ipv4 dhcp_relay helper.
+
+- Usage:
+  ```
+  show dhcp_relay ipv4 helper
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show dhcp_relay ipv4 helper
+  --------  ---------
+  Vlan1000  192.0.0.1
+            192.0.0.2
+  --------  ---------
+  ```
+
+**show dhcp_relay ipv6 destination**
+
+This command is used to show ipv6 dhcp_relay destination.
+
+- Usage:
+  ```
+  show dhcp_relay ipv6 destination
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ show dhcp_relay ipv6 destination
+  --------  ------------
+  Vlan1000  fc02:2000::1
+            fc02:2000::2
+            fc02:2000::3
+            fc02:2000::4
+  --------  ------------
+  ```
+
+**show dhcp_relay ipv6 counters**
+
+This command is used to show ipv6 dhcp_relay counters.
+
+- Usage:
+  ```
+  show dhcp_relay ipv6 counters
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-clear dhcp_relay counters
+         Message Type    Vlan1000
+  -------------------  ----------
+              Unknown           0
+              Solicit           0
+            Advertise           0
+              Request           5
+              Confirm           0
+                Renew           0
+               Rebind           0
+                Reply           0
+              Release           0
+              Decline           0
+          Reconfigure           0
+  Information-Request           0
+        Relay-Forward           0
+          Relay-Reply           0
+            Malformed           0
+  ```
+
+### DHCP Relay clear commands
+
+This sub-section of commands is used to clear the DHCP Relay counters.
+
+**sonic-clear dhcp_relay ipv6 counter**
+
+This command is used to clear ipv6 dhcp_relay counters.
+
+- Usage:
+  ```
+  sonic-clear dhcp_relay ipv6 counter [-i <interface>]
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo sonic-clear dhcp_relay ipv6 counters
+  ```
 
 ### DHCP Relay config commands
 
