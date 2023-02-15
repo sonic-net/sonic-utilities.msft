@@ -19,9 +19,6 @@ IP_VERSION_PARAMS_MAP = {
         "table": "DHCP_RELAY"
     }
 }
-DHCP_RELAY_TABLE_ENTRY = {
-    "vlanid": "1001"
-}
 
 show_vlan_brief_output="""\
 +-----------+-----------------+-----------------+----------------+-------------+
@@ -610,7 +607,8 @@ class TestVlan(object):
         print(result.output)
         assert result.exit_code == 0
 
-        assert db.cfgdb.get_entry(IP_VERSION_PARAMS_MAP[ip_version]["table"], "Vlan1001") == DHCP_RELAY_TABLE_ENTRY
+        exp_output = {"vlanid": "1001"} if ip_version == "ipv4" else {}
+        assert db.cfgdb.get_entry(IP_VERSION_PARAMS_MAP[ip_version]["table"], "Vlan1001") == exp_output
 
         # del vlan 1001
         result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1001"], obj=db)
