@@ -13,6 +13,18 @@ def counters():
     """Show fabric port counters"""
     pass
 
+@fabric.group(invoke_without_command=True)
+@multi_asic_util.multi_asic_click_option_namespace
+@click.option('-e', '--errors', is_flag=True)
+def reachability(namespace, errors):
+    """Show fabric reachability"""
+    cmd = "fabricstat -r"
+    if namespace is not None:
+        cmd += " -n {}".format(namespace)
+    if errors:
+        cmd += " -e"
+    clicommon.run_command(cmd)
+
 @counters.command()
 @multi_asic_util.multi_asic_click_option_namespace
 @click.option('-e', '--errors', is_flag=True)
