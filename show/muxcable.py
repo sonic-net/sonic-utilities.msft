@@ -35,6 +35,11 @@ STATUS_SUCCESSFUL = 0
 VENDOR_NAME = "Credo"
 VENDOR_MODEL_REGEX = re.compile(r"CAC\w{3}321P2P\w{2}MS")
 
+#define table names that interact with Cli
+XCVRD_GET_BER_CMD_TABLE = "XCVRD_GET_BER_CMD"
+XCVRD_GET_BER_RSP_TABLE = "XCVRD_GET_BER_RSP"
+XCVRD_GET_BER_RES_TABLE = "XCVRD_GET_BER_RES"
+XCVRD_GET_BER_CMD_ARG_TABLE = "XCVRD_GET_BER_CMD_ARG"
 
 def get_asic_index_for_port(port):
     asic_index = None
@@ -276,9 +281,11 @@ def get_result(port, res_dict, cmd ,result, table_name):
     (status, fvp) = xcvrd_show_fw_res_tbl[asic_index].get(port)
     res_dir = dict(fvp)
 
+    delete_all_keys_in_db_table("STATE_DB", table_name)
+
     return res_dir
 
-def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_name, cmd_arg_table_name, rsp_table_name ,port, cmd_timeout_secs, param_dict= None, arg=None):
+def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_name, cmd_arg_table_name, rsp_table_name , res_table_name, port, cmd_timeout_secs, param_dict= None, arg=None):
 
     res_dict = {}
     state_db, appl_db = {}, {}
@@ -290,6 +297,8 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
     CMD_TIMEOUT_SECS = cmd_timeout_secs
 
     time_start = time.time()
+
+    delete_all_keys_in_db_tables_helper(cmd_table_name, rsp_table_name, cmd_arg_table_name, res_table_name)
 
     sel = swsscommon.Select()
     namespaces = multi_asic.get_front_end_namespaces()
@@ -405,9 +414,24 @@ def update_and_get_response_for_xcvr_cmd(cmd_name, rsp_name, exp_rsp, cmd_table_
             firmware_rsp_tbl[asic_index]._del(port)
             break
 
-    delete_all_keys_in_db_table("STATE_DB", rsp_table_name)
+
+    delete_all_keys_in_db_tables_helper(cmd_table_name, rsp_table_name, cmd_arg_table_name, None)
 
     return res_dict
+
+
+def delete_all_keys_in_db_tables_helper(cmd_table_name, rsp_table_name, cmd_arg_table_name = None, res_table_name = None):
+
+    delete_all_keys_in_db_table("APPL_DB", cmd_table_name)
+    delete_all_keys_in_db_table("STATE_DB", rsp_table_name)
+    if cmd_arg_table_name is not None:
+        delete_all_keys_in_db_table("APPL_DB", cmd_arg_table_name)
+
+    if res_table_name is not None:
+        delete_all_keys_in_db_table("STATE_DB", res_table_name)
+
+    return 0 
+
 
 
 # 'muxcable' command ("show muxcable")
@@ -926,7 +950,7 @@ def berinfo(db, port, target, json_output):
         res_dict[1] = "unknown"
 
         res_dict = update_and_get_response_for_xcvr_cmd(
-            "get_ber", "status", "True", "XCVRD_GET_BER_CMD", "XCVRD_GET_BER_CMD_ARG", "XCVRD_GET_BER_RSP", port, 10, param_dict, "ber")
+            "get_ber", "status", "True", "XCVRD_GET_BER_CMD", "XCVRD_GET_BER_CMD_ARG", "XCVRD_GET_BER_RSP", None, port, 10, param_dict, "ber")
 
         if res_dict[1] == "True":
             result = get_result(port, res_dict, "fec" , result, "XCVRD_GET_BER_RES")
@@ -978,7 +1002,7 @@ def eyeinfo(db, port, target, json_output):
         res_dict[1] = "unknown"
 
         res_dict = update_and_get_response_for_xcvr_cmd(
-            "get_ber", "status", "True", "XCVRD_GET_BER_CMD", "XCVRD_GET_BER_CMD_ARG", "XCVRD_GET_BER_RSP", port, 10, param_dict, "eye")
+            "get_ber", "status", "True", "XCVRD_GET_BER_CMD", "XCVRD_GET_BER_CMD_ARG", "XCVRD_GET_BER_RSP", None, port, 10, param_dict, "eye")
 
         if res_dict[1] == "True":
             result = get_result(port, res_dict, "fec" , result, "XCVRD_GET_BER_RES")
@@ -1029,7 +1053,7 @@ def fecstatistics(db, port, target, json_output):
         res_dict[1] = "unknown"
 
         res_dict = update_and_get_response_for_xcvr_cmd(
-            "get_ber", "status", "True", "XCVRD_GET_BER_CMD", "XCVRD_GET_BER_CMD_ARG", "XCVRD_GET_BER_RSP", port, 10, param_dict, "fec_stats")
+            "get_ber", "status", "True", "XCVRD_GET_BER_CMD", "XCVRD_GET_BER_CMD_ARG", "XCVRD_GET_BER_RSP", None, port, 10, param_dict, "fec_stats")
 
         if res_dict[1] == "True":
             result = get_result(port, res_dict, "fec" , result, "XCVRD_GET_BER_RES")
@@ -1080,7 +1104,7 @@ def pcsstatistics(db, port, target, json_output):
         res_dict[1] = "unknown"
 
         res_dict = update_and_get_response_for_xcvr_cmd(
-            "get_ber", "status", "True", "XCVRD_GET_BER_CMD", "XCVRD_GET_BER_CMD_ARG", "XCVRD_GET_BER_RSP", port, 10, param_dict, "pcs_stats")
+            "get_ber", "status", "True", "XCVRD_GET_BER_CMD", "XCVRD_GET_BER_CMD_ARG", "XCVRD_GET_BER_RSP", None, port, 10, param_dict, "pcs_stats")
 
         if res_dict[1] == "True":
             result = get_result(port, res_dict, "fec" , result, "XCVRD_GET_BER_RES")
@@ -1129,7 +1153,7 @@ def debugdumpregisters(db, port, option, json_output):
         res_dict[1] = "unknown"
 
         res_dict = update_and_get_response_for_xcvr_cmd(
-            "get_ber", "status", "True", "XCVRD_GET_BER_CMD", "XCVRD_GET_BER_CMD_ARG", "XCVRD_GET_BER_RSP", port, 100, param_dict, "debug_dump")
+            "get_ber", "status", "True", "XCVRD_GET_BER_CMD", "XCVRD_GET_BER_CMD_ARG", "XCVRD_GET_BER_RSP", None, port, 100, param_dict, "debug_dump")
 
         if res_dict[1] == "True":
             result = get_result(port, res_dict, "fec" , result, "XCVRD_GET_BER_RES")
@@ -1173,7 +1197,7 @@ def alivecablestatus(db, port, json_output):
         res_dict[1] = "unknown"
 
         res_dict = update_and_get_response_for_xcvr_cmd(
-            "get_ber", "status", "True", "XCVRD_GET_BER_CMD", None, "XCVRD_GET_BER_RSP", port, 10, None, "cable_alive")
+            "get_ber", "status", "True", "XCVRD_GET_BER_CMD", None, "XCVRD_GET_BER_RSP", None, port, 10, None, "cable_alive")
 
         if res_dict[1] == "True":
             result = get_result(port, res_dict, "fec" , result, "XCVRD_GET_BER_RES")
@@ -1245,7 +1269,7 @@ def get_hwmode_mux_direction_port(db, port):
     if port is not None:
 
         res_dict = update_and_get_response_for_xcvr_cmd(
-            "state", "state", "True", "XCVRD_SHOW_HWMODE_DIR_CMD", "XCVRD_SHOW_HWMODE_DIR_RES", "XCVRD_SHOW_HWMODE_DIR_RSP", port, HWMODE_MUXDIRECTION_TIMEOUT, None, "probe")
+            "state", "state", "True", "XCVRD_SHOW_HWMODE_DIR_CMD", "XCVRD_SHOW_HWMODE_DIR_RES", "XCVRD_SHOW_HWMODE_DIR_RSP", None, port, HWMODE_MUXDIRECTION_TIMEOUT, None, "probe")
 
         result = get_result(port, res_dict, "muxdirection" , result, "XCVRD_SHOW_HWMODE_DIR_RES")
 
@@ -1464,7 +1488,7 @@ def switchmode(db, port):
         res_dict[0] = CONFIG_FAIL
         res_dict[1] = "unknown"
         res_dict = update_and_get_response_for_xcvr_cmd(
-            "state", "state", "True", "XCVRD_SHOW_HWMODE_SWMODE_CMD", None, "XCVRD_SHOW_HWMODE_SWMODE_RSP", port, 1, None, "probe")
+            "state", "state", "True", "XCVRD_SHOW_HWMODE_SWMODE_CMD", None, "XCVRD_SHOW_HWMODE_SWMODE_RSP", None, port, 1, None, "probe")
 
         body = []
         temp_list = []
@@ -1520,7 +1544,7 @@ def switchmode(db, port):
             res_dict[0] = CONFIG_FAIL
             res_dict[1] = "unknown"
             res_dict = update_and_get_response_for_xcvr_cmd(
-                "state", "state", "True", "XCVRD_SHOW_HWMODE_SWMODE_CMD", None, "XCVRD_SHOW_HWMODE_SWMODE_RSP", port, 1, None, "probe")
+                "state", "state", "True", "XCVRD_SHOW_HWMODE_SWMODE_CMD", None, "XCVRD_SHOW_HWMODE_SWMODE_RSP", None, port, 1, None, "probe")
             port = platform_sfputil_helper.get_interface_alias(port, db)
             temp_list.append(port)
             temp_list.append(res_dict[1])
@@ -1705,7 +1729,7 @@ def version(db, port, active):
         mux_info_dict["version_self_next"] = "N/A"
 
         res_dict = update_and_get_response_for_xcvr_cmd(
-            "firmware_version", "status", "True", "XCVRD_SHOW_FW_CMD", None, "XCVRD_SHOW_FW_RSP", port, 20, None, "probe")
+            "firmware_version", "status", "True", "XCVRD_SHOW_FW_CMD", None, "XCVRD_SHOW_FW_RSP", None, port, 20, None, "probe")
 
         if res_dict[1] == "True":
             mux_info_dict = get_response_for_version(port, mux_info_dict)
@@ -1874,7 +1898,7 @@ def event_log(db, port, json_output):
         res_dict[1] = "unknown"
 
         res_dict = update_and_get_response_for_xcvr_cmd(
-            "show_event", "status", "True", "XCVRD_EVENT_LOG_CMD", None, "XCVRD_EVENT_LOG_RSP", port, 1000, None, "probe")
+            "show_event", "status", "True", "XCVRD_EVENT_LOG_CMD", None, "XCVRD_EVENT_LOG_RSP", None, port, 1000, None, "probe")
 
         if res_dict[1] == "True":
             result = get_event_logs(port, res_dict, mux_info_dict)
@@ -1916,7 +1940,7 @@ def get_fec_anlt_speed(db, port, json_output):
         res_dict[1] = "unknown"
 
         res_dict = update_and_get_response_for_xcvr_cmd(
-            "get_fec", "status", "True", "XCVRD_GET_FEC_CMD", None, "XCVRD_GET_FEC_RSP", port, 10, None, "probe")
+            "get_fec", "status", "True", "XCVRD_GET_FEC_CMD", None, "XCVRD_GET_FEC_RSP", None, port, 10, None, "probe")
 
         if res_dict[1] == "True":
             result = get_result(port, res_dict, "fec" , result, "XCVRD_GET_FEC_RES")
@@ -2255,4 +2279,197 @@ def muxdirection(db, port, json_output):
         if rc_exit == False:
             sys.exit(EXIT_FAIL)
 
+@muxcable.command()
+@click.argument('port', metavar='<port_name>', required=True, default=None)
+@click.argument('option', required=False, default=None)
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
+@clicommon.pass_db
+def queueinfo(db, port, option, json_output):
+    """Show muxcable queue info information, preagreed by vendors"""
 
+    port = platform_sfputil_helper.get_interface_name(port, db)
+
+    if port is not None:
+
+        res_dict = {}
+        result = {}
+        param_dict = {}
+        param_dict["option"] = option
+
+
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "get_ber", "status", "True", XCVRD_GET_BER_CMD_TABLE, XCVRD_GET_BER_CMD_ARG_TABLE, XCVRD_GET_BER_RSP_TABLE, XCVRD_GET_BER_RES_TABLE, port, 100, param_dict, "queue_info")
+
+        if res_dict[1] == "True":
+            result = get_result(port, res_dict, "fec" , result, XCVRD_GET_BER_RES_TABLE)
+
+
+        port = platform_sfputil_helper.get_interface_alias(port, db)
+
+        if json_output:
+            click.echo("{}".format(json.dumps(result, indent=4)))
+        else:
+            headers = ['PORT', 'ATTR', 'VALUE']
+            res = [[port]+[key] + [val] for key, val in result.items()]
+            click.echo(tabulate(res, headers=headers))
+    else:
+        click.echo("Did not get a valid Port for queue info information".format(port))
+        sys.exit(CONFIG_FAIL)
+
+
+@muxcable.command()
+@click.argument('port', metavar='<port_name>', required=True, default=None)
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
+@clicommon.pass_db
+def health(db, port, json_output):
+    """Show muxcable health information as Ok or Not Ok"""
+
+    """
+    in order to detemine whether the health of the cable is Ok
+    the following are checked
+     - the vendor name is correct able to be read
+     - the FW is correctly loaded for SerDes by reading the appropriate register val
+     - the Counters for UART are displaying healthy status 
+       i.e Error Counters , retry Counters for UART or internal xfer protocols are below a threshold
+    """
+
+    port = platform_sfputil_helper.get_interface_name(port, db)
+
+    if port is not None:
+
+        res_dict = {}
+        result = {}
+
+
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "get_ber", "status", "True", XCVRD_GET_BER_CMD_TABLE, None, XCVRD_GET_BER_RSP_TABLE, XCVRD_GET_BER_RES_TABLE, port, 10, None, "health_check")
+
+        if res_dict[1] == "True":
+            result = get_result(port, res_dict, "fec" , result, XCVRD_GET_BER_RES_TABLE)
+
+
+
+        port = platform_sfputil_helper.get_interface_alias(port, db)
+
+        cable_health = result.get("health_check", None)
+
+        if cable_health == "False":
+            result["health_check"] = "Not Ok"
+        elif cable_health == "True":
+            result["health_check"] = "Ok"
+        else:
+            result["health_check"] = "Unknown"
+
+            
+
+        if json_output:
+            click.echo("{}".format(json.dumps(result, indent=4)))
+        else:
+            headers = ['PORT', 'ATTR', 'HEALTH']
+            res = [[port]+[key] + [val] for key, val in result.items()]
+            click.echo(tabulate(res, headers=headers))
+    else:
+        click.echo("Did not get a valid Port for cable health status".format(port))
+        sys.exit(CONFIG_FAIL)
+
+@muxcable.command()
+@click.argument('port', metavar='<port_name>', required=True, default=None)
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
+@clicommon.pass_db
+def resetcause(db, port, json_output):
+    """Show muxcable resetcause information """
+
+    port = platform_sfputil_helper.get_interface_name(port, db)
+
+    """
+    the reset cause only records NIC MCU reset status. The NIC MCU will automatically broadcast the reset cause status to each TORs, corresponding values returned
+    return 0 if the last reset is cold reset (ex. HW/SW reset, power reset the cable, or reboot the NIC server)
+    return 1 if the last reset is warm reset (ex. sudo config mux firmware activate....)
+    the value is persistent, no clear on read
+    """
+    if port is not None:
+
+        res_dict = {}
+        result = {}
+
+
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "get_ber", "status", "True", XCVRD_GET_BER_CMD_TABLE, None, XCVRD_GET_BER_RSP_TABLE, XCVRD_GET_BER_RES_TABLE, port, 10, None, "reset_cause")
+
+        if res_dict[1] == "True":
+            result = get_result(port, res_dict, "fec" , result, XCVRD_GET_BER_RES_TABLE)
+
+
+
+        port = platform_sfputil_helper.get_interface_alias(port, db)
+
+        reset_cause = result.get("reset_cause", None)
+
+        if reset_cause == "0":
+            result["reset_cause"] = "cold reset"
+        elif reset_cause == "1":
+            result["reset_cause"] = "warm reset"
+        else:
+            result["reset_cause"] = "Unknown"
+
+        if json_output:
+            click.echo("{}".format(json.dumps(result, indent=4)))
+        else:
+            headers = ['PORT', 'ATTR', 'RESETCAUSE']
+            res = [[port]+[key] + [val] for key, val in result.items()]
+            click.echo(tabulate(res, headers=headers))
+    else:
+        click.echo("Did not get a valid Port for cable resetcause information".format(port))
+        sys.exit(CONFIG_FAIL)
+
+@muxcable.command()
+@click.argument('port', metavar='<port_name>', required=True, default=None)
+@click.option('--json', 'json_output', required=False, is_flag=True, type=click.BOOL, help="display the output in json format")
+@clicommon.pass_db
+def operationtime(db, port, json_output):
+    """Show muxcable operation time hh:mm:ss forrmat"""
+
+    port = platform_sfputil_helper.get_interface_name(port, db)
+
+    if port is not None:
+
+        res_dict = {}
+        result = {}
+
+
+        res_dict[0] = CONFIG_FAIL
+        res_dict[1] = "unknown"
+
+        res_dict = update_and_get_response_for_xcvr_cmd(
+            "get_ber", "status", "True", XCVRD_GET_BER_CMD_TABLE, None, XCVRD_GET_BER_RSP_TABLE, XCVRD_GET_BER_RES_TABLE, port, 10, None, "operation_time")
+
+        if res_dict[1] == "True":
+            result = get_result(port, res_dict, "fec" , result, XCVRD_GET_BER_RES_TABLE)
+
+        
+
+        port = platform_sfputil_helper.get_interface_alias(port, db)
+
+        actual_time = result.get("operation_time", 0)
+        if actual_time is not None:
+            time = '{0:02.0f}:{1:02.0f}'.format(*divmod(int(actual_time) * 60, 60))
+            result['operation_time'] = time
+
+        if json_output:
+            click.echo("{}".format(json.dumps(result, indent=4)))
+        else:
+            headers = ['PORT', 'ATTR', 'OPERATION_TIME']
+            res = [[port]+[key] + [val] for key, val in result.items()]
+            click.echo(tabulate(res, headers=headers))
+    else:
+        click.echo("Did not get a valid Port for operation time".format(port))
+        sys.exit(CONFIG_FAIL)

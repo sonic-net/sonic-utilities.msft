@@ -613,6 +613,48 @@ PORT       DEST_TYPE    DEST_ADDRESS    kernel    asic
 Ethernet0  server_ipv4  10.2.1.1        added     added
 """
 
+
+show_muxcable_operationtime_expected_port_output="""\
+PORT       ATTR            OPERATION_TIME
+---------  --------------  ----------------
+Ethernet0  operation_time  200:00
+"""
+
+show_muxcable_health_expected_port_output="""\
+PORT       ATTR          HEALTH
+---------  ------------  --------
+Ethernet0  health_check  Ok
+"""
+
+
+show_muxcable_queueinfo_expected_port_output="""\
+PORT       ATTR          VALUE
+---------  ----------  -------
+Ethernet0  uart_stat1        2
+Ethernet0  uart_stat2        1
+"""
+
+show_muxcable_resetcause_expected_port_output="""\
+PORT       ATTR         RESETCAUSE
+---------  -----------  ------------
+Ethernet0  reset_cause  warm reset
+"""
+
+
+show_muxcable_health_expected_port_output_json="""\
+{
+    "health_check": "Ok"
+}
+"""
+
+
+
+show_muxcable_resetcause_expected_port_output_json="""\
+{
+    "reset_cause": "warm reset"
+}
+"""
+
 class TestMuxcable(object):
     @classmethod
     def setup_class(cls):
@@ -2553,6 +2595,88 @@ class TestMuxcable(object):
                                ["Ethernet12", "--json"], obj=db)
         assert result.exit_code == 0
         assert result.output == show_muxcable_hwmode_muxdirection_active_expected_output_json
+
+
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "True"}))
+    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={"health_check": "True"}))
+    def test_show_mux_health(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["health"],
+                               ["Ethernet0"], obj=db)
+        assert result.output == show_muxcable_health_expected_port_output
+
+
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "True"}))
+    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={"health_check": "True"}))
+    def test_show_mux_health_json(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["health"],
+                               ["Ethernet0", "--json"], obj=db)
+        assert result.output == show_muxcable_health_expected_port_output_json
+
+
+
+
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "True"}))
+    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={"operation_time": "200"}))
+    def test_show_mux_operation_time(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["operationtime"],
+                               ["Ethernet0"], obj=db)
+        assert result.output == show_muxcable_operationtime_expected_port_output
+
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "True"}))
+    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={"uart_stat1": "2",
+                                                                          "uart_stat2": "1"}))
+    def test_show_mux_queue_info(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["queueinfo"],
+                               ["Ethernet0"], obj=db)
+        assert result.output == show_muxcable_queueinfo_expected_port_output
+
+
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "True"}))
+    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={"reset_cause": "1"}))
+    def test_show_mux_resetcause(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["resetcause"],
+                               ["Ethernet0"], obj=db)
+        assert result.output == show_muxcable_resetcause_expected_port_output
+
+
+
+    @mock.patch('show.muxcable.delete_all_keys_in_db_table', mock.MagicMock(return_value=0))
+    @mock.patch('show.muxcable.update_and_get_response_for_xcvr_cmd', mock.MagicMock(return_value={0: 0,
+                                                                                                      1: "True"}))
+    @mock.patch('show.muxcable.get_result', mock.MagicMock(return_value={"reset_cause": "1"}))
+    def test_show_mux_resetcause_json(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(show.cli.commands["muxcable"].commands["resetcause"],
+                               ["Ethernet0", "--json"], obj=db)
+        assert result.output == show_muxcable_resetcause_expected_port_output_json
+
 
     @classmethod
     def teardown_class(cls):
