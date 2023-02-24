@@ -2,7 +2,7 @@
 
 import argparse
 import os
-import _pickle as pickle
+import json
 import sys
 
 from natsort import natsorted
@@ -185,8 +185,8 @@ class FlowCounterStats(object):
             if os.path.exists(self.data_file):
                 os.remove(self.data_file)
 
-            with open(self.data_file, 'wb') as f:
-                pickle.dump(data, f)
+            with open(self.data_file, 'w') as f:
+                json.dump(data, f)
         except IOError as e:
             print('Failed to save statistic - {}'.format(repr(e)))
 
@@ -200,8 +200,8 @@ class FlowCounterStats(object):
             return None
 
         try:
-            with open(self.data_file, 'rb') as f:
-                data = pickle.load(f)
+            with open(self.data_file, 'r') as f:
+                data = json.load(f)
         except IOError as e:
             print('Failed to load statistic - {}'.format(repr(e)))
             return None

@@ -6,7 +6,7 @@
 #
 #####################################################################
 
-import _pickle as pickle
+import json
 import argparse
 import datetime
 import sys
@@ -28,7 +28,7 @@ from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
 from utilities_common.netstat import ns_diff, table_as_json, STATUS_NA, format_brate, format_prate
-from utilities_common.cli import UserCache
+from utilities_common.cli import json_serial, UserCache
 from swsscommon.swsscommon import SonicV2Connector
 
 nstat_fields = (
@@ -96,7 +96,7 @@ class Intfstat(object):
                 counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name)
                 if counter_data:
                     fields[pos] = str(counter_data)
-            cntr = NStats._make(fields)
+            cntr = NStats._make(fields)._asdict()
             return cntr
 
         def get_rates(table_id):
@@ -153,14 +153,14 @@ class Intfstat(object):
             rates = ratestat_dict.get(key, RateStats._make([STATUS_NA] * len(rates_key_list)))
 
             table.append((key,
-                          data.rx_p_ok,
+                          data['rx_p_ok'],
                           format_brate(rates.rx_bps),
                           format_prate(rates.rx_pps),
-                          data.rx_p_err,
-                          data.tx_p_ok,
+                          data['rx_p_err'],
+                          data['tx_p_ok'],
                           format_brate(rates.tx_bps),
                           format_prate(rates.tx_pps),
-                          data.tx_p_err))
+                          data['tx_p_err']))
 
         if use_json:
             print(table_as_json(table, header))
@@ -186,24 +186,24 @@ class Intfstat(object):
 
             if old_cntr is not None:
                 table.append((key,
-                            ns_diff(cntr.rx_p_ok, old_cntr.rx_p_ok),
+                            ns_diff(cntr['rx_p_ok'], old_cntr['rx_p_ok']),
                             format_brate(rates.rx_bps),
                             format_prate(rates.rx_pps),
-                            ns_diff(cntr.rx_p_err, old_cntr.rx_p_err),
-                            ns_diff(cntr.tx_p_ok, old_cntr.tx_p_ok),
+                            ns_diff(cntr['rx_p_err'], old_cntr['rx_p_err']),
+                            ns_diff(cntr['tx_p_ok'], old_cntr['tx_p_ok']),
                             format_brate(rates.tx_bps),
                             format_prate(rates.tx_pps),
-                            ns_diff(cntr.tx_p_err, old_cntr.tx_p_err)))
+                            ns_diff(cntr['tx_p_err'], old_cntr['tx_p_err'])))
             else:
                 table.append((key,
-                            cntr.rx_p_ok,
+                            cntr['rx_p_ok'],
                             format_brate(rates.rx_bps),
                             format_prate(rates.rx_pps),
-                            cntr.rx_p_err,
-                            cntr.tx_p_ok,
+                            cntr['rx_p_err'],
+                            cntr['tx_p_ok'],
                             format_brate(rates.tx_bps),
                             format_prate(rates.tx_pps),
-                            cntr.tx_p_err))
+                            cntr['tx_p_err']))
 
         if use_json:
             print(table_as_json(table, header))
@@ -229,17 +229,17 @@ class Intfstat(object):
 
         if cnstat_old_dict and cnstat_old_dict.get(rif):
             old_cntr = cnstat_old_dict.get(rif)
-            body = body % (ns_diff(cntr.rx_p_ok, old_cntr.rx_p_ok),
-                        ns_diff(cntr.rx_b_ok, old_cntr.rx_b_ok),
-                        ns_diff(cntr.rx_p_err, old_cntr.rx_p_err),
-                        ns_diff(cntr.rx_b_err, old_cntr.rx_b_err),
-                        ns_diff(cntr.tx_p_ok, old_cntr.tx_p_ok),
-                        ns_diff(cntr.tx_b_ok, old_cntr.tx_b_ok),
-                        ns_diff(cntr.tx_p_err, old_cntr.tx_p_err),
-                        ns_diff(cntr.tx_b_err, old_cntr.tx_b_err))
+            body = body % (ns_diff(cntr['rx_p_ok'], old_cntr['rx_p_ok']),
+                        ns_diff(cntr['rx_b_ok'], old_cntr['rx_b_ok']),
+                        ns_diff(cntr['rx_p_err'], old_cntr['rx_p_err']),
+                        ns_diff(cntr['rx_b_err'], old_cntr['rx_b_err']),
+                        ns_diff(cntr['tx_p_ok'], old_cntr['tx_p_ok']),
+                        ns_diff(cntr['tx_b_ok'], old_cntr['tx_b_ok']),
+                        ns_diff(cntr['tx_p_err'], old_cntr['tx_p_err']),
+                        ns_diff(cntr['tx_b_err'], old_cntr['tx_b_err']))
         else:
-            body = body % (cntr.rx_p_ok, cntr.rx_b_ok, cntr.rx_p_err,cntr.rx_b_err,
-                           cntr.tx_p_ok, cntr.tx_b_ok, cntr.tx_p_err, cntr.tx_b_err)
+            body = body % (cntr['rx_p_ok'], cntr['rx_b_ok'], cntr['rx_p_err'],cntr['rx_b_err'],
+                           cntr['tx_p_ok'], cntr['tx_b_ok'], cntr['tx_p_err'], cntr['tx_b_err'])
 
         print(header)
         print(body)
@@ -305,20 +305,20 @@ def main():
             if tag_name is not None:
                 if os.path.isfile(cnstat_fqn_general_file):
                     try:
-                        general_data = pickle.load(open(cnstat_fqn_general_file, 'rb'))
+                        general_data = json.load(open(cnstat_fqn_general_file, 'r'))
                         for key, val in cnstat_dict.items():
                             general_data[key] = val
-                        pickle.dump(general_data, open(cnstat_fqn_general_file, 'wb'))
+                        json.dump(general_data, open(cnstat_fqn_general_file, 'w'))
                     except IOError as e:
                         sys.exit(e.errno)
             # Add the information also to tag specific file
             if os.path.isfile(cnstat_fqn_file):
-                data = pickle.load(open(cnstat_fqn_file, 'rb'))
+                data = json.load(open(cnstat_fqn_file, 'r'))
                 for key, val in cnstat_dict.items():
                     data[key] = val
-                pickle.dump(data, open(cnstat_fqn_file, 'wb'))
+                json.dump(data, open(cnstat_fqn_file, 'w'))
             else:
-                pickle.dump(cnstat_dict, open(cnstat_fqn_file, 'wb'))
+                json.dump(cnstat_dict, open(cnstat_fqn_file, 'w'), default=json_serial)
         except IOError as e:
             sys.exit(e.errno)
         else:
@@ -330,9 +330,9 @@ def main():
             try:
                 cnstat_cached_dict = {}
                 if os.path.isfile(cnstat_fqn_file):
-                    cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'rb'))
+                    cnstat_cached_dict = json.load(open(cnstat_fqn_file, 'r'))
                 else:
-                    cnstat_cached_dict = pickle.load(open(cnstat_fqn_general_file, 'rb'))
+                    cnstat_cached_dict = json.load(open(cnstat_fqn_general_file, 'r'))
 
                 print("Last cached time was " + str(cnstat_cached_dict.get('time')))
                 if interface_name:
