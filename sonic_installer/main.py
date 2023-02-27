@@ -511,8 +511,7 @@ def sonic_installer():
 @click.option('-y', '--yes', is_flag=True, callback=abort_if_false,
               expose_value=False, prompt='New image will be installed, continue?')
 @click.option('-f', '--force', '--skip-secure-check', is_flag=True,
-              help="Force installation of an image of a non-secure type than secure running " +
-              " image, this flag does not affect secure upgrade image verification")
+              help="Force installation of an image of a non-secure type than secure running image")
 @click.option('--skip-platform-check', is_flag=True,
               help="Force installation of an image of a type which is not of the same platform")
 @click.option('--skip_migration', is_flag=True,
@@ -576,14 +575,6 @@ def install(url, force, skip_platform_check=False, skip_migration=False, skip_pa
                 "If you are sure you want to install this image, use --skip-platform-check.\n" +
                 "Aborting...", LOG_ERR)
             raise click.Abort()
-
-        # Calling verification script by default - signature will be checked if enabled in bios
-        echo_and_log("Verifing image {} signature...".format(binary_image_version))
-        if not bootloader.verify_image_sign(image_path):
-            echo_and_log('Error: Failed verify image signature', LOG_ERR)
-            raise click.Abort()
-        else:
-            echo_and_log('Verification successful')
 
         echo_and_log("Installing image {} and setting it as default...".format(binary_image_version))
         with SWAPAllocator(not skip_setup_swap, swap_mem_size, total_mem_threshold, available_mem_threshold):
@@ -966,7 +957,6 @@ def verify_next_image():
         echo_and_log('Image verification failed', LOG_ERR)
         sys.exit(1)
     click.echo('Image successfully verified')
-
 
 if __name__ == '__main__':
     sonic_installer()

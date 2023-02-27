@@ -153,17 +153,6 @@ class GrubBootloader(OnieInstallerBootloader):
         # Check if platform is inside image's target platforms
         return self.platform_in_platforms_asic(platform, image_path)
 
-    def verify_image_sign(self, image_path):
-        click.echo('Verifying image signature')
-        verification_script_name = 'verify_image_sign.sh'
-        script_path = os.path.join('/usr', 'local', 'bin', verification_script_name)
-        if not os.path.exists(script_path):
-            click.echo("Unable to find verification script in path " + script_path)
-            return False
-        verification_result = subprocess.run([script_path, image_path], capture_output=True)
-        click.echo(str(verification_result.stdout) + " " + str(verification_result.stderr))
-        return verification_result.returncode == 0
-
     @classmethod
     def detect(cls):
         return os.path.isfile(os.path.join(HOST_PATH, 'grub/grub.cfg'))
