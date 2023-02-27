@@ -522,6 +522,7 @@ then
     exit "${EXIT_FAILURE}"
 fi
 
+debug "Starting $REBOOT_TYPE"
 
 # re-run the script in background mode with detaching from the terminal session
 if [[ x"${DETACH}" == x"yes" && x"${ALREADY_DETACHED}" == x"" ]]; then
