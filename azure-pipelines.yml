@@ -45,11 +45,14 @@ stages:
         artifact: sonic-buildimage.vs
         runVersion: 'latestFromBranch'
         runBranch: 'refs/heads/$(sourceBranch)'
+        patterns: |
+          **/*.deb
+          **/*.whl
       displayName: "Download artifacts from latest sonic-buildimage build"
 
     - script: |
         set -xe
-        sudo apt-get -y purge libhiredis-dev libnl-3-dev libnl-route-3-dev
+        sudo apt-get -y purge libhiredis-dev libnl-3-dev libnl-route-3-dev || true
         sudo dpkg -i libnl-3-200_*.deb
         sudo dpkg -i libnl-genl-3-200_*.deb
         sudo dpkg -i libnl-route-3-200_*.deb
