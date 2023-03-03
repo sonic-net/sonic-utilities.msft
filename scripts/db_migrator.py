@@ -579,6 +579,23 @@ class DBMigrator():
             self.configDB.set_entry('PORT_QOS_MAP', 'global', {"dscp_to_tc_map": dscp_to_tc_map_table_names[0]})
             log.log_info("Created entry for global DSCP_TO_TC_MAP {}".format(dscp_to_tc_map_table_names[0]))
 
+    def migrate_route_table(self):
+        """
+        Handle route table migration. Migrations handled:
+        1. 'weight' attr in ROUTE object was introduced 202205 onwards.
+            Upgrade from older branch to 202205 will require this 'weight' attr to be added explicitly
+        """
+        route_table = self.appDB.get_table("ROUTE_TABLE")
+        for route_prefix, route_attr in route_table.items():
+            if 'weight' not in route_attr:
+                if type(route_prefix) == tuple:
+                    # IPv6 route_prefix is returned from db as tuple
+                    route_key = "ROUTE_TABLE:" + ":".join(route_prefix)
+                else:
+                    # IPv4 route_prefix is returned from db as str
+                    route_key = "ROUTE_TABLE:{}".format(route_prefix)
+                self.appDB.set(self.appDB.APPL_DB, route_key, 'weight','')
+
     def version_unknown(self):
         """
         version_unknown tracks all SONiC versions that doesn't have a version
@@ -898,6 +915,8 @@ class DBMigrator():
             self.migrate_mgmt_ports_on_s6100()
         else:
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
+
+        self.migrate_route_table()
 
     def migrate(self):
         version = self.get_version()
