@@ -11,11 +11,11 @@ What it is:
 How:
     NOTE: The flow from APPL-DB to ASIC-DB takes non zero milliseconds.
     1) Initiate subscribe for ASIC-DB updates.
-    2) Read APPL-DB & ASIC-DB 
+    2) Read APPL-DB & ASIC-DB
     3) Get the diff.
-    4) If any diff, 
+    4) If any diff,
         4.1) Collect subscribe messages for a second
-        4.2) check diff against the subscribe messages 
+        4.2) check diff against the subscribe messages
     5) Rule out local interfaces & default routes
     6) If still outstanding diffs, report failure.
 
@@ -29,7 +29,7 @@ To verify:
         down to ensure failure.
         Analyze the reported failures to match expected.
     You may use the exit code to verify the result as success or not.
-    
+
 
 
 """
@@ -45,6 +45,7 @@ import syslog
 import time
 import signal
 import traceback
+import subprocess
 
 from swsscommon import swsscommon
 from utilities_common import chassis
@@ -70,6 +71,9 @@ MIN_SCAN_INTERVAL = 10      # Every 10 seconds
 MAX_SCAN_INTERVAL = 3600    # An hour
 
 PRINT_MSG_LEN_MAX = 1000
+
+FRR_CHECK_RETRIES = 3
+FRR_WAIT_TIME = 15
 
 class Level(Enum):
     ERR = 'ERR'
@@ -293,7 +297,7 @@ def get_routes():
 
 def get_route_entries():
     """
-    helper to read present route entries from ASIC-DB and 
+    helper to read present route entries from ASIC-DB and
     as well initiate selector for ASIC-DB:ASIC-state updates.
     :return (selector,  subscriber, <list of sorted routes>)
     """
@@ -309,12 +313,37 @@ def get_route_entries():
         res, e = checkout_rt_entry(k)
         if res:
             rt.append(e)
-                                
+
     print_message(syslog.LOG_DEBUG, json.dumps({"ASIC_ROUTE_ENTRY": sorted(rt)}, indent=4))
 
     selector = swsscommon.Select()
     selector.addSelectable(subs)
     return (selector, subs, sorted(rt))
+
+
+def is_suppress_fib_pending_enabled():
+    """
+    Returns True if FIB suppression is enabled, False otherwise
+    """
+    cfg_db = swsscommon.ConfigDBConnector()
+    cfg_db.connect()
+
+    state = cfg_db.get_entry('DEVICE_METADATA', 'localhost').get('suppress-fib-pending')
+
+    return state == 'enabled'
+
+
+def get_frr_routes():
+    """
+    Read routes from zebra through CLI command
+    :return frr routes dictionary
+    """
+
+    output = subprocess.check_output('show ip route json', shell=True)
+    routes = json.loads(output)
+    output = subprocess.check_output('show ipv6 route json', shell=True)
+    routes.update(json.loads(output))
+    return routes
 
 
 def get_interfaces():
@@ -354,7 +383,7 @@ def filter_out_local_interfaces(keys):
 
     chassis_local_intfs = chassis.get_chassis_local_interfaces()
     local_if_lst.update(set(chassis_local_intfs))
-    
+
     db = swsscommon.DBConnector(APPL_DB_NAME, 0)
     tbl = swsscommon.Table(db, 'ROUTE_TABLE')
 
@@ -493,6 +522,61 @@ def filter_out_standalone_tunnel_routes(routes):
     return updated_routes
 
 
+def check_frr_pending_routes():
+    """
+    Check FRR routes for offload flag presence by executing "show ip route json"
+    Returns a list of routes that have no offload flag.
+    """
+
+    missed_rt = []
+
+    retries = FRR_CHECK_RETRIES
+    for i in range(retries):
+        missed_rt = []
+        frr_routes = get_frr_routes()
+
+        for _, entries in frr_routes.items():
+            for entry in entries:
+                if entry['protocol'] != 'bgp':
+                    continue
+
+                # TODO: Also handle VRF routes. Currently this script does not check for VRF routes so it would be incorrect for us
+                # to assume they are installed in ASIC_DB, so we don't handle them.
+                if entry['vrfName'] != 'default':
+                    continue
+
+                if not entry.get('offloaded', False):
+                    missed_rt.append(entry)
+
+        if not missed_rt:
+            break
+
+        time.sleep(FRR_WAIT_TIME)
+
+    return missed_rt
+
+
+def mitigate_installed_not_offloaded_frr_routes(missed_frr_rt, rt_appl):
+    """
+    Mitigate installed but not offloaded FRR routes.
+
+    In case route exists in APPL_DB, this function will manually send a notification to fpmsyncd
+    to trigger the flow that sends offload flag to zebra.
+
+    It is designed to mitigate a problem when orchagent fails to send notification about installed route to fpmsyncd
+    or fpmsyncd not being able to read the notification or in case zebra fails to receive offload update due to variety of reasons.
+    All of the above mentioned cases must be considered as a bug, but even in that case we will report an error in the log but
+    given that this script ensures the route is installed in the hardware it will automitigate such a bug.
+    """
+    db = swsscommon.DBConnector('APPL_STATE_DB', 0)
+    response_producer = swsscommon.NotificationProducer(db, f'{APPL_DB_NAME}_{swsscommon.APP_ROUTE_TABLE_NAME}_RESPONSE_CHANNEL')
+    for entry in [entry for entry in missed_frr_rt if entry['prefix'] in rt_appl]:
+        fvs = swsscommon.FieldValuePairs([('err_str', 'SWSS_RC_SUCCESS'), ('protocol', entry['protocol'])])
+        response_producer.send('SWSS_RC_SUCCESS', entry['prefix'], fvs)
+
+        print_message(syslog.LOG_ERR, f'Mitigated route {entry["prefix"]}')
+
+
 def get_soc_ips(config_db):
     mux_table = config_db.get_table('MUX_CABLE')
     soc_ips = []
@@ -536,7 +620,7 @@ def check_routes():
     """
     The heart of this script which runs the checks.
     Read APPL-DB & ASIC-DB, the relevant tables for route checking.
-    Checkout routes in ASIC-DB to match APPL-DB, discounting local & 
+    Checkout routes in ASIC-DB to match APPL-DB, discounting local &
     default routes. In case of missed / unexpected entries in ASIC,
     it might be due to update latency between APPL & ASIC DBs. So collect
     ASIC-DB subscribe updates for a second, and checkout if you see SET
@@ -545,12 +629,16 @@ def check_routes():
     If there are still some unjustifiable diffs, between APPL & ASIC DB,
     related to routes report failure, else all good.
 
+    If there are FRR routes that aren't marked offloaded but all APPL & ASIC DB
+    routes are in sync report failure and perform a mitigation action.
+
     :return (0, None) on sucess, else (-1, results) where results holds
     the unjustifiable entries.
     """
     intf_appl_miss = []
     rt_appl_miss = []
     rt_asic_miss = []
+    rt_frr_miss = []
 
     results = {}
     adds = []
@@ -599,11 +687,22 @@ def check_routes():
     if rt_asic_miss:
         results["Unaccounted_ROUTE_ENTRY_TABLE_entries"] = rt_asic_miss
 
+    rt_frr_miss = check_frr_pending_routes()
+
+    if rt_frr_miss:
+        results["missed_FRR_routes"] = rt_frr_miss
+
     if results:
         print_message(syslog.LOG_WARNING, "Failure results: {",  json.dumps(results, indent=4), "}")
         print_message(syslog.LOG_WARNING, "Failed. Look at reported mismatches above")
         print_message(syslog.LOG_WARNING, "add: ", json.dumps(adds, indent=4))
         print_message(syslog.LOG_WARNING, "del: ", json.dumps(deletes, indent=4))
+
+        if rt_frr_miss and not rt_appl_miss and not rt_asic_miss:
+            print_message(syslog.LOG_ERR, "Some routes are not set offloaded in FRR but all routes in APPL_DB and ASIC_DB are in sync")
+            if is_suppress_fib_pending_enabled():
+                mitigate_installed_not_offloaded_frr_routes(rt_frr_miss, rt_appl)
+
         return -1, results
     else:
         print_message(syslog.LOG_INFO, "All good!")
@@ -649,7 +748,7 @@ def main():
                 return ret, res
         else:
             return ret, res
-            
+
 
 
 if __name__ == "__main__":
