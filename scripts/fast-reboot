@@ -614,11 +614,14 @@ if is_secureboot && grep -q aboot_machine= /host/machine.conf; then
     load_aboot_secureboot_kernel
 else
     # check if secure boot is enable in UEFI 
-    SECURE_UPGRADE_ENABLED=$(bootctl status 2>/dev/null | grep -c "Secure Boot: enabled")
-    if [ ${SECURE_UPGRADE_ENABLED} -eq 1 ]; then
-        load_kernel_secure
-    else
+    CHECK_SECURE_UPGRADE_ENABLED=0
+    SECURE_UPGRADE_ENABLED=$(bootctl status 2>/dev/null | grep -c "Secure Boot: enabled") || CHECK_SECURE_UPGRADE_ENABLED=$?
+    if [[ CHECK_SECURE_UPGRADE_ENABLED -ne 0 ]]; then
+        debug "Loading kernel without secure boot"
         load_kernel
+    else
+        debug "Loading kernel with secure boot"
+        load_kernel_secure
     fi
 fi
 
