@@ -118,6 +118,7 @@ class TestSNMPConfigCommands(object):
 
     # Add snmp community tests
     def test_config_snmp_community_add_new_community_ro(self):
+        config.ADHOC_VALIDATION = True
         db = Db()
         runner = CliRunner()
         with mock.patch('utilities_common.cli.run_command') as mock_run_command:

@@ -2354,25 +2354,35 @@ def add_erspan(session_name, src_ip, dst_ip, dscp, ttl, gre_type, queue, policer
         session_info['gre_type'] = gre_type
 
     session_info = gather_session_info(session_info, policer, queue, src_port, direction)
+    ctx = click.get_current_context()
 
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
     namespaces = multi_asic.get_all_namespaces()
     if not namespaces['front_ns']:
-        config_db = ConfigDBConnector()
+        config_db = ValidatedConfigDBConnector(ConfigDBConnector())
         config_db.connect()
-        if validate_mirror_session_config(config_db, session_name, None, src_port, direction) is False:
-            return
-        config_db.set_entry("MIRROR_SESSION", session_name, session_info)
+        if ADHOC_VALIDATION: 
+            if validate_mirror_session_config(config_db, session_name, None, src_port, direction) is False:
+                return
+        try:
+            config_db.set_entry("MIRROR_SESSION", session_name, session_info)
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
+
     else:
         per_npu_configdb = {}
         for front_asic_namespaces in namespaces['front_ns']:
-            per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            per_npu_configdb[front_asic_namespaces] = ValidatedConfigDBConnector(ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces))
             per_npu_configdb[front_asic_namespaces].connect()
-            if validate_mirror_session_config(per_npu_configdb[front_asic_namespaces], session_name, None, src_port, direction) is False:
-                return
-            per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
+            if ADHOC_VALIDATION:
+                if validate_mirror_session_config(per_npu_configdb[front_asic_namespaces], session_name, None, src_port, direction) is False:
+                    return
+            try:
+                per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 @mirror_session.group(cls=clicommon.AbbreviationGroup, name='span')
 @click.pass_context
@@ -2404,25 +2414,34 @@ def add_span(session_name, dst_port, src_port, direction, queue, policer):
             }
 
     session_info = gather_session_info(session_info, policer, queue, src_port, direction)
+    ctx = click.get_current_context()
 
     """
     For multi-npu platforms we need to program all front asic namespaces
     """
     namespaces = multi_asic.get_all_namespaces()
     if not namespaces['front_ns']:
-        config_db = ConfigDBConnector()
+        config_db = ValidatedConfigDBConnector(ConfigDBConnector())
         config_db.connect()
-        if validate_mirror_session_config(config_db, session_name, dst_port, src_port, direction) is False:
-            return
-        config_db.set_entry("MIRROR_SESSION", session_name, session_info)
+        if ADHOC_VALIDATION:
+            if validate_mirror_session_config(config_db, session_name, dst_port, src_port, direction) is False:
+                return
+        try:
+            config_db.set_entry("MIRROR_SESSION", session_name, session_info)
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
     else:
         per_npu_configdb = {}
         for front_asic_namespaces in namespaces['front_ns']:
-            per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            per_npu_configdb[front_asic_namespaces] = ValidatedConfigDBConnector(ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces))
             per_npu_configdb[front_asic_namespaces].connect()
-            if validate_mirror_session_config(per_npu_configdb[front_asic_namespaces], session_name, dst_port, src_port, direction) is False:
-                return
-            per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
+            if ADHOC_VALIDATION:
+                if validate_mirror_session_config(per_npu_configdb[front_asic_namespaces], session_name, dst_port, src_port, direction) is False:
+                    return
+            try:
+                per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, session_info)
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 
 @mirror_session.command()
@@ -2434,16 +2453,23 @@ def remove(session_name):
     For multi-npu platforms we need to program all front asic namespaces
     """
     namespaces = multi_asic.get_all_namespaces()
+    ctx = click.get_current_context()
     if not namespaces['front_ns']:
-        config_db = ConfigDBConnector()
+        config_db = ValidatedConfigDBConnector(ConfigDBConnector())
         config_db.connect()
-        config_db.set_entry("MIRROR_SESSION", session_name, None)
+        try:
+            config_db.set_entry("MIRROR_SESSION", session_name, None)
+        except JsonPatchConflict as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
     else:
         per_npu_configdb = {}
         for front_asic_namespaces in namespaces['front_ns']:
-            per_npu_configdb[front_asic_namespaces] = ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces)
+            per_npu_configdb[front_asic_namespaces] = ValidatedConfigDBConnector(ConfigDBConnector(use_unix_socket_path=True, namespace=front_asic_namespaces))
             per_npu_configdb[front_asic_namespaces].connect()
-            per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, None)
+            try:
+                per_npu_configdb[front_asic_namespaces].set_entry("MIRROR_SESSION", session_name, None)
+            except JsonPatchConflict as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'pfcwd' group ('config pfcwd ...')
