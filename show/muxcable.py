@@ -20,7 +20,7 @@ platform_sfputil = None
 
 REDIS_TIMEOUT_MSECS = 0
 SELECT_TIMEOUT = 1000
-HWMODE_MUXDIRECTION_TIMEOUT = 0.1
+HWMODE_MUXDIRECTION_TIMEOUT = 0.5
 
 # The empty namespace refers to linux host namespace.
 EMPTY_NAMESPACE = ''
