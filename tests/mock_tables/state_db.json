@@ -1210,5 +1210,11 @@
         "STATUS": "up",
         "REMOTE_MOD": "0",
         "REMOTE_PORT": "93"
+    },
+    "ACL_TABLE_TABLE|DATAACL_5" : {
+        "status": "Active"
+    },
+    "ACL_RULE_TABLE|DATAACL_5|RULE_1" : {
+        "status": "Active"
     }
 }
