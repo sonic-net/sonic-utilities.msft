@@ -5,9 +5,34 @@
 # under scripts/. Consider stop using scripts and use console_scripts instead
 #
 # https://stackoverflow.com/questions/18787036/difference-between-entry-points-console-scripts-and-scripts-in-setup-py
+from __future__ import print_function
+import sys
 import fastentrypoints
 
 from setuptools import setup
+import pkg_resources
+from packaging import version
+
+# sonic_dependencies, version requirement only supports '>='
+sonic_dependencies = [
+    'sonic-config-engine',
+    'sonic-platform-common',
+    'sonic-py-common',
+    'sonic-yang-mgmt',
+]
+
+for package in sonic_dependencies:
+    try:
+        package_dist = pkg_resources.get_distribution(package.split(">=")[0])
+    except pkg_resources.DistributionNotFound:
+        print(package + " is not found!", file=sys.stderr)
+        print("Please build and install SONiC python wheels dependencies from sonic-buildimage", file=sys.stderr)
+        exit(1)
+    if ">=" in package:
+        if version.parse(package_dist.version) >= version.parse(package.split(">=")[1]):
+            continue
+        print(package + " version not match!", file=sys.stderr)
+        exit(1)
 
 setup(
     name='sonic-utilities',
@@ -211,16 +236,12 @@ setup(
         'prettyprinter>=0.18.0',
         'pyroute2>=0.5.14, <0.6.1',
         'requests>=2.25.0',
-        'sonic-config-engine',
-        'sonic-platform-common',
-        'sonic-py-common',
-        'sonic-yang-mgmt',
         'tabulate==0.8.2',
         'toposort==1.6',
         'www-authenticate==0.9.2',
         'xmltodict==0.12.0',
         'lazy-object-proxy',
-    ],
+    ] + sonic_dependencies,
     setup_requires= [
         'pytest-runner',
         'wheel'
