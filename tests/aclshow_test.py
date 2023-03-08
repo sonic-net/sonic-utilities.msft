@@ -46,6 +46,7 @@ RULE_7                                 DATAACL               9993  701          
 RULE_9                                 DATAACL               9991  901              900
 RULE_10                                DATAACL               9989  1001             1000
 DEFAULT_RULE                           DATAACL                  1  2                1
+RULE_1                                 DATAACL_5             9999  N/A              N/A
 RULE_NO_COUNTER                        DATAACL_NO_COUNTER    9995  N/A              N/A
 RULE_6                                 EVERFLOW              9994  601              600
 RULE_08                                EVERFLOW              9992  0                0
@@ -89,8 +90,8 @@ RULE NAME    TABLE NAME    PRIO    PACKETS COUNT    BYTES COUNT
 # Expected output for aclshow -r RULE_4,RULE_6 -vv
 rule4_rule6_verbose_output = '' + \
 """Reading ACL info...
-Total number of ACL Tables: 11
-Total number of ACL Rules: 20
+Total number of ACL Tables: 12
+Total number of ACL Rules: 21
 
 RULE NAME    TABLE NAME      PRIO    PACKETS COUNT    BYTES COUNT
 -----------  ------------  ------  ---------------  -------------
@@ -136,6 +137,7 @@ RULE_7                                 DATAACL               9993  0            
 RULE_9                                 DATAACL               9991  0                0
 RULE_10                                DATAACL               9989  0                0
 DEFAULT_RULE                           DATAACL                  1  0                0
+RULE_1                                 DATAACL_5             9999  N/A              N/A
 RULE_NO_COUNTER                        DATAACL_NO_COUNTER    9995  N/A              N/A
 RULE_6                                 EVERFLOW              9994  0                0
 RULE_08                                EVERFLOW              9992  0                0
@@ -161,6 +163,7 @@ RULE_7                                 DATAACL               9993  0            
 RULE_9                                 DATAACL               9991  0                0
 RULE_10                                DATAACL               9989  0                0
 DEFAULT_RULE                           DATAACL                  1  0                0
+RULE_1                                 DATAACL_5             9999  N/A              N/A
 RULE_NO_COUNTER                        DATAACL_NO_COUNTER    9995  100              100
 RULE_6                                 EVERFLOW              9994  0                0
 RULE_08                                EVERFLOW              9992  0                0

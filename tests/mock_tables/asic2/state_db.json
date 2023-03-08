@@ -207,5 +207,11 @@
         "speed_target": "50",
         "led_status": "green",
         "timestamp": "20200813 01:32:30"
+    },
+    "ACL_TABLE_TABLE|DATAACL_5" : {
+        "status": "Active"
+    },
+    "ACL_RULE_TABLE|DATAACL_5|RULE_1" : {
+        "status": "Active"
     }
 }
