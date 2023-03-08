@@ -361,9 +361,13 @@ def setup_fib_commands():
 @pytest.fixture(scope='function')
 def mock_restart_dhcp_relay_service():
     print("We are mocking restart dhcp_relay")
-    origin_func = config.vlan.dhcp_relay_util.handle_restart_dhcp_relay_service
-    config.vlan.dhcp_relay_util.handle_restart_dhcp_relay_service = mock.MagicMock(return_value=0)
+    origin_funcs = []
+    origin_funcs.append(config.vlan.dhcp_relay_util.restart_dhcp_relay_service)
+    origin_funcs.append(config.vlan.is_dhcp_relay_running)
+    config.vlan.dhcp_relay_util.restart_dhcp_relay_service = mock.MagicMock(return_value=0)
+    config.vlan.is_dhcp_relay_running = mock.MagicMock(return_value=True)
 
     yield
 
-    config.vlan.dhcp_relay_util.handle_restart_dhcp_relay_service = origin_func
+    config.vlan.dhcp_relay_util.restart_dhcp_relay_service = origin_funcs[0]
+    config.vlan.is_dhcp_relay_running = origin_funcs[1]
