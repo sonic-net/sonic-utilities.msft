@@ -23,6 +23,7 @@ PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 PLATFORM_PLUGIN="${REBOOT_TYPE}_plugin"
 LOG_SSD_HEALTH="/usr/local/bin/log_ssd_health"
 PLATFORM_FWUTIL_AU_REBOOT_HANDLE="platform_fw_au_reboot_handle"
+PLATFORM_REBOOT_PRE_CHECK="platform_reboot_pre_check"
 SSD_FW_UPDATE="ssd-fw-upgrade"
 SSD_FW_UPDATE_BOOT_OPTION=no
 TAG_LATEST=yes
@@ -179,6 +180,10 @@ function initialize_pre_shutdown()
 
 function request_pre_shutdown()
 {
+    if [ -x ${DEVPATH}/${PLATFORM}/${PLATFORM_REBOOT_PRE_CHECK} ]; then
+        debug "Requesting platform reboot pre-check ..."
+    	${DEVPATH}/${PLATFORM}/${PLATFORM_REBOOT_PRE_CHECK} ${REBOOT_TYPE} 
+    fi
     debug "Requesting pre-shutdown ..."
     STATE=$(timeout 5s docker exec syncd /usr/bin/syncd_request_shutdown --pre &> /dev/null; if [[ $? == 124 ]]; then echo "timed out"; fi)
     if [[ x"${STATE}" == x"timed out" ]]; then
