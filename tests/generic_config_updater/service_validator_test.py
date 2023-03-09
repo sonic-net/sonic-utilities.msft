@@ -6,7 +6,7 @@ import unittest
 from collections import defaultdict
 from unittest.mock import patch
 
-from generic_config_updater.services_validator import vlan_validator, rsyslog_validator, caclmgrd_validator
+from generic_config_updater.services_validator import vlan_validator, rsyslog_validator, caclmgrd_validator, vlanintf_validator
 import generic_config_updater.gu_common
 
 
@@ -152,6 +152,46 @@ test_rsyslog_fail = [
         { "cmd": "systemctl restart rsyslog", "rc": 1 },         # restart again; fails
     ]
 
+test_vlanintf_data = [
+        { "old": {}, "upd": {}, "cmd": "" },
+        {
+            "old": { "VLAN_INTERFACE": {
+                "Vlan1000": {},
+                "Vlan1000|192.168.0.1/21": {} } },
+            "upd": { "VLAN_INTERFACE": {
+                "Vlan1000": {},
+                "Vlan1000|192.168.0.1/21": {} } },
+            "cmd": ""
+        },
+        {
+            "old": { "VLAN_INTERFACE": {
+                "Vlan1000": {},
+                "Vlan1000|192.168.0.1/21": {} } },
+            "upd": { "VLAN_INTERFACE": {
+                "Vlan1000": {},
+                "Vlan1000|192.168.0.2/21": {} } },
+            "cmd": "ip neigh flush dev Vlan1000 192.168.0.1/21"
+        },
+        {
+            "old": { "VLAN_INTERFACE": {
+                "Vlan1000": {},
+                "Vlan1000|192.168.0.1/21": {} } },
+            "upd": { "VLAN_INTERFACE": {
+                "Vlan1000": {},
+                "Vlan1000|192.168.0.1/21": {},
+                "Vlan1000|192.168.0.2/21": {} } },
+            "cmd": ""
+        },
+        {
+            "old": { "VLAN_INTERFACE": {
+                "Vlan1000": {},
+                "Vlan1000|192.168.0.1/21": {} } },
+            "upd": {},
+            "cmd": "ip neigh flush dev Vlan1000 192.168.0.1/21"
+        }
+   ]
+
+
 class TestServiceValidator(unittest.TestCase):
 
     @patch("generic_config_updater.change_applier.os.system")
@@ -176,6 +216,15 @@ class TestServiceValidator(unittest.TestCase):
 
         rc = rsyslog_validator("", "", "")
         assert not rc, "rsyslog_validator expected to fail"
+
+        os_system_calls = []
+        os_system_call_index = 0
+        for entry in test_vlanintf_data:
+            if entry["cmd"]:
+                os_system_calls.append({"cmd": entry["cmd"], "rc": 0 })
+            msg = "case failed: {}".format(str(entry))
+
+            vlanintf_validator(entry["old"], entry["upd"], None)
 
     @patch("generic_config_updater.services_validator.time.sleep")
     def test_change_apply_time_sleep(self, mock_time_sleep):
