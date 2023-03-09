@@ -48,6 +48,9 @@
         },
         "NTP_SERVER": {
             "services_to_validate": [ "ntp-service" ]
+        },
+        "VLAN_INTERFACE": {
+            "services_to_validate": [ "vlanintf-service" ]
         }
     },
     "services": {
@@ -71,6 +74,9 @@
         },
         "ntp-service": {
             "validate_commands": [ "generic_config_updater.services_validator.ntp_validator" ]
+        },
+        "vlanintf-service": {
+            "validate_commands": [ "generic_config_updater.services_validator.vlanintf_validator" ]
         }
     }
 }

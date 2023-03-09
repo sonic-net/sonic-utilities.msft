@@ -101,3 +101,24 @@ def caclmgrd_validator(old_config, upd_config, keys):
 
 def ntp_validator(old_config, upd_config, keys):
     return _service_restart("ntp-config")
+
+def vlanintf_validator(old_config, upd_config, keys):
+    old_vlan_intf = old_config.get("VLAN_INTERFACE", {})
+    upd_vlan_intf = upd_config.get("VLAN_INTERFACE", {})
+
+    # Get the tuple with format (iface, iface_ip) then check deleted tuple
+    # Example:
+    # old_keys = [("Vlan1000", "192.168.0.1")]
+    # upd_keys = [("Vlan1000", "192.168.0.2")]
+    old_keys = [ tuple(key.split("|"))
+            for key in old_vlan_intf if len(key.split("|")) == 2 ]
+    upd_keys = [ tuple(key.split("|"))
+            for key in upd_vlan_intf if len(key.split("|")) == 2 ]
+
+    deleted_keys = list(set(old_keys) - set(upd_keys))
+    for key in deleted_keys:
+        iface, iface_ip = key
+        rc = os.system(f"ip neigh flush dev {iface} {iface_ip}")
+        if not rc:
+            return False
+    return True
