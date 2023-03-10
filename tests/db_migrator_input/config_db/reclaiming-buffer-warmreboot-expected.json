@@ -2044,6 +2044,6 @@
         "admin_status": "up"
     },
     "VERSIONS|DATABASE": {
-        "VERSION": "version_3_0_5"
+        "VERSION": "version_3_0_3"
     }
 }

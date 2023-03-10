@@ -46,7 +46,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_3_0_5'
+        self.CURRENT_VERSION = 'version_3_0_6'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -823,9 +823,28 @@ class DBMigrator():
 
     def version_3_0_5(self):
         """
-        Current latest version. Nothing to do here.
+        Version 3_0_5
         """
         log.log_info('Handling version_3_0_5')
+        # Update state-db fast-reboot entry to enable if set to enable fast-reboot finalizer when using upgrade with fast-reboot
+        # since upgrading from previous version FAST_REBOOT table will be deleted when the timer will expire.
+        # reading FAST_REBOOT table can't be done with stateDB.get as it uses hget behind the scenes and the table structure is
+        # not using hash and won't work.
+        # FAST_REBOOT table exists only if fast-reboot was triggered.
+        keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT")
+        if keys is not None:
+            enable_state = 'true'
+        else:
+            enable_state = 'false'
+        self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable', enable_state)
+        self.set_version('version_3_0_6')
+        return 'version_3_0_6'
+    
+    def version_3_0_6(self):
+        """
+        Current latest version. Nothing to do here.
+        """
+        log.log_info('Handling version_3_0_6')
         return None
 
     def get_version(self):
