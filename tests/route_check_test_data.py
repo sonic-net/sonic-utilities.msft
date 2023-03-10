@@ -462,4 +462,22 @@ TEST_DATA = {
         },
         RET: -1,
     },
+    "10": {
+        DESCR: "basic good one with IPv6 address",
+        ARGS: "route_check -m INFO -i 1000",
+        PRE: {
+            APPL_DB: {
+                ROUTE_TABLE: {
+                },
+                INTF_TABLE: {
+                    "PortChannel1013:2000:31:0:0::1/64": {},
+                }
+            },
+            ASIC_DB: {
+                RT_ENTRY_TABLE: {
+                    RT_ENTRY_KEY_PREFIX + "2000:31::1/128" + RT_ENTRY_KEY_SUFFIX: {},
+                }
+            }
+        }
+    },
 }
