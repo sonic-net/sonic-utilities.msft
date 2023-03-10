@@ -149,7 +149,7 @@ function clear_boot()
 
     #clear_fast_boot
     if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
-        sonic-db-cli STATE_DB DEL "FAST_REBOOT|system" &>/dev/null || /bin/true
+        sonic-db-cli STATE_DB HSET "FAST_RESTART_ENABLE_TABLE|system" "enable" "false" &>/dev/null || /bin/true
     fi
 }
 
@@ -270,7 +270,7 @@ function backup_database()
                                           and not string.match(k, 'WARM_RESTART_ENABLE_TABLE|') \
                                           and not string.match(k, 'VXLAN_TUNNEL_TABLE|') \
                                           and not string.match(k, 'BUFFER_MAX_PARAM_TABLE|') \
-                                          and not string.match(k, 'FAST_REBOOT|') then
+                                          and not string.match(k, 'FAST_RESTART_ENABLE_TABLE|') then
                 redis.call('del', k)
             end
         end
@@ -549,7 +549,7 @@ case "$REBOOT_TYPE" in
         check_warm_restart_in_progress
         BOOT_TYPE_ARG=$REBOOT_TYPE
         trap clear_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
-        sonic-db-cli STATE_DB SET "FAST_REBOOT|system" "1" "EX" "210" &>/dev/null
+        sonic-db-cli STATE_DB HSET "FAST_RESTART_ENABLE_TABLE|system" "enable" "true" &>/dev/null
         config warm_restart enable system
         ;;
     "warm-reboot")
