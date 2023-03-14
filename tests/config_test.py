@@ -693,7 +693,7 @@ class TestConfigQos(object):
 
         with mock.patch('swsscommon.swsscommon.SonicV2Connector.keys',  side_effect=TestConfigQos._keys):
             TestConfigQos._keys_counter = 1
-            empty = _wait_until_clear("BUFFER_POOL_TABLE:*", 0.5,2)
+            empty = _wait_until_clear(["BUFFER_POOL_TABLE:*"], 0.5,2)
         assert empty
 
     def test_qos_wait_until_clear_not_empty(self):
@@ -701,8 +701,14 @@ class TestConfigQos(object):
 
         with mock.patch('swsscommon.swsscommon.SonicV2Connector.keys', side_effect=TestConfigQos._keys):
             TestConfigQos._keys_counter = 10
-            empty = _wait_until_clear("BUFFER_POOL_TABLE:*", 0.5,2)
+            empty = _wait_until_clear(["BUFFER_POOL_TABLE:*"], 0.5,2)
         assert not empty
+
+    @mock.patch('config.main._wait_until_clear')
+    def test_qos_clear_no_wait(self, _wait_until_clear):
+        from config.main import _clear_qos
+        _clear_qos(True, False)
+        _wait_until_clear.assert_called_with(['BUFFER_*_TABLE:*', 'BUFFER_*_SET'], interval=0.5, timeout=0, verbose=False)
 
     def test_qos_reload_single(
             self, get_cmd_module, setup_qos_mock_apis,
