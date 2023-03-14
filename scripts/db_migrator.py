@@ -874,8 +874,8 @@ class DBMigrator():
         # reading FAST_REBOOT table can't be done with stateDB.get as it uses hget behind the scenes and the table structure is
         # not using hash and won't work.
         # FAST_REBOOT table exists only if fast-reboot was triggered.
-        keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT")
-        if keys is not None:
+        keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system")
+        if keys:
             enable_state = 'true'
         else:
             enable_state = 'false'
