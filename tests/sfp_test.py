@@ -215,6 +215,46 @@ Ethernet44:
     EVM              %       100.0     100.0     100.0     N/A          N/A          N/A           N/A          N/A          N/A
 """
 
+test_cmis_eeprom_output = """\
+Ethernet64: SFP EEPROM detected
+        Active Firmware: X.X
+        Active application selected code assigned to host lane 1: 1
+        Active application selected code assigned to host lane 2: 1
+        Active application selected code assigned to host lane 3: 1
+        Active application selected code assigned to host lane 4: 1
+        Active application selected code assigned to host lane 5: 1
+        Active application selected code assigned to host lane 6: 1
+        Active application selected code assigned to host lane 7: 1
+        Active application selected code assigned to host lane 8: 1
+        Application Advertisement: 400GAUI-8 C2M (Annex 120E) - Host Assign (0x1) - 400ZR, DWDM, amplified - Media Assign (0x1)
+                                   400GAUI-8 C2M (Annex 120E) - Host Assign (0x1) - 400ZR, Single Wavelength, Unamplified - Media Assign (0x1)
+                                   100GAUI-2 C2M (Annex 135G) - Host Assign (0x55) - 400ZR, DWDM, amplified - Media Assign (0x1)
+        CMIS Rev: 4.1
+        Connector: LC
+        Encoding: N/A
+        Extended Identifier: Power Class 8 (20.0W Max)
+        Extended RateSelect Compliance: N/A
+        Host Lane Count: 8
+        Identifier: QSFP-DD Double Density 8X Pluggable Transceiver
+        Inactive Firmware: X.X
+        Length Cable Assembly(m): 0.0
+        Media Interface Technology: 1550 nm DFB
+        Media Lane Count: 1
+        Module Hardware Rev: X.X
+        Nominal Bit Rate(100Mbs): 0
+        Specification compliance: sm_media_interface
+        Supported Max Laser Frequency: 196100
+        Supported Max TX Power: 4.0
+        Supported Min Laser Frequency: 191300
+        Supported Min TX Power: -22.9
+        Vendor Date Code(YYYY-MM-DD Lot): 2021-11-19
+        Vendor Name: XXXX
+        Vendor OUI: XX-XX-XX
+        Vendor PN: XXX
+        Vendor Rev: XX
+        Vendor SN: 0123456789
+"""
+
 test_sfp_eeprom_dom_all_output = """\
 Ethernet0: SFP EEPROM detected
         Application Advertisement: N/A
@@ -267,22 +307,42 @@ Ethernet0: SFP EEPROM detected
 Ethernet4: SFP EEPROM Not detected
 
 Ethernet64: SFP EEPROM detected
-        Application Advertisement: N/A
-        Connector: No separable connector
-        Encoding: 64B66B
-        Extended Identifier: Power Class 3(2.5W max), CDR present in Rx Tx
-        Extended RateSelect Compliance: QSFP+ Rate Select Version 1
-        Identifier: QSFP28 or later
-        Length Cable Assembly(m): 3
-        Nominal Bit Rate(100Mbs): 255
-        Specification compliance:
-                10/40G Ethernet Compliance Code: 40G Active Cable (XLPPI)
-        Vendor Date Code(YYYY-MM-DD Lot): 2017-01-13
-        Vendor Name: Mellanox
-        Vendor OUI: 00-02-c9
-        Vendor PN: MFA1A00-C003
-        Vendor Rev: AC
-        Vendor SN: MT1706FT02064
+        Active Firmware: X.X
+        Active application selected code assigned to host lane 1: 1
+        Active application selected code assigned to host lane 2: 1
+        Active application selected code assigned to host lane 3: 1
+        Active application selected code assigned to host lane 4: 1
+        Active application selected code assigned to host lane 5: 1
+        Active application selected code assigned to host lane 6: 1
+        Active application selected code assigned to host lane 7: 1
+        Active application selected code assigned to host lane 8: 1
+        Application Advertisement: 400GAUI-8 C2M (Annex 120E) - Host Assign (0x1) - 400ZR, DWDM, amplified - Media Assign (0x1)
+                                   400GAUI-8 C2M (Annex 120E) - Host Assign (0x1) - 400ZR, Single Wavelength, Unamplified - Media Assign (0x1)
+                                   100GAUI-2 C2M (Annex 135G) - Host Assign (0x55) - 400ZR, DWDM, amplified - Media Assign (0x1)
+        CMIS Rev: 4.1
+        Connector: LC
+        Encoding: N/A
+        Extended Identifier: Power Class 8 (20.0W Max)
+        Extended RateSelect Compliance: N/A
+        Host Lane Count: 8
+        Identifier: QSFP-DD Double Density 8X Pluggable Transceiver
+        Inactive Firmware: X.X
+        Length Cable Assembly(m): 0.0
+        Media Interface Technology: 1550 nm DFB
+        Media Lane Count: 1
+        Module Hardware Rev: X.X
+        Nominal Bit Rate(100Mbs): 0
+        Specification compliance: sm_media_interface
+        Supported Max Laser Frequency: 196100
+        Supported Max TX Power: 4.0
+        Supported Min Laser Frequency: 191300
+        Supported Min TX Power: -22.9
+        Vendor Date Code(YYYY-MM-DD Lot): 2021-11-19
+        Vendor Name: XXXX
+        Vendor OUI: XX-XX-XX
+        Vendor PN: XXX
+        Vendor Rev: XX
+        Vendor SN: 0123456789
         ChannelMonitorValues:
                 RX1Power: 0.3802dBm
                 RX2Power: -0.4871dBm
@@ -337,22 +397,42 @@ Ethernet0: SFP EEPROM detected
 Ethernet4: SFP EEPROM Not detected
 
 Ethernet64: SFP EEPROM detected
-        Application Advertisement: N/A
-        Connector: No separable connector
-        Encoding: 64B66B
-        Extended Identifier: Power Class 3(2.5W max), CDR present in Rx Tx
-        Extended RateSelect Compliance: QSFP+ Rate Select Version 1
-        Identifier: QSFP28 or later
-        Length Cable Assembly(m): 3
-        Nominal Bit Rate(100Mbs): 255
-        Specification compliance:
-                10/40G Ethernet Compliance Code: 40G Active Cable (XLPPI)
-        Vendor Date Code(YYYY-MM-DD Lot): 2017-01-13
-        Vendor Name: Mellanox
-        Vendor OUI: 00-02-c9
-        Vendor PN: MFA1A00-C003
-        Vendor Rev: AC
-        Vendor SN: MT1706FT02064
+        Active Firmware: X.X
+        Active application selected code assigned to host lane 1: 1
+        Active application selected code assigned to host lane 2: 1
+        Active application selected code assigned to host lane 3: 1
+        Active application selected code assigned to host lane 4: 1
+        Active application selected code assigned to host lane 5: 1
+        Active application selected code assigned to host lane 6: 1
+        Active application selected code assigned to host lane 7: 1
+        Active application selected code assigned to host lane 8: 1
+        Application Advertisement: 400GAUI-8 C2M (Annex 120E) - Host Assign (0x1) - 400ZR, DWDM, amplified - Media Assign (0x1)
+                                   400GAUI-8 C2M (Annex 120E) - Host Assign (0x1) - 400ZR, Single Wavelength, Unamplified - Media Assign (0x1)
+                                   100GAUI-2 C2M (Annex 135G) - Host Assign (0x55) - 400ZR, DWDM, amplified - Media Assign (0x1)
+        CMIS Rev: 4.1
+        Connector: LC
+        Encoding: N/A
+        Extended Identifier: Power Class 8 (20.0W Max)
+        Extended RateSelect Compliance: N/A
+        Host Lane Count: 8
+        Identifier: QSFP-DD Double Density 8X Pluggable Transceiver
+        Inactive Firmware: X.X
+        Length Cable Assembly(m): 0.0
+        Media Interface Technology: 1550 nm DFB
+        Media Lane Count: 1
+        Module Hardware Rev: X.X
+        Nominal Bit Rate(100Mbs): 0
+        Specification compliance: sm_media_interface
+        Supported Max Laser Frequency: 196100
+        Supported Max TX Power: 4.0
+        Supported Min Laser Frequency: 191300
+        Supported Min TX Power: -22.9
+        Vendor Date Code(YYYY-MM-DD Lot): 2021-11-19
+        Vendor Name: XXXX
+        Vendor OUI: XX-XX-XX
+        Vendor PN: XXX
+        Vendor Rev: XX
+        Vendor SN: 0123456789
 """
 
 test_sfp_presence_all_output = """\
@@ -464,6 +544,12 @@ Ethernet36  Present
         print(result.output)
         assert result.output == test_qsfp_dd_eeprom_adv_app_output
 
+    def test_cmis_info(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["info"], ["Ethernet64"])
+        assert result.exit_code == 0
+        assert result.output == test_cmis_eeprom_output
+
     def test_rj45_eeprom(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet36"])
@@ -545,9 +631,21 @@ Ethernet200  Not present
         expected = "Ethernet0: Transceiver performance monitoring not applicable"
         assert result_lines == expected
 
+    def test_cmis_sfp_info_with_ns(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["info"], ["Ethernet64 -n asic1"])
+        assert result.exit_code == 0
+        assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == test_cmis_eeprom_output
+
     def test_sfp_eeprom_all(self):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"])
+        assert result.exit_code == 0
+        assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == test_sfp_eeprom_all_output
+
+    def test_sfp_info_all(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["info"])
         assert result.exit_code == 0
         assert "\n".join([ l.rstrip() for l in result.output.split('\n')]) == test_sfp_eeprom_all_output
 

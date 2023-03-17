@@ -19,6 +19,29 @@ QSFP_DATA_MAP = {
     'application_advertisement': 'Application Advertisement'
 }
 
+QSFP_CMIS_DELTA_DATA_MAP = {
+    'host_lane_count': 'Host Lane Count',
+    'media_lane_count': 'Media Lane Count',
+    'active_apsel_hostlane1': 'Active application selected code assigned to host lane 1',
+    'active_apsel_hostlane2': 'Active application selected code assigned to host lane 2',
+    'active_apsel_hostlane3': 'Active application selected code assigned to host lane 3',
+    'active_apsel_hostlane4': 'Active application selected code assigned to host lane 4',
+    'active_apsel_hostlane5': 'Active application selected code assigned to host lane 5',
+    'active_apsel_hostlane6': 'Active application selected code assigned to host lane 6',
+    'active_apsel_hostlane7': 'Active application selected code assigned to host lane 7',
+    'active_apsel_hostlane8': 'Active application selected code assigned to host lane 8',
+    'media_interface_technology': 'Media Interface Technology',
+    'hardware_rev': 'Module Hardware Rev',
+    'cmis_rev': 'CMIS Rev',
+    'active_firmware': 'Active Firmware',
+    'inactive_firmware': 'Inactive Firmware',
+    'supported_max_tx_power': 'Supported Max TX Power',
+    'supported_min_tx_power': 'Supported Min TX Power',
+    'supported_max_laser_freq': 'Supported Max Laser Frequency',
+    'supported_min_laser_freq': 'Supported Min Laser Frequency'
+}
+
+CMIS_DATA_MAP = {**QSFP_DATA_MAP, **QSFP_CMIS_DELTA_DATA_MAP}
 
 def covert_application_advertisement_to_output_string(indent, sfp_info_dict):
     key = 'application_advertisement'
