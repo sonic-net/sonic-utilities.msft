@@ -525,6 +525,7 @@ case "$REBOOT_TYPE" in
         BOOT_TYPE_ARG=$REBOOT_TYPE
         trap clear_boot EXIT HUP INT QUIT TERM KILL ABRT ALRM
         sonic-db-cli STATE_DB HSET "FAST_RESTART_ENABLE_TABLE|system" "enable" "true" &>/dev/null
+        config warm_restart teamsyncd_timer 1
         config warm_restart enable system
         ;;
     "warm-reboot")
@@ -633,14 +634,9 @@ fi
 set +e
 
 if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
-    # Clear all routes except of default routes for faster reconciliation time.
-    sonic-db-cli APPL_DB eval "
-        for _, k in ipairs(redis.call('keys', '*')) do
-            if string.match(k, 'ROUTE_TABLE:') and not string.match(k, 'ROUTE_TABLE:0.0.0.0/0') and not string.match(k, 'ROUTE_TABLE:::/0') then \
-                redis.call('del', k)
-            end
-        end
-    " 0 > /dev/null
+    # Clear all routes except of default and connected routes for faster reconciliation time.
+    debug "Clearing routes..."
+    python /usr/local/bin/fast-reboot-filter-routes.py
 fi
 
 # disable trap-handlers which were set before
