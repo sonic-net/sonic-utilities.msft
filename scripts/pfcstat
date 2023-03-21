@@ -6,7 +6,7 @@
 #
 #####################################################################
 
-import json
+import _pickle as pickle
 import argparse
 import datetime
 import os.path
@@ -37,7 +37,7 @@ except KeyError:
 from utilities_common.netstat import ns_diff, STATUS_NA, format_number_with_comma
 from utilities_common import multi_asic as multi_asic_util
 from utilities_common import constants
-from utilities_common.cli import json_serial, UserCache
+from utilities_common.cli import UserCache
 
 
 PStats = namedtuple("PStats", "pfc0, pfc1, pfc2, pfc3, pfc4, pfc5, pfc6, pfc7")
@@ -101,7 +101,7 @@ class Pfcstat(object):
                     fields[pos] = STATUS_NA
                 else:
                     fields[pos] = str(int(counter_data))
-            cntr = PStats._make(fields)._asdict()
+            cntr = PStats._make(fields)
             return cntr
 
         # Get the info from database
@@ -144,14 +144,14 @@ class Pfcstat(object):
             if key == 'time':
                 continue
             table.append((key,
-                          format_number_with_comma(data['pfc0']),
-                          format_number_with_comma(data['pfc1']),
-                          format_number_with_comma(data['pfc2']),
-                          format_number_with_comma(data['pfc3']),
-                          format_number_with_comma(data['pfc4']),
-                          format_number_with_comma(data['pfc5']),
-                          format_number_with_comma(data['pfc6']),
-                          format_number_with_comma(data['pfc7'])))
+                          format_number_with_comma(data.pfc0),
+                          format_number_with_comma(data.pfc1),
+                          format_number_with_comma(data.pfc2),
+                          format_number_with_comma(data.pfc3),
+                          format_number_with_comma(data.pfc4),
+                          format_number_with_comma(data.pfc5),
+                          format_number_with_comma(data.pfc6),
+                          format_number_with_comma(data.pfc7)))
 
         if rx:
             print(tabulate(table, header_Rx, tablefmt='simple', stralign='right'))
@@ -173,24 +173,24 @@ class Pfcstat(object):
 
             if old_cntr is not None:
                 table.append((key,
-                            ns_diff(cntr['pfc0'], old_cntr['pfc0']),
-                            ns_diff(cntr['pfc1'], old_cntr['pfc1']),
-                            ns_diff(cntr['pfc2'], old_cntr['pfc2']),
-                            ns_diff(cntr['pfc3'], old_cntr['pfc3']),
-                            ns_diff(cntr['pfc4'], old_cntr['pfc4']),
-                            ns_diff(cntr['pfc5'], old_cntr['pfc5']),
-                            ns_diff(cntr['pfc6'], old_cntr['pfc6']),
-                            ns_diff(cntr['pfc7'], old_cntr['pfc7'])))
+                            ns_diff(cntr.pfc0, old_cntr.pfc0),
+                            ns_diff(cntr.pfc1, old_cntr.pfc1),
+                            ns_diff(cntr.pfc2, old_cntr.pfc2),
+                            ns_diff(cntr.pfc3, old_cntr.pfc3),
+                            ns_diff(cntr.pfc4, old_cntr.pfc4),
+                            ns_diff(cntr.pfc5, old_cntr.pfc5),
+                            ns_diff(cntr.pfc6, old_cntr.pfc6),
+                            ns_diff(cntr.pfc7, old_cntr.pfc7)))
             else:
                 table.append((key,
-                              format_number_with_comma(cntr['pfc0']),
-                              format_number_with_comma(cntr['pfc1']),
-                              format_number_with_comma(cntr['pfc2']),
-                              format_number_with_comma(cntr['pfc3']),
-                              format_number_with_comma(cntr['pfc4']),
-                              format_number_with_comma(cntr['pfc5']),
-                              format_number_with_comma(cntr['pfc6']),
-                              format_number_with_comma(cntr['pfc7'])))
+                              format_number_with_comma(cntr.pfc0),
+                              format_number_with_comma(cntr.pfc1),
+                              format_number_with_comma(cntr.pfc2),
+                              format_number_with_comma(cntr.pfc3),
+                              format_number_with_comma(cntr.pfc4),
+                              format_number_with_comma(cntr.pfc5),
+                              format_number_with_comma(cntr.pfc6),
+                              format_number_with_comma(cntr.pfc7)))
 
         if rx:
             print(tabulate(table, header_Rx, tablefmt='simple', stralign='right'))
@@ -256,8 +256,8 @@ Examples:
 
     if save_fresh_stats:
         try:
-            json.dump(cnstat_dict_rx, open(cnstat_fqn_file_rx, 'w'), default=json_serial)
-            json.dump(cnstat_dict_tx, open(cnstat_fqn_file_tx, 'w'), default=json_serial)
+            pickle.dump(cnstat_dict_rx, open(cnstat_fqn_file_rx, 'wb'))
+            pickle.dump(cnstat_dict_tx, open(cnstat_fqn_file_tx, 'wb'))
         except IOError as e:
             print(e.errno, e)
             sys.exit(e.errno)
@@ -271,7 +271,7 @@ Examples:
     """
     if os.path.isfile(cnstat_fqn_file_rx):
         try:
-            cnstat_cached_dict = json.load(open(cnstat_fqn_file_rx, 'r'))
+            cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_rx, 'rb'))
             print("Last cached time was " + str(cnstat_cached_dict.get('time')))
             pfcstat.cnstat_diff_print(cnstat_dict_rx, cnstat_cached_dict, True)
         except IOError as e:
@@ -286,7 +286,7 @@ Examples:
     """
     if os.path.isfile(cnstat_fqn_file_tx):
         try:
-            cnstat_cached_dict = json.load(open(cnstat_fqn_file_tx, 'r'))
+            cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_tx, 'rb'))
             print("Last cached time was " + str(cnstat_cached_dict.get('time')))
             pfcstat.cnstat_diff_print(cnstat_dict_tx, cnstat_cached_dict, False)
         except IOError as e:

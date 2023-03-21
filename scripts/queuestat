@@ -6,7 +6,7 @@
 #
 #####################################################################
 
-import json
+import _pickle as pickle
 import argparse
 import datetime
 import os.path
@@ -33,7 +33,7 @@ except KeyError:
     pass
 
 from swsscommon.swsscommon import SonicV2Connector
-from utilities_common.cli import json_serial, UserCache
+from utilities_common.cli import UserCache
 from utilities_common import constants
 import utilities_common.multi_asic as multi_asic_util
 
@@ -186,7 +186,7 @@ class Queuestat(object):
                     fields[pos] = STATUS_NA
                 elif fields[pos] != STATUS_NA:
                     fields[pos] = str(int(counter_data))
-            cntr = QueueStats._make(fields)._asdict()
+            cntr = QueueStats._make(fields)
             return cntr
 
        # Build a dictionary of the stats
@@ -211,9 +211,9 @@ class Queuestat(object):
                 if json_opt:
                     json_output[port][key] = data
                 continue
-            table.append((port, data['queuetype'] + str(data['queueindex']),
-                        data['totalpacket'], data['totalbytes'],
-                        data['droppacket'], data['dropbytes']))
+            table.append((port, data.queuetype + str(data.queueindex),
+                        data.totalpacket, data.totalbytes,
+                        data.droppacket, data.dropbytes))
 
         if json_opt:
             json_output[port].update(build_json(port, table))
@@ -241,15 +241,15 @@ class Queuestat(object):
                 old_cntr = cnstat_old_dict.get(key)
 
             if old_cntr is not None:
-                table.append((port, cntr['queuetype'] + str(cntr['queueindex']),
-                            ns_diff(cntr['totalpacket'], old_cntr['totalpacket']),
-                            ns_diff(cntr['totalbytes'], old_cntr['totalbytes']),
-                            ns_diff(cntr['droppacket'], old_cntr['droppacket']),
-                            ns_diff(cntr['dropbytes'], old_cntr['dropbytes'])))
+                table.append((port, cntr.queuetype + str(cntr.queueindex),
+                            ns_diff(cntr.totalpacket, old_cntr.totalpacket),
+                            ns_diff(cntr.totalbytes, old_cntr.totalbytes),
+                            ns_diff(cntr.droppacket, old_cntr.droppacket),
+                            ns_diff(cntr.dropbytes, old_cntr.dropbytes)))
             else:
-                table.append((port, cntr['queuetype'] + str(cntr['queueindex']),
-                        cntr['totalpacket'], cntr['totalbytes'],
-                        cntr['droppacket'], cntr['dropbytes']))
+                table.append((port, cntr.queuetype + str(cntr.queueindex),
+                        cntr.totalpacket, cntr.totalbytes,
+                        cntr.droppacket, cntr.dropbytes))
 
         if json_opt:
             json_output[port].update(build_json(port, table))
@@ -273,7 +273,7 @@ class Queuestat(object):
             cnstat_fqn_file_name = cnstat_fqn_file + port
             if os.path.isfile(cnstat_fqn_file_name):
                 try:
-                    cnstat_cached_dict = json.load(open(cnstat_fqn_file_name, 'r'))
+                    cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_name, 'rb'))
                     if json_opt:
                         json_output[port].update({"cached_time":cnstat_cached_dict.get('time')})
                         json_output.update(self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict, json_opt))
@@ -307,7 +307,7 @@ class Queuestat(object):
         json_output[port] = {}
         if os.path.isfile(cnstat_fqn_file_name):
             try:
-                cnstat_cached_dict = json.load(open(cnstat_fqn_file_name, 'r'))
+                cnstat_cached_dict = pickle.load(open(cnstat_fqn_file_name, 'rb'))
                 if json_opt:
                     json_output[port].update({"cached_time":cnstat_cached_dict.get('time')})
                     json_output.update(self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict, json_opt))
@@ -330,7 +330,7 @@ class Queuestat(object):
         for port in natsorted(self.counter_port_name_map):
             cnstat_dict = self.get_cnstat(self.port_queues_map[port])
             try:
-                json.dump(cnstat_dict, open(cnstat_fqn_file + port, 'w'), default=json_serial)
+                pickle.dump(cnstat_dict, open(cnstat_fqn_file + port, 'wb'))
             except IOError as e:
                 print(e.errno, e)
                 sys.exit(e.errno)
