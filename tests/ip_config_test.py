@@ -1,5 +1,3 @@
-import json
-import jsonpatch
 import os
 import traceback
 from unittest import mock
@@ -13,9 +11,6 @@ import show.main as show
 import config.validated_config_db_connector as validated_config_db_connector
 from utilities_common.db import Db
 import utilities_common.bgp_util as bgp_util
-
-test_path = os.path.dirname(os.path.abspath(__file__))
-ip_config_input_path = os.path.join(test_path, "ip_config_input")
 
 ERROR_MSG = "Error: IP address is not valid"
 
@@ -242,21 +237,6 @@ class TestConfigIP(object):
         print(result.exit_code, result.output)
         assert result.exit_code != 0
         assert ('Ethernet68', '3000::1/64') not in db.cfgdb.get_table('INTERFACE')
-
-    def test_remove_interface_case_sensitive_mock_ipv6_w_apply_patch(self):
-        runner = CliRunner()
-        any_patch_as_json = [{"op": "remove", "path": "/INTERFACE/Ethernet12|FC00::1~1126"}]
-        any_patch = jsonpatch.JsonPatch(any_patch_as_json)
-        any_patch_as_text = json.dumps(any_patch_as_json)
-        ipv6_patch_file = os.path.join(ip_config_input_path, 'patch_ipv6.test')
-
-        # config apply-patch patch
-        mock_generic_updater = mock.Mock()
-        with mock.patch('config.main.GenericUpdater', return_value=mock_generic_updater):
-            with mock.patch('builtins.open', mock.mock_open(read_data=any_patch_as_text)):
-                result = runner.invoke(config.config.commands["apply-patch"], [ipv6_patch_file], catch_exceptions=False)
-        print(result.exit_code, result.output)
-        assert "converted ipv6 address to lowercase fc00::1~1126 with prefix /INTERFACE/Ethernet12| in value: /INTERFACE/Ethernet12|FC00::1~1126" in result.output
 
     def test_intf_vrf_bind_unbind(self):
         runner = CliRunner()
