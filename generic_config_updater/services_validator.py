@@ -119,6 +119,6 @@ def vlanintf_validator(old_config, upd_config, keys):
     for key in deleted_keys:
         iface, iface_ip = key
         rc = os.system(f"ip neigh flush dev {iface} {iface_ip}")
-        if not rc:
+        if rc:
             return False
     return True
