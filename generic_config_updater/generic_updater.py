@@ -36,7 +36,7 @@ class PatchApplier:
         self.patchsorter = patchsorter if patchsorter is not None else StrictPatchSorter(self.config_wrapper, self.patch_wrapper)
         self.changeapplier = changeapplier if changeapplier is not None else ChangeApplier()
 
-    def apply(self, patch):
+    def apply(self, patch, sort=True):
         self.logger.log_notice("Patch application starting.")
         self.logger.log_notice(f"Patch: {patch}")
 
@@ -63,11 +63,17 @@ class PatchApplier:
                             f"Table{'s' if len(empty_tables) != 1 else ''}: {empty_tables_txt}")
 
         # Generate list of changes to apply
-        self.logger.log_notice("Sorting patch updates.")
-        changes = self.patchsorter.sort(patch)
+        if sort:
+            self.logger.log_notice("Sorting patch updates.")
+            changes = self.patchsorter.sort(patch)
+        else:
+            self.logger.log_notice("Converting patch to JsonChange.")
+            changes = [JsonChange(jsonpatch.JsonPatch([element])) for element in patch]
+            
         changes_len = len(changes)
-        self.logger.log_notice(f"The patch was sorted into {changes_len} " \
-                             f"change{'s' if changes_len != 1 else ''}{':' if changes_len > 0 else '.'}")
+        self.logger.log_notice(f"The patch was converted into {changes_len} " \
+                          f"change{'s' if changes_len != 1 else ''}{':' if changes_len > 0 else '.'}")
+
         for change in changes:
             self.logger.log_notice(f"  * {change}")
 
@@ -284,7 +290,7 @@ class ConfigLockDecorator(Decorator):
 
         self.config_lock = config_lock
 
-    def apply(self, patch):
+    def apply(self, patch, sort=True):
         self.execute_write_action(Decorator.apply, self, patch)
 
     def replace(self, target_config):
@@ -407,9 +413,9 @@ class GenericUpdater:
         self.generic_update_factory = \
             generic_update_factory if generic_update_factory is not None else GenericUpdateFactory()
 
-    def apply_patch(self, patch, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths):
+    def apply_patch(self, patch, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths, sort=True):
         patch_applier = self.generic_update_factory.create_patch_applier(config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths)
-        patch_applier.apply(patch)
+        patch_applier.apply(patch, sort)
 
     def replace(self, target_config, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths):
         config_replacer = self.generic_update_factory.create_config_replacer(config_format, verbose, dry_run, ignore_non_yang_tables, ignore_paths)

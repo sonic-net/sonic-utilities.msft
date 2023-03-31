@@ -526,7 +526,7 @@ class TestGenericUpdater(unittest.TestCase):
     def test_apply_patch__creates_applier_and_apply(self):
         # Arrange
         patch_applier = Mock()
-        patch_applier.apply.side_effect = create_side_effect_dict({(str(Files.SINGLE_OPERATION_SONIC_YANG_PATCH),): 0})
+        patch_applier.apply.side_effect = create_side_effect_dict({(str(Files.SINGLE_OPERATION_SONIC_YANG_PATCH), "True"): 0})
 
         factory = Mock()
         factory.create_patch_applier.side_effect = \
@@ -548,7 +548,7 @@ class TestGenericUpdater(unittest.TestCase):
                                     self.any_ignore_paths)
 
         # Assert
-        patch_applier.apply.assert_has_calls([call(Files.SINGLE_OPERATION_SONIC_YANG_PATCH)])
+        patch_applier.apply.assert_has_calls([call(Files.SINGLE_OPERATION_SONIC_YANG_PATCH, True)])
 
     def test_replace__creates_replacer_and_replace(self):
         # Arrange
