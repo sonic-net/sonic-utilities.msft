@@ -47,6 +47,10 @@ class PatchApplier:
         # Generate target config
         self.logger.log_notice("Simulating the target full config after applying the patch.")
         target_config = self.patch_wrapper.simulate_patch(patch, old_config)
+        
+        # Validate all JsonPatch operations on specified fields
+        self.logger.log_notice("Validating all JsonPatch operations are permitted on the specified fields")
+        self.config_wrapper.validate_field_operation(old_config, target_config)
 
         # Validate target config does not have empty tables since they do not show up in ConfigDb
         self.logger.log_notice("Validating target config does not have empty tables, " \
