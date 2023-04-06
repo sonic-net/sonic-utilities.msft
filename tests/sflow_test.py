@@ -3,6 +3,7 @@ import sys
 import pytest
 from unittest import mock
 
+from jsonpatch import JsonPatchConflict
 from click.testing import CliRunner
 from utilities_common.db import Db
 from mock import patch
@@ -193,6 +194,25 @@ class TestShowSflow(object):
         assert result.output == show_sflow_output
 
         return
+
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
+    def test_config_sflow_collector_invalid_yang_validation(self):
+        db = Db()
+        runner = CliRunner()
+        obj = {'db':db.cfgdb}
+
+        config.ADHOC_VALIDTION = False
+        result = runner.invoke(config.config.commands["sflow"].
+            commands["collector"].commands["del"], ["prod"], obj=obj)
+        print(result.exit_code, result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+
+        result = runner.invoke(config.config.commands["sflow"].
+            commands["collector"].commands["add"],
+            ["prod", "fe80::6e82:6aff:fe1e:cd8e", "--vrf", "mgmt"], obj=obj)
+        assert "Invalid ConfigDB. Error" in result.output
     
     @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
     @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))

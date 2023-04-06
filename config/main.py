@@ -15,6 +15,7 @@ import itertools
 import copy
 
 from jsonpatch import JsonPatchConflict
+from jsonpointer import JsonPointerException
 from collections import OrderedDict
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
 from minigraph import parse_device_desc_xml, minigraph_encoder
@@ -4149,7 +4150,7 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         raise click.Abort()
 
     # Get the config_db connector
-    config_db = ctx.obj['config_db']
+    config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
 
     target_brkout_mode = mode
 
@@ -4228,7 +4229,10 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         if interface_name not in  brkout_cfg_keys:
             click.secho("[ERROR] {} is not present in 'BREAKOUT_CFG' Table!".format(interface_name), fg='red')
             raise click.Abort()
-        config_db.set_entry("BREAKOUT_CFG", interface_name, {'brkout_mode': target_brkout_mode})
+        try:
+            config_db.set_entry("BREAKOUT_CFG", interface_name, {'brkout_mode': target_brkout_mode})
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
         click.secho("Breakout process got successfully completed."
                     .format(interface_name), fg="cyan", underline=True)
         click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
@@ -6375,15 +6379,19 @@ def ntp(ctx):
 @click.pass_context
 def add_ntp_server(ctx, ntp_ip_address):
     """ Add NTP server IP """
-    if not clicommon.is_ipaddress(ntp_ip_address):
-        ctx.fail('Invalid ip address')
-    db = ctx.obj['db']
+    if ADHOC_VALIDATION:
+        if not clicommon.is_ipaddress(ntp_ip_address): 
+            ctx.fail('Invalid IP address')
+    db = ValidatedConfigDBConnector(ctx.obj['db'])    
     ntp_servers = db.get_table("NTP_SERVER")
     if ntp_ip_address in ntp_servers:
         click.echo("NTP server {} is already configured".format(ntp_ip_address))
         return
     else:
-        db.set_entry('NTP_SERVER', ntp_ip_address, {'NULL': 'NULL'})
+        try:
+            db.set_entry('NTP_SERVER', ntp_ip_address, {'NULL': 'NULL'})
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e)) 
         click.echo("NTP server {} added to configuration".format(ntp_ip_address))
         try:
             click.echo("Restarting ntp-config service...")
@@ -6396,12 +6404,16 @@ def add_ntp_server(ctx, ntp_ip_address):
 @click.pass_context
 def del_ntp_server(ctx, ntp_ip_address):
     """ Delete NTP server IP """
-    if not clicommon.is_ipaddress(ntp_ip_address):
-        ctx.fail('Invalid IP address')
-    db = ctx.obj['db']
+    if ADHOC_VALIDATION:
+        if not clicommon.is_ipaddress(ntp_ip_address):
+            ctx.fail('Invalid IP address')
+    db = ValidatedConfigDBConnector(ctx.obj['db'])    
     ntp_servers = db.get_table("NTP_SERVER")
     if ntp_ip_address in ntp_servers:
-        db.set_entry('NTP_SERVER', '{}'.format(ntp_ip_address), None)
+        try:
+            db.set_entry('NTP_SERVER', '{}'.format(ntp_ip_address), None)
+        except JsonPatchConflict as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
         click.echo("NTP server {} removed from configuration".format(ntp_ip_address))
     else:
         ctx.fail("NTP server {} is not configured.".format(ntp_ip_address))
@@ -6654,16 +6666,19 @@ def add(ctx, name, ipaddr, port, vrf):
     if not is_valid_collector_info(name, ipaddr, port, vrf):
         return
 
-    config_db = ctx.obj['db']
+    config_db = ValidatedConfigDBConnector(ctx.obj['db']) 
     collector_tbl = config_db.get_table('SFLOW_COLLECTOR')
 
     if (collector_tbl and name not in collector_tbl and len(collector_tbl) == 2):
         click.echo("Only 2 collectors can be configured, please delete one")
         return
-
-    config_db.mod_entry('SFLOW_COLLECTOR', name,
-                        {"collector_ip": ipaddr,  "collector_port": port,
-                         "collector_vrf": vrf})
+    
+    try:
+        config_db.mod_entry('SFLOW_COLLECTOR', name,
+                            {"collector_ip": ipaddr,  "collector_port": port,
+                             "collector_vrf": vrf})
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e)) 
     return
 
 #
@@ -6674,14 +6689,18 @@ def add(ctx, name, ipaddr, port, vrf):
 @click.pass_context
 def del_collector(ctx, name):
     """Delete a sFlow collector"""
-    config_db = ctx.obj['db']
-    collector_tbl = config_db.get_table('SFLOW_COLLECTOR')
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
+    if ADHOC_VALIDATION:
+        collector_tbl = config_db.get_table('SFLOW_COLLECTOR')
 
-    if name not in collector_tbl:
-        click.echo("Collector: {} not configured".format(name))
-        return
+        if name not in collector_tbl:
+            click.echo("Collector: {} not configured".format(name))
+            return
 
-    config_db.mod_entry('SFLOW_COLLECTOR', name, None)
+    try:
+        config_db.set_entry('SFLOW_COLLECTOR', name, None)
+    except (JsonPatchConflict, JsonPointerException) as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'sflow agent-id' group

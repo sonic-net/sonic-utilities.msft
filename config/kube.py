@@ -1,6 +1,7 @@
 import click
 
 from utilities_common.cli import AbbreviationGroup, pass_db
+from .validated_config_db_connector import ValidatedConfigDBConnector
 
 from .utils import log
 
@@ -21,22 +22,30 @@ KUBE_LABEL_TABLE = "KUBE_LABELS"
 KUBE_LABEL_SET_KEY = "SET"
 
 def _update_kube_server(db, field, val):
-    db_data = db.cfgdb.get_entry(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY)
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
+    db_data = config_db.get_entry(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY)
     def_data = {
         KUBE_SERVER_IP: "",
         KUBE_SERVER_PORT: "6443",
         KUBE_SERVER_INSECURE: "True",
         KUBE_SERVER_DISABLE: "False"
     }
+    ctx = click.get_current_context()
     for f in def_data:
         if db_data and f in db_data:
             if f == field and db_data[f] != val:
-                db.cfgdb.mod_entry(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY, {field: val})
+                try: 
+                    config_db.mod_entry(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY, {field: val})
+                except ValueError as e:
+                    ctx.fail("Invalid ConfigDB. Error: {}".format(e))
                 log.log_info("modify kubernetes server entry {}={}".format(field,val))
         else:
             # Missing field. Set to default or given value
             v = val if f == field else def_data[f]
-            db.cfgdb.mod_entry(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY, {f: v})
+            try:
+                config_db.mod_entry(KUBE_SERVER_TABLE_NAME, KUBE_SERVER_TABLE_KEY, {f: v})
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
             log.log_info("set kubernetes server entry {}={}".format(f,v))
 
 

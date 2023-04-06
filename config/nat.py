@@ -1,8 +1,12 @@
 import ipaddress
 
 import click
+from jsonpatch import JsonPatchConflict
+from jsonpointer import JsonPointerException
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector
+from .validated_config_db_connector import ValidatedConfigDBConnector
 
+ADHOC_VALIDATION = True
 
 def is_valid_ipv4_address(address):
     """Check if the given ipv4 address is valid"""
@@ -243,15 +247,15 @@ def static():
 @click.option('-twice_nat_id', metavar='<twice_nat_id>', required=False, type=click.IntRange(1, 9999), help="Set the twice nat id")
 def add_basic(ctx, global_ip, local_ip, nat_type, twice_nat_id):
     """Add Static NAT-related configutation"""
+    if ADHOC_VALIDATION:
+        # Verify the ip address format 
+        if is_valid_ipv4_address(local_ip) is False:
+            ctx.fail("Given local ip address {} is invalid. Please enter a valid local ip address !!".format(local_ip)) 
 
-    # Verify the ip address format 
-    if is_valid_ipv4_address(local_ip) is False:
-        ctx.fail("Given local ip address {} is invalid. Please enter a valid local ip address !!".format(local_ip)) 
-
-    if is_valid_ipv4_address(global_ip) is False:
-        ctx.fail("Given global ip address {} is invalid. Please enter a valid global ip address !!".format(global_ip))
+        if is_valid_ipv4_address(global_ip) is False:
+            ctx.fail("Given global ip address {} is invalid. Please enter a valid global ip address !!".format(global_ip))
    
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
 
     entryFound = False
@@ -304,13 +308,25 @@ def add_basic(ctx, global_ip, local_ip, nat_type, twice_nat_id):
                 ctx.fail("Same Twice nat id is not allowed for more than 2 entries!!")
 
         if nat_type is not None and twice_nat_id is not None:
-            config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: nat_type, dataKey3: twice_nat_id}) 
+            try:
+                config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: nat_type, dataKey3: twice_nat_id})
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
         elif nat_type is not None:
-            config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: nat_type})
+            try:
+                config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: nat_type})
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
         elif twice_nat_id is not None:
-            config_db.set_entry(table, key, {dataKey1: local_ip, dataKey3: twice_nat_id})
+            try:
+                config_db.set_entry(table, key, {dataKey1: local_ip, dataKey3: twice_nat_id})
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
         else:
-            config_db.set_entry(table, key, {dataKey1: local_ip})
+            try:
+                config_db.set_entry(table, key, {dataKey1: local_ip})
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat add static tcp' command ('config nat add static tcp <global-ip> <global-port> <local-ip> <local-port>')
@@ -325,15 +341,15 @@ def add_basic(ctx, global_ip, local_ip, nat_type, twice_nat_id):
 @click.option('-twice_nat_id', metavar='<twice_nat_id>', required=False, type=click.IntRange(1, 9999), help="Set the twice nat id")
 def add_tcp(ctx, global_ip, global_port, local_ip, local_port, nat_type, twice_nat_id):
     """Add Static TCP Protocol NAPT-related configutation"""
+    if ADHOC_VALIDATION: 
+        # Verify the ip address format 
+        if is_valid_ipv4_address(local_ip) is False:
+            ctx.fail("Given local ip address {} is invalid. Please enter a valid local ip address !!".format(local_ip))
 
-    # Verify the ip address format 
-    if is_valid_ipv4_address(local_ip) is False:
-        ctx.fail("Given local ip address {} is invalid. Please enter a valid local ip address !!".format(local_ip))
+        if is_valid_ipv4_address(global_ip) is False:
+            ctx.fail("Given global ip address {} is invalid. Please enter a valid global ip address !!".format(global_ip))
 
-    if is_valid_ipv4_address(global_ip) is False:
-        ctx.fail("Given global ip address {} is invalid. Please enter a valid global ip address !!".format(global_ip))
-
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
     
     entryFound = False
@@ -384,13 +400,25 @@ def add_tcp(ctx, global_ip, global_port, local_ip, local_port, nat_type, twice_n
                 ctx.fail("Same Twice nat id is not allowed for more than 2 entries!!")
 
         if nat_type is not None and twice_nat_id is not None:
-            config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: local_port, dataKey3: nat_type, dataKey4: twice_nat_id})
+            try:
+                config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: local_port, dataKey3: nat_type, dataKey4: twice_nat_id})
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
         elif nat_type is not None:
-            config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: local_port, dataKey3: nat_type})
+            try:
+                config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: local_port, dataKey3: nat_type})
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
         elif twice_nat_id is not None:
-            config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: local_port, dataKey4: twice_nat_id})
+            try:
+                config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: local_port, dataKey4: twice_nat_id})
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
         else:
-            config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: local_port})
+            try:
+                config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: local_port})
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat add static udp' command ('config nat add static udp <global-ip> <global-port> <local-ip> <local-port>')
@@ -405,15 +433,16 @@ def add_tcp(ctx, global_ip, global_port, local_ip, local_port, nat_type, twice_n
 @click.option('-twice_nat_id', metavar='<twice_nat_id>', required=False, type=click.IntRange(1, 9999), help="Set the twice nat id")
 def add_udp(ctx, global_ip, global_port, local_ip, local_port, nat_type, twice_nat_id):
     """Add Static UDP Protocol NAPT-related configutation"""
+    
+    if ADHOC_VALIDATION:
+        # Verify the ip address format 
+        if is_valid_ipv4_address(local_ip) is False:
+            ctx.fail("Given local ip address {} is invalid. Please enter a valid local ip address !!".format(local_ip))
 
-    # Verify the ip address format 
-    if is_valid_ipv4_address(local_ip) is False:
-        ctx.fail("Given local ip address {} is invalid. Please enter a valid local ip address !!".format(local_ip))
+        if is_valid_ipv4_address(global_ip) is False:
+            ctx.fail("Given global ip address {} is invalid. Please enter a valid global ip address !!".format(global_ip))
 
-    if is_valid_ipv4_address(global_ip) is False:
-        ctx.fail("Given global ip address {} is invalid. Please enter a valid global ip address !!".format(global_ip))
-
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
 
     entryFound = False
@@ -464,13 +493,25 @@ def add_udp(ctx, global_ip, global_port, local_ip, local_port, nat_type, twice_n
                 ctx.fail("Same Twice nat id is not allowed for more than 2 entries!!")
 
         if nat_type is not None and twice_nat_id is not None:
-            config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: local_port, dataKey3: nat_type, dataKey4: twice_nat_id})
+            try:
+                config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: local_port, dataKey3: nat_type, dataKey4: twice_nat_id})
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
         elif nat_type is not None:
-            config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: local_port, dataKey3: nat_type})
+            try:
+                config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: local_port, dataKey3: nat_type})
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
         elif twice_nat_id is not None:
-            config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: local_port, dataKey4: twice_nat_id})
+            try:
+                config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: local_port, dataKey4: twice_nat_id})
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
         else:
-            config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: local_port})
+            try:
+                config_db.set_entry(table, key, {dataKey1: local_ip, dataKey2: local_port})
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat remove static' group ('config nat remove static ...')
@@ -489,15 +530,16 @@ def static():
 @click.argument('local_ip', metavar='<local_ip>', required=True)
 def remove_basic(ctx, global_ip, local_ip):
     """Remove Static NAT-related configutation"""
+    
+    if ADHOC_VALIDATION:
+        # Verify the ip address format 
+        if is_valid_ipv4_address(local_ip) is False:
+            ctx.fail("Given local ip address {} is invalid. Please enter a valid local ip address !!".format(local_ip))
 
-    # Verify the ip address format 
-    if is_valid_ipv4_address(local_ip) is False:
-        ctx.fail("Given local ip address {} is invalid. Please enter a valid local ip address !!".format(local_ip))
+        if is_valid_ipv4_address(global_ip) is False:
+            ctx.fail("Given global ip address {} is invalid. Please enter a valid global ip address !!".format(global_ip))
 
-    if is_valid_ipv4_address(global_ip) is False:
-        ctx.fail("Given global ip address {} is invalid. Please enter a valid global ip address !!".format(global_ip))
-
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
 
     entryFound = False
@@ -508,8 +550,11 @@ def remove_basic(ctx, global_ip, local_ip):
     data = config_db.get_entry(table, key)
     if data:
         if data[dataKey] == local_ip:
-            config_db.set_entry(table, key, None)
-            entryFound = True
+            try:
+                config_db.set_entry(table, key, None)
+                entryFound = True
+            except (JsonPatchConflict, JsonPointerException) as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
     if entryFound is False:
         click.echo("Trying to delete static nat entry, which is not present.")
@@ -526,15 +571,16 @@ def remove_basic(ctx, global_ip, local_ip):
 @click.argument('local_port', metavar='<local_port>', type=click.IntRange(1, 65535), required=True)
 def remove_tcp(ctx, global_ip, global_port, local_ip, local_port):
     """Remove Static TCP Protocol NAPT-related configutation"""
+    
+    if ADHOC_VALIDATION:
+        # Verify the ip address format 
+        if is_valid_ipv4_address(local_ip) is False:
+            ctx.fail("Given local ip address {} is invalid. Please enter a valid local ip address !!".format(local_ip))
 
-    # Verify the ip address format 
-    if is_valid_ipv4_address(local_ip) is False:
-        ctx.fail("Given local ip address {} is invalid. Please enter a valid local ip address !!".format(local_ip))
+        if is_valid_ipv4_address(global_ip) is False:
+            ctx.fail("Given global ip address {} is invalid. Please enter a valid global ip address !!".format(global_ip))
 
-    if is_valid_ipv4_address(global_ip) is False:
-        ctx.fail("Given global ip address {} is invalid. Please enter a valid global ip address !!".format(global_ip))
-
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
 
     entryFound = False
@@ -544,8 +590,11 @@ def remove_tcp(ctx, global_ip, global_port, local_ip, local_port):
     data = config_db.get_entry(table, key)
     if data:
         if data['local_ip'] == local_ip and data['local_port'] == str(local_port):
-            config_db.set_entry(table, key, None)
-            entryFound = True
+            try:
+                config_db.set_entry(table, key, None)
+                entryFound = True
+            except (JsonPatchConflict, JsonPointerException) as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
     if entryFound is False:
         click.echo("Trying to delete static napt entry, which is not present.")
@@ -561,15 +610,16 @@ def remove_tcp(ctx, global_ip, global_port, local_ip, local_port):
 @click.argument('local_port', metavar='<local_port>', type=click.IntRange(1, 65535), required=True)
 def remove_udp(ctx, global_ip, global_port, local_ip, local_port):
     """Remove Static UDP Protocol NAPT-related configutation"""
+    
+    if ADHOC_VALIDATION:
+        # Verify the ip address format 
+        if is_valid_ipv4_address(local_ip) is False:
+            ctx.fail("Given local ip address {} is invalid. Please enter a valid local ip address !!".format(local_ip))
 
-    # Verify the ip address format 
-    if is_valid_ipv4_address(local_ip) is False:
-        ctx.fail("Given local ip address {} is invalid. Please enter a valid local ip address !!".format(local_ip))
+        if is_valid_ipv4_address(global_ip) is False:
+            ctx.fail("Given global ip address {} is invalid. Please enter a valid global ip address !!".format(global_ip))
 
-    if is_valid_ipv4_address(global_ip) is False:
-        ctx.fail("Given global ip address {} is invalid. Please enter a valid global ip address !!".format(global_ip))
-
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
 
     entryFound = False
@@ -581,8 +631,11 @@ def remove_udp(ctx, global_ip, global_port, local_ip, local_port):
     data = config_db.get_entry(table, key)
     if data:
         if data[dataKey1] == local_ip and data[dataKey2] == str(local_port):
-            config_db.set_entry(table, key, None)
-            entryFound = True
+            try:
+                config_db.set_entry(table, key, None)
+                entryFound = True
+            except (JsonPatchConflict, JsonPointerException) as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
     if entryFound is False:
         click.echo("Trying to delete static napt entry, which is not present.")
@@ -595,7 +648,7 @@ def remove_udp(ctx, global_ip, global_port, local_ip, local_port):
 def remove_static_all(ctx):
     """Remove all Static related configutation"""
 
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
 
     tables = ['STATIC_NAT', 'STATIC_NAPT']
@@ -604,7 +657,10 @@ def remove_static_all(ctx):
         table_dict = config_db.get_table(table_name)
         if table_dict:
             for table_key_name in table_dict:
-                config_db.set_entry(table_name, table_key_name, None)
+                try:
+                    config_db.set_entry(table_name, table_key_name, None)
+                except (JsonPatchConflict, JsonPointerException) as e:
+                    ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat add pool' command ('config nat add pool <pool_name> <global_ip> <global_port_range>')
@@ -664,7 +720,7 @@ def add_pool(ctx, pool_name, global_ip_range, global_port_range):
     else:
         global_port_range = "NULL"
 
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
 
     entryFound = False
@@ -711,7 +767,10 @@ def add_pool(ctx, pool_name, global_ip_range, global_port_range):
                     ctx.fail("Given Ip address entry is overlapping with existing Static NAT entry !!")
 
     if entryFound == False:
-        config_db.set_entry(table, key, {dataKey1: global_ip_range, dataKey2 : global_port_range})
+        try:
+            config_db.set_entry(table, key, {dataKey1: global_ip_range, dataKey2 : global_port_range})
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat add binding' command ('config nat add binding <binding_name> <pool_name> <acl_name>')
@@ -740,7 +799,7 @@ def add_binding(ctx, binding_name, pool_name, acl_name, nat_type, twice_nat_id):
     if len(binding_name) > 32:
         ctx.fail("Invalid binding name. Maximum allowed binding name is 32 characters !!")
 
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
 
     data = config_db.get_entry(table, key)
@@ -773,7 +832,10 @@ def add_binding(ctx, binding_name, pool_name, acl_name, nat_type, twice_nat_id):
             if count > 1:
                 ctx.fail("Same Twice nat id is not allowed for more than 2 entries!!")
 
-        config_db.set_entry(table, key, {dataKey1: acl_name, dataKey2: pool_name, dataKey3: nat_type, dataKey4: twice_nat_id})
+        try:
+            config_db.set_entry(table, key, {dataKey1: acl_name, dataKey2: pool_name, dataKey3: nat_type, dataKey4: twice_nat_id})
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat remove pool' command ('config nat remove pool <pool_name>')
@@ -791,7 +853,7 @@ def remove_pool(ctx, pool_name):
     if len(pool_name) > 32:
         ctx.fail("Invalid pool name. Maximum allowed pool name is 32 characters !!")
 
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
 
     data = config_db.get_entry(table, key)
@@ -808,7 +870,10 @@ def remove_pool(ctx, pool_name):
                 break
 
     if entryFound == False:
-        config_db.set_entry(table, key, None)
+        try:
+            config_db.set_entry(table, key, None)
+        except (JsonPatchConflict, JsonPointerException) as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat remove pools' command ('config nat remove pools')
@@ -818,7 +883,7 @@ def remove_pool(ctx, pool_name):
 def remove_pools(ctx):
     """Remove all Pools for Dynamic configutation"""
 
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
 
     entryFound = False
@@ -835,8 +900,11 @@ def remove_pools(ctx):
                     entryFound = True
                     break
 
-            if entryFound == False: 
-                config_db.set_entry(pool_table_name, pool_key_name, None)
+            if entryFound == False:
+                try:
+                    config_db.set_entry(pool_table_name, pool_key_name, None)
+                except (JsonPatchConflict, JsonPointerException) as e:
+                    ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat remove binding' command ('config nat remove binding <binding_name>')
@@ -854,7 +922,7 @@ def remove_binding(ctx, binding_name):
     if len(binding_name) > 32:
         ctx.fail("Invalid binding name. Maximum allowed binding name is 32 characters !!")
 
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
 
     data = config_db.get_entry(table, key)
@@ -863,7 +931,10 @@ def remove_binding(ctx, binding_name):
         entryFound = True
 
     if entryFound == False:
-        config_db.set_entry(table, key, None)
+        try:
+            config_db.set_entry(table, key, None)
+        except (JsonPatchConflict, JsonPointerException) as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat remove bindings' command ('config nat remove bindings')
@@ -873,14 +944,17 @@ def remove_binding(ctx, binding_name):
 def remove_bindings(ctx):
     """Remove all Bindings for Dynamic configutation"""
 
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigBConnector(ConfigDBConnector())
     config_db.connect()
 
     binding_table_name = 'NAT_BINDINGS'
     binding_dict = config_db.get_table(binding_table_name)
     if binding_dict:
         for binding_key_name in binding_dict:
-            config_db.set_entry(binding_table_name, binding_key_name, None)
+            try:
+                config_db.set_entry(binding_table_name, binding_key_name, None)
+            except (JsonPatchConflict, JsonPointerException) as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat add interface' command ('config nat add interface <interface_name> -nat_zone <zone-value>')
@@ -892,7 +966,7 @@ def remove_bindings(ctx):
 def add_interface(ctx, interface_name, nat_zone):
     """Add interface related nat configuration"""
 
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
 
     if nat_interface_name_is_valid(interface_name) is False:
@@ -912,7 +986,10 @@ def add_interface(ctx, interface_name, nat_zone):
     if not interface_table_dict or interface_name not in interface_table_dict:
         ctx.fail("Interface table is not present. Please configure ip-address on {} and apply the nat zone !!".format(interface_name))
 
-    config_db.mod_entry(interface_table_type, interface_name, {"nat_zone": nat_zone})
+    try:
+        config_db.mod_entry(interface_table_type, interface_name, {"nat_zone": nat_zone})
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat remove interface' command ('config nat remove interface <interface_name>')
@@ -922,7 +999,7 @@ def add_interface(ctx, interface_name, nat_zone):
 @click.argument('interface_name', metavar='<interface_name>', required=True)
 def remove_interface(ctx, interface_name):
     """Remove interface related NAT configuration"""
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
 
     if nat_interface_name_is_valid(interface_name) is False:
@@ -942,7 +1019,10 @@ def remove_interface(ctx, interface_name):
     if not interface_table_dict or interface_name not in interface_table_dict:
         ctx.fail("Interface table is not present. Ignoring the nat zone configuration")
 
-    config_db.mod_entry(interface_table_type, interface_name, {"nat_zone": "0"})
+    try:
+        config_db.mod_entry(interface_table_type, interface_name, {"nat_zone": "0"})
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat remove interfaces' command ('config nat remove interfaces')
@@ -951,7 +1031,7 @@ def remove_interface(ctx, interface_name):
 @click.pass_context
 def remove_interfaces(ctx):
     """Remove all interface related NAT configuration"""
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
 
     tables = ['INTERFACE', 'PORTCHANNEL_INTERFACE', 'VLAN_INTERFACE', 'LOOPBACK_INTERFACE']
@@ -964,7 +1044,10 @@ def remove_interfaces(ctx):
                 if isinstance(table_key_name, str) is False:
                     continue
 
-                config_db.set_entry(table_name, table_key_name, nat_config)
+                try:
+                    config_db.set_entry(table_name, table_key_name, nat_config)
+                except ValueError as e:
+                    ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat feature' group ('config nat feature ')
@@ -982,9 +1065,12 @@ def feature():
 def enable(ctx):
     """Enbale the NAT feature """
 
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
-    config_db.mod_entry("NAT_GLOBAL", "Values", {"admin_mode": "enabled"})
+    try:
+        config_db.mod_entry("NAT_GLOBAL", "Values", {"admin_mode": "enabled"})
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat feature disable' command ('config nat feature disable>')
@@ -993,9 +1079,12 @@ def enable(ctx):
 @click.pass_context
 def disable(ctx):
     """Disable the NAT feature """
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
-    config_db.mod_entry("NAT_GLOBAL", "Values", {"admin_mode": "disabled"})
+    try:
+        config_db.mod_entry("NAT_GLOBAL", "Values", {"admin_mode": "disabled"})
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat set timeout' command ('config nat set timeout <seconds>')
@@ -1005,10 +1094,13 @@ def disable(ctx):
 @click.argument('seconds', metavar='<timeout in range of 300 to 432000 seconds>', type=click.IntRange(300, 432000), required=True)
 def timeout(ctx, seconds):
     """Set NAT timeout configuration"""
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
-
-    config_db.mod_entry("NAT_GLOBAL", "Values", {"nat_timeout": seconds})
+    
+    try:
+        config_db.mod_entry("NAT_GLOBAL", "Values", {"nat_timeout": seconds})
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat set tcp-timeout' command ('config nat set tcp-timeout <seconds>')
@@ -1018,10 +1110,13 @@ def timeout(ctx, seconds):
 @click.argument('seconds', metavar='<timeout in range of 300 to 432000 seconds>', type=click.IntRange(300, 432000), required=True)
 def tcp_timeout(ctx, seconds):
     """Set NAT TCP timeout configuration"""
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
-
-    config_db.mod_entry("NAT_GLOBAL", "Values", {"nat_tcp_timeout": seconds})
+    
+    try:
+        config_db.mod_entry("NAT_GLOBAL", "Values", {"nat_tcp_timeout": seconds})
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat set udp-timeout' command ('config nat set udp-timeout <seconds>')
@@ -1031,10 +1126,13 @@ def tcp_timeout(ctx, seconds):
 @click.argument('seconds', metavar='<timeout in range of 120 to 600 seconds>', type=click.IntRange(120, 600), required=True)
 def udp_timeout(ctx, seconds):
     """Set NAT UDP timeout configuration"""
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
 
-    config_db.mod_entry("NAT_GLOBAL", "Values", {"nat_udp_timeout": seconds})
+    try:
+        config_db.mod_entry("NAT_GLOBAL", "Values", {"nat_udp_timeout": seconds})
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat reset timeout' command ('config nat reset timeout')
@@ -1043,11 +1141,14 @@ def udp_timeout(ctx, seconds):
 @click.pass_context
 def timeout(ctx):
     """Reset NAT timeout configuration to default value (600 seconds)"""
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
     seconds = 600
-
-    config_db.mod_entry("NAT_GLOBAL", "Values", {"nat_timeout": seconds})
+    
+    try:
+        config_db.mod_entry("NAT_GLOBAL", "Values", {"nat_timeout": seconds})
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat reset tcp-timeout' command ('config nat reset tcp-timeout')
@@ -1056,11 +1157,14 @@ def timeout(ctx):
 @click.pass_context
 def tcp_timeout(ctx):
     """Reset NAT TCP timeout configuration to default value (86400 seconds)"""
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
     seconds = 86400
-
-    config_db.mod_entry("NAT_GLOBAL", "Values", {"nat_tcp_timeout": seconds})
+    
+    try:
+        config_db.mod_entry("NAT_GLOBAL", "Values", {"nat_tcp_timeout": seconds})
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'nat reset udp-timeout' command ('config nat reset udp-timeout')
@@ -1069,8 +1173,11 @@ def tcp_timeout(ctx):
 @click.pass_context
 def udp_timeout(ctx):
     """Reset NAT UDP timeout configuration to default value (300 seconds)"""
-    config_db = ConfigDBConnector()
+    config_db = ValidatedConfigDBConnector(ConfigDBConnector())
     config_db.connect()
     seconds = 300
-
-    config_db.mod_entry("NAT_GLOBAL", "Values", {"nat_udp_timeout": seconds})
+    
+    try:
+        config_db.mod_entry("NAT_GLOBAL", "Values", {"nat_udp_timeout": seconds})
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))

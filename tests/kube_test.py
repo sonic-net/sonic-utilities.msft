@@ -1,5 +1,8 @@
+import mock
+
 from click.testing import CliRunner
 from utilities_common.db import Db
+from mock import patch
 
 show_no_server_output="""\
 Kubernetes server is not configured
@@ -110,8 +113,30 @@ class TestKube(object):
 
         result = runner.invoke(show.cli.commands["kubernetes"].commands["server"].commands["config"], [], obj=db)
         self.__check_res(result, "config command default value", show_server_output_5)
+    
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_no_kube_server_yang_validation(self, get_cmd_module):
+        (config, show) = get_cmd_module
+        runner = CliRunner()
+        db = Db()
 
+        db.cfgdb.delete_table("KUBERNETES_MASTER")
 
+        # Check server not configured
+        result = runner.invoke(show.cli.commands["kubernetes"].commands["server"].commands["config"], [], obj=db)
+        self.__check_res(result, "null server config test", show_no_server_output)
+
+        # Add IP when not configured
+        result = runner.invoke(config.config.commands["kubernetes"].commands["server"], ["ip", "10.10.10.11"], obj=db)
+        assert "Invalid ConfigDB. Error" in result.output
+        
+        db.cfgdb.mod_entry("KUBERNETES_MASTER", "SERVER", {"ip": "10.10.10.11"})
+        # Add IP when already configured
+        result = runner.invoke(config.config.commands["kubernetes"].commands["server"], ["ip", "10.10.10.12"], obj=db)
+        assert "Invalid ConfigDB. Error" in result.output
+
+    
     def test_only_kube_server(self, get_cmd_module):
         (config, show) = get_cmd_module
         runner = CliRunner()

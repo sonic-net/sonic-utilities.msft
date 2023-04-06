@@ -246,7 +246,7 @@ def lookup_statedb_and_update_configdb(db, per_npu_statedb, config_db, port, sta
     ipv6_value = get_value_for_key_in_config_tbl(config_db, port, "server_ipv6", "MUX_CABLE")
     soc_ipv4_value = get_optional_value_for_key_in_config_tbl(config_db, port, "soc_ipv4", "MUX_CABLE")
     cable_type = get_optional_value_for_key_in_config_tbl(config_db, port, "cable_type", "MUX_CABLE")
-
+    ctx = click.get_current_context()
     state = get_value_for_key_in_dict(muxcable_statedb_dict, port, "state", "MUX_CABLE_TABLE")
 
     port_name = platform_sfputil_helper.get_interface_alias(port, db)
@@ -255,15 +255,21 @@ def lookup_statedb_and_update_configdb(db, per_npu_statedb, config_db, port, sta
         port_status_dict[port_name] = 'OK'
     else:
         if cable_type is not None or soc_ipv4_value is not None:
-            config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val,
-                                                    "server_ipv4": ipv4_value,
-                                                    "server_ipv6": ipv6_value, 
-                                                    "soc_ipv4":soc_ipv4_value, 
-                                                    "cable_type": cable_type})
+            try:
+                config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val,
+                                                        "server_ipv4": ipv4_value,
+                                                        "server_ipv6": ipv6_value, 
+                                                        "soc_ipv4":soc_ipv4_value, 
+                                                        "cable_type": cable_type})
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
         else:
-            config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val,
-                                                    "server_ipv4": ipv4_value,
-                                                    "server_ipv6": ipv6_value}) 
+            try:
+                config_db.set_entry("MUX_CABLE", port, {"state": state_cfg_val,
+                                                        "server_ipv4": ipv4_value,
+                                                        "server_ipv6": ipv6_value}) 
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
         if (str(state_cfg_val) == 'active' and str(state) != 'active') or (str(state_cfg_val) == 'standby' and str(state) != 'standby'):
             port_status_dict[port_name] = 'INPROGRESS'
         else:
@@ -274,9 +280,13 @@ def update_configdb_pck_loss_data(config_db, port, val):
     ipv4_value = get_value_for_key_in_config_tbl(config_db, port, "server_ipv4", "MUX_CABLE")
     ipv6_value = get_value_for_key_in_config_tbl(config_db, port, "server_ipv6", "MUX_CABLE")
 
-    config_db.set_entry("MUX_CABLE", port, {"state": configdb_state,
+    try:
+        config_db.set_entry("MUX_CABLE", port, {"state": configdb_state,
                                                 "server_ipv4": ipv4_value, "server_ipv6": ipv6_value, 
                                                 "pck_loss_data_reset": val})
+    except ValueError as e:
+        ctx = click.get_current_context()
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 # 'muxcable' command ("config muxcable mode <port|all> active|auto")
 @muxcable.command()

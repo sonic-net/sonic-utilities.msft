@@ -8,6 +8,7 @@ import sys
 import unittest
 import ipaddress
 from unittest import mock
+from jsonpatch import JsonPatchConflict
 
 import click
 from click.testing import CliRunner
@@ -1870,6 +1871,67 @@ class TestConfigLoopback(object):
         print(result.output)
         assert result.exit_code == 0
     
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+
+
+class TestConfigNtp(object):
+    @classmethod
+    def setup_class(cls):
+        print("SETUP")
+        import config.main
+        importlib.reload(config.main)
+
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    def test_add_ntp_server_failed_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["ntp"], ["add", "10.10.10.x"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+
+    def test_add_ntp_server_invalid_ip(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["ntp"], ["add", "10.10.10.x"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid IP address" in result.output
+
+    def test_del_ntp_server_invalid_ip(self):
+        config.ADHOC_VALIDATION = True
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["ntp"], ["del", "10.10.10.x"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid IP address" in result.output
+
+    @patch("config.main.ConfigDBConnector.get_table", mock.Mock(return_value="10.10.10.10"))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    def test_del_ntp_server_invalid_ip_yang_validation(self):
+        config.ADHOC_VALIDATION = False
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        result = runner.invoke(config.config.commands["ntp"], ["del", "10.10.10.10"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")

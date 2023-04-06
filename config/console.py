@@ -1,6 +1,7 @@
 import click
 import utilities_common.cli as clicommon
-
+from .validated_config_db_connector import ValidatedConfigDBConnector
+from jsonpatch import JsonPatchConflict
 #
 # 'console' group ('config console ...')
 #
@@ -16,14 +17,18 @@ def console():
 @clicommon.pass_db
 def enable_console_switch(db):
     """Enable console switch"""
-    config_db = db.cfgdb
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
 
     table = "CONSOLE_SWITCH"
     dataKey1 = 'console_mgmt'
     dataKey2 = 'enabled'
 
     data = { dataKey2 : "yes" }
-    config_db.mod_entry(table, dataKey1, data)
+    try:
+        config_db.mod_entry(table, dataKey1, data)
+    except ValueError as e:
+        ctx = click.get_current_context()
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'console disable' group ('config console disable')
@@ -32,14 +37,18 @@ def enable_console_switch(db):
 @clicommon.pass_db
 def disable_console_switch(db):
     """Disable console switch"""
-    config_db = db.cfgdb
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
 
     table = "CONSOLE_SWITCH"
     dataKey1 = 'console_mgmt'
     dataKey2 = 'enabled'
 
     data = { dataKey2 : "no" }
-    config_db.mod_entry(table, dataKey1, data)
+    try:
+        config_db.mod_entry(table, dataKey1, data)
+    except ValueError as e:
+        ctx = click.get_current_context()
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 #
 # 'console add' group ('config console add ...')
@@ -52,7 +61,7 @@ def disable_console_switch(db):
 @click.option('--devicename', '-d', metavar='<device_name>', required=False)
 def add_console_setting(db, linenum, baud, flowcontrol, devicename):
     """Add Console-realted configuration tasks"""
-    config_db = db.cfgdb
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
 
     table = "CONSOLE_PORT"
     dataKey1 = 'baud_rate'
@@ -72,7 +81,10 @@ def add_console_setting(db, linenum, baud, flowcontrol, devicename):
                 ctx.fail("Given device name {} has been used. Please enter a valid device name or remove the existing one !!".format(devicename))
             console_entry[dataKey3] = devicename
 
-        config_db.set_entry(table, linenum, console_entry)
+        try:
+            config_db.set_entry(table, linenum, console_entry)
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 
 #
@@ -83,15 +95,18 @@ def add_console_setting(db, linenum, baud, flowcontrol, devicename):
 @click.argument('linenum', metavar='<line_number>', required=True, type=click.IntRange(0, 65535))
 def remove_console_setting(db, linenum):
     """Remove Console-related configuration tasks"""
-    config_db = db.cfgdb
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
+    ctx = click.get_current_context()
 
     table = "CONSOLE_PORT"
 
     data = config_db.get_entry(table, linenum)
     if data:
-        config_db.mod_entry(table, linenum, None)
+        try:
+            config_db.set_entry(table, linenum, None)
+        except JsonPatchConflict as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
     else:
-        ctx = click.get_current_context()
         ctx.fail("Trying to delete console port setting, which is not present.")
 
 #
@@ -103,7 +118,7 @@ def remove_console_setting(db, linenum):
 @click.argument('devicename', metavar='<device_name>', required=False)
 def upate_console_remote_device_name(db, linenum, devicename):
     """Update remote device name for a console line"""
-    config_db = db.cfgdb
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
     ctx = click.get_current_context()
 
     table = "CONSOLE_PORT"
@@ -117,12 +132,18 @@ def upate_console_remote_device_name(db, linenum, devicename):
         elif not devicename:
             # remove configuration key from console setting if user not give a remote device name
             data.pop(dataKey, None)
-            config_db.mod_entry(table, linenum, data)
+            try:
+                config_db.mod_entry(table, linenum, data)
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
         elif isExistingSameDevice(config_db, devicename, table):
             ctx.fail("Given device name {} has been used. Please enter a valid device name or remove the existing one !!".format(devicename))
         else:
             data[dataKey] = devicename
-            config_db.mod_entry(table, linenum, data)
+            try:
+                config_db.mod_entry(table, linenum, data)
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
     else:
         ctx.fail("Trying to update console port setting, which is not present.")
 
@@ -135,7 +156,7 @@ def upate_console_remote_device_name(db, linenum, devicename):
 @click.argument('baud', metavar='<baud>', required=True, type=click.INT)
 def update_console_baud(db, linenum, baud):
     """Update baud for a console line"""
-    config_db = db.cfgdb
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
     ctx = click.get_current_context()
 
     table = "CONSOLE_PORT"
@@ -149,7 +170,10 @@ def update_console_baud(db, linenum, baud):
             return
         else:
             data[dataKey] = baud
-            config_db.mod_entry(table, linenum, data)
+            try:
+                config_db.mod_entry(table, linenum, data)
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
     else:
         ctx.fail("Trying to update console port setting, which is not present.")
 
@@ -162,7 +186,7 @@ def update_console_baud(db, linenum, baud):
 @click.argument('linenum', metavar='<line_number>', required=True, type=click.IntRange(0, 65535))
 def update_console_flow_control(db, mode, linenum):
     """Update flow control setting for a console line"""
-    config_db = db.cfgdb
+    config_db = ValidatedConfigDBConnector(db.cfgdb)
     ctx = click.get_current_context()
 
     table = "CONSOLE_PORT"
@@ -177,7 +201,10 @@ def update_console_flow_control(db, mode, linenum):
             return
         else:
             data[dataKey] = innerMode
-            config_db.mod_entry(table, linenum, data)
+            try:
+                config_db.mod_entry(table, linenum, data)
+            except ValueError as e:
+                ctx.fail("Invalid ConfigDB. Error: {}".format(e))
     else:
         ctx.fail("Trying to update console port setting, which is not present.")
 

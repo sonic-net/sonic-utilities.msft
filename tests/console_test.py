@@ -1,8 +1,10 @@
 import os
 import sys
 import subprocess
+import jsonpatch
 import pexpect
 from unittest import mock
+from mock import patch
 
 import pytest
 
@@ -14,6 +16,7 @@ from click.testing import CliRunner
 from utilities_common.db import Db
 from consutil.lib import *
 from sonic_py_common import device_info
+from jsonpatch import JsonPatchConflict
 
 class TestConfigConsoleCommands(object):
     @classmethod
@@ -28,6 +31,16 @@ class TestConfigConsoleCommands(object):
         print(result.exit_code)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
+    
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_enable_console_switch_yang_validation(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["console"].commands["enable"])
+        print(result.exit_code)
+        assert "Invalid ConfigDB. Error" in result.output
 
     def test_disable_console_switch(self):
         runner = CliRunner()
@@ -38,6 +51,17 @@ class TestConfigConsoleCommands(object):
         print(sys.stderr, result.output)
         assert result.exit_code == 0
 
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_disable_console_switch_yang_validation(self):
+        runner = CliRunner()
+        db = Db()
+
+        result = runner.invoke(config.config.commands["console"].commands["disable"])
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+    
     def test_console_add_exists(self):
         runner = CliRunner()
         db = Db()
@@ -95,6 +119,18 @@ class TestConfigConsoleCommands(object):
         print(sys.stderr, result.output)
         assert result.exit_code == 0
 
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=ValueError))
+    def test_console_add_yang_validation(self):
+        runner = CliRunner()
+        db = Db()
+
+        # add a console setting without flow control option
+        result = runner.invoke(config.config.commands["console"].commands["add"], ["0", '--baud', "9600"], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+    
     def test_console_del_non_exists(self):
         runner = CliRunner()
         db = Db()
@@ -117,6 +153,19 @@ class TestConfigConsoleCommands(object):
         print(sys.stderr, result.output)
         assert result.exit_code == 0
 
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_set_entry", mock.Mock(side_effect=JsonPatchConflict))
+    def test_console_del_yang_validation(self):
+        runner = CliRunner()
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
+
+        # add a console setting which the port exists
+        result = runner.invoke(config.config.commands["console"].commands["del"], ["1"], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+    
     def test_update_console_remote_device_name_non_exists(self):
         runner = CliRunner()
         db = Db()
@@ -163,6 +212,19 @@ class TestConfigConsoleCommands(object):
         print(sys.stderr, result.output)
         assert result.exit_code == 0
 
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_update_console_remote_device_name_reset_yang_validation(self):
+        runner = CliRunner()
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_PORT", 2, { "remote_device" : "switch1" })
+
+        # trying to reset a console line remote device configuration which is not exists
+        result = runner.invoke(config.config.commands["console"].commands["remote_device"], ["2"], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+    
     def test_update_console_remote_device_name_success(self):
         runner = CliRunner()
         db = Db()
@@ -174,6 +236,19 @@ class TestConfigConsoleCommands(object):
         print(sys.stderr, result.output)
         assert result.exit_code == 0
 
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_update_console_remote_device_name_yang_validation(self):
+        runner = CliRunner()
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
+
+        # trying to set a console line remote device configuration
+        result = runner.invoke(config.config.commands["console"].commands["remote_device"], ["1", "switch1"], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+    
     def test_update_console_baud_no_change(self):
         runner = CliRunner()
         db = Db()
@@ -207,6 +282,19 @@ class TestConfigConsoleCommands(object):
         print(sys.stderr, result.output)
         assert result.exit_code == 0
 
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_update_console_baud_yang_validation(self):
+        runner = CliRunner()
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600" })
+
+        # trying to set a console line baud
+        result = runner.invoke(config.config.commands["console"].commands["baud"], ["1", "115200"], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert "Invalid ConfigDB. Error" in result.output
+    
     def test_update_console_flow_control_no_change(self):
         runner = CliRunner()
         db = Db()
@@ -239,6 +327,19 @@ class TestConfigConsoleCommands(object):
         print(result.exit_code)
         print(sys.stderr, result.output)
         assert result.exit_code == 0
+
+    @patch("validated_config_db_connector.device_info.is_yang_config_validation_enabled", mock.Mock(return_value=True))
+    @patch("config.validated_config_db_connector.ValidatedConfigDBConnector.validated_mod_entry", mock.Mock(side_effect=ValueError))
+    def test_update_console_flow_control_yang_validation(self):
+        runner = CliRunner()
+        db = Db()
+        db.cfgdb.set_entry("CONSOLE_PORT", "1", { "baud_rate" : "9600", "flow_control" : "0" })
+
+        # trying to set a console line flow control option
+        result = runner.invoke(config.config.commands["console"].commands["flow_control"], ["enable", "1"], obj=db)
+        print(result.exit_code)
+        print(sys.stderr, result.output)
+        assert "Invalid ConfigDB. Error" in result.output
 
 class TestConsutilLib(object):
     @classmethod
