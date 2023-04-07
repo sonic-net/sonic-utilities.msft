@@ -405,8 +405,8 @@ def sourceip(ctx, src_ip):
         click.echo('Invalid ip address')
         return
 
-    v6_invalid_list = [ipaddress.IPv6Address(unicode('0::0')), ipaddress.IPv6Address(unicode('0::1'))]
-    net = ipaddress.ip_network(unicode(src_ip), strict=False)
+    v6_invalid_list = [ipaddress.IPv6Address('0::0'), ipaddress.IPv6Address('0::1')]
+    net = ipaddress.ip_network(src_ip, strict=False)
     if (net.version == 4):
         if src_ip == "0.0.0.0":
             click.echo('enter non-zero ip address')
@@ -446,8 +446,8 @@ def nasip(ctx, nas_ip):
         click.echo('Invalid ip address')
         return
 
-    v6_invalid_list = [ipaddress.IPv6Address(unicode('0::0')), ipaddress.IPv6Address(unicode('0::1'))]
-    net = ipaddress.ip_network(unicode(nas_ip), strict=False)
+    v6_invalid_list = [ipaddress.IPv6Address('0::0'), ipaddress.IPv6Address('0::1')]
+    net = ipaddress.ip_network(nas_ip, strict=False)
     if (net.version == 4):
         if nas_ip == "0.0.0.0":
             click.echo('enter non-zero ip address')
