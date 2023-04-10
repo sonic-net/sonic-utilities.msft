@@ -1226,39 +1226,47 @@ collect_broadcom() {
     fi
 
     if [ "$bcm_family" == "broadcom-dnx" ]; then
-       save_bcmcmd_all_ns "\"l2 show\"" "l2.summary"
-       save_bcmcmd_all_ns "\"field group list\"" "fpgroup.list.summary"
-       total_fp_groups=34
-       for (( fp_grp=0; fp_grp<$total_fp_groups; fp_grp++ ))
-       do
-         save_bcmcmd_all_ns "\"field group info group=$fp_grp\"" "fpgroup$fp_grp.info.summary"
-       done
-       save_bcmcmd_all_ns "\"dbal table dump table=IPV4_UNICAST_PRIVATE_LPM_FORWARD\"" "l3.ipv4.lpm.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=IPV6_UNICAST_PRIVATE_LPM_FORWARD\"" "l3.ipv6.lpm.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=IPV4_UNICAST_PRIVATE_HOST\"" "l3.ipv4.host.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=IPV6_UNICAST_PRIVATE_HOST\"" "l3.ipv6.host.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=SUPER_FEC_1ST_HIERARCHY\"" "l3.egress.fec.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=ECMP_TABLE\"" "ecmp.table.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=ECMP_GROUP_PROFILE_TABLE\"" "ecmp.group.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=ING_VSI_INFO_DB\"" "ing.vsi.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=L3_MY_MAC_DA_PREFIXES\"" "l3.mymac.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=INGRESS_VLAN_MEMBERSHIP\"" "ing.vlan.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=LOCAL_SBC_IN_LIF_MATCH_INFO_SW\"" "sbc.inlif.summary"
-       save_bcmcmd_all_ns "\"dbal table dump table=SNIF_COMMAND_TABLE\"" "snif.command.summary"
-       save_bcmcmd_all_ns "\"port mgmt dump full\"" "port.mgmt.summary"
-       save_bcmcmd_all_ns "\"tm lag\"" "tm.lag.summary"
-       save_bcmcmd_all_ns "\"pp info fec\"" "pp.fec.summary"
-       save_bcmcmd_all_ns "\"nif sts\"" "nif.sts.summary"
+       supervisor=0
+       PLATFORM_ENV_CONF=/usr/share/sonic/device/${platform}/platform_env.conf
+       if [ -f "$PLATFORM_ENV_CONF" ]; then
+          source $PLATFORM_ENV_CONF
+       fi
+       if [[ x"$supervisor" != x"1" ]]; then
+
+          save_bcmcmd_all_ns "\"l2 show\"" "l2.summary"
+          save_bcmcmd_all_ns "\"field group list\"" "fpgroup.list.summary"
+          total_fp_groups=34
+          for (( fp_grp=0; fp_grp<$total_fp_groups; fp_grp++ ))
+          do
+            save_bcmcmd_all_ns "\"field group info group=$fp_grp\"" "fpgroup$fp_grp.info.summary"
+          done
+          save_bcmcmd_all_ns "\"dbal table dump table=IPV4_UNICAST_PRIVATE_LPM_FORWARD\"" "l3.ipv4.lpm.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=IPV6_UNICAST_PRIVATE_LPM_FORWARD\"" "l3.ipv6.lpm.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=IPV4_UNICAST_PRIVATE_HOST\"" "l3.ipv4.host.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=IPV6_UNICAST_PRIVATE_HOST\"" "l3.ipv6.host.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=SUPER_FEC_1ST_HIERARCHY\"" "l3.egress.fec.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=ECMP_TABLE\"" "ecmp.table.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=ECMP_GROUP_PROFILE_TABLE\"" "ecmp.group.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=ING_VSI_INFO_DB\"" "ing.vsi.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=L3_MY_MAC_DA_PREFIXES\"" "l3.mymac.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=INGRESS_VLAN_MEMBERSHIP\"" "ing.vlan.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=LOCAL_SBC_IN_LIF_MATCH_INFO_SW\"" "sbc.inlif.summary"
+          save_bcmcmd_all_ns "\"dbal table dump table=SNIF_COMMAND_TABLE\"" "snif.command.summary"
+          save_bcmcmd_all_ns "\"port mgmt dump full\"" "port.mgmt.summary"
+          save_bcmcmd_all_ns "\"tm lag\"" "tm.lag.summary"
+          save_bcmcmd_all_ns "\"pp info fec\"" "pp.fec.summary"
+          save_bcmcmd_all_ns "\"nif sts\"" "nif.sts.summary"
+          save_bcmcmd_all_ns "\"tm ing q map\"" "tm.ingress.qmap.summary"
+          save_bcmcmd_all_ns "\"tm ing vsq resources\"" "tm.ing.vsq.res.summary"
+          for group in {a..f}
+          do
+             save_bcmcmd_all_ns "\"tm ing vsq non g=$group\"" "tm.ing.vsq.non.group-$group.summary"
+          done
+       fi
        save_bcmcmd_all_ns "\"port pm info\"" "port.pm.summary"
        save_bcmcmd_all_ns "\"conf show\"" "conf.show.summary"
        save_bcmcmd_all_ns "\"show counters\"" "show.counters.summary"
        save_bcmcmd_all_ns "\"diag counter g\"" "diag.counter.summary"
-       save_bcmcmd_all_ns "\"tm ing q map\"" "tm.ingress.qmap.summary"
-       save_bcmcmd_all_ns "\"tm ing vsq resources\"" "tm.ing.vsq.res.summary"
-       for group in {a..f}
-       do
-          save_bcmcmd_all_ns "\"tm ing vsq non g=$group\"" "tm.ing.vsq.non.group-$group.summary"
-       done
        save_bcmcmd_all_ns "\"fabric connectivity\"" "fabric.connect.summary"
        save_bcmcmd_all_ns "\"port status\"" "port.status.summary"
     else
