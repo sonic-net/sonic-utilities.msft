@@ -115,10 +115,6 @@ Restarting SONiC target ...
 Reloading Monit configuration ...
 """
 
-reload_config_with_untriggered_timer_output="""\
-Relevant services are not up. Retry later or use -f to avoid system checks
-"""
-
 def mock_run_command_side_effect(*args, **kwargs):
     command = args[0]
 
@@ -154,41 +150,6 @@ def mock_run_command_side_effect_disabled_timer(*args, **kwargs):
             return '0', 0
         else:
             return '', 0
-
-def mock_run_command_side_effect_untriggered_timer(*args, **kwargs):
-    command = args[0]
-
-    if kwargs.get('display_cmd'):
-        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
-
-    if kwargs.get('return_cmd'):
-        if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
-            return 'snmp.timer', 0
-        elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
-            return 'swss', 0
-        elif command == "systemctl is-enabled snmp.timer":
-            return 'enabled', 0
-        elif command == "systemctl show snmp.timer --property=LastTriggerUSecMonotonic --value":
-            return '0', 0
-        else:
-            return '', 0
-
-def mock_run_command_side_effect_gnmi(*args, **kwargs):
-    command = args[0]
-
-    if kwargs.get('display_cmd'):
-        click.echo(click.style("Running command: ", fg='cyan') + click.style(command, fg='green'))
-
-    if kwargs.get('return_cmd'):
-        if command == "systemctl list-dependencies --plain sonic-delayed.target | sed '1d'":
-            return 'gnmi.timer', 0
-        elif command == "systemctl list-dependencies --plain sonic.target | sed '1d'":
-            return 'swss', 0
-        elif command == "systemctl is-enabled gnmi.timer":
-            return 'enabled', 0
-        else:
-            return '', 0
-
 
 # Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
 sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
@@ -235,32 +196,6 @@ class TestConfigReload(object):
 
             assert "\n".join([l.rstrip() for l in result.output.split('\n')][:1]) == reload_config_with_sys_info_command_output
 
-    def test_config_reload_untriggered_timer(self, get_cmd_module, setup_single_broadcom_asic):
-        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect_untriggered_timer)) as mock_run_command:
-            (config, show) = get_cmd_module
-
-            jsonfile_config = os.path.join(mock_db_path, "config_db.json")
-            jsonfile_init_cfg = os.path.join(mock_db_path, "init_cfg.json")
-
-            # create object
-            config.INIT_CFG_FILE = jsonfile_init_cfg
-            config.DEFAULT_CONFIG_DB_FILE =  jsonfile_config
-
-            db = Db()
-            runner = CliRunner()
-            obj = {'config_db': db.cfgdb}
-
-            # simulate 'config reload' to provoke load_sys_info option
-            result = runner.invoke(config.config.commands["reload"], ["-l", "-y"], obj=obj)
-
-            print(result.exit_code)
-            print(result.output)
-            traceback.print_tb(result.exc_info[2])
-
-            assert result.exit_code == 1
-
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')][:2]) == reload_config_with_untriggered_timer_output
-
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
@@ -293,25 +228,7 @@ class TestLoadMinigraph(object):
             assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
             # Verify "systemctl reset-failed" is called for services under sonic.target
             mock_run_command.assert_any_call('systemctl reset-failed swss')
-            # Verify "systemctl reset-failed" is called for services under sonic-delayed.target
-            mock_run_command.assert_any_call('systemctl reset-failed snmp')
-            assert mock_run_command.call_count == 11
-
-    def test_load_minigraph_with_gnmi_timer(self, get_cmd_module, setup_single_broadcom_asic):
-        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect_gnmi)) as mock_run_command:
-            (config, show) = get_cmd_module
-            runner = CliRunner()
-            result = runner.invoke(config.config.commands["load_minigraph"], ["-y"])
-            print(result.exit_code)
-            print(result.output)
-            traceback.print_tb(result.exc_info[2])
-            assert result.exit_code == 0
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')]) == load_minigraph_command_output
-            # Verify "systemctl reset-failed" is called for services under sonic.target
-            mock_run_command.assert_any_call('systemctl reset-failed swss')
-            # Verify "systemctl reset-failed" is called for services under sonic-delayed.target
-            mock_run_command.assert_any_call('systemctl reset-failed gnmi')
-            assert mock_run_command.call_count == 11
+            assert mock_run_command.call_count == 8
 
     def test_load_minigraph_with_port_config_bad_format(self, get_cmd_module, setup_single_broadcom_asic):
         with mock.patch(

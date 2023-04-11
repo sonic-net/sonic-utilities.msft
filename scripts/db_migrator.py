@@ -45,7 +45,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_4_0_1'
+        self.CURRENT_VERSION = 'version_4_0_2'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -575,6 +575,17 @@ class DBMigrator():
             self.configDB.set_entry('PORT_QOS_MAP', 'global', {"dscp_to_tc_map": dscp_to_tc_map_table_names[0]})
             log.log_info("Created entry for global DSCP_TO_TC_MAP {}".format(dscp_to_tc_map_table_names[0]))
 
+    def migrate_feature_timer(self):
+        '''
+        Migrate feature 'has_timer' field to 'delayed'
+        '''
+        feature_table = self.configDB.get_table('FEATURE')
+        for feature, config in feature_table.items():
+            state = config.get('has_timer')
+            if state is not None:
+                config['delayed'] = state
+                config.pop('has_timer')
+                self.configDB.set_entry('FEATURE', feature, config)
     def migrate_route_table(self):
         """
         Handle route table migration. Migrations handled:
@@ -926,9 +937,17 @@ class DBMigrator():
     def version_4_0_1(self):
         """
         Version 4_0_1.
+        """
+        self.migrate_feature_timer()
+        self.set_version('version_4_0_2')
+        return 'version_4_0_2'
+
+    def version_4_0_2(self):
+        """
+        Version 4_0_2.
         This is the latest version for master branch
         """
-        log.log_info('Handling version_4_0_1')
+        log.log_info('Handling version_4_0_2')
         return None
 
     def get_version(self):

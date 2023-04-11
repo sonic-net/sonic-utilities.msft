@@ -218,7 +218,7 @@ def test_feature_registration(mock_sonic_db, manifest):
         'set_owner': 'local',
         'has_per_asic_scope': 'False',
         'has_global_scope': 'True',
-        'has_timer': 'False',
+        'delayed': 'False',
         'check_up_status': 'False',
         'support_syslog_rate_limit': 'False',
     })
@@ -232,7 +232,7 @@ def test_feature_update(mock_sonic_db, manifest):
         'set_owner': 'local',
         'has_per_asic_scope': 'False',
         'has_global_scope': 'True',
-        'has_timer': 'False',
+        'delayed': 'False',
         'check_up_status': 'False',
         'support_syslog_rate_limit': 'False',
     }
@@ -256,7 +256,7 @@ def test_feature_update(mock_sonic_db, manifest):
             'set_owner': 'local',
             'has_per_asic_scope': 'False',
             'has_global_scope': 'True',
-            'has_timer': 'True',
+            'delayed': 'True',
             'check_up_status': 'False',
             'support_syslog_rate_limit': 'False',
         }),
@@ -278,7 +278,7 @@ def test_feature_registration_with_timer(mock_sonic_db, manifest):
         'set_owner': 'local',
         'has_per_asic_scope': 'False',
         'has_global_scope': 'True',
-        'has_timer': 'True',
+        'delayed': 'True',
         'check_up_status': 'False',
         'support_syslog_rate_limit': 'False',
     })
@@ -298,7 +298,7 @@ def test_feature_registration_with_non_default_owner(mock_sonic_db, manifest):
         'set_owner': 'kube',
         'has_per_asic_scope': 'False',
         'has_global_scope': 'True',
-        'has_timer': 'False',
+        'delayed': 'False',
         'check_up_status': 'False',
         'support_syslog_rate_limit': 'False',
     })

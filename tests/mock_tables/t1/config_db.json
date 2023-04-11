@@ -1798,7 +1798,7 @@
       "auto_restart": "enabled", 
       "has_global_scope": "False", 
       "has_per_asic_scope": "True", 
-      "has_timer": "False", 
+      "delayed": "False", 
       "high_mem_alert": "disabled", 
       "state": "enabled"
     }
@@ -1811,7 +1811,7 @@
       "auto_restart": "disabled", 
       "has_global_scope": "True", 
       "has_per_asic_scope": "True", 
-      "has_timer": "False", 
+      "delayed": "False", 
       "high_mem_alert": "disabled", 
       "state": "enabled"
     }
@@ -1824,7 +1824,7 @@
       "auto_restart": "enabled", 
       "has_global_scope": "True", 
       "has_per_asic_scope": "False", 
-      "has_timer": "False", 
+      "delayed": "False", 
       "high_mem_alert": "disabled", 
       "state": "enabled"
     }
@@ -1837,7 +1837,7 @@
       "auto_restart": "enabled", 
       "has_global_scope": "True", 
       "has_per_asic_scope": "True", 
-      "has_timer": "False", 
+      "delayed": "False", 
       "high_mem_alert": "disabled", 
       "state": "enabled"
     }
@@ -1850,7 +1850,7 @@
       "auto_restart": "enabled", 
       "has_global_scope": "True", 
       "has_per_asic_scope": "False", 
-      "has_timer": "True", 
+      "delayed": "True", 
       "high_mem_alert": "disabled", 
       "state": "enabled"
     }
@@ -1863,7 +1863,7 @@
       "auto_restart": "enabled", 
       "has_global_scope": "True", 
       "has_per_asic_scope": "False", 
-      "has_timer": "False", 
+      "delayed": "False", 
       "high_mem_alert": "disabled", 
       "state": "disabled"
     }
@@ -1876,7 +1876,7 @@
       "auto_restart": "enabled", 
       "has_global_scope": "True", 
       "has_per_asic_scope": "False", 
-      "has_timer": "False", 
+      "delayed": "False", 
       "high_mem_alert": "disabled", 
       "state": "enabled"
     }
@@ -1889,7 +1889,7 @@
       "auto_restart": "enabled", 
       "has_global_scope": "True", 
       "has_per_asic_scope": "False", 
-      "has_timer": "False", 
+      "delayed": "False", 
       "high_mem_alert": "disabled", 
       "state": "enabled"
     }
@@ -1902,7 +1902,7 @@
       "auto_restart": "enabled", 
       "has_global_scope": "True", 
       "has_per_asic_scope": "False", 
-      "has_timer": "False", 
+      "delayed": "False", 
       "high_mem_alert": "disabled", 
       "state": "disabled"
     }
@@ -1915,7 +1915,7 @@
       "auto_restart": "enabled", 
       "has_global_scope": "True", 
       "has_per_asic_scope": "False", 
-      "has_timer": "True", 
+      "delayed": "True", 
       "high_mem_alert": "disabled", 
       "state": "enabled"
     }
@@ -1928,7 +1928,7 @@
       "auto_restart": "enabled", 
       "has_global_scope": "False", 
       "has_per_asic_scope": "True", 
-      "has_timer": "False", 
+      "delayed": "False", 
       "high_mem_alert": "disabled", 
       "state": "enabled"
     }
@@ -1941,7 +1941,7 @@
       "auto_restart": "enabled", 
       "has_global_scope": "False", 
       "has_per_asic_scope": "True", 
-      "has_timer": "False", 
+      "delayed": "False", 
       "high_mem_alert": "disabled", 
       "state": "enabled"
     }
@@ -1954,7 +1954,7 @@
       "auto_restart": "enabled", 
       "has_global_scope": "False", 
       "has_per_asic_scope": "True", 
-      "has_timer": "False", 
+      "delayed": "False", 
       "high_mem_alert": "disabled", 
       "state": "enabled"
     }
@@ -1967,7 +1967,7 @@
       "auto_restart": "enabled", 
       "has_global_scope": "True", 
       "has_per_asic_scope": "False", 
-      "has_timer": "True", 
+      "delayed": "True", 
       "high_mem_alert": "disabled", 
       "state": "enabled", 
       "status": "enabled"

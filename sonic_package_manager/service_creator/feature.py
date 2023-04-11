@@ -105,7 +105,7 @@ class FeatureRegistry:
                old_manifest: Manifest,
                new_manifest: Manifest):
         """ Migrate feature configuration. It can be that non-configurable
-        feature entries have to be updated. e.g: "has_timer" for example if
+        feature entries have to be updated. e.g: "delayed" for example if
         the new feature introduces a service timer or name of the service has
         changed, but user configurable entries are not changed).
 
@@ -227,12 +227,12 @@ class FeatureRegistry:
 
     @staticmethod
     def get_non_configurable_feature_entries(manifest) -> Dict[str, str]:
-        """ Get non-configurable feature table entries: e.g. 'has_timer' """
+        """ Get non-configurable feature table entries: e.g. 'delayed' """
 
         return {
             'has_per_asic_scope': str(manifest['service']['asic-service']),
             'has_global_scope': str(manifest['service']['host-service']),
-            'has_timer': str(manifest['service']['delayed']),
+            'delayed': str(manifest['service']['delayed']),
             'check_up_status': str(manifest['service']['check_up_status']),
             'support_syslog_rate_limit': str(manifest['service']['syslog']['support-rate-limit']),
         }

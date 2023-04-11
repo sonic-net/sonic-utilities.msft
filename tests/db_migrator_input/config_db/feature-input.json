@@ -8,7 +8,8 @@
 		"high_mem_alert": "disabled"
 	},
 	"FEATURE|telemetry": {
-		"status": "enabled"
+		"status": "enabled",
+		"has_timer": "True"
 	},
 	"FEATURE|syncd": {
 		"state": "enabled"
