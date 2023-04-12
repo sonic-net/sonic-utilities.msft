@@ -116,3 +116,34 @@ def test_show_logging_tmpfs_syslog_1(run_command, cli_arguments, expected):
     runner = CliRunner()
     result = runner.invoke(show.cli.commands["logging"], cli_arguments)
     run_command.assert_called_with(EXPECTED_BASE_COMMAND + expected, display_cmd=False)
+
+def side_effect_subprocess_popen(*args, **kwargs):
+    mock = MagicMock()
+    if args[0] == "uptime":
+        mock.stdout.read.return_value = "05:58:07 up 25 days"
+    elif args[0].startswith("sudo docker images"):
+        mock.stdout.read.return_value = "REPOSITORY   TAG"
+    return mock
+
+@patch('sonic_py_common.device_info.get_sonic_version_info', MagicMock(return_value={
+        "build_version": "release-1.1-7d94c0c28",
+        "sonic_os_version": "11",
+        "debian_version": "11.6",
+        "kernel_version": "5.10",
+        "commit_id": "7d94c0c28",
+        "build_date": "Wed Feb 15 06:17:08 UTC 2023",
+        "built_by": "AzDevOps"}))
+@patch('sonic_py_common.device_info.get_platform_info', MagicMock(return_value={
+        "platform": "x86_64-kvm_x86_64-r0",
+        "hwsku": "Force10-S6000",
+        "asic_type": "vs",
+        "asic_count": 1}))
+@patch('sonic_py_common.device_info.get_chassis_info', MagicMock(return_value={
+        "serial": "N/A",
+        "model": "N/A",
+        "revision": "N/A"}))
+@patch('subprocess.Popen', MagicMock(side_effect=side_effect_subprocess_popen))
+def test_show_version():
+    runner = CliRunner()
+    result = runner.invoke(show.cli.commands["version"])
+    assert "SONiC OS Version: 11" in result.output
