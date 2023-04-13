@@ -1538,6 +1538,36 @@ This command is used to create new ACL tables.
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#acl)
 
+**aclshow**
+
+This command is used to display: ACL rules, tables and their priority, ACL packets counters, and bytes counters
+
+- Usage:
+  ```
+  aclshow [-h] [-a] [-c] [-r RULES] [-t TABLES] [-v] [-vv]
+  ```
+
+- Parameters:
+  - -a, --all: Show all ACL counters
+  - -c, --clear: Clear ACL counters statistics
+  - -r RULES, --rules RULES: Show only specified ACL rules and their counters
+  - -t TABLES, --tables TABLES: Show only specified ACL tables and their counters
+  - -vv, --verbose: Verbose output
+
+- Examples:
+  ```
+  admin@sonic:~$ sudo aclshow -a
+  RULE NAME    TABLE NAME    PRIO    PACKETS COUNT    BYTES COUNT
+  -----------  ------------  ------  ---------------  -------------
+  RULE_1       DATAACL       9999    0                0
+  RULE_2       DATAACL       9998    0                0
+  RULE_1       SNMP_ACL      9999    N/A              N/A
+  ```
+
+  If the `PACKETS COUNT` and `BYTES COUNT` fields have the `N/A` value it means either that the ACL rule is invalid or it is a `control plane` ACL and those counters are created in Linux, not in SONiC `COUNTERS_DB` and the [iptables](https://linux.die.net/man/8/iptables) utility should be used to view those counters.
+
+  If the `PACKETS COUNT` and `BYTES COUNT` fields have some numeric value it means that it is a SONiC ACL's and those counters are created in SONiC `COUNTERS_DB`.
+
 
 ## ARP & NDP
 
