@@ -128,6 +128,7 @@ setup(
         'scripts/fanshow',
         'scripts/fast-reboot',
         'scripts/fast-reboot-dump.py',
+        'scripts/fast-reboot-filter-routes.py',
         'scripts/fdbclear',
         'scripts/fdbshow',
         'scripts/fibshow',
