@@ -46,6 +46,7 @@ import time
 import signal
 import traceback
 
+from ipaddress import ip_network
 from swsscommon import swsscommon
 from utilities_common import chassis
 
@@ -141,7 +142,7 @@ def add_prefix(ip):
         ip = ip + PREFIX_SEPARATOR + "32"
     else:
         ip = ip + PREFIX_SEPARATOR + "128"
-    return ip
+    return str(ip_network(ip))
 
 
 def add_prefix_ifnot(ip):
@@ -150,7 +151,7 @@ def add_prefix_ifnot(ip):
     :param ip: IP to add prefix as string.
     :return ip with prefix
     """
-    return ip if ip.find(PREFIX_SEPARATOR) != -1 else add_prefix(ip)
+    return str(ip_network(ip)) if ip.find(PREFIX_SEPARATOR) != -1 else add_prefix(ip)
 
 
 def is_local(ip):
