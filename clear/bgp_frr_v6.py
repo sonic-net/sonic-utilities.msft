@@ -26,9 +26,9 @@ def neigh_all(ipaddress):
     """Clear all BGP peers"""
 
     if ipaddress is not None:
-        command = 'sudo vtysh -c "clear bgp ipv6 {}"'.format(ipaddress)
+        command = ['sudo', 'vtysh', '-c', "clear bgp ipv6 {}".format(ipaddress)]
     else:
-        command = 'sudo vtysh -c "clear bgp ipv6 *"'
+        command = ['sudo', 'vtysh', '-c', "clear bgp ipv6 *"]
     run_command(command)
 
 # 'in' subcommand
@@ -38,9 +38,9 @@ def neigh_in(ipaddress):
     """Send route-refresh"""
 
     if ipaddress is not None:
-        command = 'sudo vtysh -c "clear bgp ipv6 {} in"'.format(ipaddress)
+        command = ['sudo', 'vtysh', '-c', "clear bgp ipv6 {} in".format(ipaddress)]
     else:
-        command = 'sudo vtysh -c "clear bgp ipv6 * in"'
+        command = ['sudo', 'vtysh', '-c', "clear bgp ipv6 * in"]
     run_command(command)
 
 
@@ -51,9 +51,9 @@ def neigh_out(ipaddress):
     """Resend all outbound updates"""
 
     if ipaddress is not None:
-        command = 'sudo vtysh -c "clear bgp ipv6 {} out"'.format(ipaddress)
+        command = ['sudo', 'vtysh', '-c', "clear bgp ipv6 {} out".format(ipaddress)]
     else:
-        command = 'sudo vtysh -c "clear bgp ipv6 * out"'
+        command = ['sudo', 'vtysh', '-c', "clear bgp ipv6 * out"]
     run_command(command)
 
 
@@ -69,22 +69,22 @@ def soft_in(ipaddress):
     """Send route-refresh"""
 
     if ipaddress is not None:
-        command = 'sudo vtysh -c "clear bgp ipv6 {} soft in"'.format(ipaddress)
+        command = ['sudo', 'vtysh', '-c', "clear bgp ipv6 {} soft in".format(ipaddress)]
     else:
-        command = 'sudo vtysh -c "clear bgp ipv6 * soft in"'
+        command = ['sudo', 'vtysh', '-c', "clear bgp ipv6 * soft in"]
     run_command(command)
 
 
 # 'soft all' subcommand
-@neighbor.command('all')
+@soft.command('all')
 @click.argument('ipaddress', required=False)
 def soft_all(ipaddress):
     """Clear BGP neighbors soft configuration"""
 
     if ipaddress is not None:
-        command = 'sudo vtysh -c "clear bgp ipv6 {} soft"'.format(ipaddress)
+        command = ['sudo', 'vtysh', '-c', "clear bgp ipv6 {} soft".format(ipaddress)]
     else:
-        command = 'sudo vtysh -c "clear bgp ipv6 * soft"'
+        command = ['sudo', 'vtysh', '-c', "clear bgp ipv6 * soft"]
     run_command(command)
 
 # 'soft out' subcommand
@@ -94,8 +94,7 @@ def soft_out(ipaddress):
     """Resend all outbound updates"""
 
     if ipaddress is not None:
-        command = 'sudo vtysh -c "clear bgp ipv6 {} soft out"' \
-            .format(ipaddress)
+        command = ['sudo', 'vtysh', '-c', "clear bgp ipv6 {} soft out".format(ipaddress)]
     else:
-        command = 'sudo vtysh -c "clear bgp ipv6 * soft out"'
+        command = ['sudo', 'vtysh', '-c', "clear bgp ipv6 * soft out"]
     run_command(command)

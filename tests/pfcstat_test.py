@@ -6,7 +6,7 @@ import sys
 from click.testing import CliRunner
 
 import show.main as show
-
+import clear.main as clear
 from .utils import get_result_and_return_code
 from utilities_common.cli import UserCache
 
@@ -27,6 +27,20 @@ Ethernet0   1,210     211     212     213     214     215     216     217
 Ethernet4   1,410     411     412     413     414     415     416     417
 Ethernet8   1,810     811     812     813     814     815     816     817
 """
+
+show_pfc_counters_output_with_clear = ["""\
+  Port Rx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
+---------  ------  ------  ------  ------  ------  ------  ------  ------
+Ethernet0       0       0       0       0       0       0       0       0
+Ethernet4       0       0       0       0       0       0       0       0
+Ethernet8       0       0       0       0       0       0       0       0
+""", """\
+  Port Tx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
+---------  ------  ------  ------  ------  ------  ------  ------  ------
+Ethernet0       0       0       0       0       0       0       0       0
+Ethernet4       0       0       0       0       0       0       0       0
+Ethernet8       0       0       0       0       0       0       0       0
+"""]
 
 show_pfc_counters_output_diff = """\
   Port Rx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
@@ -61,6 +75,26 @@ Ethernet-BP260     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A
 Ethernet-BP256     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A
 Ethernet-BP260     N/A     N/A     N/A     N/A     N/A     N/A     N/A     N/A
 """
+
+show_pfc_counters_all_with_clear = ["""\
+       Port Rx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
+--------------  ------  ------  ------  ------  ------  ------  ------  ------
+     Ethernet0       0       0       0       0       0       0       0       0
+     Ethernet4       0       0       0       0       0       0       0       0
+  Ethernet-BP0       0       0       0       0       0       0       0       0
+  Ethernet-BP4       0       0       0       0       0       0       0       0
+Ethernet-BP256       0       0       0       0       0       0       0       0
+Ethernet-BP260       0       0       0       0       0       0       0       0
+""", """\
+       Port Tx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
+--------------  ------  ------  ------  ------  ------  ------  ------  ------
+     Ethernet0       0       0       0       0       0       0       0       0
+     Ethernet4       0       0       0       0       0       0       0       0
+  Ethernet-BP0       0       0       0       0       0       0       0       0
+  Ethernet-BP4       0       0       0       0       0       0       0       0
+Ethernet-BP256       0       0       0       0       0       0       0       0
+Ethernet-BP260       0       0       0       0       0       0       0       0
+"""]
 
 show_pfc_counters_all_asic = """\
      Port Rx    PFC0    PFC1    PFC2    PFC3    PFC4    PFC5    PFC6    PFC7
@@ -172,6 +206,21 @@ class TestPfcstat(object):
         assert result.exit_code == 0
         assert result.output == show_pfc_counters_output
 
+    def test_pfc_counters_with_clear(self):
+        runner = CliRunner()
+        result = runner.invoke(clear.cli.commands['pfccounters'], [])
+        assert result.exit_code == 0
+        result = runner.invoke(
+            show.cli.commands["pfc"].commands["counters"],
+            []
+        )
+        print(result.output)
+        show.run_command('pfcstat -d')
+        assert result.exit_code == 0
+        assert "Last cached time was" in result.output
+        assert show_pfc_counters_output_with_clear[0] in result.output and \
+                show_pfc_counters_output_with_clear[1] in result.output
+
     def test_pfc_clear(self):
         pfc_clear(show_pfc_counters_output_diff)
 
@@ -203,6 +252,21 @@ class TestMultiAsicPfcstat(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_pfc_counters_all
+
+    def test_pfc_counters_all_with_clear(self):
+        runner = CliRunner()
+        result = runner.invoke(clear.cli.commands['pfccounters'], [])
+        assert result.exit_code == 0
+        result = runner.invoke(
+            show.cli.commands["pfc"].commands["counters"],
+            []
+        )
+        print(result.output)
+        show.run_command('pfcstat -d')
+        assert result.exit_code == 0
+        assert "Last cached time was" in result.output
+        assert show_pfc_counters_all_with_clear[0] in result.output and \
+                show_pfc_counters_all_with_clear[1] in result.output
 
     def test_pfc_counters_frontend(self):
         return_code, result = get_result_and_return_code(

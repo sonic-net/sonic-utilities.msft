@@ -10,6 +10,7 @@ from swsscommon.swsscommon import ConfigDBConnector
 from .mock_tables import dbconnector
 
 import show.main as show
+import clear.main as clear
 from utilities_common.cli import json_dump
 from utilities_common.db import Db
 
@@ -122,6 +123,106 @@ Ethernet8  ALL29             N/A              N/A          N/A           N/A
 
 """
 
+show_queue_counters_with_clear = ["""\
+     Port    TxQ    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
+---------  -----  --------------  ---------------  -----------  ------------
+Ethernet0    UC0               0                0            0             0
+Ethernet0    UC1               0                0            0             0
+Ethernet0    UC2               0                0            0             0
+Ethernet0    UC3               0                0            0             0
+Ethernet0    UC4               0                0            0             0
+Ethernet0    UC5               0                0            0             0
+Ethernet0    UC6               0                0            0             0
+Ethernet0    UC7               0                0            0             0
+Ethernet0    UC8               0                0            0             0
+Ethernet0    UC9               0                0            0             0
+Ethernet0   MC10               0                0            0             0
+Ethernet0   MC11               0                0            0             0
+Ethernet0   MC12               0                0            0             0
+Ethernet0   MC13               0                0            0             0
+Ethernet0   MC14               0                0            0             0
+Ethernet0   MC15               0                0            0             0
+Ethernet0   MC16               0                0            0             0
+Ethernet0   MC17               0                0            0             0
+Ethernet0   MC18               0                0            0             0
+Ethernet0   MC19               0                0            0             0
+Ethernet0  ALL20             N/A              N/A          N/A           N/A
+Ethernet0  ALL21             N/A              N/A          N/A           N/A
+Ethernet0  ALL22             N/A              N/A          N/A           N/A
+Ethernet0  ALL23             N/A              N/A          N/A           N/A
+Ethernet0  ALL24             N/A              N/A          N/A           N/A
+Ethernet0  ALL25             N/A              N/A          N/A           N/A
+Ethernet0  ALL26             N/A              N/A          N/A           N/A
+Ethernet0  ALL27             N/A              N/A          N/A           N/A
+Ethernet0  ALL28             N/A              N/A          N/A           N/A
+Ethernet0  ALL29             N/A              N/A          N/A           N/A
+""", """\
+     Port    TxQ    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
+---------  -----  --------------  ---------------  -----------  ------------
+Ethernet4    UC0               0                0            0             0
+Ethernet4    UC1               0                0            0             0
+Ethernet4    UC2               0                0            0             0
+Ethernet4    UC3               0                0            0             0
+Ethernet4    UC4               0                0            0             0
+Ethernet4    UC5               0                0            0             0
+Ethernet4    UC6               0                0            0             0
+Ethernet4    UC7               0                0            0             0
+Ethernet4    UC8               0                0            0             0
+Ethernet4    UC9               0                0            0             0
+Ethernet4   MC10               0                0            0             0
+Ethernet4   MC11               0                0            0             0
+Ethernet4   MC12               0                0            0             0
+Ethernet4   MC13               0                0            0             0
+Ethernet4   MC14               0                0            0             0
+Ethernet4   MC15               0                0            0             0
+Ethernet4   MC16               0                0            0             0
+Ethernet4   MC17               0                0            0             0
+Ethernet4   MC18               0                0            0             0
+Ethernet4   MC19               0                0            0             0
+Ethernet4  ALL20             N/A              N/A          N/A           N/A
+Ethernet4  ALL21             N/A              N/A          N/A           N/A
+Ethernet4  ALL22             N/A              N/A          N/A           N/A
+Ethernet4  ALL23             N/A              N/A          N/A           N/A
+Ethernet4  ALL24             N/A              N/A          N/A           N/A
+Ethernet4  ALL25             N/A              N/A          N/A           N/A
+Ethernet4  ALL26             N/A              N/A          N/A           N/A
+Ethernet4  ALL27             N/A              N/A          N/A           N/A
+Ethernet4  ALL28             N/A              N/A          N/A           N/A
+Ethernet4  ALL29             N/A              N/A          N/A           N/A
+""", """\
+     Port    TxQ    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
+---------  -----  --------------  ---------------  -----------  ------------
+Ethernet8    UC0               0                0            0             0
+Ethernet8    UC1               0                0            0             0
+Ethernet8    UC2               0                0            0             0
+Ethernet8    UC3               0                0            0             0
+Ethernet8    UC4               0                0            0             0
+Ethernet8    UC5               0                0            0             0
+Ethernet8    UC6               0                0            0             0
+Ethernet8    UC7               0                0            0             0
+Ethernet8    UC8               0                0            0             0
+Ethernet8    UC9               0                0            0             0
+Ethernet8   MC10               0                0            0             0
+Ethernet8   MC11               0                0            0             0
+Ethernet8   MC12               0                0            0             0
+Ethernet8   MC13               0                0            0             0
+Ethernet8   MC14               0                0            0             0
+Ethernet8   MC15               0                0            0             0
+Ethernet8   MC16               0                0            0             0
+Ethernet8   MC17               0                0            0             0
+Ethernet8   MC18               0                0            0             0
+Ethernet8   MC19               0                0            0             0
+Ethernet8  ALL20             N/A              N/A          N/A           N/A
+Ethernet8  ALL21             N/A              N/A          N/A           N/A
+Ethernet8  ALL22             N/A              N/A          N/A           N/A
+Ethernet8  ALL23             N/A              N/A          N/A           N/A
+Ethernet8  ALL24             N/A              N/A          N/A           N/A
+Ethernet8  ALL25             N/A              N/A          N/A           N/A
+Ethernet8  ALL26             N/A              N/A          N/A           N/A
+Ethernet8  ALL27             N/A              N/A          N/A           N/A
+Ethernet8  ALL28             N/A              N/A          N/A           N/A
+Ethernet8  ALL29             N/A              N/A          N/A           N/A
+"""]
 
 show_queue_counters_port = """\
      Port    TxQ    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
@@ -1169,6 +1270,24 @@ class TestQueue(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == show_queue_counters
+
+    def test_queue_counters_with_clear(self):
+        runner = CliRunner()
+        result = runner.invoke(clear.cli.commands['queuecounters'], [])
+        assert result.exit_code == 0
+        result = runner.invoke(
+            show.cli.commands["queue"].commands["counters"],
+            []
+        )
+        print(result.output)
+        show.run_command('queuestat -d')
+        assert result.exit_code == 0
+        assert "Ethernet0 Last cached time was" in result.output and \
+                "Ethernet4 Last cached time was" in result.output and \
+                "Ethernet8 Last cached time was" in result.output
+        assert show_queue_counters_with_clear[0] in result.output and \
+                show_queue_counters_with_clear[1] in result.output and \
+                show_queue_counters_with_clear[2] in result.output
 
     def test_queue_counters_port(self):
         runner = CliRunner()
