@@ -1,0 +1,20 @@
+{
+    "README": [
+        "field_operation_validators provides, module & method name as ",
+        "    <module name>.<method name>",
+        "NOTE: module name could have '.'",
+        " ",
+        "The last element separated by  '.' is considered as ",
+        "method name",
+        "",
+        "e.g. 'show.acl.test_acl'",
+        "",
+        "field_operation_validators for a given table defines a list of validators that all must pass for modification to the specified field and table to be allowed",
+        ""
+    ],
+    "tables": {
+        "PFC_WD": {
+            "field_operation_validators": [ "generic_config_updater.field_operation_validators.rdma_config_update_validator" ]
+        }
+    }
+}
