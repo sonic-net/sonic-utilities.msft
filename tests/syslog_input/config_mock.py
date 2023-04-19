@@ -59,12 +59,12 @@ IP_ADDR_LIST = '''
 '''
 
 def exec_cmd_mock(cmd):
-    if cmd == 'ip --json vrf show':
+    if cmd == ['ip', '--json', 'vrf', 'show']:
         return VRF_LIST
-    elif cmd == 'ip --json link show vrf mgmt':
+    elif cmd == ['ip', '--json', 'link', 'show', 'vrf', 'mgmt']:
         return VRF_MGMT_MEMBERS
-    elif cmd == 'ip --json link show vrf Vrf-Data':
+    elif cmd == ['ip', '--json', 'link', 'show', 'vrf', 'Vrf-Data']:
         return VRF_DATA_MEMBERS
-    elif cmd == 'ip --json address show':
+    elif cmd == ['ip', '--json', 'address', 'show']:
         return IP_ADDR_LIST
     raise Exception("{}: unknown command: {}".format(__name__, cmd))

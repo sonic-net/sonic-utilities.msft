@@ -31,13 +31,13 @@ log.set_min_log_priority_info()
 
 def exec_cmd(cmd):
     """ Execute shell command """
-    return subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+    return subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 
 
 def get_vrf_list():
     """ Get Linux VRF device list """
     vrf_list = []
-    vrf_data = json.loads(exec_cmd('ip --json vrf show'))
+    vrf_data = json.loads(exec_cmd(['ip', '--json', 'vrf', 'show']))
     for vrf_entry in vrf_data:
         vrf_name = vrf_entry.get('name', None)
         if vrf_name is not None:
@@ -51,7 +51,7 @@ def get_vrf_member_dict():
     vrf_list = get_vrf_list()
     for vrf_name in vrf_list:
         vrf_member_dict[vrf_name] = []
-        vrf_member_data = json.loads(exec_cmd('ip --json link show vrf {}'.format(vrf_name)))
+        vrf_member_data = json.loads(exec_cmd(['ip', '--json', 'link', 'show', 'vrf', vrf_name]))
         for vrf_member_entry in vrf_member_data:
             vrf_member_name = vrf_member_entry.get('ifname', None)
             if vrf_member_name is not None:
@@ -62,7 +62,7 @@ def get_vrf_member_dict():
 def get_ip_addr_dict():
     """ Get Linux interface to IPv4/IPv6 address list dict """
     ip_addr_dict = {}
-    ip_addr_data = json.loads(exec_cmd('ip --json address show'))
+    ip_addr_data = json.loads(exec_cmd(['ip', '--json', 'address', 'show']))
     for ip_addr_entry in ip_addr_data:
         link_name = ip_addr_entry.get('ifname', None)
         if link_name is not None:

@@ -3,11 +3,14 @@
 import pytest
 
 import os
+import sys
 import mock
 import logging
+import subprocess
 
 import show.main as show
 import config.main as config
+import config.syslog as config_syslog
 
 from click.testing import CliRunner
 from utilities_common.db import Db
@@ -56,6 +59,14 @@ class TestSyslog:
         dbconnector.dedicated_dbs["CONFIG_DB"] = None
 
     ########## CONFIG SYSLOG ##########
+
+    def test_exec_cmd(self):
+        output = config_syslog.exec_cmd([sys.executable, "-c", "print('testing')"])
+        assert output == b"testing\n"
+
+        with pytest.raises(subprocess.CalledProcessError) as e:
+            config_syslog.exec_cmd([sys.executable, "-c", "import sys; sys.exit(6)"])
+        assert e.value.returncode == 6
 
     @mock.patch("utilities_common.cli.run_command", mock.MagicMock(return_value=None))
     @pytest.mark.parametrize("server_ip", ["2.2.2.2", "2222::2222"])

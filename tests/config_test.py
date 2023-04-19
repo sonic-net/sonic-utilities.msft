@@ -1,3 +1,4 @@
+import pytest
 import filecmp
 import importlib
 import os
@@ -16,7 +17,7 @@ from click.testing import CliRunner
 from sonic_py_common import device_info
 from utilities_common.db import Db
 from utilities_common.general import load_module_from_source
-from mock import patch
+from mock import patch, MagicMock
 
 from generic_config_updater.generic_updater import ConfigFormat
 
@@ -154,6 +155,42 @@ def mock_run_command_side_effect_disabled_timer(*args, **kwargs):
 # Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
 sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
 
+class TestHelper(object):
+    def setup(self):
+        print("SETUP")
+
+    @patch('config.main.subprocess.Popen')
+    def test_get_device_type(self, mock_subprocess):
+        mock_subprocess.return_value.communicate.return_value = ("BackendToRRouter ", None)
+        device_type = config._get_device_type()
+        mock_subprocess.assert_called_with(['/usr/local/bin/sonic-cfggen', '-m', '-v', 'DEVICE_METADATA.localhost.type'], text=True, stdout=-1)
+        assert device_type == "BackendToRRouter"
+
+        mock_subprocess.return_value.communicate.return_value = (None, "error")
+        device_type = config._get_device_type()
+        mock_subprocess.assert_called_with(['/usr/local/bin/sonic-cfggen', '-m', '-v', 'DEVICE_METADATA.localhost.type'], text=True, stdout=-1)
+        assert device_type == "Unknown"
+
+    def teardown(self):
+        print("TEARDOWN")
+
+class TestConfig(object):
+    def setup(self):
+        print("SETUP")
+
+    @patch('config.main.subprocess.check_call')
+    def test_platform_fw_install(self, mock_check_call):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['platform'].commands['firmware'].commands['install'], ['chassis', 'component', 'BIOS', 'fw', '/firmware_path'])
+        assert result.exit_code == 0
+        mock_check_call.assert_called_with(["fwutil", "install", 'chassis', 'component', 'BIOS', 'fw', '/firmware_path'])
+
+    @patch('config.main.subprocess.check_call')
+    def test_plattform_fw_update(self, mock_check_call):
+        runner = CliRunner()
+        result = runner.invoke(config.config.commands['platform'].commands['firmware'].commands['update'], ['update', 'module', 'Module1', 'component', 'BIOS', 'fw'])
+        assert result.exit_code == 0
+        mock_check_call.assert_called_with(["fwutil", "update", 'update', 'module', 'Module1', 'component', 'BIOS', 'fw'])
 
 class TestConfigReload(object):
     dummy_cfg_file = os.path.join(os.sep, "tmp", "config.json")
