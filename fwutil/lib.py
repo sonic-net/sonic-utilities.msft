@@ -23,6 +23,7 @@ try:
 
     from . import Platform
     from .log import LogHelper
+    from sonic_py_common.general import check_output_pipe
 except ImportError as e:
     raise ImportError("Required module not found: {}".format(str(e)))
 
@@ -233,14 +234,18 @@ class SquashFs(object):
         self.overlay_mountpoint = self.OVERLAY_MOUNTPOINT_TEMPLATE.format(image_stem)
 
     def get_current_image(self):
-        cmd = "sonic-installer list | grep 'Current: ' | cut -f2 -d' '"
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True, text=True)
+        cmd0 = ["sonic-installer", "list"]
+        cmd1 = ["grep", 'Current: ']
+        cmd2 = ["cut", "-f2", "-d "]
+        output = check_output_pipe(cmd0, cmd1, cmd2)
 
         return output.rstrip(NEWLINE)
 
     def get_next_image(self):
-        cmd = "sonic-installer list | grep 'Next: ' | cut -f2 -d' '"
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True, text=True)
+        cmd0 = ["sonic-installer", "list"]
+        cmd1 = ["grep", 'Next: ']
+        cmd2 = ["cut", "-f2", "-d "]
+        output = check_output_pipe(cmd0, cmd1, cmd2)
 
         return output.rstrip(NEWLINE)
 
@@ -252,37 +257,29 @@ class SquashFs(object):
             self.umount_next_image_fs()
 
         os.mkdir(self.fs_mountpoint)
-        cmd = "mount -t squashfs {} {}".format(
-            self.fs_path,
-            self.fs_mountpoint
-        )
-        subprocess.check_call(cmd, shell=True)
+        cmd = ["mount", "-t", "squashfs", self.fs_path, self.fs_mountpoint]
+        subprocess.check_call(cmd)
 
         if not (os.path.exists(self.fs_rw) and os.path.exists(self.fs_work)):
             return self.fs_mountpoint
 
         os.mkdir(self.overlay_mountpoint)
-        cmd = "mount -n -r -t overlay -o lowerdir={},upperdir={},workdir={} overlay {}".format(
-            self.fs_mountpoint,
-            self.fs_rw,
-            self.fs_work,
-            self.overlay_mountpoint
-        )
-        subprocess.check_call(cmd, shell=True)
+        cmd = ["mount", "-n", "-r", "-t", "overlay", "-o", "lowerdir={},upperdir={},workdir={}".format(self.fs_mountpoint, self.fs_rw, self.fs_work), "overlay", self.overlay_mountpoint]
+        subprocess.check_call(cmd)
 
         return self.overlay_mountpoint
 
     def umount_next_image_fs(self):
         if os.path.ismount(self.overlay_mountpoint):
-            cmd = "umount -rf {}".format(self.overlay_mountpoint)
-            subprocess.check_call(cmd, shell=True)
+            cmd = ["umount", "-rf", self.overlay_mountpoint]
+            subprocess.check_call(cmd)
 
         if os.path.exists(self.overlay_mountpoint):
             os.rmdir(self.overlay_mountpoint)
 
         if os.path.ismount(self.fs_mountpoint):
-            cmd = "umount -rf {}".format(self.fs_mountpoint)
-            subprocess.check_call(cmd, shell=True)
+            cmd = ["umount", "-rf", self.fs_mountpoint]
+            subprocess.check_call(cmd)
 
         if os.path.exists(self.fs_mountpoint):
             os.rmdir(self.fs_mountpoint)
@@ -875,13 +872,9 @@ class ComponentUpdateProvider(PlatformDataProvider):
             click.echo("{} firmware auto-update starting: {} with boot_type {}".format(component_path, firmware_path, boot))
             log_helper.log_fw_auto_update_start(component_path, firmware_path, boot)
             if os.path.isfile(utility) and os.access(utility, os.X_OK):
-                cmd = "{} -a {} {}".format(
-                    utility,
-                    firmware_path,
-                    boot
-                )
+                cmd = [utility, "-a", firmware_path, boot]
                 click.echo("firmware auto-update starting:utility cmd {}".format(cmd))
-                rt_code = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True, text=True)
+                rt_code = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
                 rt_code = int(rt_code.strip())
             else:
                 rt_code = component.auto_update_firmware(firmware_path, boot)
