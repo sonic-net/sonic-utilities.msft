@@ -397,7 +397,7 @@ class TestConfigDPB(object):
 
         print(result.exit_code, result.output)
         assert result.exit_code == 0
-        assert 'Dependecies Exist.' in result.output
+        assert 'Dependencies Exist.' in result.output
 
         # verbose must be set while creating instance of ConfigMgmt class
         calls = [mock.call(True)]
@@ -539,8 +539,8 @@ class TestConfigDPB(object):
 
             print(result.exit_code, result.output)
             assert result.exit_code == 0
-            assert 'Dependecies Exist.' in result.output
-            assert 'Printing dependecies' in result.output
+            assert 'Dependencies Exist.' in result.output
+            assert 'Printing dependencies' in result.output
             assert 'NO-NSW-PACL-V4' in result.output
 
             brk_cfg_table = db.cfgdb.get_table('BREAKOUT_CFG')

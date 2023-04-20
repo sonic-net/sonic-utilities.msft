@@ -224,8 +224,8 @@ def breakout_Ports(cm, delPorts=list(), portJson=dict(), force=False, \
     # check if DPB failed
     if ret == False:
         if not force and deps:
-            click.echo("Dependecies Exist. No further action will be taken")
-            click.echo("*** Printing dependecies ***")
+            click.echo("Dependencies Exist. No further action will be taken")
+            click.echo("*** Printing dependencies ***")
             for dep in deps:
                 click.echo(dep)
             sys.exit(0)
