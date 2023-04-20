@@ -63,7 +63,7 @@ setup(
         'sonic_cli_gen',
     ],
     package_data={
-        'generic_config_updater': ['gcu_services_validator.conf.json', 'gcu_field_operation_validators.conf.json'],
+        'generic_config_updater': ['generic_config_updater.conf.json'],
         'show': ['aliases.ini'],
         'sonic_installer': ['aliases.ini'],
         'tests': ['acl_input/*',
