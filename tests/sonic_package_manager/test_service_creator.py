@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import copy
-from unittest.mock import Mock, MagicMock, call
+from unittest.mock import Mock, MagicMock, call, patch
 
 import pytest
 
@@ -62,6 +63,22 @@ def manifest():
         ]
     })
 
+def test_is_list_of_strings():
+    output = is_list_of_strings(['a', 'b', 'c'])
+    assert output is True
+
+    output = is_list_of_strings('abc')
+    assert output is False
+
+    output = is_list_of_strings(['a', 'b', 1])
+    assert output is False
+
+def test_run_command():
+    with pytest.raises(SystemExit) as e:
+        run_command('echo 1')
+
+    with pytest.raises(ServiceCreatorError) as e:
+        run_command([sys.executable, "-c", "import sys; sys.exit(6)"])
 
 @pytest.fixture()
 def service_creator(mock_feature_registry,
@@ -203,6 +220,11 @@ def test_service_creator_autocli(sonic_fs, manifest, mock_cli_gen,
         any_order=True
     )
 
+def test_service_creator_post_operation_hook(sonic_fs, manifest, mock_sonic_db, mock_config_mgmt, service_creator):
+    with patch('sonic_package_manager.service_creator.creator.run_command') as run_command:
+        with patch('sonic_package_manager.service_creator.creator.in_chroot', MagicMock(return_value=False)):
+            service_creator._post_operation_hook()
+            run_command.assert_called_with(['systemctl', 'daemon-reload'])
 
 def test_feature_registration(mock_sonic_db, manifest):
     mock_connector = Mock()
