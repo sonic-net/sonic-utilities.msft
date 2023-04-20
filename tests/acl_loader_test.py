@@ -21,7 +21,7 @@ class TestAclLoader(object):
 
     def test_valid(self):
         yang_acl = AclLoader.parse_acl_json(os.path.join(test_path, 'acl_input/acl1.json'))
-        assert len(yang_acl.acl.acl_sets.acl_set) == 6
+        assert len(yang_acl.acl.acl_sets.acl_set) == 8
 
     def test_invalid(self):
         with pytest.raises(AclLoaderException):
@@ -135,19 +135,29 @@ class TestAclLoader(object):
         }
 
     def test_ingress_default_deny_rule(self, acl_loader):
+        acl_loader.set_mirror_stage("ingress")
+        acl_loader.get_session_name = mock.MagicMock(return_value="everflow_session_mock")
         acl_loader.rules_info = {}
         acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl1.json'))
-        print(acl_loader.rules_info)
+        # Verify L3 can add default deny rule correctly
         assert acl_loader.rules_info[('DATAACL', 'DEFAULT_RULE')] == {
             'PRIORITY': '1',
             'PACKET_ACTION': 'DROP',
             'ETHER_TYPE': '2048'
         }
+        # Verify L3V6 can add default deny rule correctly
         assert acl_loader.rules_info[('DATAACL_2', 'DEFAULT_RULE')] == {
             'PRIORITY': '1',
             'PACKET_ACTION': 'DROP',
             'IP_TYPE': 'IPV6ANY'
         }
+        # Verify acl-loader doesn't add default deny rule to MIRROR
+        assert ('EVERFLOW', 'DEFAULT_RULE') not in acl_loader.rules_info
+        # Verify acl-loader doesn't add default deny rule to MIRRORV6
+        assert ('EVERFLOWV6', 'DEFAULT_RULE') not in acl_loader.rules_info
+        # Verify acl-loader doesn't add default deny rule to custom ACL table types
+        assert ('BMC_ACL_NORTHBOUND', 'DEFAULT_RULE') not in acl_loader.rules_info
+        assert ('BMC_ACL_NORTHBOUND_V6', 'DEFAULT_RULE') not in acl_loader.rules_info
 
     def test_egress_no_default_deny_rule(self, acl_loader):
         acl_loader.rules_info = {}
