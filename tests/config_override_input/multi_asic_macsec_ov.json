@@ -1,0 +1,23 @@
+{
+    "": {
+        "MACSEC_PROFILE": {
+            "profile": {
+                "key": "value"
+            }
+        }
+    },
+    "asic0": {
+        "MACSEC_PROFILE": {
+            "profile": {
+                "key": "value"
+            }
+        }
+    },
+    "asic1": {
+        "MACSEC_PROFILE": {
+            "profile": {
+                "key": "value"
+            }
+        }
+    }
+}

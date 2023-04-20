@@ -35,7 +35,8 @@ class ConfigMgmt():
     to verify config for the commands which are capable of change in config DB.
     '''
 
-    def __init__(self, source="configDB", debug=False, allowTablesWithoutYang=True, sonicYangOptions=0):
+    def __init__(self, source="configDB", debug=False, allowTablesWithoutYang=True,
+                 sonicYangOptions=0, configdb=None):
         '''
         Initialise the class, --read the config, --load in data tree.
 
@@ -44,6 +45,7 @@ class ConfigMgmt():
             debug (bool): verbose mode.
             allowTablesWithoutYang (bool): allow tables without yang model in
                 config or not.
+            configdb: configdb to work on.
 
         Returns:
             void
@@ -54,6 +56,11 @@ class ConfigMgmt():
             self.source = source
             self.allowTablesWithoutYang = allowTablesWithoutYang
             self.sonicYangOptions = sonicYangOptions
+            if configdb is None:
+                self.configdb = ConfigDBConnector()
+                self.configdb.connect()
+            else:
+                self.configdb = configdb
 
             # logging vars
             self.SYSLOG_IDENTIFIER = "ConfigMgmt"
@@ -194,8 +201,7 @@ class ConfigMgmt():
         self.sysLog(doPrint=True, msg='Reading data from Redis configDb')
         # Read from config DB on sonic switch
         data = dict()
-        configdb = ConfigDBConnector()
-        configdb.connect()
+        configdb = self.configdb
         sonic_cfggen.deep_update(data, sonic_cfggen.FormatConverter.db_to_output(configdb.get_config()))
         self.configdbJsonIn = sonic_cfggen.FormatConverter.to_serialized(data)
         self.sysLog(syslog.LOG_DEBUG, 'Reading Input from ConfigDB {}'.\
@@ -215,8 +221,7 @@ class ConfigMgmt():
         '''
         self.sysLog(doPrint=True, msg='Writing in Config DB')
         data = dict()
-        configdb = ConfigDBConnector()
-        configdb.connect(False)
+        configdb = self.configdb
         sonic_cfggen.deep_update(data, sonic_cfggen.FormatConverter.to_deserialized(jDiff))
         self.sysLog(msg="Write in DB: {}".format(data))
         configdb.mod_config(sonic_cfggen.FormatConverter.output_to_db(data))
