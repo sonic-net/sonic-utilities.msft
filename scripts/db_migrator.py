@@ -164,7 +164,7 @@ class DBMigrator():
             self.appDB.set(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count', str(total_count))
             log.log_notice("Port count updated from {} to : {}".format(portCount, self.appDB.get(self.appDB.APPL_DB, 'PORT_TABLE:PortConfigDone', 'count')))
         return True
-        
+
     def migrate_intf_table(self):
         '''
         Migrate all data from existing INTF table in APP DB during warmboot with IP Prefix
@@ -262,7 +262,6 @@ class DBMigrator():
         @append_item_method - a function which is called to append an item to the list of pending commit items
                               any update to buffer configuration will be pended and won't be applied until
                               all configuration is checked and aligns with the default one
-
         1. Buffer profiles for lossless PGs in BUFFER_PROFILE table will be removed
            if their names have the convention of pg_lossless_<speed>_<cable_length>_profile
            where the speed and cable_length belongs speed_list and cable_len_list respectively
@@ -346,7 +345,6 @@ class DBMigrator():
         '''
         This is the very first warm reboot of buffermgrd (dynamic) if the system reboot from old image by warm-reboot
         In this case steps need to be taken to get buffermgrd prepared (for warm reboot)
-
         During warm reboot, buffer tables should be installed in the first place.
         However, it isn't able to achieve that when system is warm-rebooted from an old image
         without dynamic buffer supported, because the buffer info wasn't in the APPL_DB in the old image.
@@ -354,7 +352,6 @@ class DBMigrator():
         During warm-reboot, db_migrator adjusts buffer info in CONFIG_DB by removing some fields
         according to requirement from dynamic buffer calculation.
         The buffer info before that adjustment needs to be copied to APPL_DB.
-
         1. set WARM_RESTART_TABLE|buffermgrd as {restore_count: 0}
         2. Copy the following tables from CONFIG_DB into APPL_DB in case of warm reboot
            The separator in fields that reference objects in other table needs to be updated from '|' to ':'
@@ -364,7 +361,6 @@ class DBMigrator():
            - BUFFER_QUEUE, separator updated for field 'profile
            - BUFFER_PORT_INGRESS_PROFILE_LIST, separator updated for field 'profile_list'
            - BUFFER_PORT_EGRESS_PROFILE_LIST, separator updated for field 'profile_list'
-
         '''
         warmreboot_state = self.stateDB.get(self.stateDB.STATE_DB, 'WARM_RESTART_ENABLE_TABLE|system', 'enable')
         mmu_size = self.stateDB.get(self.stateDB.STATE_DB, 'BUFFER_MAX_PARAM_TABLE|global', 'mmu_size')
@@ -569,7 +565,7 @@ class DBMigrator():
         dscp_to_tc_map_table_names = self.configDB.get_keys('DSCP_TO_TC_MAP')
         if len(dscp_to_tc_map_table_names) == 0:
             return
-        
+
         qos_maps = self.configDB.get_table('PORT_QOS_MAP')
         if 'global' not in qos_maps.keys():
             # We are unlikely to have more than 1 DSCP_TO_TC_MAP in previous versions
@@ -592,6 +588,50 @@ class DBMigrator():
                     # IPv4 route_prefix is returned from db as str
                     route_key = "ROUTE_TABLE:{}".format(route_prefix)
                 self.appDB.set(self.appDB.APPL_DB, route_key, 'weight','')
+
+    def update_edgezone_aggregator_config(self):
+        """
+        Update cable length configuration in ConfigDB for T0 neighbor interfaces
+        connected to EdgeZone Aggregator devices, while resetting the port values to trigger a buffer change
+        1. Find a list of all interfaces connected to an EdgeZone Aggregator device.
+        2. If all the cable lengths are the same, do nothing and return.
+        3. If there are different cable lengths, update CABLE_LENGTH values for these interfaces with a constant value of 40m.
+        """
+        device_neighbor_metadata = self.configDB.get_table("DEVICE_NEIGHBOR_METADATA")
+        device_neighbors = self.configDB.get_table("DEVICE_NEIGHBOR")
+        cable_length = self.configDB.get_table("CABLE_LENGTH")
+        port_table = self.configDB.get_table("PORT")
+        edgezone_aggregator_devs = []
+        edgezone_aggregator_intfs = []
+        EDGEZONE_AGG_CABLE_LENGTH = "40m"
+        for k, v in device_neighbor_metadata.items():
+            if v.get("type") == "EdgeZoneAggregator":
+                    edgezone_aggregator_devs.append(k)
+
+        if len(edgezone_aggregator_devs) == 0:
+            return
+
+        for intf, intf_info in device_neighbors.items():
+            if intf_info.get("name") in edgezone_aggregator_devs:
+                edgezone_aggregator_intfs.append(intf)
+
+        cable_length_table = self.configDB.get_entry("CABLE_LENGTH", "AZURE")
+        first_cable_intf = next(iter(cable_length_table))
+        first_cable_length = cable_length_table[first_cable_intf]
+        index = 0
+
+        for intf, length in cable_length_table.items():
+            index += 1
+            if first_cable_length != length:
+                break
+            elif index == len(cable_length_table):
+                # All cable lengths are the same, nothing to modify
+                return
+
+        for intf, length in cable_length_table.items():
+            if intf in edgezone_aggregator_intfs:
+                # Set new cable length values
+                self.configDB.set(self.configDB.CONFIG_DB, "CABLE_LENGTH|AZURE", intf, EDGEZONE_AGG_CABLE_LENGTH)
 
     def version_unknown(self):
         """
@@ -754,7 +794,7 @@ class DBMigrator():
     def version_2_0_2(self):
         """
         Version 2_0_2
-        This is the latest version for 202012 branch 
+        This is the latest version for 202012 branch
         """
         log.log_info('Handling version_2_0_2')
         self.set_version('version_3_0_0')
@@ -839,7 +879,7 @@ class DBMigrator():
         self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable', enable_state)
         self.set_version('version_3_0_6')
         return 'version_3_0_6'
-    
+
     def version_3_0_6(self):
         """
         Current latest version. Nothing to do here.
@@ -882,12 +922,15 @@ class DBMigrator():
 
         if self.asic_type != "mellanox":
             self.migrate_copp_table()
-        if self.asic_type == "broadcom" and 'Force10-S6100' in self.hwsku:            
+        if self.asic_type == "broadcom" and 'Force10-S6100' in self.hwsku:
             self.migrate_mgmt_ports_on_s6100()
         else:
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
 
         self.migrate_route_table()
+
+        # Updating edgezone aggregator cable length config for T0 devices
+        self.update_edgezone_aggregator_config()
 
     def migrate(self):
         version = self.get_version()
