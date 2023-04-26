@@ -9,7 +9,7 @@ from swsscommon.swsscommon import ConfigDBConnector
 from .gu_common import genericUpdaterLogging
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-UPDATER_CONF_FILE = f"{SCRIPT_DIR}/generic_config_updater.conf.json"
+UPDATER_CONF_FILE = f"{SCRIPT_DIR}/gcu_services_validator.conf.json"
 logger = genericUpdaterLogging.get_logger(title="Change Applier")
 
 print_to_console = False
