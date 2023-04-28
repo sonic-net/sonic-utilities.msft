@@ -1394,13 +1394,14 @@ def muxdirection(db, port, json_output):
                 headers = ['Port', 'Direction', 'Presence']
             click.echo(tabulate(body, headers=headers))
 
-        return rc
+        rc_exit = EXIT_SUCCESS if rc==0  else EXIT_FAIL
+        sys.exit(rc_exit)
 
     else:
 
         logical_port_list = platform_sfputil_helper.get_logical_list()
 
-        rc_exit = True
+        rc_exit = EXIT_SUCCESS
         body = []
         active_active = False
         if json_output:
@@ -1449,8 +1450,9 @@ def muxdirection(db, port, json_output):
                     active_active = True
                 else:
                     rc = create_active_standby_mux_direction_result(body, port, db)
-                if rc != 0:
-                    rc_exit = False
+
+            if rc != 0:
+                rc_exit = EXIT_FAIL
 
 
 
@@ -1464,8 +1466,7 @@ def muxdirection(db, port, json_output):
                 headers = ['Port', 'Direction', 'Presence']
             click.echo(tabulate(body, headers=headers))
 
-        if rc_exit == False:
-            sys.exit(EXIT_FAIL)
+        sys.exit(rc_exit)
 
 
 @hwmode.command()
@@ -2140,7 +2141,7 @@ def get_grpc_cached_version_mux_direction_per_port(db, port):
     mux_info_dict = {}
     mux_info_full_dict = {}
     trans_info_full_dict = {}
-    mux_info_dict["rc"] = False
+    mux_info_dict["rc"] = 1
 
     # Getting all front asic namespace and correspding config and state DB connector
 
@@ -2182,7 +2183,7 @@ def get_grpc_cached_version_mux_direction_per_port(db, port):
 
     mux_info_dict["presence"] = presence
 
-    mux_info_dict["rc"] = True
+    mux_info_dict["rc"] = 0
 
     return mux_info_dict
 
@@ -2222,14 +2223,15 @@ def muxdirection(db, port, json_output):
             rc = create_active_active_mux_direction_result(body, port, db)
             click.echo(tabulate(body, headers=headers))
 
-        return rc
+        rc_exit = EXIT_SUCCESS if rc==0  else EXIT_FAIL
+        sys.exit(rc_exit)
 
     else:
 
 
         logical_port_list = platform_sfputil_helper.get_logical_list()
 
-        rc_exit = True
+        rc_exit = EXIT_SUCCESS
         body = []
         if json_output:
             result = {}
@@ -2266,8 +2268,8 @@ def muxdirection(db, port, json_output):
             else:
                 rc = create_active_active_mux_direction_result(body, port, db)
 
-            if rc != True:
-                rc_exit = False
+            if rc != 0:
+                rc_exit = EXIT_FAIL
 
         if json_output:
             click.echo("{}".format(json.dumps(result, indent=4)))
@@ -2276,8 +2278,7 @@ def muxdirection(db, port, json_output):
 
             click.echo(tabulate(body, headers=headers))
 
-        if rc_exit == False:
-            sys.exit(EXIT_FAIL)
+        sys.exit(rc_exit)
 
 @muxcable.command()
 @click.argument('port', metavar='<port_name>', required=True, default=None)
