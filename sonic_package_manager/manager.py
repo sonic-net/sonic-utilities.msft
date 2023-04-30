@@ -160,17 +160,18 @@ def get_cli_plugin_directory(command: str) -> str:
     return plugins_pkg_path
 
 
-def get_cli_plugin_path(package: Package, command: str) -> str:
+def get_cli_plugin_path(package: Package, index: int, command: str) -> str:
     """ Returns a path where to put CLI plugin code.
 
     Args:
         package: Package to generate this path for.
+        index: Index of a cli plugin
         command: SONiC command: "show"/"config"/"clear".
     Returns:
         Path generated for this package.
     """
 
-    plugin_module_file = package.name + '.py'
+    plugin_module_file = f'{package.name}_{index}.py'
     return os.path.join(get_cli_plugin_directory(command), plugin_module_file)
 
 
@@ -978,19 +979,21 @@ class PackageManager:
             self._uninstall_cli_plugin(package, command)
 
     def _install_cli_plugin(self, package: Package, command: str):
-        image_plugin_path = package.manifest['cli'][command]
-        if not image_plugin_path:
+        image_plugins = package.manifest['cli'][command]
+        if not image_plugins:
             return
-        host_plugin_path = get_cli_plugin_path(package, command)
-        self.docker.extract(package.entry.image_id, image_plugin_path, host_plugin_path)
+        for index, image_plugin_path in enumerate(image_plugins):
+            host_plugin_path = get_cli_plugin_path(package, index, command)
+            self.docker.extract(package.entry.image_id, image_plugin_path, host_plugin_path)
 
     def _uninstall_cli_plugin(self, package: Package, command: str):
-        image_plugin_path = package.manifest['cli'][command]
-        if not image_plugin_path:
+        image_plugins = package.manifest['cli'][command]
+        if not image_plugins:
             return
-        host_plugin_path = get_cli_plugin_path(package, command)
-        if os.path.exists(host_plugin_path):
-            os.remove(host_plugin_path)
+        for index, _ in enumerate(image_plugins):
+            host_plugin_path = get_cli_plugin_path(package, index, command)
+            if os.path.exists(host_plugin_path):
+                os.remove(host_plugin_path)
 
     @staticmethod
     def get_manager() -> 'PackageManager':

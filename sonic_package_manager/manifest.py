@@ -76,6 +76,26 @@ class ManifestSchema:
             return value
 
     @dataclass
+    class ListMarshaller(Marshaller):
+        """ Returns a list. In case input is of other type it returns a list containing that single value. """
+
+        type: type
+
+        def marshal(self, value):
+            if isinstance(value, list):
+                for item in value:
+                    if not isinstance(item, self.type):
+                        raise ManifestError(f'{value} has items not of type {self.type.__name__}')
+                return value
+            elif isinstance(value, self.type):
+                return [value]
+            else:
+                raise ManifestError(f'{value} is not of type {self.type.__name__}')
+
+        def unmarshal(self, value):
+            return value
+
+    @dataclass
     class ManifestNode(Marshaller, ABC):
         """
         Base class for any manifest object.
@@ -207,9 +227,9 @@ class ManifestSchema:
         ])),
         ManifestRoot('cli', [
             ManifestField('mandatory', DefaultMarshaller(bool), False),
-            ManifestField('show', DefaultMarshaller(str), ''),
-            ManifestField('config', DefaultMarshaller(str), ''),
-            ManifestField('clear', DefaultMarshaller(str), ''),
+            ManifestField('show', ListMarshaller(str), []),
+            ManifestField('config', ListMarshaller(str), []),
+            ManifestField('clear', ListMarshaller(str), []),
             ManifestField('auto-generate-show', DefaultMarshaller(bool), False),
             ManifestField('auto-generate-config', DefaultMarshaller(bool), False),
         ])
