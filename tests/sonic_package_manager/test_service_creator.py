@@ -157,7 +157,7 @@ def test_service_creator_yang(sonic_fs, manifest, mock_sonic_db,
     })
 
     entry = PackageEntry('test', 'azure/sonic-test')
-    package = Package(entry, Metadata(manifest, yang_module_str=test_yang))
+    package = Package(entry, Metadata(manifest, yang_modules=[test_yang]))
     service_creator.create(package)
 
     mock_config_mgmt.add_module.assert_called_with(test_yang)
@@ -171,7 +171,7 @@ def test_service_creator_yang(sonic_fs, manifest, mock_sonic_db,
             },
         },
     }
-    package = Package(entry, Metadata(manifest, yang_module_str=test_yang))
+    package = Package(entry, Metadata(manifest, yang_modules=[test_yang]))
 
     service_creator.create(package)
 
@@ -190,6 +190,42 @@ def test_service_creator_yang(sonic_fs, manifest, mock_sonic_db,
     mock_config_mgmt.remove_module.assert_called_with(test_yang_module)
 
 
+def test_service_creator_multi_yang(sonic_fs, manifest, mock_config_mgmt, service_creator):
+    test_yang = 'TEST YANG'
+    test_yang_2 = 'TEST YANG 2'
+
+    def get_module_name(module_src):
+        if module_src == test_yang:
+            return 'sonic-test'
+        elif module_src == test_yang_2:
+            return 'sonic-test-2'
+        else:
+            raise ValueError(f'Unknown module {module_src}')
+
+    entry = PackageEntry('test', 'azure/sonic-test')
+    package = Package(entry, Metadata(manifest, yang_modules=[test_yang, test_yang_2]))
+    service_creator.create(package)
+
+    mock_config_mgmt.add_module.assert_has_calls(
+        [
+            call(test_yang),
+            call(test_yang_2)
+        ],
+        any_order=True,
+    )
+
+    mock_config_mgmt.get_module_name = Mock(side_effect=get_module_name)
+
+    service_creator.remove(package)
+    mock_config_mgmt.remove_module.assert_has_calls(
+        [
+            call(get_module_name(test_yang)),
+            call(get_module_name(test_yang_2))
+        ],
+        any_order=True,
+    )
+
+
 def test_service_creator_autocli(sonic_fs, manifest, mock_cli_gen,
                                  mock_config_mgmt, service_creator):
     test_yang = 'TEST YANG'
@@ -199,7 +235,7 @@ def test_service_creator_autocli(sonic_fs, manifest, mock_cli_gen,
     manifest['cli']['auto-generate-config'] = True
 
     entry = PackageEntry('test', 'azure/sonic-test')
-    package = Package(entry, Metadata(manifest, yang_module_str=test_yang))
+    package = Package(entry, Metadata(manifest, yang_modules=[test_yang]))
     mock_config_mgmt.get_module_name = Mock(return_value=test_yang_module)
     service_creator.create(package)
 
@@ -225,6 +261,58 @@ def test_service_creator_post_operation_hook(sonic_fs, manifest, mock_sonic_db, 
         with patch('sonic_package_manager.service_creator.creator.in_chroot', MagicMock(return_value=False)):
             service_creator._post_operation_hook()
             run_command.assert_called_with(['systemctl', 'daemon-reload'])
+
+def test_service_creator_multi_yang_filter_auto_cli_modules(sonic_fs, manifest, mock_cli_gen,
+                                                            mock_config_mgmt, service_creator):
+    test_yang = 'TEST YANG'
+    test_yang_2 = 'TEST YANG 2'
+    test_yang_3 = 'TEST YANG 3'
+    test_yang_4 = 'TEST YANG 4'
+
+    def get_module_name(module_src):
+        if module_src == test_yang:
+            return 'sonic-test'
+        elif module_src == test_yang_2:
+            return 'sonic-test-2'
+        elif module_src == test_yang_3:
+            return 'sonic-test-3'
+        elif module_src == test_yang_4:
+            return 'sonic-test-4'
+        else:
+            raise ValueError(f'Unknown module {module_src}')
+
+    manifest['cli']['auto-generate-show'] = True
+    manifest['cli']['auto-generate-config'] = True
+    manifest['cli']['auto-generate-show-source-yang-modules'] = ['sonic-test-2', 'sonic-test-4']
+    manifest['cli']['auto-generate-config-source-yang-modules'] = ['sonic-test-2', 'sonic-test-4']
+
+    entry = PackageEntry('test', 'azure/sonic-test')
+    package = Package(entry, Metadata(manifest, yang_modules=[test_yang, test_yang_2, test_yang_3, test_yang_4]))
+    mock_config_mgmt.get_module_name = Mock(side_effect=get_module_name)
+    service_creator.create(package)
+
+    assert mock_cli_gen.generate_cli_plugin.call_count == 4
+    mock_cli_gen.generate_cli_plugin.assert_has_calls(
+        [
+            call('show', get_module_name(test_yang_2)),
+            call('show', get_module_name(test_yang_4)),
+            call('config', get_module_name(test_yang_2)),
+            call('config', get_module_name(test_yang_4)),
+        ],
+        any_order=True
+    )
+
+    service_creator.remove(package)
+    assert mock_cli_gen.remove_cli_plugin.call_count == 4
+    mock_cli_gen.remove_cli_plugin.assert_has_calls(
+        [
+            call('show', get_module_name(test_yang_2)),
+            call('show', get_module_name(test_yang_4)),
+            call('config', get_module_name(test_yang_2)),
+            call('config', get_module_name(test_yang_4)),
+        ],
+        any_order=True
+    )
 
 def test_feature_registration(mock_sonic_db, manifest):
     mock_connector = Mock()

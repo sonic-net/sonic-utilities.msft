@@ -4,10 +4,11 @@ from dataclasses import dataclass, field
 
 import json
 import tarfile
-from typing import Dict, Optional
+from typing import Dict, List
 
 from sonic_package_manager import utils
 from sonic_package_manager.errors import MetadataError
+from sonic_package_manager.logger import log
 from sonic_package_manager.manifest import Manifest
 from sonic_package_manager.version import Version
 
@@ -54,7 +55,7 @@ class Metadata:
 
     manifest: Manifest
     components: Dict[str, Version] = field(default_factory=dict)
-    yang_module_str: Optional[str] = None
+    yang_modules: List[str] = field(default_factory=list)
 
 
 class MetadataResolver:
@@ -164,6 +165,16 @@ class MetadataResolver:
                 except ValueError as err:
                     raise MetadataError(f'Failed to parse component version: {err}')
 
-        yang_module_str = sonic_metadata.get('yang-module')
+        labels_yang_modules = sonic_metadata.get('yang-module')
+        yang_modules = []
 
-        return Metadata(Manifest.marshal(manifest_dict), components, yang_module_str)
+        if isinstance(labels_yang_modules, str):
+            yang_modules.append(labels_yang_modules)
+            log.debug("Found one YANG module")
+        elif isinstance(labels_yang_modules, dict):
+            yang_modules.extend(labels_yang_modules.values())
+            log.debug(f"Found YANG modules: {labels_yang_modules.keys()}")
+        else:
+            log.debug("No YANG modules found")
+
+        return Metadata(Manifest.marshal(manifest_dict), components, yang_modules)
