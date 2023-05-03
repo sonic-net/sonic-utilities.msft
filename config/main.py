@@ -1755,6 +1755,17 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, 
             raise click.Abort()
         override_config_by(golden_config_path)
 
+    # Invoke platform script if available before starting the services
+    platform_path, _ = device_info.get_paths_to_platform_and_hwsku_dirs()
+    platform_mg_plugin = platform_path + '/plugins/platform_mg_post_check'
+    if os.path.isfile(platform_mg_plugin):
+        click.echo("Running Platform plugin ............!")
+        proc = subprocess.Popen([platform_mg_plugin], text=True, stdout=subprocess.PIPE)
+        proc.communicate()
+        if proc.returncode != 0:
+            click.echo("Platform plugin failed! retruncode {}".format(proc.returncode))
+            raise click.Abort()
+
     # We first run "systemctl reset-failed" to remove the "failed"
     # status from all services before we attempt to restart them
     if not no_service_restart:
