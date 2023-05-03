@@ -813,7 +813,7 @@ def hexdump(indent, data, mem_address):
             result += '{} '.format(byte_string)
             result += '|{}|'.format(ascii_string)
             ascii_string = ""
-        elif mem_address % 16 == 7:
+        elif mem_address % 16 == 8:
             result += ' {} '.format(byte_string)
         else:
             result += '{} '.format(byte_string)
@@ -1388,13 +1388,13 @@ def download_firmware(port_name, filepath):
 # 'run' subcommand
 @firmware.command()
 @click.argument('port_name', required=True, default=None)
-@click.option('--mode', default="1", type=click.Choice(["0", "1", "2", "3"]), show_default=True,
+@click.option('--mode', default="0", type=click.Choice(["0", "1", "2", "3"]), show_default=True,
                                                          help="0 = Non-hitless Reset to Inactive Image\n \
                                                                1 = Hitless Reset to Inactive Image (Default)\n \
                                                                2 = Attempt non-hitless Reset to Running Image\n \
                                                                3 = Attempt Hitless Reset to Running Image\n")
 def run(port_name, mode):
-    """Run the firmware with default mode=1"""
+    """Run the firmware with default mode=0"""
 
     if is_port_type_rj45(port_name):
         click.echo("This functionality is not applicable for RJ45 port {}.".format(port_name))
@@ -1458,12 +1458,13 @@ def upgrade(port_name, filepath):
         click.echo("Firmware download complete failed! CDB status = {}".format(status))
         sys.exit(EXIT_FAIL)
 
-    status = run_firmware(port_name, 1)
+    default_mode = 0
+    status = run_firmware(port_name, default_mode)
     if status != 1:
-        click.echo('Failed to run firmware in mode=1 ! CDB status: {}'.format(status))
+        click.echo('Failed to run firmware in mode={} ! CDB status: {}'.format(default_mode, status))
         sys.exit(EXIT_FAIL)
 
-    click.echo("Firmware run in mode 1 successful")
+    click.echo("Firmware run in mode {} successful".format(default_mode))
 
     if is_fw_switch_done(port_name) != 1:
         click.echo('Failed to switch firmware images!')
