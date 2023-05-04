@@ -112,11 +112,24 @@ def del_vlan(db, vid, no_restart_dhcp_relay):
         # We need to restart dhcp_relay service after dhcpv6_relay config change
         if is_dhcp_relay_running():
             dhcp_relay_util.handle_restart_dhcp_relay_service()
+    
+    vlans = db.cfgdb.get_keys('VLAN')
+    if not vlans:
+        docker_exec_cmd = "docker exec -i swss {}"
+        _, rc = clicommon.run_command(docker_exec_cmd.format("supervisorctl status ndppd"), ignore_error=True, return_cmd=True)
+        if rc == 0:
+            click.echo("No VLANs remaining, stopping ndppd service")
+            clicommon.run_command(docker_exec_cmd.format("supervisorctl stop ndppd"), ignore_error=True, return_cmd=True)
+            clicommon.run_command(docker_exec_cmd.format("rm -f /etc/supervisor/conf.d/ndppd.conf"), ignore_error=True, return_cmd=True)
+            clicommon.run_command(docker_exec_cmd.format("supervisorctl update"), return_cmd=True)
 
 
 def restart_ndppd():
     verify_swss_running_cmd = "docker container inspect -f '{{.State.Status}}' swss"
     docker_exec_cmd = "docker exec -i swss {}"
+    ndppd_status_cmd= "supervisorctl status ndppd"
+    ndppd_conf_copy_cmd = "cp /usr/share/sonic/templates/ndppd.conf /etc/supervisor/conf.d/"
+    supervisor_update_cmd = "supervisorctl update"
     ndppd_config_gen_cmd = "sonic-cfggen -d -t /usr/share/sonic/templates/ndppd.conf.j2,/etc/ndppd.conf"
     ndppd_restart_cmd = "supervisorctl restart ndppd"
 
@@ -126,9 +139,16 @@ def restart_ndppd():
         click.echo(click.style('SWSS container is not running, changes will take effect the next time the SWSS container starts', fg='red'),)
         return
 
-    clicommon.run_command(docker_exec_cmd.format(ndppd_config_gen_cmd), display_cmd=True)
+    _, rc = clicommon.run_command(docker_exec_cmd.format(ndppd_status_cmd), ignore_error=True, return_cmd=True)
+
+    if rc != 0:
+        clicommon.run_command(docker_exec_cmd.format(ndppd_conf_copy_cmd))
+        clicommon.run_command(docker_exec_cmd.format(supervisor_update_cmd), return_cmd=True)
+
+    click.echo("Starting ndppd service")
+    clicommon.run_command(docker_exec_cmd.format(ndppd_config_gen_cmd))
     sleep(3)
-    clicommon.run_command(docker_exec_cmd.format(ndppd_restart_cmd), display_cmd=True)
+    clicommon.run_command(docker_exec_cmd.format(ndppd_restart_cmd), return_cmd=True)
 
 
 @vlan.command('proxy_arp')
