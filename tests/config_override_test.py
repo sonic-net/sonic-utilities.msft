@@ -1,7 +1,6 @@
 import os
 import json
 import filecmp
-import importlib
 import config.main as config
 
 from click.testing import CliRunner
@@ -21,8 +20,6 @@ EMPTY_TABLE_REMOVAL = os.path.join(DATA_DIR, "empty_table_removal.json")
 RUNNING_CONFIG_YANG_FAILURE = os.path.join(DATA_DIR, "running_config_yang_failure.json")
 GOLDEN_INPUT_YANG_FAILURE = os.path.join(DATA_DIR, "golden_input_yang_failure.json")
 FINAL_CONFIG_YANG_FAILURE = os.path.join(DATA_DIR, "final_config_yang_failure.json")
-MULTI_ASIC_MACSEC_OV = os.path.join(DATA_DIR, "multi_asic_macsec_ov.json")
-MULTI_ASIC_DEVICE_METADATA_RM = os.path.join(DATA_DIR, "multi_asic_dm_rm.json")
 
 # Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
 sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
@@ -176,7 +173,7 @@ class TestConfigOverride(object):
         def is_yang_config_validation_enabled_side_effect(filename):
             return True
 
-        def config_mgmt_side_effect(configdb):
+        def config_mgmt_side_effect():
             return config_mgmt.ConfigMgmt(source=CONFIG_DB_JSON_FILE)
 
         db = Db()
@@ -235,7 +232,7 @@ class TestConfigOverride(object):
         def read_json_file_side_effect(filename):
             return golden_config
 
-        def config_mgmt_side_effect(configdb):
+        def config_mgmt_side_effect():
             return config_mgmt.ConfigMgmt(source=CONFIG_DB_JSON_FILE)
 
         # ConfigMgmt will call ConfigDBConnector to load default config_db.json.
@@ -259,74 +256,4 @@ class TestConfigOverride(object):
     def teardown_class(cls):
         print("TEARDOWN")
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
-        return
-
-
-class TestConfigOverrideMultiasic(object):
-    @classmethod
-    def setup_class(cls):
-        print("SETUP")
-        os.environ["UTILITIES_UNIT_TESTING"] = "1"
-        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
-        # change to multi asic config
-        from .mock_tables import dbconnector
-        from .mock_tables import mock_multi_asic
-        importlib.reload(mock_multi_asic)
-        dbconnector.load_namespace_config()
-        return
-
-    def test_macsec_override(self):
-        def read_json_file_side_effect(filename):
-            with open(MULTI_ASIC_MACSEC_OV, "r") as f:
-                macsec_profile = json.load(f)
-            return macsec_profile
-        db = Db()
-        cfgdb_clients = db.cfgdb_clients
-
-        # The profile_content was copied from MULTI_ASIC_MACSEC_OV, where all
-        # ns sharing the same content: {"profile": {"key": "value"}}
-        profile_content = {"profile": {"key": "value"}}
-
-        with mock.patch('config.main.read_json_file',
-                        mock.MagicMock(side_effect=read_json_file_side_effect)):
-            runner = CliRunner()
-            result = runner.invoke(config.config.commands["override-config-table"],
-                                   ['golden_config_db.json'], obj=db)
-            assert result.exit_code == 0
-
-        for ns, config_db in cfgdb_clients.items():
-            assert config_db.get_config()['MACSEC_PROFILE'] == profile_content
-
-    def test_device_metadata_table_rm(self):
-        def read_json_file_side_effect(filename):
-            with open(MULTI_ASIC_DEVICE_METADATA_RM, "r") as f:
-                device_metadata = json.load(f)
-            return device_metadata
-        db = Db()
-        cfgdb_clients = db.cfgdb_clients
-
-        for ns, config_db in cfgdb_clients.items():
-            assert 'DEVICE_METADATA' in config_db.get_config()
-
-        with mock.patch('config.main.read_json_file',
-                        mock.MagicMock(side_effect=read_json_file_side_effect)):
-            runner = CliRunner()
-            result = runner.invoke(config.config.commands["override-config-table"],
-                                   ['golden_config_db.json'], obj=db)
-            assert result.exit_code == 0
-
-        for ns, config_db in cfgdb_clients.items():
-            assert 'DEVICE_METADATA' not in config_db.get_config()
-
-
-    @classmethod
-    def teardown_class(cls):
-        print("TEARDOWN")
-        os.environ["UTILITIES_UNIT_TESTING"] = "0"
-        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
-        # change back to single asic config
-        from .mock_tables import dbconnector
-        from .mock_tables import mock_single_asic
-        importlib.reload(mock_single_asic)
-        dbconnector.load_namespace_config()
         return
