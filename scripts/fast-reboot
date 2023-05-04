@@ -17,6 +17,7 @@ STRICT=no
 REBOOT_METHOD="/sbin/kexec -e"
 ASSISTANT_IP_LIST=""
 ASSISTANT_SCRIPT="/usr/local/bin/neighbor_advertiser"
+LAG_KEEPALIVE_SCRIPT="/usr/local/bin/lag_keepalive.py"
 WATCHDOG_UTIL="/usr/local/bin/watchdogutil"
 DEVPATH="/usr/share/sonic/device"
 PLATFORM=$(sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
@@ -644,6 +645,13 @@ fi
 
 # disable trap-handlers which were set before
 trap '' EXIT HUP INT QUIT TERM KILL ABRT ALRM
+
+# start sending LACPDUs to keep the LAGs refreshed
+# this is a non-blocking call, and the process will die in 300s
+debug "Starting lag_keepalive to send LACPDUs ..."
+timeout 300 python ${LAG_KEEPALIVE_SCRIPT} &
+# give the lag_keepalive script a chance to get ready (30s) and collect one lacpdu before going down (30s)
+sleep 60
 
 if [ -x ${LOG_SSD_HEALTH} ]; then
     debug "Collecting logs to check ssd health before ${REBOOT_TYPE}..."
