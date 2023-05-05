@@ -578,6 +578,7 @@ def counters(ctx, verbose, period, interface, printall, namespace, display):
         if period is not None:
             cmd += " -p {}".format(period)
         if interface is not None:
+            interface = try_convert_interfacename_from_alias(ctx, interface)
             cmd += " -i {}".format(interface)
         else:
             cmd += " -s {}".format(display)
@@ -643,10 +644,13 @@ def rates(verbose, period, namespace, display):
 def rif(interface, period, verbose):
     """Show interface counters"""
 
+    ctx = click.get_current_context()
+
     cmd = "intfstat"
     if period is not None:
         cmd += " -p {}".format(period)
     if interface is not None:
+        interface = try_convert_interfacename_from_alias(ctx, interface)
         cmd += " -i {}".format(interface)
 
     clicommon.run_command(cmd, display_cmd=verbose)
@@ -659,10 +663,13 @@ def rif(interface, period, verbose):
 def detailed(interface, period, verbose):
     """Show interface counters detailed"""
 
+    ctx = click.get_current_context()
+
     cmd = "portstat -l"
     if period is not None:
         cmd += " -p {}".format(period)
     if interface is not None:
+        interface = try_convert_interfacename_from_alias(ctx, interface)
         cmd += " -i {}".format(interface)
 
     clicommon.run_command(cmd, display_cmd=verbose)
