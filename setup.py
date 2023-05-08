@@ -222,6 +222,7 @@ setup(
     },
     install_requires=[
         'click==7.0',
+        'urllib3<2',
         'click-log>=0.3.2',
         'docker>=4.4.4',
         'docker-image-py>=0.1.10',
