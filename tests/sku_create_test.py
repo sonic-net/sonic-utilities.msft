@@ -6,10 +6,14 @@ import subprocess
 import sys
 
 import pytest
+from unittest.mock import call, patch, MagicMock
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 scripts_path = os.path.join(modules_path, "scripts")
+
+sys.path.insert(0, 'scripts')
+import sonic_sku_create
 
 # xml file input related test resources
 xml_input_paths = ["tests/sku_create_input/2700_files", "tests/sku_create_input/7050_files", "tests/sku_create_input/7260_files"]
@@ -281,6 +285,302 @@ class TestSkuCreate(object):
                 return
 
         print("Success: Port split information found in config_db.json file")
+
+    @patch('builtins.print')
+    def test_sku_def_parser_error(self, mock_print):
+        sku_file = 'not_exit_file.xml'
+        sku = sonic_sku_create.SkuCreate()
+        with pytest.raises(SystemExit) as e:
+            sku.sku_def_parser(sku_file)
+        mock_print.assert_called_once_with("Couldn't open file: " + sku_file, file=sys.stderr)
+        assert e.value.code == 1
+
+    @patch('builtins.print')
+    def test_check_json_lanes_with_bko_no_speed_key0(self, mock_print):
+        data = {
+            "PORT": {
+                "Ethernet8": {
+                    "index": "3",
+                    "lanes": "8,9,10,11",
+                    "mtu": "9100",
+                    "alias": "etp3",
+                    "admin_status": "up",
+                }
+            }
+        }
+
+        port_idx = 8
+        port_str = "Ethernet{:d}".format(port_idx)
+        sku = sonic_sku_create.SkuCreate()
+        with pytest.raises(SystemExit) as e:
+            sku.check_json_lanes_with_bko(data, port_idx)
+        mock_print.assert_called_once_with(port_str, "does not contain speed key, Exiting...", file=sys.stderr)
+        assert e.value.code == 1
+
+    @patch('builtins.print')
+    def test_check_json_lanes_with_bko_no_speed_key1(self, mock_print):
+        data = {
+            "PORT": {
+                "Ethernet8": {
+                    "index": "3",
+                    "lanes": "8,9,10,11",
+                    "mtu": "9100",
+                    "alias": "etp3",
+                    "admin_status": "up",
+                    "speed": "100000"
+                },
+                "Ethernet9": {
+                    "index": "4",
+                    "lanes": "9,10,11,12",
+                    "mtu": "9100",
+                    "alias": "etp4",
+                    "admin_status": "up",
+                }
+            }
+        }
+        port_idx = 8
+        port_str_next = "Ethernet{:d}".format(port_idx + 1)
+
+        sku = sonic_sku_create.SkuCreate()
+        sku.base_lanes = 2
+        with pytest.raises(SystemExit) as e:
+            sku.check_json_lanes_with_bko(data, port_idx)
+        mock_print.assert_called_once_with(port_str_next, "does not contain speed key, Exiting...", file=sys.stderr)
+        assert e.value.code == 1
+
+    @patch('builtins.print')
+    def test_check_json_lanes_with_bko_diff_speed(self, mock_print):
+        data = {
+            "PORT": {
+                "Ethernet8": {
+                    "index": "3",
+                    "lanes": "8,9,10,11",
+                    "mtu": "9100",
+                    "alias": "etp3",
+                    "admin_status": "up",
+                    "speed": "100000"
+                },
+                "Ethernet9": {
+                    "index": "4",
+                    "lanes": "9,10,11,12",
+                    "mtu": "9100",
+                    "alias": "etp4",
+                    "admin_status": "up",
+                    "speed": "40000"
+                }
+            }
+        }
+        port_idx = 8
+        port_str = "Ethernet{:d}".format(port_idx)
+        port_str_next = "Ethernet{:d}".format(port_idx + 1)
+
+        sku = sonic_sku_create.SkuCreate()
+        sku.base_lanes = 2
+        with pytest.raises(SystemExit) as e:
+            sku.check_json_lanes_with_bko(data, port_idx)
+        mock_print.assert_called_once_with(port_str_next, "speed is different from that of ", port_str, ", Exiting...", file=sys.stderr)
+        assert e.value.code == 1
+
+    @patch('builtins.print')
+    def test_check_json_lanes_with_bko_no_alias_key(self, mock_print):
+        data = {
+            "PORT": {
+                "Ethernet8": {
+                    "index": "3",
+                    "lanes": "8,9,10,11",
+                    "mtu": "9100",
+                    "alias": "etp3",
+                    "admin_status": "up",
+                    "speed": "100000"
+                },
+                "Ethernet9": {
+                    "index": "4",
+                    "lanes": "9,10,11,12",
+                    "mtu": "9100",
+                    "admin_status": "up",
+                    "speed": "100000"
+                }
+            }
+        }
+        port_idx = 8
+        port_str_next = "Ethernet{:d}".format(port_idx + 1)
+
+        sku = sonic_sku_create.SkuCreate()
+        sku.base_lanes = 2
+        with pytest.raises(SystemExit) as e:
+            sku.check_json_lanes_with_bko(data, port_idx)
+        mock_print.assert_called_once_with(port_str_next, "does not contain alias key, Exiting...", file=sys.stderr)
+        assert e.value.code == 1
+
+    @patch('builtins.print')
+    def test_check_json_lanes_with_bko_no_lanes_key(self, mock_print):
+        data = {
+            "PORT": {
+                "Ethernet8": {
+                    "index": "3",
+                    "lanes": "8,9,10,11",
+                    "mtu": "9100",
+                    "alias": "etp3",
+                    "admin_status": "up",
+                    "speed": "100000"
+                },
+                "Ethernet9": {
+                    "index": "4",
+                    "mtu": "9100",
+                    "alias": "etp4",
+                    "admin_status": "up",
+                    "speed": "100000"
+                }
+            }
+        }
+        port_idx = 8
+        port_str_next = "Ethernet{:d}".format(port_idx + 1)
+
+        sku = sonic_sku_create.SkuCreate()
+        sku.base_lanes = 2
+        with pytest.raises(SystemExit) as e:
+            sku.check_json_lanes_with_bko(data, port_idx)
+        mock_print.assert_called_once_with(port_str_next, "does not contain lanes key, Exiting...", file=sys.stderr)
+        assert e.value.code == 1
+
+    def test_json_file_parser_error(self):
+        config_db_file = os.path.join(config_db_input_path, "config_db_invalid_portname.json")
+        if (os.path.exists(output_config_db_dir_path)):
+            shutil.rmtree(output_config_db_dir_path)
+
+        with pytest.raises(subprocess.CalledProcessError) as e:
+            cmd = [sku_create_script, "-j", config_db_file, "-d", config_db_input_path]
+            subprocess.check_output(cmd, stderr=subprocess.STDOUT, universal_newlines=True)
+        assert e.value.returncode == 1
+
+    @patch('builtins.print')
+    def test_parse_platform_from_config_db_file_error(self, mock_print):
+        config_db_file = os.path.join(config_db_input_path, "config_db_incorrect_platform.json")
+        sku = sonic_sku_create.SkuCreate()
+        sku.base_file_path = '.ini'
+        with pytest.raises(SystemExit) as e:
+            sku.parse_platform_from_config_db_file(config_db_file)
+        mock_print.assert_called_once_with("Platform Name ", "x86_64-mlnx_2700-r0", " is not valid, Exiting...", file=sys.stderr)
+        assert e.value.code == 1
+
+    @patch('builtins.print')
+    def test_break_in_ini_invalid_port_split(self, mock_print):
+        port_name = "Ethernet16"
+        port_split = "2m50"
+        sku = sonic_sku_create.SkuCreate()
+        with pytest.raises(SystemExit) as e:
+            sku.break_in_ini("test", port_name, port_split)
+        mock_print.assert_called_once_with("Port split format ", port_split, " is not valid, Exiting...", file=sys.stderr)
+        assert e.value.code == 1
+
+    @patch('builtins.print')
+    def test_break_in_ini_undefined_port_split(self, mock_print):
+        port_name = "Ethernet16"
+        port_split = "2x50"
+        sku = sonic_sku_create.SkuCreate()
+        with pytest.raises(SystemExit) as e:
+            sku.break_in_ini("test", port_name, port_split)
+        mock_print.assert_called_once_with("Port split ", port_split, " is undefined for this platform, Exiting...", file=sys.stderr)
+        assert e.value.code == 1
+
+    @patch('builtins.print')
+    def test_break_in_ini_invalid_port_name(self, mock_print):
+        port_name = "Ether16"
+        port_split = "2x50"
+        sku = sonic_sku_create.SkuCreate()
+        sku.bko_dict = {
+            "2x50": { "lanes":8, "speed":400000, "step":8, "bko":0, "name": "etp" },
+        }
+        with pytest.raises(SystemExit) as e:
+            sku.break_in_ini("test", port_name, port_split)
+        mock_print.assert_called_once_with("Port Name ", port_name, " is not valid, Exiting...", file=sys.stderr)
+        assert e.value.code == 1
+
+    @patch('builtins.print')
+    def test_break_in_ini_not_base_port(self, mock_print):
+        port_name = "Ethernet16"
+        port_split = "1x400"
+        sku = sonic_sku_create.SkuCreate()
+        sku.bko_dict = {
+            "1x400": { "lanes":3, "speed":400000, "step":8, "bko":0, "name": "etp" },
+        }
+        with pytest.raises(SystemExit) as e:
+            sku.break_in_ini("test", port_name, port_split)
+        mock_print.assert_called_once_with(port_name, " is not base port, Exiting...", file=sys.stderr)
+        assert e.value.code == 1
+
+    @patch('builtins.print')
+    def test_get_default_lanes_error(self, mock_print):
+        sku = sonic_sku_create.SkuCreate()
+        sku.base_file_path = 'not_exist_port_config.ini'
+        with pytest.raises(SystemExit) as e:
+            sku.get_default_lanes()
+        mock_print.assert_called_once_with("Could not open file " + sku.base_file_path, file=sys.stderr)
+        assert e.value.code == 1
+
+    @patch('builtins.print')
+    def test_set_lanes_error(self, mock_print):
+        with pytest.raises(SystemExit) as e:
+            sku = sonic_sku_create.SkuCreate()
+            sku.fpp_split = {1: [['etp1a', 'etp1b'], [1, 2]]}
+            sku.default_lanes_per_port = ['0,1,2', '3,4,5', '6,7,8']
+            sku.set_lanes()
+        mock_print.assert_called_once_with("Lanes(0,1,2) could not be evenly splitted by 2.")
+        assert e.value.code == 1
+
+    @patch('builtins.print')
+    def test_create_port_config_error(self, mock_print):
+        sku = sonic_sku_create.SkuCreate()
+        temp_dir = 'tests/sku_create_input/2700_files/Mellanox-SN2700-C28D8-not-exist/'
+        sku.new_sku_dir = temp_dir
+        with pytest.raises(SystemExit) as e:
+            sku.create_port_config()
+        mock_print.assert_called_once_with("Error - path:", sku.new_sku_dir, " doesn't exist", file=sys.stderr)
+        assert e.value.code == 1
+
+    @patch('builtins.print')
+    @patch('builtins.open', MagicMock(side_effect=IOError))
+    def test_create_port_config_ioerror(self, mock_print):
+        sku = sonic_sku_create.SkuCreate()
+        temp_dir = 'tests/sku_create_input/2700_files/Mellanox-SN2700-C28D8/'
+        sku.new_sku_dir = temp_dir
+        with pytest.raises(SystemExit) as e:
+            sku.create_port_config()
+        mock_print.assert_called_once_with("Could not open file " + sku.new_sku_dir + "port_config.ini", file=sys.stderr)
+        assert e.value.code == 1
+
+    @patch('builtins.print')
+    def test_create_sku_dir_error(self, mock_print):
+        sku = sonic_sku_create.SkuCreate()
+        temp_dir = 'tests/sku_create_input/2700_files/Mellanox-SN2700-C28D8/'
+        sku.new_sku_dir = temp_dir
+        with pytest.raises(SystemExit) as e:
+            sku.create_sku_dir()
+        mock_print.assert_called_once_with("SKU directory: " + sku.new_sku_dir + " already exists\n Please use -r flag to remove the SKU dir first", file=sys.stderr)
+        assert e.value.code == 1
+
+    @patch('builtins.print')
+    def test_remove_sku_dir_error(self, mock_print):
+        sku = sonic_sku_create.SkuCreate()
+        temp_dir = 'tests/sku_create_input/2700_files/Mellanox-SN2700-C28D8/'
+        sku.base_sku_dir = temp_dir
+        sku.new_sku_dir = temp_dir
+        with pytest.raises(SystemExit) as e:
+            sku.remove_sku_dir()
+        mock_print.assert_called_once_with("Removing the base SKU" + sku.new_sku_dir + " is not allowed", file=sys.stderr)
+        assert e.value.code == 1
+
+    @patch('builtins.print')
+    def test_msn2700_specific_error(self, mock_print):
+        with pytest.raises(SystemExit) as e:
+            sku = sonic_sku_create.SkuCreate()
+            sku.fpp_split = {2: [['etp1a', 'etp1b', 'etp1c', 'etp1d'], [1, 2, 3, 4]]}
+            sku.msn2700_specific()
+        assert mock_print.call_args_list == [
+            call('MSN2700 -  even front panel ports (', 2, ') are not allowed to split by 4'),
+            call('Error - Illegal split by 4 ', file=sys.stderr)
+        ]
+        assert e.value.code == 1
 
     @classmethod
     def teardown_class(cls):

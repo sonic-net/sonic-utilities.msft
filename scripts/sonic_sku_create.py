@@ -37,7 +37,7 @@ from collections import OrderedDict
 from tabulate import tabulate
 from lxml import etree as ET
 from lxml.etree import QName
-
+from sonic_py_common.general import check_output_pipe
 
 minigraph_ns = "Microsoft.Search.Autopilot.Evolution"
 minigraph_ns1 = "http://schemas.datacontract.org/2004/07/Microsoft.Search.Autopilot.Evolution"
@@ -105,10 +105,10 @@ class SkuCreate(object):
         # Parsing XML sku definition file to extract Interface speed and InterfaceName(alias) <etp<#><a/b/c/d>|<Ethernet<#>/<#> to be used to analyze split configuration
         # Rest of the fields are used as placeholders for portconfig_dict [name,lanes,SPEED,ALIAS,index]
         try:
-            f = open(str(sku_def),"r")
+            f = open(str(sku_def), "r")
         except IOError:
             print("Couldn't open file: " + str(sku_def), file=sys.stderr)
-            exit(1)
+            sys.exit(1)
         element = ET.parse(f)
  
         root = element.getroot()
@@ -184,7 +184,7 @@ class SkuCreate(object):
             int_port_speed = int(port_speed)
         else:
             print(port_str, "does not contain speed key, Exiting...", file=sys.stderr)
-            exit(1)
+            sys.exit(1)
         for i in range(1,self.base_lanes):
             curr_port_str = "Ethernet{:d}".format(port_idx+i)
             if curr_port_str in data['PORT']:
@@ -193,20 +193,20 @@ class SkuCreate(object):
                     curr_speed = curr_port_dict.get("speed")
                 else:
                     print(curr_port_str, "does not contain speed key, Exiting...", file=sys.stderr)
-                    exit(1)
+                    sys.exit(1)
                 if port_speed != curr_speed:
                     print(curr_port_str, "speed is different from that of ",port_str,", Exiting...", file=sys.stderr)
-                    exit(1)
+                    sys.exit(1)
                 if "alias" in curr_port_dict:
                     curr_alias = curr_port_dict.get("alias")
                 else:
                     print(curr_port_str, "does not contain alias key, Exiting...", file=sys.stderr)
-                    exit(1)
+                    sys.exit(1)
                 if "lanes" in curr_port_dict:
                     curr_lanes = curr_port_dict.get("lanes")
                 else:
                     print(curr_port_str, "does not contain lanes key, Exiting...", file=sys.stderr)
-                    exit(1)
+                    sys.exit(1)
                 port_bmp |= (1<<i)
                  
         for entry in self.bko_dict:
@@ -263,8 +263,8 @@ class SkuCreate(object):
             pattern = '^Ethernet([0-9]{1,})'
             m = re.match(pattern,key)
             if m is None:
-                print("Port Name ",port_name, " is not valid, Exiting...", file=sys.stderr) 
-                exit(1)
+                print("Port Name ", key, " is not valid, Exiting...", file=sys.stderr) 
+                sys.exit(1)
             port_idx = int(m.group(1))
 
             if port_idx%self.base_lanes == 0:
@@ -300,7 +300,7 @@ class SkuCreate(object):
         m = re.match(pattern,platform)
         if m is None:
             print("Platform Name ", platform, " is not valid, Exiting...", file=sys.stderr) 
-            exit(1)
+            sys.exit(1)
         self.platform = platform
 
        
@@ -351,7 +351,7 @@ class SkuCreate(object):
                 idx += 1
             else:
                 print("port_config.ini file does not contain all fields, Exiting...", file=sys.stderr) 
-                exit(1)
+                sys.exit(1)
 
         f_in.close()
 
@@ -362,7 +362,7 @@ class SkuCreate(object):
         m = re.match(pattern,port_split)
         if m is None:
             print("Port split format ",port_split, " is not valid, Exiting...", file=sys.stderr) 
-            exit(1)
+            sys.exit(1)
         if port_split in self.bko_dict:
             step = self.bko_dict[port_split]["step"]
             speed = self.bko_dict[port_split]["speed"]
@@ -370,18 +370,18 @@ class SkuCreate(object):
             bko = self.bko_dict[port_split]["bko"]
         else:
             print("Port split ",port_split, " is undefined for this platform, Exiting...", file=sys.stderr) 
-            exit(1)
+            sys.exit(1)
 
         port_found = False
         pattern = '^Ethernet([0-9]{1,})'
         m = re.match(pattern,port_name)
         if m is None:
             print("Port Name ",port_name, " is not valid, Exiting...", file=sys.stderr) 
-            exit(1)
+            sys.exit(1)
         port_idx = int(m.group(1))
         if port_idx % base_lanes != 0:
             print(port_name, " is not base port, Exiting...", file=sys.stderr)
-            exit(1)
+            sys.exit(1)
 
         bak_file = ini_file + ".bak"
         shutil.copy(ini_file, bak_file)
@@ -528,7 +528,7 @@ class SkuCreate(object):
         shutil.copy(new_file,self.ini_file)
         if lanes_str_result is None:
             print("break_in_ini function returned empty lanes string, Exiting...", file=sys.stderr)
-            exit(1)
+            sys.exit(1)
         self.break_in_cfg(self.cfg_file,port_name,port_split,lanes_str_result)
 
     def _parse_interface_alias(self, alias):
@@ -573,7 +573,7 @@ class SkuCreate(object):
 
         except IOError:
             print("Could not open file "+ self.base_file_path, file=sys.stderr)
-            exit(1)
+            sys.exit(1)
 
     def set_lanes(self):
         #set lanes and index per interfaces based on split
@@ -590,7 +590,7 @@ class SkuCreate(object):
             lanes_count = len(lanes)
             if lanes_count % splt != 0:
                 print("Lanes(%s) could not be evenly splitted by %d." % (self.default_lanes_per_port[fp - 1], splt))
-                exit(1)
+                sys.exit(1)
 
             # split the lanes
             it = iter(lanes)
@@ -639,13 +639,13 @@ class SkuCreate(object):
         #create a port_config.ini file based on the sku definition 
         if not os.path.exists(self.new_sku_dir):
             print("Error - path:", self.new_sku_dir, " doesn't exist",file=sys.stderr)
-            exit(1)
+            sys.exit(1)
 
         try:
             f = open(self.new_sku_dir+"port_config.ini","w+")
         except IOError:
             print("Could not open file "+ self.new_sku_dir+"port_config.ini", file=sys.stderr)
-            exit(1)
+            sys.exit(1)
         header = PORTCONFIG_HEADER # ["name", "lanes", "alias", "index"]
         port_config = []
         for line in self.portconfig_dict.values():
@@ -670,7 +670,7 @@ class SkuCreate(object):
         # create a new SKU directory based on the base SKU
         if (os.path.exists(self.new_sku_dir)):
             print("SKU directory: "+self.new_sku_dir+ " already exists\n Please use -r flag to remove the SKU dir first", file=sys.stderr)
-            exit(1)
+            sys.exit(1)
         try:
             shutil.copytree(self.base_sku_dir, self.new_sku_dir)
         except OSError as e:
@@ -680,7 +680,7 @@ class SkuCreate(object):
         # remove SKU directory 
         if (self.new_sku_dir == self.base_sku_dir):
             print("Removing the base SKU" + self.new_sku_dir + " is not allowed", file=sys.stderr)
-            exit(1)
+            sys.exit(1)
         try:
             if not os.path.exists(self.new_sku_dir):
                 print("Trying to remove a SKU "+ self.new_sku_dir + " that doesn't exists, Ignoring -r command")
@@ -726,7 +726,7 @@ class SkuCreate(object):
                     raise  ValueError()
             except ValueError:
                 print("Error - Illegal split by 4 ", file=sys.stderr)
-                exit(1)
+                sys.exit(1)
 
 
 def main(argv):
@@ -759,18 +759,18 @@ def main(argv):
             sku.default_sku_path = args.default_sku_path[0]
         else:
             try:
-                sku.platform = subprocess.check_output("sonic-cfggen -H -v DEVICE_METADATA.localhost.platform",shell=True, text=True) #self.metadata['platform']
+                sku.platform = subprocess.check_output(["sonic-cfggen", "-H", "-v", "DEVICE_METADATA.localhost.platform"], text=True) #self.metadata['platform']
                 sku.platform = sku.platform.rstrip()
             except KeyError:
                 print("Couldn't find platform info in CONFIG_DB DEVICE_METADATA", file=sys.stderr)
-                exit(1)
+                sys.exit(1)
             sku.default_sku_path = '/usr/share/sonic/device/' + sku.platform
 
         if args.base:
             sku.base_sku_name = args.base
         else:
-            f=open(sku.default_sku_path + '/' + "default_sku","r")
-            sku.base_sku_name=f.read().split()[0]
+            f = open(sku.default_sku_path + '/' + "default_sku", "r")
+            sku.base_sku_name = f.read().split()[0]
 
         sku.base_sku_dir = sku.default_sku_path + '/' + sku.base_sku_name + '/'
         sku.base_file_path = sku.base_sku_dir + "port_config.ini"
@@ -803,10 +803,10 @@ def main(argv):
                 sku.parse_platform_from_config_db_file(sku.cfg_file)
             else:
                 try:
-                    sku_name = subprocess.check_output("show platform summary | grep HwSKU ",shell=True).rstrip().split()[1] 
+                    sku_name = check_output_pipe(["show", "platform", "summary"], ["grep", "HwSKU"]).rstrip().split()[1]
                 except KeyError:
                     print("Couldn't find HwSku info in Platform summary", file=sys.stderr)
-                    exit(1)
+                    sys.exit(1)
                 sku.ini_file = sku.default_sku_path + "/" + sku_name + "/port_config.ini"
                 sku.cfg_file = "/etc/sonic/config_db.json"
 
