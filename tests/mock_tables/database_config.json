@@ -56,11 +56,6 @@
             "id" : 12,
             "separator": "|",
             "instance" : "redis"
-        },
-        "CHASSIS_STATE_DB" : {
-            "id" : 13,
-            "separator": "|",
-            "instance" : "redis"
         }
     },
     "VERSION" : "1.1"

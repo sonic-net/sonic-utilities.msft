@@ -935,11 +935,11 @@
         "max_queues": "20",
         "max_priority_groups": "8"
     },
-    "CHASSIS_MIDPLANE_TABLE|LINE-CARD0": {
+    "CHASSIS_MIDPLANE_TABLE|SUPERVISOR0": {
         "ip_address": "192.168.1.100",
         "access": "True"
     },
-    "CHASSIS_MIDPLANE_TABLE|LINE-CARD2": {
+    "CHASSIS_MIDPLANE_TABLE|LINE-CARD0": {
         "ip_address": "192.168.1.1",
         "access": "True"
     },

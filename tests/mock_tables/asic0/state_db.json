@@ -287,18 +287,6 @@
         "REMOTE_MOD": "0",
         "REMOTE_PORT": "93"
     },
-    "CHASSIS_MIDPLANE_TABLE|LINE-CARD0": {
-        "ip_address": "127.0.0.1",
-        "access": "True"
-    },
-    "CHASSIS_MIDPLANE_TABLE|LINE-CARD1": {
-        "ip_address": "127.0.0.1",
-        "access": "True"
-    },
-    "CHASSIS_MIDPLANE_TABLE|LINE-CARD2": {
-        "ip_address": "127.0.0.1",
-        "access": "False"
-    },
     "ACL_TABLE_TABLE|DATAACL_5" : {
         "status": "Active"
     },
