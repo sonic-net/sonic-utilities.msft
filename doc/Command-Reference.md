@@ -51,6 +51,8 @@
 * [ECN](#ecn)
   * [ECN show commands](#ecn-show-commands)
   * [ECN config commands](#ecn-config-commands)
+* [Fabric](#fabric)
+  * [Fabric config commands](#fabric-config-commands)
 * [Feature](#feature)
   * [Feature show commands](#feature-show-commands)
   * [Feature config commands](#feature-config-commands)
@@ -3066,6 +3068,71 @@ The list of the WRED profile fields that are configurable is listed in the below
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#ecn)
+
+## Fabric
+
+This section explains all Fabric commands that are supported in SONiC.
+
+### Fabric config commands
+
+**config fabric port isolate <portId>**
+**config fabric port unisolate <portId>**
+
+The above two commands can be used to manually isolate and unisolate a fabric link.
+
+- Usage:
+  ```
+  config fabric port isolate [OPTIONS] <portid>
+  config fabric port unisolate [OPTIONS] <portid>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config fabric port isolate 0 -n asic0
+  admin@sonic:~$ config fabric port unisolate 0 -n asic0
+  ```
+
+**config fabric port monitor error threshold <crcCells> <rxCells>**
+
+This command sets a fabric link monitoring error threshold
+
+- Usage:
+  ```
+  config fabric port monitor error threshold [OPTIONS] <crcCells> <rxCells>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config fabric port monitor error threshold 2 61035156 -n asic0
+  ```
+
+**config fabric port monitor poll threshold isolation <pollnumber>**
+
+This command sets the number of consecutive polls in which the threshold needs to be detected to isolate a link
+
+- Usage:
+  ```
+  config fabric port monitor poll threshold isolation [OPTIONS] <pollCount>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config fabric port monitor poll threshold isolation 2 -n asic0
+  ```
+
+**config fabric port monitor poll threshold recovery <pollnumber>**
+
+This command sets the number of consecutive polls in which no error is detected to unisolate a link
+
+- Usage:
+  ```
+  config fabric port monitor poll threshold recovery [OPTIONS] <pollCount>
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ config fabric port monitor poll threshold recovery 5 -n asic0
+  ```
 
 ## Feature 
 
