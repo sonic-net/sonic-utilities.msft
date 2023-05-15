@@ -4,10 +4,10 @@
 import re
 import os
 import sys
-import commands
 import argparse
 import logging
 import tempfile
+from sonic_py_common.general import getstatusoutput_noshell
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ re_hex = r'[0-9A-F]'
 ##   String - the standard output of the command, may be empty string
 def runcmd(cmd):
     logger.info('runcmd: {0}'.format(cmd))
-    rc, out = commands.getstatusoutput(cmd)
+    rc, out = getstatusoutput_noshell(cmd)
     if rc == 0:
         return out
     else:
@@ -29,7 +29,7 @@ def runcmd(cmd):
 
 def print_partitions(blkdev):
     assert blkdev
-    out = runcmd('sudo lsblk -r -o PARTLABEL,NAME')
+    out = runcmd(['sudo', 'lsblk', '-r', '-o', 'PARTLABEL,NAME'])
     ## Parse command output and print
     found_table = False
     for line in out.splitlines():
@@ -56,7 +56,7 @@ def print_partitions(blkdev):
 
 ## Get the current boot partition index
 def get_boot_partition(blkdev):
-    out = runcmd('cat /proc/mounts')
+    out = runcmd(['cat', '/proc/mounts'])
     if out is None: return None
 
     ## Parse command output and return the current boot partition index
@@ -76,16 +76,26 @@ def set_boot_partition(blkdev, index):
     devnode = blkdev + str(index)
     mntpath = tempfile.mkdtemp()
     try:
-        out = runcmd('sudo mount {0} {1}'.format(devnode, mntpath))
+        out = runcmd(['sudo', 'mount', devnode, mntpath])
         logger.info('mount out={0}'.format(out))
         if out is None: return
         ## Set GRUB bootable
-        out = runcmd('sudo grub-install --boot-directory="{0}" --recheck "{1}"'.format(mntpath, blkdev))
+        out = runcmd(['sudo', 'grub-install', '--boot-directory='+mntpath, "--recheck", blkdev])
         return out is not None
     finally:
         ## Cleanup
-        out = runcmd('sudo fuser -km {0} || sudo umount {0}'.format(mntpath))
-        logger.info('fuser out={0}'.format(out))
+        cmd1 = ['sudo', 'fuser', '-km', mntpath]
+        rc1, out1 = getstatusoutput_noshell(cmd1)
+        if rc1 != 0:
+            logger.error('Failed to run: {0}\n{1}'.format(cmd1, out1))
+            cmd2 = ['sudo', 'unmount', mntpath]
+            rc2, out2 = getstatusoutput_noshell(cmd2)
+            if rc2 == 0:
+                logger.info('Running command: {0}\n{1}'.format(' '.join(cmd2), out2))
+            else:
+                logger.error('Failed to run: {0}\n{1}'.format(cmd2, out2))
+        else:
+            logger.info('Running command: {0}\n{1}'.format(' '.join(cmd1), out1))
         os.rmdir(mntpath)
 
 def main():
@@ -100,7 +110,7 @@ def main():
         logger.setLevel(logging.INFO)
 
     ## Find ONIE partition and get the block device containing ONIE
-    out = runcmd("sudo blkid")
+    out = runcmd(["sudo", "blkid"])
     if not out: return -1
     for line in out.splitlines():
         m = re.match(r'/dev/(\w+)\d+: LABEL="ONIE-BOOT"', line)

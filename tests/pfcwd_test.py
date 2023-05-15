@@ -1,7 +1,7 @@
 import importlib
 import os
 import sys
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from click.testing import CliRunner
 
@@ -274,6 +274,65 @@ class TestMultiAsicPfcwdShow(object):
         os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
         import pfcwd.main
         importlib.reload(pfcwd.main)
+
+    @patch('pfcwd.main.os.geteuid', MagicMock(return_value=8))
+    def test_pfcwd_start_nonroot(self):
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        result = runner.invoke(
+            pfcwd.cli.commands["start"],
+            [
+                "--action", "drop", "--restoration-time", "601",
+                "all", "602"
+            ],
+        )
+        print(result.output)
+        assert result.exit_code == 1
+        assert result.output == 'Root privileges are required for this operation\n'
+
+    @patch('pfcwd.main.os.geteuid', MagicMock(return_value=8))
+    def test_pfcwd_stop_nonroot(self):
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        result = runner.invoke(
+            pfcwd.cli.commands['stop'],
+        )
+        print(result.output)
+        assert result.exit_code == 1
+        assert result.output == 'Root privileges are required for this operation\n'
+
+    @patch('pfcwd.main.os.geteuid', MagicMock(return_value=8))
+    def test_pfcwd_start_default_nonroot(self):
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        result = runner.invoke(
+            pfcwd.cli.commands['start_default'],
+        )
+        print(result.output)
+        assert result.exit_code == 1
+        assert result.output == 'Root privileges are required for this operation\n'
+
+    @patch('pfcwd.main.os.geteuid', MagicMock(return_value=8))
+    def test_pfcwd_counter_poll_nonroot(self):
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        result = runner.invoke(
+            pfcwd.cli.commands['counter_poll'], ['enable'],
+        )
+        print(result.output)
+        assert result.exit_code == 1
+        assert result.output == 'Root privileges are required for this operation\n'
+
+    @patch('pfcwd.main.os.geteuid', MagicMock(return_value=8))
+    def test_pfcwd_big_red_switch_nonroot(self):
+        import pfcwd.main as pfcwd
+        runner = CliRunner()
+        result = runner.invoke(
+            pfcwd.cli.commands['big_red_switch'], ['enable'],
+        )
+        print(result.output)
+        assert result.exit_code == 1
+        assert result.output == 'Root privileges are required for this operation\n'
 
     def test_pfcwd_stats_all(self):
         import pfcwd.main as pfcwd

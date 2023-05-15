@@ -74,6 +74,15 @@ class TestLldp(object):
         output_summary = lldp.get_summary_output(lldp_detail_info=False)
         assert output_summary == expected_2MACs_Ethernet0_output
 
+    def test_get_info(self):
+        lldp = lldpshow.Lldpshow()
+        lldp.lldp_instance = ['']
+        lldp.lldpraw = expected_lldpctl_xml_output
+        lldp.get_info(lldp_detail_info=True, lldp_port='Ethernet0')
+        lldp.parse_info(lldp_detail_info=True)
+        output = lldp.get_summary_output(lldp_detail_info=True)
+        assert output.strip('\n') == expected_lldpctl_xml_output[0].strip('\n')
+
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")

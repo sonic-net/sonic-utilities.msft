@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+import sys
+
 """ JSON based configlet update
 
 A tool to update CONFIG-DB with JSON diffs that can update/delete redis-DB.
@@ -195,7 +198,7 @@ def main():
     if not do_act:
         print("Expect an action update/delete or for debug parse/test\n")
         parser.print_help()
-        exit(-1)
+        sys.exit(-1)
 
     for json_file in args.json:
         with open(json_file, 'r') as stream:

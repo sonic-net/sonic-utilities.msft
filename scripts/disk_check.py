@@ -83,7 +83,7 @@ def test_writable(dirs):
 
 
 def run_cmd(cmd):
-    proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
+    proc = subprocess.run(cmd, shell=False, stdout=subprocess.PIPE)
     ret = proc.returncode
     if ret:
         log_err("failed: ret={} cmd={}".format(ret, cmd))
@@ -120,9 +120,8 @@ def do_mnt(dirs):
         os.mkdir(d_upper)
         os.mkdir(d_work)
 
-        ret = run_cmd("mount -t overlay overlay_{} -o lowerdir={},"
-        "upperdir={},workdir={} {}".format(
-            d_name, d, d_upper, d_work, d))
+        ret = run_cmd(["mount", "-t", "overlay", "overlay_{}".format(d_name),\
+                "-o", "lowerdir={},upperdir={},workdir={}".format(d, d_upper, d_work), d])
         if ret:
             break
 

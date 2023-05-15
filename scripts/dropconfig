@@ -375,25 +375,25 @@ Examples:
                                    reasons)
         except InvalidArgumentError as err:
             print('Encountered error trying to install counter: {}'.format(err.message))
-            exit(1)
+            sys.exit(1)
     elif command == 'uninstall':
         try:
             dconfig.delete_counter(name)
         except InvalidArgumentError as err:
             print('Encountered error trying to uninstall counter: {}'.format(err.message))
-            exit(1)
+            sys.exit(1)
     elif command == 'add':
         try:
             dconfig.add_reasons(name, reasons)
         except InvalidArgumentError as err:
             print('Encountered error trying to add reasons: {}'.format(err.message))
-            exit(1)
+            sys.exit(1)
     elif command == 'remove':
         try:
             dconfig.remove_reasons(name, reasons)
         except InvalidArgumentError as err:
             print('Encountered error trying to remove reasons: {}'.format(err.message))
-            exit(1)
+            sys.exit(1)
     elif command == 'show_config':
         dconfig.print_counter_config(group)
     elif command == 'show_capabilities':

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-import os
 import sys
 import json
 import syslog
+import subprocess
 from swsscommon import swsscommon
 
 ''' vnet_route_check.py: tool that verifies VNET routes consistancy between SONiC and vendor SDK DBs.
@@ -340,7 +340,7 @@ def get_sdk_vnet_routes_diff(routes):
     '''
     routes_diff = {}
 
-    res = os.system('docker exec syncd test -f /usr/bin/vnet_route_check.py')
+    res = subprocess.call(['docker', 'exec', 'syncd', 'test', '-f', '/usr/bin/vnet_route_check.py'])
     if res != 0:
         return routes_diff
 
@@ -348,7 +348,7 @@ def get_sdk_vnet_routes_diff(routes):
         vnet_routes = routes[vnet_name]["routes"]
         vnet_vrf_oid = routes[vnet_name]["vrf_oid"]
 
-        res = os.system('docker exec syncd "/usr/bin/vnet_route_check.py {} {}"'.format(vnet_vrf_oid, vnet_routes))
+        res = subprocess.call(['docker', 'exec', 'syncd', "/usr/bin/vnet_route_check.py", vnet_vrf_oid, vnet_routes])
         if res:
             routes_diff[vnet_name] = {}
             routes_diff[vnet_name]['routes'] = res

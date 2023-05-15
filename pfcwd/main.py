@@ -243,7 +243,7 @@ class PfcwdCli(object):
             click.echo("Failed to run command, invalid options:")
             for opt in invalid_ports:
                 click.echo(opt)
-            exit(1)
+            sys.exit(1)
         self.start_cmd(action, restoration_time, ports, detection_time)
 
 
@@ -263,7 +263,7 @@ class PfcwdCli(object):
     @multi_asic_util.run_on_multi_asic
     def start_cmd(self, action, restoration_time, ports, detection_time):
         if os.geteuid() != 0:
-            exit("Root privileges are required for this operation")
+            sys.exit("Root privileges are required for this operation")
 
         all_ports = get_all_ports(
             self.db, self.multi_asic.current_namespace,
@@ -299,7 +299,7 @@ class PfcwdCli(object):
     @multi_asic_util.run_on_multi_asic
     def interval(self, poll_interval):
         if os.geteuid() != 0:
-            exit("Root privileges are required for this operation")
+            sys.exit("Root privileges are required for this operation")
         pfcwd_info = {}
         if poll_interval is not None:
             pfcwd_table = self.config_db.get_table(CONFIG_DB_PFC_WD_TABLE_NAME)
@@ -331,7 +331,7 @@ class PfcwdCli(object):
                         poll_interval, entry_min_str
                     ), err=True
                 )
-                exit(1)
+                sys.exit(1)
 
             pfcwd_info['POLL_INTERVAL'] = poll_interval
             self.config_db.mod_entry(
@@ -341,7 +341,7 @@ class PfcwdCli(object):
     @multi_asic_util.run_on_multi_asic
     def stop(self, ports):
         if os.geteuid() != 0:
-            exit("Root privileges are required for this operation")
+            sys.exit("Root privileges are required for this operation")
 
         all_ports = get_all_ports(
             self.db, self.multi_asic.current_namespace,
@@ -359,7 +359,7 @@ class PfcwdCli(object):
     @multi_asic_util.run_on_multi_asic
     def start_default(self):
         if os.geteuid() != 0:
-            exit("Root privileges are required for this operation")
+            sys.exit("Root privileges are required for this operation")
         enable = self.config_db.get_entry('DEVICE_METADATA', 'localhost').get(
             'default_pfcwd_status'
         )
@@ -394,7 +394,7 @@ class PfcwdCli(object):
     @multi_asic_util.run_on_multi_asic
     def counter_poll(self, counter_poll):
         if os.geteuid() != 0:
-            exit("Root privileges are required for this operation")
+            sys.exit("Root privileges are required for this operation")
         pfcwd_info = {}
         pfcwd_info['FLEX_COUNTER_STATUS'] = counter_poll
         self.config_db.mod_entry("FLEX_COUNTER_TABLE", "PFCWD", pfcwd_info)
@@ -402,7 +402,7 @@ class PfcwdCli(object):
     @multi_asic_util.run_on_multi_asic
     def big_red_switch(self, big_red_switch):
         if os.geteuid() != 0:
-            exit("Root privileges are required for this operation")
+            sys.exit("Root privileges are required for this operation")
         pfcwd_info = {}
         if big_red_switch is not None:
             pfcwd_info['BIG_RED_SWITCH'] = big_red_switch

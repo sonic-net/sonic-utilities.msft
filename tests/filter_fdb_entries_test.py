@@ -77,29 +77,6 @@ class TestFilterFdbEntries(object):
             os.remove(file)
         os.remove(self.CONFIG_DB_FILENAME)
 
-    def __runCommand(self, cmds):
-        """
-            Runs command 'cmds' on host
-
-            Args:
-                cmds(list): command to be run on localhost
-
-            Returns:
-                stdout(str): stdout gathered during command execution
-                stderr(str): stderr gathered during command execution
-                returncode(int): command exit code
-        """
-        process = subprocess.Popen(
-            cmds,
-            shell=False,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        stdout, stderr = process.communicate()
-
-        return stdout, stderr, process.returncode
-
     def __getFdbEntriesMap(self, filename):
         """
             Generate map for FDB entries

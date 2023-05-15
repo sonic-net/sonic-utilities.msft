@@ -8,8 +8,10 @@ Description: dump_nat_entries.py -- dump conntrack nat entries from kernel into 
 import subprocess
 
 def main():
-    ctdumpcmd = 'conntrack -L -j > /host/warmboot/nat/nat_entries.dump'
-    p = subprocess.Popen(ctdumpcmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    ctdumpcmd = ['conntrack', '-L', '-j'] 
+    file = '/host/warmboot/nat/nat_entries.dump'
+    with open(file, 'w') as f:
+        p = subprocess.Popen(ctdumpcmd, text=True, stdout=f, stderr=subprocess.PIPE)
     (output, err) = p.communicate()
     rc = p.wait()
     
