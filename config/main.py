@@ -42,6 +42,7 @@ from . import aaa
 from . import chassis_modules
 from . import console
 from . import feature
+from . import fabric
 from . import flow_counters
 from . import kdump
 from . import kube
@@ -1181,6 +1182,7 @@ config.add_command(aaa.tacacs)
 config.add_command(aaa.radius)
 config.add_command(chassis_modules.chassis)
 config.add_command(console.console)
+config.add_command(fabric.fabric)
 config.add_command(feature.feature)
 config.add_command(flow_counters.flowcnt_route)
 config.add_command(kdump.kdump)
