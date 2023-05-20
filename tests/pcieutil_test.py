@@ -3,6 +3,7 @@ import os
 from unittest import mock
 
 from click.testing import CliRunner
+from io import StringIO
 
 test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
@@ -156,6 +157,8 @@ pcieutil_pcie_aer_correctable_dev_output = """\
 +---------------------+-----------+
 """
 
+pcieutil_load_module_warning_msg = "Failed to load platform Pcie module. Warning : No module named 'sonic_platform.pcie', fallback to load Pcie common utility."
+
 class TestPcieUtil(object):
     @classmethod
     def setup_class(cls):
@@ -198,6 +201,16 @@ class TestPcieUtil(object):
         runner = CliRunner()
         result = runner.invoke(pcieutil.cli.commands["pcie-aer"].commands["correctable"], ["-d", "0:1.0"])
         assert result.output == pcieutil_pcie_aer_correctable_dev_output
+
+    def test_load_pcie_module_warning(self): 
+        stdout = sys.stdout
+        sys.stdout = result = StringIO()
+        try:
+            pcieutil.load_platform_pcieutil()
+        except ImportError:
+            pass
+        sys.stdout = stdout
+        assert pcieutil_load_module_warning_msg not in result.getvalue()
 
     @classmethod
     def teardown_class(cls):
