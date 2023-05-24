@@ -1,6 +1,7 @@
 import jsonpatch
 import unittest
 import copy
+import mock
 from unittest.mock import MagicMock, Mock
 from mock import patch
 
@@ -31,7 +32,8 @@ def get_running_config():
 class TestFeaturePatchApplication(unittest.TestCase):
     def setUp(self):
         self.config_wrapper = ConfigWrapper()
-
+    
+    @patch("generic_config_updater.field_operation_validators.rdma_config_update_validator", mock.Mock(return_value=True))
     def test_feature_patch_application_success(self):
         # Format of the JSON file containing the test-cases:
         #
@@ -52,6 +54,7 @@ class TestFeaturePatchApplication(unittest.TestCase):
             with self.subTest(name=test_case_name):
                 self.run_single_success_case_applier(data[test_case_name])
 
+    @patch("generic_config_updater.field_operation_validators.rdma_config_update_validator", mock.Mock(return_value=True))
     def test_feature_patch_application_failure(self):
         # Fromat of the JSON file containing the test-cases:
         #
