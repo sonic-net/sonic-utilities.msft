@@ -1824,6 +1824,47 @@ def override_config_by(golden_config_path):
     return
 
 
+# This funtion is to generate sysinfo if that is missing in config_input.
+# It will keep the same with sysinfo in cur_config if sysinfo exists.
+# Otherwise it will modify config_input with generated sysinfo.
+def generate_sysinfo(cur_config, config_input, ns=None):
+    # Generate required sysinfo for Golden Config.
+    device_metadata = config_input.get('DEVICE_METADATA')
+
+    if not device_metadata or 'localhost' not in device_metadata:
+        return
+
+    mac = None
+    platform = None
+    cur_device_metadata = cur_config.get('DEVICE_METADATA')
+
+    # Reuse current config's mac and platform. Generate if absent
+    if cur_device_metadata is not None:
+        mac = cur_device_metadata.get('localhost', {}).get('mac')
+        platform = cur_device_metadata.get('localhost', {}).get('platform')
+
+    if not mac:
+        if ns:
+            asic_role = device_metadata.get('localhost', {}).get('sub_role')
+            switch_type = device_metadata.get('localhost', {}).get('switch_type')
+
+            if ((switch_type is not None and switch_type.lower() == "chassis-packet") or
+                    (asic_role is not None and asic_role.lower() == "backend")):
+                mac = device_info.get_system_mac(namespace=ns)
+            else:
+                mac = device_info.get_system_mac()
+        else:
+            mac = device_info.get_system_mac()
+
+    if not platform:
+        platform = device_info.get_platform()
+
+    device_metadata['localhost']['mac'] = mac
+    device_metadata['localhost']['platform'] = platform
+
+    return
+
+
 #
 # 'override-config-table' command ('config override-config-table ...')
 #
@@ -1865,6 +1906,8 @@ def override_config_table(db, input_config_db, dry_run):
                 ns_config_input = config_input["localhost"]
             else:
                 ns_config_input = config_input[ns]
+            # Generate sysinfo if missing in ns_config_input
+            generate_sysinfo(current_config, ns_config_input, ns)
         else:
             ns_config_input = config_input
         updated_config = update_config(current_config, ns_config_input)
