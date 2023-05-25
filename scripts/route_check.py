@@ -434,7 +434,7 @@ def filter_out_vnet_routes(routes):
     vnet_routes = []
 
     for vnet_route_db_key in vnet_routes_db_keys:
-        vnet_route_attrs = vnet_route_db_key.split(':')
+        vnet_route_attrs = vnet_route_db_key.split(':', 1)
         vnet_name = vnet_route_attrs[0]
         vnet_route = vnet_route_attrs[1]
         vnet_routes.append(vnet_route)

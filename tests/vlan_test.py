@@ -403,6 +403,27 @@ class TestVlan(object):
         assert result.exit_code == 0
         assert result.output == show_vlan_brief_empty_output
 
+    def test_config_vlan_del_last_vlan(self):
+        runner = CliRunner()
+        db = Db()
+        db.cfgdb.delete_table("VLAN_MEMBER")
+        db.cfgdb.delete_table("VLAN_INTERFACE")
+        db.cfgdb.set_entry("VLAN", "Vlan2000", None)
+        db.cfgdb.set_entry("VLAN", "Vlan3000", None)
+        db.cfgdb.set_entry("VLAN", "Vlan4000", None)
+
+        with mock.patch("utilities_common.cli.run_command", mock.Mock(return_value=("", 0))) as mock_run_command:
+            result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            mock_run_command.assert_has_calls([
+                mock.call("docker exec -i swss supervisorctl status ndppd", ignore_error=True, return_cmd=True),
+                mock.call("docker exec -i swss supervisorctl stop ndppd", ignore_error=True, return_cmd=True),
+                mock.call("docker exec -i swss rm -f /etc/supervisor/conf.d/ndppd.conf", ignore_error=True, return_cmd=True),
+                mock.call("docker exec -i swss supervisorctl update", return_cmd=True)
+            ])
+            assert result.exit_code == 0
+
     def test_config_vlan_del_nonexist_vlan_member(self):
         runner = CliRunner()
 
@@ -533,19 +554,29 @@ class TestVlan(object):
             assert result.exit_code != 0
             assert "Interface Vlan1001 does not exist" in result.output
 
-    def test_config_vlan_proxy_arp_enable(self, mock_restart_dhcp_relay_service):
-        runner = CliRunner()
-        db = Db()
+    def test_config_vlan_proxy_arp_enable(self):
+        mock_cli_returns = [("running", 0),("", 1)] + [("", 0)] * 4
+        with mock.patch("utilities_common.cli.run_command", mock.Mock(side_effect=mock_cli_returns)) as mock_run_command:
+            runner = CliRunner()
+            db = Db()
 
-        result = runner.invoke(config.config.commands["vlan"].commands["proxy_arp"], ["1000", "enabled"], obj=db)
+            result = runner.invoke(config.config.commands["vlan"].commands["proxy_arp"], ["1000", "enabled"], obj=db)
 
-        print(result.exit_code)
-        print(result.output)
+            print(result.exit_code)
+            print(result.output)
 
-        assert result.exit_code == 0 
-        assert db.cfgdb.get_entry("VLAN_INTERFACE", "Vlan1000") == {"proxy_arp": "enabled"}
+            expected_calls = [mock.call("docker container inspect -f '{{.State.Status}}' swss", return_cmd=True),
+                              mock.call('docker exec -i swss supervisorctl status ndppd', ignore_error=True, return_cmd=True),
+                              mock.call('docker exec -i swss cp /usr/share/sonic/templates/ndppd.conf /etc/supervisor/conf.d/'),
+                              mock.call('docker exec -i swss supervisorctl update', return_cmd=True),
+                              mock.call('docker exec -i swss sonic-cfggen -d -t /usr/share/sonic/templates/ndppd.conf.j2,/etc/ndppd.conf'),
+                              mock.call('docker exec -i swss supervisorctl restart ndppd', return_cmd=True)]
+            mock_run_command.assert_has_calls(expected_calls)
 
-    def test_config_vlan_proxy_arp_disable(self, mock_restart_dhcp_relay_service):
+            assert result.exit_code == 0 
+            assert db.cfgdb.get_entry("VLAN_INTERFACE", "Vlan1000") == {"proxy_arp": "enabled"}
+
+    def test_config_vlan_proxy_arp_disable(self):
         runner = CliRunner()
         db = Db()
 
