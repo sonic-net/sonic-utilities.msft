@@ -171,7 +171,11 @@ def get_cli_plugin_path(package: Package, index: int, command: str) -> str:
         Path generated for this package.
     """
 
-    plugin_module_file = f'{package.name}_{index}.py'
+    if index == 0:
+        plugin_module_file = f'{package.name}.py'
+    else:
+        plugin_module_file = f'{package.name}_{index}.py'
+
     return os.path.join(get_cli_plugin_directory(command), plugin_module_file)
 
 

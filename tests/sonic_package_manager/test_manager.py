@@ -165,7 +165,7 @@ def test_installation_cli_plugin(package_manager, fake_metadata_resolver, anythi
     with patch('sonic_package_manager.manager.get_cli_plugin_directory') as get_dir_mock:
         get_dir_mock.return_value = '/'
         package_manager.install('test-package')
-        package_manager.docker.extract.assert_called_once_with(anything, '/cli/plugin.py', '/test-package_0.py')
+        package_manager.docker.extract.assert_called_once_with(anything, '/cli/plugin.py', '/test-package.py')
 
 
 def test_installation_multiple_cli_plugin(package_manager, fake_metadata_resolver, mock_feature_registry, anything):
@@ -178,7 +178,7 @@ def test_installation_multiple_cli_plugin(package_manager, fake_metadata_resolve
         package_manager.install('test-package')
         package_manager.docker.extract.assert_has_calls(
             [
-                call(anything, '/cli/plugin.py', '/test-package_0.py'),
+                call(anything, '/cli/plugin.py', '/test-package.py'),
                 call(anything, '/cli/plugin2.py', '/test-package_1.py'),
             ],
             any_order=True,
@@ -188,7 +188,7 @@ def test_installation_multiple_cli_plugin(package_manager, fake_metadata_resolve
         package_manager.uninstall('test-package', force=True)
         remove_mock.assert_has_calls(
             [
-                call('/test-package_0.py'),
+                call('/test-package.py'),
                 call('/test-package_1.py'),
             ],
             any_order=True,
