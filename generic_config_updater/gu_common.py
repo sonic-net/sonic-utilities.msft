@@ -166,7 +166,7 @@ class ConfigWrapper:
                 if any(op['op'] == operation and field == op['path'] for op in patch):
                     raise IllegalPatchOperationError("Given patch operation is invalid. Operation: {} is illegal on field: {}".format(operation, field))
 
-        def _invoke_validating_function(cmd, jsonpatch_element):
+        def _invoke_validating_function(cmd):
             # cmd is in the format as <package/module name>.<method name>
             method_name = cmd.split(".")[-1]
             module_name = ".".join(cmd.split(".")[0:-1])
@@ -174,7 +174,7 @@ class ConfigWrapper:
                 raise GenericConfigUpdaterError("Attempting to call invalid method {} in module {}. Module must be generic_config_updater.field_operation_validators, and method must be a defined validator".format(method_name, module_name))
             module = importlib.import_module(module_name, package=None)
             method_to_call = getattr(module, method_name)
-            return method_to_call(jsonpatch_element)
+            return method_to_call()
 
         if os.path.exists(GCU_FIELD_OP_CONF_FILE):
             with open(GCU_FIELD_OP_CONF_FILE, "r") as s:
@@ -194,7 +194,7 @@ class ConfigWrapper:
             validating_functions.update(tables.get(table, {}).get("field_operation_validators", []))
 
             for function in validating_functions:
-                if not _invoke_validating_function(function, element):
+                if not _invoke_validating_function(function):
                     raise IllegalPatchOperationError("Modification of {} table is illegal- validating function {} returned False".format(table, function))
 
 

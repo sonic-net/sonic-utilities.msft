@@ -71,6 +71,62 @@ class TestConfigWrapper(unittest.TestCase):
         self.config_wrapper_mock = gu_common.ConfigWrapper()
         self.config_wrapper_mock.get_config_db_as_json=MagicMock(return_value=Files.CONFIG_DB_AS_JSON)
 
+    @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"asic_type": "mellanox", "build_version": "SONiC.20181131"}))
+    def test_validate_field_operation_legal__pfcwd(self):
+        old_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "60"}}}
+        target_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "40"}}}
+        config_wrapper = gu_common.ConfigWrapper()
+        config_wrapper.validate_field_operation(old_config, target_config)
+        
+    def test_validate_field_operation_illegal__pfcwd(self):
+        old_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "60"}}}
+        target_config = {"PFC_WD": {"GLOBAL": {}}}
+        config_wrapper = gu_common.ConfigWrapper()
+        self.assertRaises(gu_common.IllegalPatchOperationError, config_wrapper.validate_field_operation, old_config, target_config)
+    
+    @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"asic_type": "invalid-asic", "build_version": "SONiC.20181131"}))
+    def test_validate_field_modification_illegal__pfcwd(self):
+        old_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "60"}}}
+        target_config = {"PFC_WD": {"GLOBAL": {"POLL_INTERVAL": "80"}}}
+        config_wrapper = gu_common.ConfigWrapper()
+        self.assertRaises(gu_common.IllegalPatchOperationError, config_wrapper.validate_field_operation, old_config, target_config)
+
+    def test_validate_field_operation_legal__rm_loopback1(self):
+        old_config = {
+            "LOOPBACK_INTERFACE": {
+                "Loopback0": {},
+                "Loopback0|10.1.0.32/32": {},
+                "Loopback1": {},
+                "Loopback1|10.1.0.33/32": {}
+            }
+        }
+        target_config = {
+            "LOOPBACK_INTERFACE": {
+                "Loopback0": {},
+                "Loopback0|10.1.0.32/32": {}
+            }
+        }
+        config_wrapper = gu_common.ConfigWrapper()
+        config_wrapper.validate_field_operation(old_config, target_config)
+        
+    def test_validate_field_operation_illegal__rm_loopback0(self):
+        old_config = {
+            "LOOPBACK_INTERFACE": {
+                "Loopback0": {},
+                "Loopback0|10.1.0.32/32": {},
+                "Loopback1": {},
+                "Loopback1|10.1.0.33/32": {}
+            }
+        }
+        target_config = {
+            "LOOPBACK_INTERFACE": {
+                "Loopback1": {},
+                "Loopback1|10.1.0.33/32": {}
+            }
+        }
+        config_wrapper = gu_common.ConfigWrapper()
+        self.assertRaises(gu_common.IllegalPatchOperationError, config_wrapper.validate_field_operation, old_config, target_config)
+
     def test_ctor__default_values_set(self):
         config_wrapper = gu_common.ConfigWrapper()
 
