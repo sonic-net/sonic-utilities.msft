@@ -73,11 +73,14 @@ class DBMigrator():
             self.stateDB.connect(self.stateDB.STATE_DB)
 
         version_info = device_info.get_sonic_version_info()
-        asic_type = version_info.get('asic_type')
-        self.asic_type = asic_type
+        self.asic_type = version_info.get('asic_type')
+        if not self.asic_type:
+            log.log_error("ASIC type information not obtained. DB migration will not be reliable")
         self.hwsku = device_info.get_hwsku()
+        if not self.hwsku:
+            log.log_error("HWSKU information not obtained. DB migration will not be reliable")
 
-        if asic_type == "mellanox":
+        if self.asic_type == "mellanox":
             from mellanox_buffer_migrator import MellanoxBufferMigrator
             self.mellanox_buffer_migrator = MellanoxBufferMigrator(self.configDB, self.appDB, self.stateDB)
 
@@ -922,7 +925,7 @@ class DBMigrator():
 
         if self.asic_type != "mellanox":
             self.migrate_copp_table()
-        if self.asic_type == "broadcom" and 'Force10-S6100' in self.hwsku:
+        if self.asic_type == "broadcom" and 'Force10-S6100' in str(self.hwsku):
             self.migrate_mgmt_ports_on_s6100()
         else:
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
