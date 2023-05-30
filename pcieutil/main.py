@@ -54,7 +54,7 @@ def load_platform_pcieutil():
         from sonic_platform.pcie import Pcie
         platform_pcieutil = Pcie(platform_path)
     except ImportError as e:
-        log.log_warning("Failed to load platform Pcie module. Error : {}, fallback to load Pcie common utility.".format(str(e)), True)
+        log.log_warning("Failed to load platform Pcie module. Warning : {}, fallback to load Pcie common utility.".format(str(e)))
         try:
             from sonic_platform_base.sonic_pcie.pcie_common import PcieUtil
             platform_pcieutil = PcieUtil(platform_path)
