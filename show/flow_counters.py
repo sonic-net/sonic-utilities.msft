@@ -21,9 +21,9 @@ def flowcnt_trap():
 @click.option('--namespace', '-n', 'namespace', default=None, type=click.Choice(multi_asic_util.multi_asic_ns_choices()), show_default=True, help='Namespace name or all')
 def stats(verbose, namespace):
     """Show trap flow counter statistic"""
-    cmd = "flow_counters_stat -t trap"
+    cmd = ['flow_counters_stat', '-t', 'trap']
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
     clicommon.run_command(cmd, display_cmd=verbose)
 
 #
@@ -57,9 +57,9 @@ def config(db):
 def stats(ctx, verbose, namespace):
     """Show statistics of all route flow counters"""
     if ctx.invoked_subcommand is None:
-        command = "flow_counters_stat -t route"
+        command = ['flow_counters_stat', '-t', 'route']
         if namespace is not None:
-            command += " -n {}".format(namespace)
+            command += ['-n', str(namespace)]
         clicommon.run_command(command, display_cmd=verbose)
 
 
@@ -70,11 +70,11 @@ def stats(ctx, verbose, namespace):
 @click.argument('prefix-pattern', required=True)
 def pattern(prefix_pattern, vrf, verbose, namespace):
     """Show statistics of route flow counters by pattern"""
-    command = "flow_counters_stat -t route --prefix_pattern \"{}\"".format(prefix_pattern)
+    command = ['flow_counters_stat', '-t', 'route', '--prefix_pattern', str(prefix_pattern)]
     if vrf:
-        command += ' --vrf {}'.format(vrf)
+        command += ['--vrf', str(vrf)]
     if namespace is not None:
-        command += " -n {}".format(namespace)
+        command += ['-n', str(namespace)]
     clicommon.run_command(command, display_cmd=verbose)
 
 
@@ -85,9 +85,9 @@ def pattern(prefix_pattern, vrf, verbose, namespace):
 @click.argument('prefix', required=True)
 def route(prefix, vrf, verbose, namespace):
     """Show statistics of route flow counters by prefix"""
-    command = "flow_counters_stat -t route --prefix {}".format(prefix)
+    command = ['flow_counters_stat', '-t', 'route', '--prefix', str(prefix)]
     if vrf:
-        command += ' --vrf {}'.format(vrf)
+        command += ['--vrf', str(vrf)]
     if namespace is not None:
-        command += " -n {}".format(namespace)
+        command += ['-n', str(namespace)]
     clicommon.run_command(command, display_cmd=verbose)

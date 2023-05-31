@@ -101,18 +101,18 @@ def verify_output(output, expected_output):
 class TestShowIpInt(object):
 
     def test_show_ip_intf_v4(self):
-        return_code, result = get_result_and_return_code(" ipintutil")
+        return_code, result = get_result_and_return_code(["ipintutil"])
         assert return_code == 0
         verify_output(result, show_ipv4_intf_with_multple_ips)
 
     def test_show_ip_intf_v6(self):
-        return_code, result = get_result_and_return_code(" ipintutil -a ipv6")
+        return_code, result = get_result_and_return_code(['ipintutil', '-a', 'ipv6'])
 
         assert return_code == 0
         verify_output(result, show_ipv6_intf_with_multiple_ips)
 
     def test_show_intf_invalid_af_option(self):
-        return_code, result = get_result_and_return_code(" ipintutil -a ipv5")
+        return_code, result = get_result_and_return_code(['ipintutil', '-a', 'ipv5'])
         assert return_code == 1
         assert result == show_error_invalid_af
 
@@ -121,36 +121,36 @@ class TestShowIpInt(object):
 class TestMultiAsicShowIpInt(object):
 
     def test_show_ip_intf_v4(self):
-        return_code, result = get_result_and_return_code("ipintutil")
+        return_code, result = get_result_and_return_code(["ipintutil"])
         assert return_code == 0
         verify_output(result, show_multi_asic_ip_intf)
 
     def test_show_ip_intf_v4_asic0(self):
-        return_code, result = get_result_and_return_code("ipintutil -n asic0")
+        return_code, result = get_result_and_return_code(['ipintutil', '-n', 'asic0'])
         assert return_code == 0
         verify_output(result, show_multi_asic_ip_intf)
 
     def test_show_ip_intf_v4_all(self):
-        return_code, result = get_result_and_return_code("ipintutil -d all")
+        return_code, result = get_result_and_return_code(['ipintutil', '-d', 'all'])
         assert return_code == 0
         verify_output(result, show_multi_asic_ip_intf_all)
 
     def test_show_ip_intf_v6(self):
-        return_code, result = get_result_and_return_code("ipintutil  -a ipv6")
+        return_code, result = get_result_and_return_code(['ipintutil', '-a', 'ipv6'])
         assert return_code == 0
         verify_output(result, show_multi_asic_ipv6_intf)
 
     def test_show_ip_intf_v6_asic0(self):
-        return_code, result = get_result_and_return_code("ipintutil -a ipv6 -n asic0")
+        return_code, result = get_result_and_return_code(['ipintutil', '-a', 'ipv6', '-n', 'asic0'])
         assert return_code == 0
         verify_output(result, show_multi_asic_ipv6_intf)
 
     def test_show_ip_intf_v6_all(self):
-        return_code, result = get_result_and_return_code("ipintutil -a ipv6 -d all")
+        return_code, result = get_result_and_return_code(['ipintutil', '-a', 'ipv6', '-d', 'all'])
         assert return_code == 0
         verify_output(result, show_multi_asic_ipv6_intf_all)
 
     def test_show_intf_invalid_af_option(self):
-        return_code, result = get_result_and_return_code(" ipintutil -a ipv5")
+        return_code, result = get_result_and_return_code(['ipintutil', '-a', 'ipv5'])
         assert return_code == 1
         assert result == show_error_invalid_af

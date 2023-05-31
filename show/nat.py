@@ -18,7 +18,7 @@ def nat():
 def statistics(verbose):
     """ Show NAT statistics """
 
-    cmd = "sudo natshow -s"
+    cmd = ['sudo', 'natshow', '-s']
     clicommon.run_command(cmd, display_cmd=verbose)
 
 
@@ -30,16 +30,17 @@ def translations(ctx, verbose):
     """ Show NAT translations """
 
     if ctx.invoked_subcommand is None:
-        cmd = "sudo natshow -t"
+        cmd = ['sudo', 'natshow', '-t']
         clicommon.run_command(cmd, display_cmd=verbose)
 
 
 # 'count' subcommand ("show nat translations count")
 @translations.command()
-def count():
+@click.option('--verbose', is_flag=True, help="Enable verbose output")
+def count(verbose):
     """ Show NAT translations count """
 
-    cmd = "sudo natshow -c"
+    cmd = ['sudo', 'natshow', '-c']
     clicommon.run_command(cmd, display_cmd=verbose)
 
 
@@ -51,23 +52,23 @@ def config(ctx, verbose):
     """Show NAT config related information"""
     if ctx.invoked_subcommand is None:
         click.echo("\nGlobal Values")
-        cmd = "sudo natconfig -g"
+        cmd = ['sudo', 'natconfig', '-g']
         clicommon.run_command(cmd, display_cmd=verbose)
 
         click.echo("Static Entries")
-        cmd = "sudo natconfig -s"
+        cmd = ['sudo', 'natconfig', '-s']
         clicommon.run_command(cmd, display_cmd=verbose)
 
         click.echo("Pool Entries")
-        cmd = "sudo natconfig -p"
+        cmd = ['sudo', 'natconfig', '-p']
         clicommon.run_command(cmd, display_cmd=verbose)
 
         click.echo("NAT Bindings")
-        cmd = "sudo natconfig -b"
+        cmd = ['sudo', 'natconfig', '-b']
         clicommon.run_command(cmd, display_cmd=verbose)
 
         click.echo("NAT Zones")
-        cmd = "sudo natconfig -z"
+        cmd = ['sudo', 'natconfig', '-z']
         clicommon.run_command(cmd, display_cmd=verbose)
 
 
@@ -77,7 +78,7 @@ def config(ctx, verbose):
 def static(verbose):
     """Show static NAT configuration"""
 
-    cmd = "sudo natconfig -s"
+    cmd = ['sudo', 'natconfig', '-s']
     clicommon.run_command(cmd, display_cmd=verbose)
 
 
@@ -87,7 +88,7 @@ def static(verbose):
 def pool(verbose):
     """Show NAT Pool configuration"""
 
-    cmd = "sudo natconfig -p"
+    cmd = ['sudo', 'natconfig', '-p']
     clicommon.run_command(cmd, display_cmd=verbose)
 
 
@@ -97,7 +98,7 @@ def pool(verbose):
 def bindings(verbose):
     """Show NAT binding configuration"""
 
-    cmd = "sudo natconfig -b"
+    cmd = ['sudo', 'natconfig', '-b']
     clicommon.run_command(cmd, display_cmd=verbose)
 
 
@@ -107,7 +108,7 @@ def bindings(verbose):
 def globalvalues(verbose):
     """Show NAT Global configuration"""
 
-    cmd = "sudo natconfig -g"
+    cmd = ['sudo', 'natconfig', '-g']
     clicommon.run_command(cmd, display_cmd=verbose)
 
 
@@ -117,5 +118,5 @@ def globalvalues(verbose):
 def zones(verbose):
     """Show NAT Zone configuration"""
 
-    cmd = "sudo natconfig -z"
+    cmd = ['sudo', 'natconfig', '-z']
     clicommon.run_command(cmd, display_cmd=verbose)

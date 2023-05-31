@@ -49,7 +49,7 @@ def get_kdump_oper_mode():
                   returns "Not Ready";
     """
     oper_mode = "Not Ready"
-    command_stdout, _ = clicommon.run_command("/usr/sbin/kdump-config status", return_cmd=True)
+    command_stdout, _ = clicommon.run_command(['/usr/sbin/kdump-config', 'status'], return_cmd=True)
 
     for line in command_stdout.splitlines():
         if ": ready to kdump" in line:
@@ -95,7 +95,7 @@ def get_kdump_core_files():
                    of 'find' command.
       dump_file_list: A list contains kernel core dump files.
     """
-    find_core_dump_files = "find /var/crash -name 'kdump.*'"
+    find_core_dump_files = ['find', '/var/crash', '-name', 'kdump.*']
     dump_file_list = []
     cmd_message = None
 
@@ -119,7 +119,7 @@ def get_kdump_dmesg_files():
                    of 'find' command.
       dmesg_file_list: A list contains kernel dmesg files.
     """
-    find_dmesg_files = "find /var/crash -name 'dmesg.*'"
+    find_dmesg_files = ['find', '/var/crash', '-name', 'dmesg.*']
     dmesg_file_list = []
     cmd_message = None
 
@@ -167,13 +167,13 @@ def files():
 @click.argument('filename', required=False)
 @click.option('-l', '--lines', default=10, show_default=True)
 def logging(filename, lines):
-    cmd = "sudo tail -{}".format(lines)
+    cmd = ['sudo', 'tail', '-'+str(lines)]
 
     if filename:
         timestamp = filename.strip().split(".")[-1]
         file_path = "/var/crash/{}/{}".format(timestamp, filename)
         if os.path.isfile(file_path):
-            cmd += " {}".format(file_path)
+            cmd += [str(file_path)]
         else:
             click.echo("Invalid filename: '{}'!".format(filename))
             sys.exit(1)
@@ -184,6 +184,6 @@ def logging(filename, lines):
             sys.exit(2)
 
         dmesg_file_result.sort(reverse=True)
-        cmd += " {}".format(dmesg_file_result[0])
+        cmd += [str(dmesg_file_result[0])]
 
     clicommon.run_command(cmd)

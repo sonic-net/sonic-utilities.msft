@@ -19,13 +19,13 @@ def acl():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def rule(table_name, rule_id, verbose):
     """Show existing ACL rules"""
-    cmd = "acl-loader show rule"
+    cmd = ['acl-loader', 'show', 'rule']
 
     if table_name is not None:
-        cmd += " {}".format(table_name)
+        cmd += [str(table_name)]
 
     if rule_id is not None:
-        cmd += " {}".format(rule_id)
+        cmd += [str(rule_id)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -36,9 +36,9 @@ def rule(table_name, rule_id, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def table(table_name, verbose):
     """Show existing ACL tables"""
-    cmd = "acl-loader show table"
+    cmd = ['acl-loader', 'show', 'table']
 
     if table_name is not None:
-        cmd += " {}".format(table_name)
+        cmd += [str(table_name)]
 
     clicommon.run_command(cmd, display_cmd=verbose)

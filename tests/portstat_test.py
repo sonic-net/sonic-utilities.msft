@@ -269,7 +269,7 @@ class TestPortStat(object):
         assert result.exit_code == 0
         assert result.output == intf_counters_before_clear
 
-        return_code, result = get_result_and_return_code('portstat')
+        return_code, result = get_result_and_return_code(['portstat'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -278,14 +278,14 @@ class TestPortStat(object):
     def test_show_intf_counters_ethernet4(self):
         runner = CliRunner()
         result = runner.invoke(
-            show.cli.commands["interfaces"].commands["counters"], ["-i Ethernet4"])
+            show.cli.commands["interfaces"].commands["counters"], ["-i", "Ethernet4"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
         assert result.output == intf_counters_ethernet4
 
         return_code, result = get_result_and_return_code(
-            'portstat -i Ethernet4')
+            ['portstat', '-i', 'Ethernet4'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -300,7 +300,7 @@ class TestPortStat(object):
         assert result.exit_code == 0
         assert result.output == intf_counters_all
 
-        return_code, result = get_result_and_return_code('portstat -a')
+        return_code, result = get_result_and_return_code(['portstat', '-a'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -315,7 +315,7 @@ class TestPortStat(object):
         assert result.exit_code == 0
         assert result.output == intf_fec_counters
 
-        return_code, result = get_result_and_return_code('portstat -f')
+        return_code, result = get_result_and_return_code(['portstat', '-f'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -331,7 +331,7 @@ class TestPortStat(object):
         assert result.output == intf_fec_counters_period
 
         return_code, result = get_result_and_return_code(
-            'portstat -f -p {}'.format(TEST_PERIOD))
+            ['portstat', '-f', '-p', str(TEST_PERIOD)])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -349,7 +349,7 @@ class TestPortStat(object):
         assert result.output == intf_counters_period
 
         return_code, result = get_result_and_return_code(
-            'portstat -p {}'.format(TEST_PERIOD))
+            ['portstat', '-p', str(TEST_PERIOD)])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -364,7 +364,7 @@ class TestPortStat(object):
         assert result.exit_code == 0
         assert result.output == intf_counters_detailed
 
-        return_code, result = get_result_and_return_code('portstat -l -i Ethernet4')
+        return_code, result = get_result_and_return_code(['portstat', '-l', '-i', 'Ethernet4'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -378,7 +378,7 @@ class TestPortStat(object):
         assert result.exit_code == 0
         assert result.output.rstrip() == clear_counter
 
-        return_code, result = get_result_and_return_code('portstat -c')
+        return_code, result = get_result_and_return_code(['portstat', '-c'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -392,7 +392,7 @@ class TestPortStat(object):
         assert result.exit_code == 0
         verify_after_clear(result.output, intf_counter_after_clear)
 
-        return_code, result = get_result_and_return_code('portstat')
+        return_code, result = get_result_and_return_code(['portstat'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -417,21 +417,21 @@ class TestMultiAsicPortStat(object):
         remove_tmp_cnstat_file()
 
     def test_multi_show_intf_counters(self):
-        return_code, result = get_result_and_return_code('portstat')
+        return_code, result = get_result_and_return_code(['portstat'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == multi_asic_external_intf_counters
 
     def test_multi_show_intf_counters_all(self):
-        return_code, result = get_result_and_return_code('portstat -s all')
+        return_code, result = get_result_and_return_code(['portstat', '-s', 'all'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == multi_asic_all_intf_counters
 
     def test_multi_show_intf_counters_asic(self):
-        return_code, result = get_result_and_return_code('portstat -n asic0')
+        return_code, result = get_result_and_return_code(['portstat', '-n', 'asic0'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -439,21 +439,21 @@ class TestMultiAsicPortStat(object):
 
     def test_multi_show_intf_counters_asic_all(self):
         return_code, result = get_result_and_return_code(
-            'portstat -n asic0 -s all')
+            ['portstat', '-n', 'asic0', '-s', 'all'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == multi_asic_intf_counters_asic0
 
     def test_multi_show_external_intf_counters_printall(self):
-        return_code, result = get_result_and_return_code('portstat -a')
+        return_code, result = get_result_and_return_code(['portstat', '-a'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == multi_asic_external_intf_counters_printall
 
     def test_multi_show_intf_counters_printall(self):
-        return_code, result = get_result_and_return_code('portstat -a -s all')
+        return_code, result = get_result_and_return_code(['portstat', '-a', '-s', 'all'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -461,7 +461,7 @@ class TestMultiAsicPortStat(object):
 
     def test_multi_show_intf_counters_printall_asic(self):
         return_code, result = get_result_and_return_code(
-            'portstat --a -n asic0')
+            ['portstat', '--a', '-n', 'asic0'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -469,7 +469,7 @@ class TestMultiAsicPortStat(object):
 
     def test_multi_show_intf_counters_printall_asic_all(self):
         return_code, result = get_result_and_return_code(
-            'portstat -a -n asic0 -s all')
+            ['portstat', '-a', '-n', 'asic0', '-s', 'all'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -477,7 +477,7 @@ class TestMultiAsicPortStat(object):
 
     def test_multi_show_intf_counters_period(self):
         return_code, result = get_result_and_return_code(
-            'portstat -p {}'.format(TEST_PERIOD))
+            ['portstat', '-p', str(TEST_PERIOD)])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -485,7 +485,7 @@ class TestMultiAsicPortStat(object):
 
     def test_multi_show_intf_counters_period_all(self):
         return_code, result = get_result_and_return_code(
-            'portstat -p {} -s all'.format(TEST_PERIOD))
+            ['portstat', '-p', str(TEST_PERIOD), '-s', 'all'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -493,7 +493,7 @@ class TestMultiAsicPortStat(object):
 
     def test_multi_show_intf_counters_period_asic(self):
         return_code, result = get_result_and_return_code(
-            'portstat -p {} -n asic0'.format(TEST_PERIOD))
+            ['portstat', '-p', str(TEST_PERIOD), '-n', 'asic0'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -501,28 +501,28 @@ class TestMultiAsicPortStat(object):
 
     def test_multi_show_intf_counters_period_asic_all(self):
         return_code, result = get_result_and_return_code(
-            'portstat -p {} -n asic0 -s all'.format(TEST_PERIOD))
+            ['portstat', '-p', str(TEST_PERIOD), '-n', 'asic0', '-s', 'all'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == multi_asic_intf_counter_period_asic_all
 
     def test_multi_asic_clear_intf_counters(self):
-        return_code, result = get_result_and_return_code('portstat -c')
+        return_code, result = get_result_and_return_code(['portstat', '-c'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result.rstrip() == clear_counter
 
         # check stats for all the interfaces are cleared
-        return_code, result = get_result_and_return_code('portstat -s all')
+        return_code, result = get_result_and_return_code(['portstat', '-s', 'all'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         verify_after_clear(result, mutli_asic_intf_counters_after_clear)
 
     def test_multi_asic_invalid_asic(self):
-        return_code, result = get_result_and_return_code('portstat -n asic99')
+        return_code, result = get_result_and_return_code(['portstat', '-n', 'asic99'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 1

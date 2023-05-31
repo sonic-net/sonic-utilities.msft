@@ -326,11 +326,11 @@ def remotemac(remote_vtep_ip, count):
 def counters(tunnel, period, verbose):
     """Show VxLAN counters"""
 
-    cmd = "tunnelstat -T vxlan"
+    cmd = ['tunnelstat', '-T', 'vxlan']
     if period is not None:
-        cmd += " -p {}".format(period)
+        cmd += ['-p', str(period)]
     if tunnel is not None:
-        cmd += " -i {}".format(tunnel)
+        cmd += ['-i', str(tunnel)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 

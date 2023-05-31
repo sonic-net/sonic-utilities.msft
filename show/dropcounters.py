@@ -18,10 +18,10 @@ def dropcounters():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def configuration(group, verbose):
     """Show current drop counter configuration"""
-    cmd = "dropconfig -c show_config"
+    cmd = ['dropconfig', '-c', 'show_config']
 
     if group:
-        cmd += " -g '{}'".format(group)
+        cmd += ['-g', str(group)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -31,7 +31,7 @@ def configuration(group, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def capabilities(verbose):
     """Show device drop counter capabilities"""
-    cmd = "dropconfig -c show_capabilities"
+    cmd = ['dropconfig', '-c', 'show_capabilities']
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -43,12 +43,12 @@ def capabilities(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def counts(group, counter_type, verbose):
     """Show drop counts"""
-    cmd = "dropstat -c show"
+    cmd = ['dropstat', '-c', 'show']
 
     if group:
-        cmd += " -g '{}'".format(group)
+        cmd += ['-g', str(group)]
 
     if counter_type:
-        cmd += " -t '{}'".format(counter_type)
+        cmd += ['-t', str(counter_type)]
 
     clicommon.run_command(cmd, display_cmd=verbose)

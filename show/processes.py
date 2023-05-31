@@ -17,7 +17,7 @@ def processes():
 def summary(verbose):
     """Show processes info"""
     # Run top batch mode to prevent unexpected newline after each newline
-    cmd = "ps -eo pid,ppid,cmd,%mem,%cpu "
+    cmd = ['ps', '-eo', 'pid,ppid,cmd,%mem,%cpu']
     clicommon.run_command(cmd, display_cmd=verbose)
 
 
@@ -27,7 +27,7 @@ def summary(verbose):
 def cpu(verbose):
     """Show processes CPU info"""
     # Run top in batch mode to prevent unexpected newline after each newline
-    cmd = "top -bn 1 -o %CPU"
+    cmd = ['top', '-bn', '1', '-o', '%CPU']
     clicommon.run_command(cmd, display_cmd=verbose)
 
 
@@ -37,5 +37,5 @@ def cpu(verbose):
 def memory(verbose):
     """Show processes memory info"""
     # Run top batch mode to prevent unexpected newline after each newline
-    cmd = "top -bn 1 -o %MEM"
+    cmd = ['top', '-bn', '1', '-o', '%MEM']
     clicommon.run_command(cmd, display_cmd=verbose)

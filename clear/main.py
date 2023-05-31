@@ -492,10 +492,10 @@ def flowcnt_route(ctx, namespace):
     """Clear all route flow counters"""
     exit_if_route_flow_counter_not_support()
     if ctx.invoked_subcommand is None:
-        command = "flow_counters_stat -c -t route"
+        command = ['flow_counters_stat', '-c', '-t', 'route']
         # None namespace means default namespace
         if namespace is not None:
-            command += " -n {}".format(namespace)
+            command += ['-n', str(namespace)]
         clicommon.run_command(command)
 
 
@@ -506,12 +506,12 @@ def flowcnt_route(ctx, namespace):
 @click.argument('prefix-pattern', required=True)
 def pattern(prefix_pattern, vrf, namespace):
     """Clear route flow counters by pattern"""
-    command = "flow_counters_stat -c -t route --prefix_pattern {}".format(prefix_pattern)
+    command = ['flow_counters_stat', '-c', '-t', 'route', '--prefix_pattern', str(prefix_pattern)]
     if vrf:
-        command += ' --vrf {}'.format(vrf)
+        command += ['--vrf', str(vrf)]
     # None namespace means default namespace
     if namespace is not None:
-        command += " -n {}".format(namespace)
+        command += ['-n', str(namespace)]
     clicommon.run_command(command)
 
 
@@ -522,12 +522,12 @@ def pattern(prefix_pattern, vrf, namespace):
 @click.argument('prefix', required=True)
 def route(prefix, vrf, namespace):
     """Clear route flow counters by prefix"""
-    command = "flow_counters_stat -c -t route --prefix {}".format(prefix)
+    command = ['flow_counters_stat', '-c', '-t', 'route', '--prefix', str(prefix)]
     if vrf:
-        command += ' --vrf {}'.format(vrf)
+        command += ['--vrf', str(vrf)]
     # None namespace means default namespace
     if namespace is not None:
-        command += " -n {}".format(namespace)
+        command += ['-n', str(namespace)]
     clicommon.run_command(command)
 
 

@@ -98,70 +98,70 @@ class TestInterfacesMultiAsic(object):
         self.runner = CliRunner()
 
     def test_multi_asic_interface_status_all(self):
-        return_code, result = get_result_and_return_code( 'intfutil -c status -d all')
+        return_code, result = get_result_and_return_code(['intfutil', '-c', 'status', '-d', 'all'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_status_all
 
     def test_multi_asic_interface_status(self):
-        return_code, result = get_result_and_return_code('intfutil -c status')
+        return_code, result = get_result_and_return_code(['intfutil', '-c', 'status'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_status
 
     def test_multi_asic_interface_status_asic0_all(self):
-        return_code, result = get_result_and_return_code('intfutil -c status -n asic0 -d all')
+        return_code, result = get_result_and_return_code(['intfutil', '-c', 'status', '-n', 'asic0', '-d', 'all'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_status_asic0_all
 
     def test_multi_asic_interface_status_asic0(self):
-        return_code, result = get_result_and_return_code('intfutil -c status -n asic0')
+        return_code, result = get_result_and_return_code(['intfutil', '-c', 'status', '-n', 'asic0'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_status_asic0
 
     def test_multi_asic_interface_desc(self):
-        return_code, result = get_result_and_return_code('intfutil -c description')
+        return_code, result = get_result_and_return_code(['intfutil', '-c', 'description'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_description
 
     def test_multi_asic_interface_desc_all(self):
-        return_code, result = get_result_and_return_code( 'intfutil -c description -d all')
+        return_code, result = get_result_and_return_code(['intfutil', '-c', 'description', '-d', 'all'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_description_all
 
     def test_multi_asic_interface_asic0(self):
-        return_code, result = get_result_and_return_code( 'intfutil -c description -n asic0')
+        return_code, result = get_result_and_return_code(['intfutil', '-c', 'description', '-n', 'asic0'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_description_asic0
 
     def test_multi_asic_interface_desc_asic0_all(self):
-        return_code, result = get_result_and_return_code('intfutil -c description -n asic0 -d all')
+        return_code, result = get_result_and_return_code(['intfutil', '-c', 'description', '-n', 'asic0', '-d', 'all'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
         assert result == intf_description_asic0_all
 
     def test_invalid_asic_name(self):
-        return_code, result = get_result_and_return_code('intfutil -c description -n asic99 -d all')
+        return_code, result = get_result_and_return_code(['intfutil', '-c', 'description', '-n', 'asic99', '-d', 'all'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 1
         assert result == intf_invalid_asic_error
 
     def test_invalid_asic_name(self):
-        return_code, result = get_result_and_return_code('intfutil -c status -n asic99')
+        return_code, result = get_result_and_return_code(['intfutil', '-c', 'status', '-n', 'asic99'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 1

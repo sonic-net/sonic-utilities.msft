@@ -103,18 +103,18 @@ def description(interfacename, namespace, display, verbose):
 
     ctx = click.get_current_context()
 
-    cmd = "intfutil -c description"
+    cmd = ['intfutil', '-c', 'description']
 
     #ignore the display option when interface name is passed
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
-        cmd += " -i {}".format(interfacename)
+        cmd += ['-i', str(interfacename)]
     else:
-        cmd += " -d {}".format(display)
+        cmd += ['-d', str(display)]
 
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -135,17 +135,17 @@ def status(interfacename, namespace, display, verbose):
 
     ctx = click.get_current_context()
 
-    cmd = "intfutil -c status"
+    cmd = ['intfutil', '-c', 'status']
 
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
-        cmd += " -i {}".format(interfacename)
+        cmd += ['-i', str(interfacename)]
     else:
-        cmd += " -d {}".format(display)
+        cmd += ['-d', str(display)]
 
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -158,17 +158,17 @@ def tpid(interfacename, namespace, display, verbose):
 
     ctx = click.get_current_context()
 
-    cmd = "intfutil -c tpid"
+    cmd = ['intfutil', '-c', 'tpid']
 
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
-        cmd += " -i {}".format(interfacename)
+        cmd += ['-i', str(interfacename)]
     else:
-        cmd += " -d {}".format(display)
+        cmd += ['-d', str(display)]
 
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -431,18 +431,18 @@ def eeprom(interfacename, dump_dom, namespace, verbose):
 
     ctx = click.get_current_context()
 
-    cmd = "sfpshow eeprom"
+    cmd = ['sfpshow', 'eeprom']
 
     if dump_dom:
-        cmd += " --dom"
+        cmd += ["--dom"]
 
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
-        cmd += " -p {}".format(interfacename)
+        cmd += ['-p', str(interfacename)]
 
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -456,16 +456,16 @@ def pm(interfacename, namespace, verbose):
 
     ctx = click.get_current_context()
 
-    cmd = "sfpshow pm"
+    cmd = ['sfpshow', 'pm']
 
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(
             ctx, interfacename)
 
-        cmd += " -p {}".format(interfacename)
+        cmd += ['-p', str(interfacename)]
 
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -479,15 +479,15 @@ def info(interfacename, namespace, verbose):
 
     ctx = click.get_current_context()
 
-    cmd = "sfpshow info"
+    cmd = ['sfpshow', 'info']
 
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
-        cmd += " -p {}".format(interfacename)
+        cmd += ['-p', str(interfacename)]
 
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -499,12 +499,12 @@ def lpmode(interfacename, verbose):
 
     ctx = click.get_current_context()
 
-    cmd = "sudo sfputil show lpmode"
+    cmd = ['sudo', 'sfputil', 'show', 'lpmode']
 
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
-        cmd += " -p {}".format(interfacename)
+        cmd += ['-p', str(interfacename)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -519,15 +519,15 @@ def presence(db, interfacename, namespace, verbose):
 
     ctx = click.get_current_context()
 
-    cmd = "sfpshow presence"
+    cmd = ['sfpshow', 'presence']
 
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
-        cmd += " -p {}".format(interfacename)
+        cmd += ['-p', str(interfacename)]
 
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -544,15 +544,17 @@ def error_status(db, interfacename, fetch_from_hardware, namespace, verbose):
 
     ctx = click.get_current_context()
 
-    cmd = "sudo sfputil show error-status"
+    cmd = ['sudo', 'sfputil', 'show', 'error-status']
 
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
-        cmd += " -p {}".format(interfacename)
+        cmd += ['-p', str(interfacename)]
 
     if fetch_from_hardware:
-        cmd += " -hw"
+        cmd += ["-hw"]
+    if namespace is not None:
+        cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -571,19 +573,19 @@ def counters(ctx, verbose, period, interface, printall, namespace, display):
     """Show interface counters"""
 
     if ctx.invoked_subcommand is None:
-        cmd = "portstat"
+        cmd = ["portstat"]
 
         if printall:
-            cmd += " -a"
+            cmd += ["-a"]
         if period is not None:
-            cmd += " -p {}".format(period)
+            cmd += ['-p', str(period)]
         if interface is not None:
             interface = try_convert_interfacename_from_alias(ctx, interface)
-            cmd += " -i {}".format(interface)
+            cmd += ['-i', str(interface)]
         else:
-            cmd += " -s {}".format(display)
+            cmd += ['-s', str(display)]
         if namespace is not None:
-            cmd += " -n {}".format(namespace)
+            cmd += ['-n', str(namespace)]
 
         clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -594,13 +596,13 @@ def counters(ctx, verbose, period, interface, printall, namespace, display):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def errors(verbose, period, namespace, display):
     """Show interface counters errors"""
-    cmd = "portstat -e"
+    cmd = ['portstat', '-e']
     if period is not None:
-        cmd += " -p {}".format(period)
+        cmd += ['-p', str(period)]
 
-    cmd += " -s {}".format(display)
+    cmd += ['-s', str(display)]
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -611,13 +613,13 @@ def errors(verbose, period, namespace, display):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def fec_stats(verbose, period, namespace, display):
     """Show interface counters fec-stats"""
-    cmd = "portstat -f"
+    cmd = ['portstat', '-f']
     if period is not None:
-        cmd += " -p {}".format(period)
+        cmd += ['-p', str(period)]
 
-    cmd += " -s {}".format(display)
+    cmd += ['-s', str(display)]
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -628,12 +630,12 @@ def fec_stats(verbose, period, namespace, display):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def rates(verbose, period, namespace, display):
     """Show interface counters rates"""
-    cmd = "portstat -R"
+    cmd = ['portstat', '-R']
     if period is not None:
-        cmd += " -p {}".format(period)
-    cmd += " -s {}".format(display)
+        cmd += ['-p', str(period)]
+    cmd += ['-s', str(display)]
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
     clicommon.run_command(cmd, display_cmd=verbose)
 
 # 'counters' subcommand ("show interfaces counters rif")
@@ -645,13 +647,12 @@ def rif(interface, period, verbose):
     """Show interface counters"""
 
     ctx = click.get_current_context()
-
-    cmd = "intfstat"
+    cmd = ["intfstat"]
     if period is not None:
-        cmd += " -p {}".format(period)
+        cmd += ['-p', str(period)]
     if interface is not None:
         interface = try_convert_interfacename_from_alias(ctx, interface)
-        cmd += " -i {}".format(interface)
+        cmd += ['-i', str(interface)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -664,13 +665,12 @@ def detailed(interface, period, verbose):
     """Show interface counters detailed"""
 
     ctx = click.get_current_context()
-
-    cmd = "portstat -l"
+    cmd = ['portstat', '-l']
     if period is not None:
-        cmd += " -p {}".format(period)
+        cmd += ['-p', str(period)]
     if interface is not None:
         interface = try_convert_interfacename_from_alias(ctx, interface)
-        cmd += " -i {}".format(interface)
+        cmd += ['-i', str(interface)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -694,18 +694,18 @@ def autoneg_status(interfacename, namespace, display, verbose):
 
     ctx = click.get_current_context()
 
-    cmd = "intfutil -c autoneg"
+    cmd = ['intfutil', '-c', 'autoneg']
 
     #ignore the display option when interface name is passed
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
-        cmd += " -i {}".format(interfacename)
+        cmd += ['-i', str(interfacename)]
     else:
-        cmd += " -d {}".format(display)
+        cmd += ['-d', str(display)]
 
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -727,17 +727,17 @@ def link_training_status(interfacename, namespace, display, verbose):
 
     ctx = click.get_current_context()
 
-    cmd = "intfutil -c link_training"
+    cmd = ['intfutil', '-c', 'link_training']
 
     #ignore the display option when interface name is passed
     if interfacename is not None:
         interfacename = try_convert_interfacename_from_alias(ctx, interfacename)
 
-        cmd += " -i {}".format(interfacename)
+        cmd += ['-i', str(interfacename)]
     else:
-        cmd += " -d {}".format(display)
+        cmd += ['-d', str(display)]
 
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)

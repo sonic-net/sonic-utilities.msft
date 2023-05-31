@@ -174,11 +174,11 @@ def pfc_clear(expected_output):
     del_cached_stats()
 
     return_code, result = get_result_and_return_code(
-        'pfcstat -c'
+        ['pfcstat', '-c']
     )
 
     return_code, result = get_result_and_return_code(
-        'pfcstat -s all'
+        ['pfcstat', '-s', 'all']
     )
     result_stat = [s for s in result.split("\n") if "Last cached" not in s]
     expected = expected_output.split("\n")
@@ -270,21 +270,21 @@ class TestMultiAsicPfcstat(object):
 
     def test_pfc_counters_frontend(self):
         return_code, result = get_result_and_return_code(
-            'pfcstat -s frontend'
+            ['pfcstat', '-s', 'frontend']
         )
         assert return_code == 0
         assert result == show_pfc_counters_asic0_frontend
 
     def test_pfc_counters_asic(self):
         return_code, result = get_result_and_return_code(
-            'pfcstat -n asic0'
+            ['pfcstat', '-n', 'asic0']
         )
         assert return_code == 0
         assert result == show_pfc_counters_asic0_frontend
 
     def test_pfc_counters_asic_all(self):
         return_code, result = get_result_and_return_code(
-            'pfcstat -n asic0 -s all'
+            ['pfcstat', '-n', 'asic0', '-s', 'all']
         )
         assert return_code == 0
         assert result == show_pfc_counters_all_asic

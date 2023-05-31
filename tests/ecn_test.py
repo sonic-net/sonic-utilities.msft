@@ -132,7 +132,7 @@ class TestEcnConfig(object):
             exit_code = result.exit_code
             output = result.output
         elif 'q_cmd' in input['cmd'] :
-            exit_code, output = get_result_and_return_code("ecnconfig {}".format(" ".join(input['args'])))
+            exit_code, output = get_result_and_return_code(["ecnconfig"] + input['args'])
         else:
             exec_cmd = config.config.commands["ecn"]
             result = runner.invoke(exec_cmd, input['args'])

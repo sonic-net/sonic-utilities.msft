@@ -117,13 +117,13 @@ def midplane_status(chassis_module_name):
 def system_ports(systemportname, namespace, verbose):
     """Show VOQ system ports information"""
 
-    cmd = "voqutil -c system_ports"
+    cmd = ['voqutil', '-c', 'system_ports']
 
     if systemportname is not None:
-        cmd += " -i \"{}\"".format(systemportname)
+        cmd += ['-i', str(systemportname)]
     
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -134,13 +134,13 @@ def system_ports(systemportname, namespace, verbose):
 def system_neighbors(asicname, ipaddress, verbose):
     """Show VOQ system neighbors information"""
 
-    cmd = "voqutil -c system_neighbors"
+    cmd = ['voqutil', '-c', 'system_neighbors']
 
     if ipaddress is not None:
-        cmd += " -a {}".format(ipaddress)
+        cmd += ['-a', str(ipaddress)]
 
     if asicname is not None:
-        cmd += " -n {}".format(asicname)
+        cmd += ['-n', str(asicname)]
 
     clicommon.run_command(cmd, display_cmd=verbose)
 
@@ -152,15 +152,15 @@ def system_neighbors(asicname, ipaddress, verbose):
 def system_lags(systemlagname, asicname, linecardname, verbose):
     """Show VOQ system lags information"""
 
-    cmd = "voqutil -c system_lags"
+    cmd = ['voqutil', '-c', 'system_lags']
 
     if systemlagname is not None:
-        cmd += " -s \"{}\"".format(systemlagname)
+        cmd += ['-s', str(systemlagname)]
 
     if asicname is not None:
-        cmd += " -n {}".format(asicname)
+        cmd += ['-n', str(asicname)]
 
     if linecardname is not None:
-        cmd += " -l \"{}\"".format(linecardname)
+        cmd += ['-l', str(linecardname)]
 
     clicommon.run_command(cmd, display_cmd=verbose)

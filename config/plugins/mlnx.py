@@ -52,7 +52,7 @@ CONTAINER_NAME = 'syncd'
 SNIFFER_CONF_FILE = '/etc/supervisor/conf.d/mlnx_sniffer.conf'
 SNIFFER_CONF_FILE_IN_CONTAINER = CONTAINER_NAME + ':' + SNIFFER_CONF_FILE
 # Command to restart swss service
-COMMAND_RESTART_SWSS = 'systemctl restart swss.service'
+COMMAND_RESTART_SWSS = ['systemctl', 'restart', 'swss.service']
 
 
 # Global logger instance
@@ -99,12 +99,12 @@ def env_variable_delete(delete_line):
 
 
 def conf_file_copy(src, dest):
-    command = 'docker cp ' + src + ' ' + dest
+    command = ['docker', 'cp', str(src), str(dest)]
     clicommon.run_command(command)
 
 
 def conf_file_receive():
-    command = "docker exec {} bash -c 'touch {}'".format(CONTAINER_NAME, SNIFFER_CONF_FILE)
+    command = ['docker', 'exec', str(CONTAINER_NAME), 'bash', '-c', 'touch ' + str(SNIFFER_CONF_FILE)]
     clicommon.run_command(command)
     conf_file_copy(SNIFFER_CONF_FILE_IN_CONTAINER, TMP_SNIFFER_CONF_FILE)
 
@@ -134,7 +134,7 @@ def sniffer_env_variable_set(enable, env_variable_name, env_variable_string=""):
     if not ignore:
         config_file_send()
 
-    command = 'rm -rf {}'.format(TMP_SNIFFER_CONF_FILE)
+    command = ['rm', '-rf', str(TMP_SNIFFER_CONF_FILE)]
     clicommon.run_command(command)
 
     return ignore

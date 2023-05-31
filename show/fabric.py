@@ -18,11 +18,11 @@ def counters():
 @click.option('-e', '--errors', is_flag=True)
 def reachability(namespace, errors):
     """Show fabric reachability"""
-    cmd = "fabricstat -r"
+    cmd = ['fabricstat', '-r']
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
     if errors:
-        cmd += " -e"
+        cmd += ["-e"]
     clicommon.run_command(cmd)
 
 @counters.command()
@@ -30,18 +30,18 @@ def reachability(namespace, errors):
 @click.option('-e', '--errors', is_flag=True)
 def port(namespace, errors):
     """Show fabric port stat"""
-    cmd = "fabricstat"
+    cmd = ["fabricstat"]
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
     if errors:
-        cmd += " -e"
+        cmd += ["-e"]
     clicommon.run_command(cmd)
 
 @counters.command()
 @multi_asic_util.multi_asic_click_option_namespace
 def queue(namespace):
     """Show fabric queue stat"""
-    cmd = "fabricstat -q"
+    cmd = ['fabricstat', '-q']
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
     clicommon.run_command(cmd)

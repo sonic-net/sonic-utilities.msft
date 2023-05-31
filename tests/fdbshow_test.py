@@ -171,7 +171,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac_output_with_def_vlan
 
-        return_code, result = get_result_and_return_code('fdbshow')
+        return_code, result = get_result_and_return_code(['fdbshow'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -216,7 +216,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac_output
 
-        return_code, result = get_result_and_return_code('fdbshow')
+        return_code, result = get_result_and_return_code(['fdbshow'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -231,7 +231,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac_count_output
 
-        return_code, result = get_result_and_return_code('fdbshow -c')
+        return_code, result = get_result_and_return_code(['fdbshow', '-c'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -246,7 +246,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac__port_vlan_output
 
-        return_code, result = get_result_and_return_code('fdbshow -p Ethernet0 -v 2')
+        return_code, result = get_result_and_return_code(['fdbshow', '-p', 'Ethernet0', '-v', '2'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -261,7 +261,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac__address_output
 
-        return_code, result = get_result_and_return_code('fdbshow -a 11:22:33:66:55:44')
+        return_code, result = get_result_and_return_code(['fdbshow', '-a', '11:22:33:66:55:44'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -276,7 +276,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac__address_case_output
 
-        return_code, result = get_result_and_return_code('fdbshow -a 34:5f:78:9a:bc:de')
+        return_code, result = get_result_and_return_code(['fdbshow', '-a', '34:5f:78:9a:bc:de'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -291,7 +291,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac__type_output
 
-        return_code, result = get_result_and_return_code('fdbshow -t Static')
+        return_code, result = get_result_and_return_code(['fdbshow', '-t', 'Static'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -306,7 +306,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac__type_case_output
 
-        return_code, result = get_result_and_return_code('fdbshow -t DYNAMIC')
+        return_code, result = get_result_and_return_code(['fdbshow', '-t', 'DYNAMIC'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -321,7 +321,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac__port_address_output
 
-        return_code, result = get_result_and_return_code('fdbshow -a 66:55:44:33:22:11 -p Ethernet0')
+        return_code, result = get_result_and_return_code(['fdbshow', '-a', '66:55:44:33:22:11', '-p', 'Ethernet0'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -336,7 +336,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac__vlan_address_output
 
-        return_code, result = get_result_and_return_code('fdbshow -a 66:55:44:33:22:11 -v 4')
+        return_code, result = get_result_and_return_code(['fdbshow', '-a', '66:55:44:33:22:11', '-v', '4'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -351,7 +351,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac__port_type_output
 
-        return_code, result = get_result_and_return_code('fdbshow -p Ethernet4 -t Static')
+        return_code, result = get_result_and_return_code(['fdbshow', '-p', 'Ethernet4', '-t', 'Static'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -366,7 +366,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac__vlan_type_output
 
-        return_code, result = get_result_and_return_code('fdbshow -v 3 -t Static')
+        return_code, result = get_result_and_return_code(['fdbshow', '-v', '3', '-t', 'Static'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -381,7 +381,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac__address_type_output
 
-        return_code, result = get_result_and_return_code('fdbshow -a 11:22:33:66:55:44 -t Static')
+        return_code, result = get_result_and_return_code(['fdbshow', '-a', '11:22:33:66:55:44', '-t', 'Static'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -396,7 +396,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac__port_vlan_address_type_output
 
-        return_code, result = get_result_and_return_code('fdbshow -v 3 -p Ethernet4 -a 11:22:33:66:55:44 -t Static')
+        return_code, result = get_result_and_return_code(['fdbshow', '-v', '3', '-p', 'Ethernet4', '-a', '11:22:33:66:55:44', '-t', 'Static'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -411,7 +411,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac_no_results_output
 
-        return_code, result = get_result_and_return_code('fdbshow -p Ethernet8')
+        return_code, result = get_result_and_return_code(['fdbshow', '-p', 'Ethernet8'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -426,7 +426,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac_no_results_output
 
-        return_code, result = get_result_and_return_code('fdbshow -v 123')
+        return_code, result = get_result_and_return_code(['fdbshow', '-v', '123'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -441,7 +441,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac_no_results_output
 
-        return_code, result = get_result_and_return_code('fdbshow -a 12:34:56:78:9A:BC')
+        return_code, result = get_result_and_return_code(['fdbshow', '-a', '12:34:56:78:9A:BC'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -456,7 +456,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac_no_results_output
 
-        return_code, result = get_result_and_return_code('fdbshow -t Static')
+        return_code, result = get_result_and_return_code(['fdbshow', '-t', 'Static'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -471,7 +471,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac_no_results_output
 
-        return_code, result = get_result_and_return_code('fdbshow')
+        return_code, result = get_result_and_return_code(['fdbshow'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -486,7 +486,7 @@ class TestFdbshow():
         assert result.exit_code == 0
         assert result.output == show_mac_no_results_output
 
-        return_code, result = get_result_and_return_code('fdbshow')
+        return_code, result = get_result_and_return_code(['fdbshow'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 0
@@ -522,7 +522,7 @@ class TestFdbshow():
         assert result.exit_code == 1
         assert result.output == show_mac_invalid_port_output
 
-        return_code, result = get_result_and_return_code('fdbshow -p eth123')
+        return_code, result = get_result_and_return_code(['fdbshow', '-p', 'eth123'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 1
@@ -537,7 +537,7 @@ class TestFdbshow():
         assert result.exit_code == 1
         assert result.output == show_mac_invalid_vlan_output
 
-        return_code, result = get_result_and_return_code('fdbshow -v 10000')
+        return_code, result = get_result_and_return_code(['fdbshow', '-v', '10000'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 1
@@ -552,7 +552,7 @@ class TestFdbshow():
         assert result.exit_code == 1
         assert result.output == show_mac_invalid_type_output
 
-        return_code, result = get_result_and_return_code('fdbshow -t both')
+        return_code, result = get_result_and_return_code(['fdbshow', '-t', 'both'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 1
@@ -567,7 +567,7 @@ class TestFdbshow():
         assert result.exit_code == 1
         assert result.output == show_mac_invalid_address_output
 
-        return_code, result = get_result_and_return_code('fdbshow -a 12:345:67:a9:bc:d')
+        return_code, result = get_result_and_return_code(['fdbshow', '-a', '12:345:67:a9:bc:d'])
         print("return_code: {}".format(return_code))
         print("result = {}".format(result))
         assert return_code == 1

@@ -270,7 +270,7 @@ expect_after_clear_route_stats_all_multi_asic = """\
 """
 
 def delete_cache(stat_type='trap'):
-    cmd = 'flow_counters_stat -t {} -d'.format(stat_type)
+    cmd = ['flow_counters_stat', '-t', stat_type, '-d']
     get_result_and_return_code(cmd)
 
 
@@ -294,7 +294,7 @@ class TestTrapStat:
         assert result.output == expect_show_output
 
     def test_show_json(self):
-        cmd = 'flow_counters_stat -t trap -j'
+        cmd = ['flow_counters_stat', '-t', 'trap', '-j']
         return_code, result = get_result_and_return_code(cmd)
         assert return_code == 0
         assert result == expect_show_output_json
@@ -382,7 +382,7 @@ class TestTrapStatsMultiAsic:
         assert result.output == expect_show_output_multi_asic
 
     def test_show_json(self):
-        cmd = 'flow_counters_stat -t trap -j'
+        cmd = ['flow_counters_stat', '-t', 'trap', '-j']
         return_code, result = get_result_and_return_code(cmd)
         assert return_code == 0
         assert result == expect_show_output_json_multi_asic
@@ -764,17 +764,17 @@ class TestRouteStats:
         print(result.output)
 
     def test_show_json(self):
-        cmd = 'flow_counters_stat -t route -j'
+        cmd = ['flow_counters_stat', '-t', 'route', '-j']
         return_code, result = get_result_and_return_code(cmd)
         assert return_code == 0
         assert result == expect_show_route_stats_all_json
 
-        cmd = 'flow_counters_stat -t route -j --prefix_pattern 1.1.1.0/24'
+        cmd = ['flow_counters_stat', '-t', 'route', '-j', '--prefix_pattern', '1.1.1.0/24']
         return_code, result = get_result_and_return_code(cmd)
         assert return_code == 0
         assert result == expect_show_route_stats_by_pattern_v4_json
 
-        cmd = 'flow_counters_stat -t route -j --prefix 2001::1/64 --vrf Vrf_1'
+        cmd = ['flow_counters_stat', '-t', 'route', '-j', '--prefix', '2001::1/64', '--vrf', 'Vrf_1']
         return_code, result = get_result_and_return_code(cmd)
         assert return_code == 0
         assert result == expect_show_route_stats_by_pattern_and_vrf_v6_json
@@ -916,7 +916,7 @@ class TestRouteStatsMultiAsic:
         assert expect_show_route_stats_all_multi_asic == result.output
 
     def test_show_json(self):
-        cmd = 'flow_counters_stat -t route -j'
+        cmd = ['flow_counters_stat', '-t', 'route', '-j']
         return_code, result = get_result_and_return_code(cmd)
         assert return_code == 0
         assert result == expect_show_route_stats_all_json_multi_asic

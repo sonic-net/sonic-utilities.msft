@@ -132,13 +132,13 @@ class TestQueueMultiAsic(object):
         print("SETUP")
 
     def test_queue_counters(self):
-        return_code, result = get_result_and_return_code('queuestat -n asic0')
+        return_code, result = get_result_and_return_code(['queuestat', '-n', 'asic0'])
         assert return_code == 0
         print(result)
         assert result == show_queue_counters
 
     def test_queue_counters_port(self):
-        return_code, result = get_result_and_return_code('queuestat -p Ethernet-BP4 -n asic0')
+        return_code, result = get_result_and_return_code(['queuestat', '-p', 'Ethernet-BP4', '-n', 'asic0'])
         assert return_code == 0
         print(result)
         assert result == show_queue_counters_port

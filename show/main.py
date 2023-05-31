@@ -981,11 +981,11 @@ def ip():
 @click.pass_context
 def interfaces(ctx, namespace, display):
     if ctx.invoked_subcommand is None:
-        cmd = "sudo ipintutil -a ipv4"
+        cmd = ['sudo', 'ipintutil', '-a', 'ipv4']
         if namespace is not None:
-            cmd += " -n {}".format(namespace)
+            cmd += ['-n', str(namespace)]
 
-        cmd += " -d {}".format(display)
+        cmd += ['-d', str(display)]
         clicommon.run_command(cmd)
 
 #
@@ -1108,12 +1108,12 @@ def prefix_list(prefix_list_name, verbose):
 @ipv6.command()
 @multi_asic_util.multi_asic_click_options
 def interfaces(namespace, display):
-    cmd = "sudo ipintutil -a ipv6"
+    cmd = ['sudo', 'ipintutil', '-a', 'ipv6']
 
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
-    cmd += " -d {}".format(display)
+    cmd += ['-d', str(display)]
 
     clicommon.run_command(cmd)
 

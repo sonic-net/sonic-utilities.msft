@@ -18,7 +18,7 @@ def phys():
 @click.pass_context
 def status(ctx):
     """Show gearbox phys status"""
-    clicommon.run_command("gearboxutil phys status")
+    clicommon.run_command(['gearboxutil', 'phys', 'status'])
 
 # 'interfaces' subcommand ("show gearbox interfaces")
 @gearbox.group(cls=clicommon.AliasedGroup)
@@ -31,4 +31,4 @@ def interfaces():
 @click.pass_context
 def status(ctx):
     """Show gearbox interfaces status"""
-    clicommon.run_command("gearboxutil interfaces status")
+    clicommon.run_command(['gearboxutil', 'interfaces', 'status'])

@@ -177,14 +177,12 @@ def get_neighbor_dict_from_table(db, table_name):
 
 
 def run_bgp_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE, vtysh_shell_cmd=constants.VTYSH_COMMAND):
-    bgp_instance_id = ' '
+    bgp_instance_id = []
     output = None
     if bgp_namespace is not multi_asic.DEFAULT_NAMESPACE:
-        bgp_instance_id = " -n {} ".format(
-            multi_asic.get_asic_id_from_name(bgp_namespace))
+        bgp_instance_id = ['-n', str(multi_asic.get_asic_id_from_name(bgp_namespace))]
 
-    cmd = 'sudo {} {} -c "{}"'.format(
-        vtysh_shell_cmd, bgp_instance_id, vtysh_cmd)
+    cmd = ['sudo', vtysh_shell_cmd] + bgp_instance_id + ['-c', vtysh_cmd]
     try:
         output, ret = clicommon.run_command(cmd, return_cmd=True)
         if ret != 0:
