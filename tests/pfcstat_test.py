@@ -215,7 +215,7 @@ class TestPfcstat(object):
             []
         )
         print(result.output)
-        show.run_command('pfcstat -d')
+        show.run_command(['pfcstat', '-d'])
         assert result.exit_code == 0
         assert "Last cached time was" in result.output
         assert show_pfc_counters_output_with_clear[0] in result.output and \
@@ -262,7 +262,7 @@ class TestMultiAsicPfcstat(object):
             []
         )
         print(result.output)
-        show.run_command('pfcstat -d')
+        show.run_command(['pfcstat', '-d'])
         assert result.exit_code == 0
         assert "Last cached time was" in result.output
         assert show_pfc_counters_all_with_clear[0] in result.output and \

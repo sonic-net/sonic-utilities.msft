@@ -148,9 +148,9 @@ def temperature():
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 def firmware(args):
     """Show firmware information"""
-    cmd = "sudo fwutil show {}".format(" ".join(args))
+    cmd = ["sudo", "fwutil", "show"] + list(args)
 
     try:
-        subprocess.check_call(cmd, shell=True)
+        subprocess.check_call(cmd)
     except subprocess.CalledProcessError as e:
         sys.exit(e.returncode)

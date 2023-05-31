@@ -20,6 +20,7 @@ from datetime import datetime
 import utilities_common.constants as constants
 from utilities_common.general import load_db_config
 from json.decoder import JSONDecodeError
+from sonic_py_common.general import getstatusoutput_noshell_pipe
 
 # mock the redis for unit test purposes #
 try:
@@ -104,17 +105,22 @@ def readJsonFile(fileName):
         raise click.Abort()
     return result
 
-def run_command(command, display_cmd=False, return_cmd=False):
+def run_command(command, display_cmd=False, return_cmd=False, shell=False):
+    if not shell:
+        command_str = ' '.join(command)
+    else:
+        command_str = command
+
     if display_cmd:
-        click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
+        click.echo(click.style("Command: ", fg='cyan') + click.style(command_str, fg='green'))
 
     # No conversion needed for intfutil commands as it already displays
     # both SONiC interface name and alias name for all interfaces.
-    if clicommon.get_interface_naming_mode() == "alias" and not command.startswith("intfutil"):
-        clicommon.run_command_in_alias_mode(command)
+    if clicommon.get_interface_naming_mode() == "alias" and not command_str.startswith("intfutil"):
+        clicommon.run_command_in_alias_mode(command, shell=shell)
         raise sys.exit(0)
 
-    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(command, shell=shell, text=True, stdout=subprocess.PIPE)
 
     while True:
         if return_cmd:
@@ -377,10 +383,10 @@ def event_counters():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def arp(ipaddress, iface, verbose):
     """Show IP ARP table"""
-    cmd = "nbrshow -4"
+    cmd = ['nbrshow', '-4']
 
     if ipaddress is not None:
-        cmd += " -ip {}".format(ipaddress)
+        cmd += ['-ip', str(ipaddress)]
 
     if iface is not None:
         if clicommon.get_interface_naming_mode() == "alias":
@@ -388,7 +394,7 @@ def arp(ipaddress, iface, verbose):
                     (iface.startswith("eth"))):
                 iface = iface_alias_converter.alias_to_name(iface)
 
-        cmd += " -if {}".format(iface)
+        cmd += ['-if', str(iface)]
 
     run_command(cmd, display_cmd=verbose)
 
@@ -402,22 +408,22 @@ def arp(ipaddress, iface, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def ndp(ip6address, iface, verbose):
     """Show IPv6 Neighbour table"""
-    cmd = "nbrshow -6"
+    cmd = ['nbrshow', '-6']
 
     if ip6address is not None:
-        cmd += " -ip {}".format(ip6address)
+        cmd += ['-ip', str(ip6address)]
 
     if iface is not None:
-        cmd += " -if {}".format(iface)
+        cmd += ['-if', str(iface)]
 
     run_command(cmd, display_cmd=verbose)
 
 def is_mgmt_vrf_enabled(ctx):
     """Check if management VRF is enabled"""
     if ctx.invoked_subcommand is None:
-        cmd = 'sonic-cfggen -d --var-json "MGMT_VRF_CONFIG"'
+        cmd = ['sonic-cfggen', '-d', '--var-json', "MGMT_VRF_CONFIG"]
 
-        p = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         try :
             mvrf_dict = json.loads(p.stdout.read())
         except ValueError:
@@ -487,13 +493,13 @@ def mgmt_vrf(ctx,routes):
         if routes is None:
             click.echo("\nManagementVRF : Enabled")
             click.echo("\nManagement VRF interfaces in Linux:")
-            cmd = "ip -d link show mgmt"
+            cmd = ['ip', '-d', 'link', 'show', 'mgmt']
             run_command(cmd)
-            cmd = "ip link show vrf mgmt"
+            cmd = ['ip', 'link', 'show', 'vrf', 'mgmt']
             run_command(cmd)
         else:
             click.echo("\nRoutes in Management VRF Routing Table:")
-            cmd = "ip route show table 5000"
+            cmd = ['ip', 'route', 'show', 'table', '5000']
             run_command(cmd)
 
 #
@@ -577,7 +583,7 @@ def subinterfaces():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def status(subinterfacename, verbose):
     """Show sub port interface status information"""
-    cmd = "intfutil -c status"
+    cmd = ['intfutil', '-c', 'status']
 
     if subinterfacename is not None:
         sub_intf_sep_idx = subinterfacename.find(VLAN_SUB_INTERFACE_SEPARATOR)
@@ -588,9 +594,9 @@ def status(subinterfacename, verbose):
         if clicommon.get_interface_naming_mode() == "alias":
             subinterfacename = iface_alias_converter.alias_to_name(subinterfacename)
 
-        cmd += " -i {}".format(subinterfacename)
+        cmd += ['-i', str(subinterfacename)]
     else:
-        cmd += " -i subport"
+        cmd += ['-i', 'subport']
     run_command(cmd, display_cmd=verbose)
 
 #
@@ -609,9 +615,9 @@ def pfc():
 def counters(namespace, display, verbose):
     """Show pfc counters"""
 
-    cmd = "pfcstat -s {}".format(display)
+    cmd = ['pfcstat', '-s', str(display)]
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
     run_command(cmd, display_cmd=verbose)
 
@@ -619,12 +625,12 @@ def counters(namespace, display, verbose):
 @click.argument('interface', type=click.STRING, required=False)
 def priority(interface):
     """Show pfc priority"""
-    cmd = 'pfc show priority'
+    cmd = ['pfc', 'show', 'priority']
     if interface is not None and clicommon.get_interface_naming_mode() == "alias":
         interface = iface_alias_converter.alias_to_name(interface)
 
     if interface is not None:
-        cmd += ' {0}'.format(interface)
+        cmd += [str(interface)]
 
     run_command(cmd)
 
@@ -632,12 +638,12 @@ def priority(interface):
 @click.argument('interface', type=click.STRING, required=False)
 def asymmetric(interface):
     """Show asymmetric pfc"""
-    cmd = 'pfc show asymmetric'
+    cmd = ['pfc', 'show', 'asymmetric']
     if interface is not None and clicommon.get_interface_naming_mode() == "alias":
         interface = iface_alias_converter.alias_to_name(interface)
 
     if interface is not None:
-        cmd += ' {0}'.format(interface)
+        cmd += [str(interface)]
 
     run_command(cmd)
 
@@ -653,9 +659,9 @@ def pfcwd():
 def config(namespace, display, verbose):
     """Show pfc watchdog config"""
 
-    cmd = "pfcwd show config -d {}".format(display)
+    cmd = ['pfcwd', 'show', 'config', '-d', str(display)]
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
     run_command(cmd, display_cmd=verbose)
 
@@ -665,9 +671,9 @@ def config(namespace, display, verbose):
 def stats(namespace, display, verbose):
     """Show pfc watchdog stats"""
 
-    cmd = "pfcwd show stats -d {}".format(display)
+    cmd = ['pfcwd', 'show', 'stats', '-d', str(display)]
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
     run_command(cmd, display_cmd=verbose)
 
@@ -688,7 +694,7 @@ def telemetry():
 @telemetry.command('interval')
 def show_tm_interval():
     """Show telemetry interval"""
-    command = 'watermarkcfg --show-interval'
+    command = ['watermarkcfg', '--show-interval']
     run_command(command)
 
 
@@ -711,23 +717,23 @@ def queue():
 def counters(interfacename, namespace, display, verbose, json, voq):
     """Show queue counters"""
 
-    cmd = "queuestat"
+    cmd = ["queuestat"]
 
     if interfacename is not None:
         if clicommon.get_interface_naming_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
     if interfacename is not None:
-        cmd += " -p {}".format(interfacename)
+        cmd += ['-p', str(interfacename)]
 
     if namespace is not None:
-        cmd += " -n {}".format(namespace)
+        cmd += ['-n', str(namespace)]
 
     if json:
-        cmd += " -j"
+        cmd += ["-j"]
 
     if voq:
-        cmd += " -V"
+        cmd += ["-V"]
 
     run_command(cmd, display_cmd=verbose)
 
@@ -744,21 +750,21 @@ def watermark():
 @watermark.command('unicast')
 def wm_q_uni():
     """Show user WM for unicast queues"""
-    command = 'watermarkstat -t q_shared_uni'
+    command = ['watermarkstat', '-t', 'q_shared_uni']
     run_command(command)
 
 # 'multicast' subcommand ("show queue watermarks multicast")
 @watermark.command('multicast')
 def wm_q_multi():
     """Show user WM for multicast queues"""
-    command = 'watermarkstat -t q_shared_multi'
+    command = ['watermarkstat', '-t', 'q_shared_multi']
     run_command(command)
 
 # 'all' subcommand ("show queue watermarks all")
 @watermark.command('all')
 def wm_q_all():
     """Show user WM for all queues"""
-    command = 'watermarkstat -t q_shared_all'
+    command = ['watermarkstat', '-t', 'q_shared_all']
     run_command(command)
 
 #
@@ -774,21 +780,21 @@ def persistent_watermark():
 @persistent_watermark.command('unicast')
 def pwm_q_uni():
     """Show persistent WM for unicast queues"""
-    command = 'watermarkstat -p -t q_shared_uni'
+    command = ['watermarkstat', '-p', '-t', 'q_shared_uni']
     run_command(command)
 
 # 'multicast' subcommand ("show queue persistent-watermarks multicast")
 @persistent_watermark.command('multicast')
 def pwm_q_multi():
     """Show persistent WM for multicast queues"""
-    command = 'watermarkstat -p -t q_shared_multi'
+    command = ['watermarkstat', '-p', '-t', 'q_shared_multi']
     run_command(command)
 
 # 'all' subcommand ("show queue persistent-watermarks all")
 @persistent_watermark.command('all')
 def pwm_q_all():
     """Show persistent WM for all queues"""
-    command = 'watermarkstat -p -t q_shared_all'
+    command = ['watermarkstat', '-p', '-t', 'q_shared_all']
     run_command(command)
 
 #
@@ -807,13 +813,13 @@ def watermark():
 @watermark.command('headroom')
 def wm_pg_headroom():
     """Show user headroom WM for pg"""
-    command = 'watermarkstat -t pg_headroom'
+    command = ['watermarkstat', '-t', 'pg_headroom']
     run_command(command)
 
 @watermark.command('shared')
 def wm_pg_shared():
     """Show user shared WM for pg"""
-    command = 'watermarkstat -t pg_shared'
+    command = ['watermarkstat', '-t', 'pg_shared']
     run_command(command)
 
 @priority_group.group()
@@ -824,7 +830,7 @@ def drop():
 @drop.command('counters')
 def pg_drop_counters():
     """Show dropped packets for priority-group"""
-    command = 'pg-drop -c show'
+    command = ['pg-drop', '-c', 'show']
     run_command(command)
 
 @priority_group.group(name='persistent-watermark')
@@ -835,13 +841,13 @@ def persistent_watermark():
 @persistent_watermark.command('headroom')
 def pwm_pg_headroom():
     """Show persistent headroom WM for pg"""
-    command = 'watermarkstat -p -t pg_headroom'
+    command = ['watermarkstat', '-p', '-t', 'pg_headroom']
     run_command(command)
 
 @persistent_watermark.command('shared')
 def pwm_pg_shared():
     """Show persistent shared WM for pg"""
-    command = 'watermarkstat -p -t pg_shared'
+    command = ['watermarkstat', '-p', '-t', 'pg_shared']
     run_command(command)
 
 
@@ -856,13 +862,13 @@ def buffer_pool():
 @buffer_pool.command('watermark')
 def wm_buffer_pool():
     """Show user WM for buffer pools"""
-    command = 'watermarkstat -t buffer_pool'
+    command = ['watermarkstat', '-t' ,'buffer_pool']
     run_command(command)
 
 @buffer_pool.command('persistent-watermark')
 def pwm_buffer_pool():
     """Show persistent WM for buffer pools"""
-    command = 'watermarkstat -p -t buffer_pool'
+    command = ['watermarkstat', '-p', '-t', 'buffer_pool']
     run_command(command)
 
 
@@ -877,13 +883,13 @@ def headroom_pool():
 @headroom_pool.command('watermark')
 def wm_headroom_pool():
     """Show user WM for headroom pool"""
-    command = 'watermarkstat -t headroom_pool'
+    command = ['watermarkstat', '-t', 'headroom_pool']
     run_command(command)
 
 @headroom_pool.command('persistent-watermark')
 def pwm_headroom_pool():
     """Show persistent WM for headroom pool"""
-    command = 'watermarkstat -p -t headroom_pool'
+    command = ['watermarkstat', '-p', '-t', 'headroom_pool']
     run_command(command)
 
 
@@ -905,22 +911,22 @@ def mac(ctx, vlan, port, address, type, count, verbose):
     if ctx.invoked_subcommand is not None:
         return
 
-    cmd = "fdbshow"
+    cmd = ["fdbshow"]
 
     if vlan is not None:
-        cmd += " -v {}".format(vlan)
+        cmd += ['-v', str(vlan)]
 
     if port is not None:
-        cmd += " -p {}".format(port)
+        cmd += ['-p', str(port)]
 
     if address is not None:
-        cmd += " -a {}".format(address)
+        cmd += ['-a', str(address)]
 
     if type is not None:
-        cmd += " -t {}".format(type)
+        cmd += ['-t', str(type)]
 
     if count:
-        cmd += " -c"
+        cmd += ["-c"]
 
     run_command(cmd, display_cmd=verbose)
 
@@ -951,10 +957,9 @@ def aging_time(ctx):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def route_map(route_map_name, verbose):
     """show route-map"""
-    cmd = 'sudo {} -c "show route-map'.format(constants.RVTYSH_COMMAND)
+    cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show route-map']
     if route_map_name is not None:
-        cmd += ' {}'.format(route_map_name)
-    cmd += '"'
+        cmd[-1] += ' {}'.format(route_map_name)
     run_command(cmd, display_cmd=verbose)
 
 #
@@ -1042,10 +1047,9 @@ def route(args, namespace, display, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def prefix_list(prefix_list_name, verbose):
     """show ip prefix-list"""
-    cmd = 'sudo {} -c "show ip prefix-list'.format(constants.RVTYSH_COMMAND)
+    cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show ip prefix-list']
     if prefix_list_name is not None:
-        cmd += ' {}'.format(prefix_list_name)
-    cmd += '"'
+        cmd[-1] += ' {}'.format(prefix_list_name)
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1054,7 +1058,7 @@ def prefix_list(prefix_list_name, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def protocol(verbose):
     """Show IPv4 protocol information"""
-    cmd = 'sudo {} -c "show ip protocol"'.format(constants.RVTYSH_COMMAND)
+    cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', "show ip protocol"]
     run_command(cmd, display_cmd=verbose)
 
 #
@@ -1065,9 +1069,9 @@ def protocol(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def fib(ipaddress, verbose):
     """Show IP FIB table"""
-    cmd = "fibshow -4"
+    cmd = ['fibshow', '-4']
     if ipaddress is not None:
-        cmd += " -ip {}".format(ipaddress)
+        cmd += ['-ip', str(ipaddress)]
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1090,10 +1094,9 @@ def ipv6():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def prefix_list(prefix_list_name, verbose):
     """show ip prefix-list"""
-    cmd = 'sudo {} -c "show ipv6 prefix-list'.format(constants.RVTYSH_COMMAND)
+    cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', 'show ipv6 prefix-list']
     if prefix_list_name is not None:
-        cmd += ' {}'.format(prefix_list_name)
-    cmd += '"'
+        cmd[-1] += ' {}'.format(prefix_list_name)
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1138,7 +1141,7 @@ def route(args, namespace, display, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def protocol(verbose):
     """Show IPv6 protocol information"""
-    cmd = 'sudo {} -c "show ipv6 protocol"'.format(constants.RVTYSH_COMMAND)
+    cmd = ['sudo', constants.RVTYSH_COMMAND, '-c', "show ipv6 protocol"]
     run_command(cmd, display_cmd=verbose)
 
 #
@@ -1207,9 +1210,9 @@ def link_local_mode(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def fib(ipaddress, verbose):
     """Show IP FIB table"""
-    cmd = "fibshow -6"
+    cmd = ['fibshow', '-6']
     if ipaddress is not None:
-        cmd += " -ip {}".format(ipaddress)
+        cmd += ['-ip', str(ipaddress)]
     run_command(cmd, display_cmd=verbose)
 
 #
@@ -1227,13 +1230,13 @@ def lldp():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def neighbors(interfacename, verbose):
     """Show LLDP neighbors"""
-    cmd = "sudo lldpshow -d"
+    cmd = ['sudo', 'lldpshow', '-d']
 
     if interfacename is not None:
         if clicommon.get_interface_naming_mode() == "alias":
             interfacename = iface_alias_converter.alias_to_name(interfacename)
 
-        cmd += " -p {}".format(interfacename)
+        cmd += ['-p', str(interfacename)]
 
     run_command(cmd, display_cmd=verbose)
 
@@ -1242,7 +1245,7 @@ def neighbors(interfacename, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def table(verbose):
     """Show LLDP neighbors in tabular format"""
-    cmd = "sudo lldpshow"
+    cmd = ['sudo', 'lldpshow']
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1252,7 +1255,7 @@ def table(verbose):
 
 @cli.command()
 @click.argument('process', required=False)
-@click.option('-l', '--lines')
+@click.option('-l', '--lines', type=int)
 @click.option('-f', '--follow', is_flag=True)
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def logging(process, lines, follow, verbose):
@@ -1262,7 +1265,7 @@ def logging(process, lines, follow, verbose):
     else:
         log_path = "/var/log"
     if follow:
-        cmd = "sudo tail -F {}/syslog".format(log_path)
+        cmd = ['sudo', 'tail', '-F', '{}/syslog'.format(log_path)]
         run_command(cmd, display_cmd=verbose)
     else:
         if os.path.isfile("{}/syslog.1".format(log_path)):
@@ -1276,8 +1279,7 @@ def logging(process, lines, follow, verbose):
         if lines is not None:
             cmd += " | tail -{}".format(lines)
 
-        run_command(cmd, display_cmd=verbose)
-
+        run_command(cmd, display_cmd=verbose, shell=True)
 
 #
 # 'version' command ("show version")
@@ -1291,8 +1293,8 @@ def version(verbose):
     platform_info = device_info.get_platform_info()
     chassis_info = platform.get_chassis_info()
 
-    sys_uptime_cmd = "uptime"
-    sys_uptime = subprocess.Popen(sys_uptime_cmd, shell=True, text=True, stdout=subprocess.PIPE)
+    sys_uptime_cmd = ["uptime"]
+    sys_uptime = subprocess.Popen(sys_uptime_cmd, text=True, stdout=subprocess.PIPE)
 
     sys_date = datetime.now()
 
@@ -1313,8 +1315,8 @@ def version(verbose):
     click.echo("Uptime: {}".format(sys_uptime.stdout.read().strip()))
     click.echo("Date: {}".format(sys_date.strftime("%a %d %b %Y %X")))
     click.echo("\nDocker images:")
-    cmd = 'sudo docker images --format "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"'
-    p = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE)
+    cmd = ['sudo', 'docker', 'images', '--format', "table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.Size}}"]
+    p = subprocess.Popen(cmd, text=True, stdout=subprocess.PIPE)
     click.echo(p.stdout.read())
 
 #
@@ -1325,7 +1327,7 @@ def version(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def environment(verbose):
     """Show environmentals (voltages, fans, temps)"""
-    cmd = "sudo sensors"
+    cmd = ['sudo', 'sensors']
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1337,7 +1339,7 @@ def environment(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def users(verbose):
     """Show users"""
-    cmd = "who"
+    cmd = ["who"]
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1356,29 +1358,29 @@ def users(verbose):
 @click.option('--redirect-stderr', '-r', is_flag=True, help="Redirect an intermediate errors to STDERR")
 def techsupport(since, global_timeout, cmd_timeout, verbose, allow_process_stop, silent, debug_dump, redirect_stderr):
     """Gather information for troubleshooting"""
-    cmd = "sudo"
+    cmd = ["sudo"]
 
     if global_timeout:
-        cmd += " timeout --kill-after={}s -s SIGTERM --foreground {}m".format(COMMAND_TIMEOUT, global_timeout)
+        cmd += ['timeout', '--kill-after={}s'.format(COMMAND_TIMEOUT), '-s', 'SIGTERM', '--foreground', '{}m'.format(global_timeout)]
 
     if silent:
-        cmd += " generate_dump"
+        cmd += ["generate_dump"]
         click.echo("Techsupport is running with silent option. This command might take a long time.")
     else:
-        cmd += " generate_dump -v"
+        cmd += ['generate_dump', '-v']
 
     if allow_process_stop:
-        cmd += " -a"
+        cmd += ["-a"]
 
     if since:
-        cmd += " -s '{}'".format(since)
+        cmd += ['-s', str(since)]
 
     if debug_dump:
-        cmd += " -d"
+        cmd += ["-d"]
 
-    cmd += " -t {}".format(cmd_timeout)
+    cmd += ['-t', str(cmd_timeout)]
     if redirect_stderr:
-        cmd += " -r"
+        cmd += ["-r"]
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1423,7 +1425,7 @@ def all(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def acl(verbose):
     """Show acl running configuration"""
-    cmd = "sonic-cfggen -d --var-json ACL_RULE"
+    cmd = ['sonic-cfggen', '-d', '--var-json', 'ACL_RULE']
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1433,10 +1435,10 @@ def acl(verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def ports(portname, verbose):
     """Show ports running configuration"""
-    cmd = "sonic-cfggen -d --var-json PORT"
+    cmd = ['sonic-cfggen', '-d', '--var-json', 'PORT']
 
     if portname is not None:
-        cmd += " {0} {1}".format("--key", portname)
+        cmd += ["--key", str(portname)]
 
     run_command(cmd, display_cmd=verbose)
 
@@ -1486,10 +1488,10 @@ def bgp(namespace, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def interfaces(interfacename, verbose):
     """Show interfaces running configuration"""
-    cmd = "sonic-cfggen -d --var-json INTERFACE"
+    cmd = ['sonic-cfggen', '-d', '--var-json', 'INTERFACE']
 
     if interfacename is not None:
-        cmd += " {0} {1}".format("--key", interfacename)
+        cmd += ["--key", str(interfacename)]
 
     run_command(cmd, display_cmd=verbose)
 
@@ -1715,16 +1717,20 @@ def startupconfiguration():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def bgp(verbose):
     """Show BGP startup configuration"""
-    cmd = "sudo docker ps | grep bgp | awk '{print$2}' | cut -d'-' -f3 | cut -d':' -f1"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-    result = proc.stdout.read().rstrip()
+    cmd0 = ['sudo', 'docker', 'ps']
+    cmd1 = ['grep', 'bgp']
+    cmd2 = ['awk', '{print$2}']
+    cmd3 = ['cut', '-d-', '-f3']
+    cmd4 = ['cut', '-d:', "-f1"]
+    _, stdout = getstatusoutput_noshell_pipe(cmd0, cmd1, cmd2, cmd3, cmd4)
+    result = stdout.rstrip()
     click.echo("Routing-Stack is: {}".format(result))
     if result == "quagga":
-        run_command('sudo docker exec bgp cat /etc/quagga/bgpd.conf', display_cmd=verbose)
+        run_command(['sudo', 'docker', 'exec', 'bgp', 'cat', '/etc/quagga/bgpd.conf'], display_cmd=verbose)
     elif result == "frr":
-        run_command('sudo docker exec bgp cat /etc/frr/bgpd.conf', display_cmd=verbose)
+        run_command(['sudo', 'docker', 'exec', 'bgp', 'cat', '/etc/frr/bgpd.conf'], display_cmd=verbose)
     elif result == "gobgp":
-        run_command('sudo docker exec bgp cat /etc/gpbgp/bgpd.conf', display_cmd=verbose)
+        run_command(['sudo', 'docker', 'exec', 'bgp', 'cat', '/etc/gpbgp/bgpd.conf'], display_cmd=verbose)
     else:
         click.echo("Unidentified routing-stack")
 
@@ -1738,18 +1744,18 @@ def bgp(verbose):
 def ntp(ctx, verbose):
     """Show NTP information"""
     from pkg_resources import parse_version
-    ntpstat_cmd = "ntpstat"
-    ntpcmd = "ntpq -p -n"
+    ntpstat_cmd = ["ntpstat"]
+    ntpcmd = ["ntpq", "-p", "-n"]
     if is_mgmt_vrf_enabled(ctx) is True:
         #ManagementVRF is enabled. Call ntpq using "ip vrf exec" or cgexec based on linux version
         os_info =  os.uname()
         release = os_info[2].split('-')
         if parse_version(release[0]) > parse_version("4.9.0"):
-            ntpstat_cmd = "sudo ip vrf exec mgmt ntpstat"
-            ntpcmd = "sudo ip vrf exec mgmt ntpq -p -n"
+            ntpstat_cmd = ['sudo', 'ip', 'vrf', 'exec', 'mgmt', 'ntpstat']
+            ntpcmd = ['sudo', 'ip', 'vrf', 'exec', 'mgmt', 'ntpq', '-p', '-n']
         else:
-            ntpstat_cmd = "sudo cgexec -g l3mdev:mgmt ntpstat"
-            ntpcmd = "sudo cgexec -g l3mdev:mgmt ntpq -p -n"
+            ntpstat_cmd = ['sudo', 'cgexec', '-g', 'l3mdev:mgmt', 'ntpstat']
+            ntpcmd = ['sudo', 'cgexec', '-g', 'l3mdev:mgmt', 'ntpq', '-p', '-n']
 
     run_command(ntpstat_cmd, display_cmd=verbose)
     run_command(ntpcmd, display_cmd=verbose)
@@ -1762,37 +1768,38 @@ def ntp(ctx, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def uptime(verbose):
     """Show system uptime"""
-    cmd = "uptime -p"
+    cmd = ['uptime', '-p']
     run_command(cmd, display_cmd=verbose)
 
 @cli.command()
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def clock(verbose):
     """Show date and time"""
-    cmd ="date"
+    cmd = ["date"]
     run_command(cmd, display_cmd=verbose)
 
 @cli.command('system-memory')
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def system_memory(verbose):
     """Show memory information"""
-    cmd = "free -m"
+    cmd = ['free', '-m']
     run_command(cmd, display_cmd=verbose)
 
 
 @cli.command('services')
 def services():
     """Show all daemon services"""
-    cmd = "sudo docker ps --format '{{.Names}}'"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
+    cmd = ["sudo", "docker", "ps", "--format", '{{.Names}}']
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
     while True:
         line = proc.stdout.readline()
         if line != '':
                 print(line.rstrip()+'\t'+"docker")
                 print("---------------------------")
-                cmd = "sudo docker exec {} ps aux | sed '$d'".format(line.rstrip())
-                proc1 = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-                print(proc1.stdout.read())
+                cmd0 = ["sudo", "docker", "exec", line.rstrip(), "ps", "aux"]
+                cmd1 = ["sed", '$d']
+                _, stdout = getstatusoutput_noshell_pipe(cmd0, cmd1)
+                print(stdout)
         else:
                 break
 
@@ -1918,10 +1925,10 @@ def radius(db):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def mirror_session(session_name, verbose):
     """Show existing everflow sessions"""
-    cmd = "acl-loader show session"
+    cmd = ['acl-loader', 'show', 'session']
 
     if session_name is not None:
-        cmd += " {}".format(session_name)
+        cmd += [str(session_name)]
 
     run_command(cmd, display_cmd=verbose)
 
@@ -1934,10 +1941,10 @@ def mirror_session(session_name, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def policer(policer_name, verbose):
     """Show existing policers"""
-    cmd = "acl-loader show policer"
+    cmd = ['acl-loader', 'show', 'policer']
 
     if policer_name is not None:
-        cmd += " {}".format(policer_name)
+        cmd += [str(policer_name)]
 
     run_command(cmd, display_cmd=verbose)
 
@@ -1949,7 +1956,7 @@ def policer(policer_name, verbose):
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def ecn(verbose):
     """Show ECN configuration"""
-    cmd = "ecnconfig -l"
+    cmd = ['ecnconfig', '-l']
     run_command(cmd, display_cmd=verbose)
 
 
@@ -1959,8 +1966,8 @@ def ecn(verbose):
 @cli.command('boot')
 def boot():
     """Show boot configuration"""
-    cmd = "sudo sonic-installer list"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
+    cmd = ["sudo", "sonic-installer", "list"]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
     click.echo(proc.stdout.read())
 
 
@@ -1970,7 +1977,7 @@ def boot():
 @cli.command('mmu')
 def mmu():
     """Show mmu configuration"""
-    cmd = "mmuconfig -l"
+    cmd = ['mmuconfig', '-l']
     run_command(cmd)
 
 #
@@ -1987,7 +1994,7 @@ def buffer():
 @buffer.command()
 def configuration():
     """show buffer configuration"""
-    cmd = "mmuconfig -l"
+    cmd = ['mmuconfig', '-l']
     run_command(cmd)
 
 #
@@ -1996,7 +2003,7 @@ def configuration():
 @buffer.command()
 def information():
     """show buffer information"""
-    cmd = "buffershow -l"
+    cmd = ['buffershow', '-l']
     run_command(cmd)
 
 
@@ -2008,7 +2015,7 @@ def information():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 def line(brief, verbose):
     """Show all console lines and their info include available ttyUSB devices unless specified brief mode"""
-    cmd = "consutil show" + (" -b" if brief else "")
+    cmd = ['consutil', 'show'] + (["-b"] if brief else [])
     run_command(cmd, display_cmd=verbose)
     return
 
@@ -2022,11 +2029,11 @@ def line(brief, verbose):
 def ztp(status, verbose):
     """Show Zero Touch Provisioning status"""
     if os.path.isfile('/usr/bin/ztp') is False:
-        exit("ZTP feature unavailable in this image version")
+        sys.exit("ZTP feature unavailable in this image version")
 
-    cmd = "ztp status"
+    cmd = ['ztp', 'status']
     if verbose:
-       cmd = cmd + " --verbose"
+       cmd += ["--verbose"]
     run_command(cmd, display_cmd=verbose)
 
 

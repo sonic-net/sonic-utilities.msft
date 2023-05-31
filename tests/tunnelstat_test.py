@@ -83,7 +83,7 @@ class TestTunnelstat(object):
         expected = show_vxlan_counters_clear_output
 
         # remove the counters snapshot
-        show.run_command("tunnelstat -D")
+        show.run_command(['tunnelstat', '-D'])
         for line in expected:
             assert line in result.output
 
@@ -97,7 +97,7 @@ class TestTunnelstat(object):
         expected = show_vxlan_counters_clear_interface_output
 
         # remove the counters snapshot
-        show.run_command("tunnelstat -D")
+        show.run_command(['tunnelstat', '-D'])
         for line in expected:
             assert line in result.output
 

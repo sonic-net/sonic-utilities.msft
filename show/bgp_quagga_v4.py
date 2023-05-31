@@ -1,7 +1,8 @@
 import click
-from show.main import AliasedGroup, ip, run_command
+from show.main import ip, run_command
 from utilities_common.bgp_util import get_bgp_summary_extended
 import utilities_common.constants as constants
+import utilities_common.cli as clicommon
 
 
 ###############################################################################
@@ -11,7 +12,7 @@ import utilities_common.constants as constants
 ###############################################################################
 
 
-@ip.group(cls=AliasedGroup)
+@ip.group(cls=clicommon.AliasedGroup)
 def bgp():
     """Show IPv4 BGP (Border Gateway Protocol) information"""
     pass
@@ -22,10 +23,10 @@ def bgp():
 def summary():
     """Show summarized information of IPv4 BGP state"""
     try:
-        device_output = run_command('sudo {} -c "show ip bgp summary"'.format(constants.RVTYSH_COMMAND), return_cmd=True)
+        device_output = run_command(['sudo', constants.RVTYSH_COMMAND, '-c', "show ip bgp summary"], return_cmd=True)
         get_bgp_summary_extended(device_output)
     except Exception:
-        run_command('sudo {} -c "show ip bgp summary"'.format(constants.RVTYSH_COMMAND))
+        run_command(['sudo', constants.RVTYSH_COMMAND, '-c', "show ip bgp summary"])
 
 
 # 'neighbors' subcommand ("show ip bgp neighbors")
@@ -35,15 +36,13 @@ def summary():
 def neighbors(ipaddress, info_type):
     """Show IP (IPv4) BGP neighbors"""
 
-    command = 'sudo {} -c "show ip bgp neighbor'.format(constants.RVTYSH_COMMAND)
+    command = ['sudo', constants.RVTYSH_COMMAND, '-c', "show ip bgp neighbor"]
 
     if ipaddress is not None:
-        command += ' {}'.format(ipaddress)
+        command[-1] += ' {}'.format(ipaddress)
 
         # info_type is only valid if ipaddress is specified
         if info_type is not None:
-            command += ' {}'.format(info_type)
-
-    command += '"'
+            command[-1] += ' {}'.format(info_type)
 
     run_command(command)

@@ -450,7 +450,7 @@ class TestFdbshow():
     def test_show_mac_no_type(self):
         self.set_mock_variant("6")
 
-        result = self.runner.invoke(show.cli.commands["mac"], ["-t Static"])
+        result = self.runner.invoke(show.cli.commands["mac"], ["-t", "Static"])
         print(result.exit_code)
         print(result.output)
         assert result.exit_code == 0
