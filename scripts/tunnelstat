@@ -6,7 +6,7 @@
 #
 #####################################################################
 
-import _pickle as pickle
+import json
 import argparse
 import datetime
 import sys
@@ -29,7 +29,7 @@ from collections import namedtuple, OrderedDict
 from natsort import natsorted
 from tabulate import tabulate
 from utilities_common.netstat import ns_diff, table_as_json, STATUS_NA, format_prate
-from utilities_common.cli import UserCache
+from utilities_common.cli import json_serial, UserCache
 from swsscommon.swsscommon import SonicV2Connector
 
 
@@ -80,7 +80,7 @@ class Tunnelstat(object):
                 counter_data =  self.db.get(self.db.COUNTERS_DB, full_table_id, counter_name)
                 if counter_data:
                     fields[pos] = str(counter_data)
-            cntr = NStats._make(fields)
+            cntr = NStats._make(fields)._asdict()
             return cntr
 
         def get_rates(table_id):
@@ -149,8 +149,8 @@ class Tunnelstat(object):
                 continue
 
             rates = ratestat_dict.get(key, RateStats._make([STATUS_NA] * len(rates_key_list)))
-            table.append((key, data.rx_p_ok, data.rx_b_ok, format_prate(rates.rx_pps),
-                               data.tx_p_ok, data.tx_b_ok, format_prate(rates.tx_pps)))
+            table.append((key, data['rx_p_ok'], data['rx_b_ok'], format_prate(rates.rx_pps),
+                               data['tx_p_ok'], data['tx_b_ok'], format_prate(rates.tx_pps)))
 
         if use_json:
             print(table_as_json(table, header))
@@ -175,19 +175,19 @@ class Tunnelstat(object):
             rates = ratestat_dict.get(key, RateStats._make([STATUS_NA] * len(rates_key_list)))
             if old_cntr is not None:
                 table.append((key,
-                            ns_diff(cntr.rx_p_ok, old_cntr.rx_p_ok),
-                            ns_diff(cntr.rx_b_ok, old_cntr.rx_b_ok),
+                            ns_diff(cntr['rx_p_ok'], old_cntr['rx_p_ok']),
+                            ns_diff(cntr['rx_b_ok'], old_cntr['rx_b_ok']),
                             format_prate(rates.rx_pps),
-                            ns_diff(cntr.tx_p_ok, old_cntr.tx_p_ok),
-                            ns_diff(cntr.tx_b_ok, old_cntr.tx_b_ok),
+                            ns_diff(cntr['tx_p_ok'], old_cntr['tx_p_ok']),
+                            ns_diff(cntr['tx_b_ok'], old_cntr['tx_b_ok']),
                             format_prate(rates.tx_pps)))
             else:
                 table.append((key,
-                            cntr.rx_p_ok,
-                            cntr.rx_b_ok,
+                            cntr['rx_p_ok'],
+                            cntr['rx_b_ok'],
                             format_prate(rates.rx_pps),
-                            cntr.tx_p_ok,
-                            cntr.tx_b_ok,
+                            cntr['tx_p_ok'],
+                            cntr['tx_b_ok'],
                             format_prate(rates.tx_pps)))
         if use_json:
             print(table_as_json(table, header))
@@ -210,12 +210,12 @@ class Tunnelstat(object):
         if cnstat_old_dict:
             old_cntr = cnstat_old_dict.get(tunnel)
             if old_cntr:
-                body = body % (ns_diff(cntr.rx_p_ok, old_cntr.rx_p_ok),
-                            ns_diff(cntr.rx_b_ok, old_cntr.rx_b_ok),
-                            ns_diff(cntr.tx_p_ok, old_cntr.tx_p_ok),
-                            ns_diff(cntr.tx_b_ok, old_cntr.tx_b_ok))
+                body = body % (ns_diff(cntr['rx_p_ok'], old_cntr['rx_p_ok']),
+                            ns_diff(cntr['rx_b_ok'], old_cntr['rx_b_ok']),
+                            ns_diff(cntr['tx_p_ok'], old_cntr['tx_p_ok']),
+                            ns_diff(cntr['tx_b_ok'], old_cntr['tx_b_ok']))
         else:
-            body = body % (cntr.rx_p_ok, cntr.rx_b_ok, cntr.tx_p_ok, cntr.tx_b_ok)
+            body = body % (cntr['rx_p_ok'], cntr['rx_b_ok'], cntr['tx_p_ok'], cntr['tx_b_ok'])
 
         print(header)
         print(body)
@@ -273,7 +273,7 @@ def main():
 
     if save_fresh_stats:
         try:
-            pickle.dump(cnstat_dict, open(cnstat_fqn_file, 'wb'))
+            json.dump(cnstat_dict, open(cnstat_fqn_file, 'w'), default=json_serial)
         except IOError as e:
             sys.exit(e.errno)
         else:
@@ -283,7 +283,7 @@ def main():
     if wait_time_in_seconds == 0:
         if os.path.isfile(cnstat_fqn_file):
             try:
-                cnstat_cached_dict = pickle.load(open(cnstat_fqn_file, 'rb'))
+                cnstat_cached_dict = json.load(open(cnstat_fqn_file, 'r'))
                 print("Last cached time was " + str(cnstat_cached_dict.get('time')))
                 if tunnel_name:
                     tunnelstat.cnstat_single_tunnel(tunnel_name, cnstat_dict, cnstat_cached_dict)
