@@ -1906,10 +1906,10 @@ def override_config_table(db, input_config_db, dry_run):
                 ns_config_input = config_input["localhost"]
             else:
                 ns_config_input = config_input[ns]
-            # Generate sysinfo if missing in ns_config_input
-            generate_sysinfo(current_config, ns_config_input, ns)
         else:
             ns_config_input = config_input
+        # Generate sysinfo if missing in ns_config_input
+        generate_sysinfo(current_config, ns_config_input, ns)
         updated_config = update_config(current_config, ns_config_input)
 
         yang_enabled = device_info.is_yang_config_validation_enabled(config_db)
