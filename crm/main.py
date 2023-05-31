@@ -3,11 +3,38 @@
 import click
 from swsscommon.swsscommon import ConfigDBConnector
 from tabulate import tabulate
-
 from sonic_py_common import multi_asic
 from utilities_common.general import load_db_config
 from utilities_common import multi_asic as multi_asic_util
+
+from sonic_py_common import device_info
+
+from .dash_config import config_dash
+from .dash_show import show_dash
+
+
+platform_info = device_info.get_platform_info()
+
+
 class Crm:
+
+    thresholds = (
+        "ipv4_route", "ipv6_route", "ipv4_nexthop", "ipv6_nexthop", "ipv4_neighbor", "ipv6_neighbor",
+        "nexthop_group_member", "nexthop_group", "acl_table", "acl_group", "acl_entry",
+        "acl_counter", "fdb_entry", "ipmc_entry", "snat_entry", "dnat_entry", "mpls_inseg",
+        "mpls_nexthop","srv6_nexthop", "srv6_my_sid_entry"
+    )
+
+    resources = (
+        "ipv4_route", "ipv6_route", "ipv4_nexthop", "ipv6_nexthop", "ipv4_neighbor", "ipv6_neighbor",
+        "nexthop_group_member", "nexthop_group", "fdb_entry", "ipmc_entry", "snat_entry", "dnat_entry",
+        "mpls_inseg", "mpls_nexthop","srv6_nexthop", "srv6_my_sid_entry"
+    )
+
+    acl_resources = (
+        "acl_table", "acl_group", "acl_entry", "acl_counter"
+    )
+
     def __init__(self, db=None):
         self.cli_mode = None
         self.addr_family = None
@@ -15,6 +42,12 @@ class Crm:
         self.db = None
         self.cfgdb = db
         self.multi_asic = multi_asic_util.MultiAsic()
+
+    def get_thresholds_list(self):
+        return list(self.thresholds)
+
+    def get_resources_list(self):
+        return list(self.resources)
 
     @multi_asic_util.run_on_multi_asic
     def config(self, attr, val):
@@ -53,7 +86,6 @@ class Crm:
         """
         CRM Handler to display thresholds information.
         """
-
         configdb = self.cfgdb
         if configdb is None:
             # Get the namespace list
@@ -69,10 +101,7 @@ class Crm:
 
         if crm_info:
             if resource == 'all':
-                for res in ["ipv4_route", "ipv6_route", "ipv4_nexthop", "ipv6_nexthop", "ipv4_neighbor", "ipv6_neighbor",
-                            "nexthop_group_member", "nexthop_group", "acl_table", "acl_group", "acl_entry",
-                            "acl_counter", "fdb_entry", "ipmc_entry", "snat_entry", "dnat_entry", "mpls_inseg",
-                            "mpls_nexthop","srv6_nexthop", "srv6_my_sid_entry"]:
+                for res in self.get_thresholds_list():
                     try:
                         data.append([res, crm_info[res + "_threshold_type"], crm_info[res + "_low_threshold"], crm_info[res + "_high_threshold"]])
                     except KeyError:
@@ -98,9 +127,7 @@ class Crm:
 
         if crm_stats:
             if resource == 'all':
-                for res in ["ipv4_route", "ipv6_route", "ipv4_nexthop", "ipv6_nexthop", "ipv4_neighbor", "ipv6_neighbor",
-                            "nexthop_group_member", "nexthop_group", "fdb_entry", "ipmc_entry", "snat_entry", "dnat_entry",
-                            "mpls_inseg", "mpls_nexthop","srv6_nexthop", "srv6_my_sid_entry"]:
+                for res in self.get_resources_list():
                     if 'crm_stats_' + res + "_used" in crm_stats.keys() and 'crm_stats_' + res + "_available" in crm_stats.keys():
                         data.append([res, crm_stats['crm_stats_' + res + "_used"], crm_stats['crm_stats_' + res + "_available"]])
             else:
@@ -205,6 +232,83 @@ class Crm:
         click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
         click.echo()
 
+    def show_all_thresholds(self):
+        self.show_thresholds('all')
+
+    def show_all_resources(self):
+        self.show_resources('all')
+        self.show_acl_resources()
+        self.show_acl_table_resources()
+
+
+class DashCrm(Crm):
+
+    dash_resources = (
+        "dash_vnet", "dash_eni", "dash_eni_ether_address_map", "dash_ipv4_inbound_routing", "dash_ipv6_inbound_routing",
+        "dash_ipv4_outbound_routing", "dash_ipv6_outbound_routing", "dash_ipv4_pa_validation", "dash_ipv6_pa_validation",
+        "dash_ipv4_outbound_ca_to_pa", "dash_ipv6_outbound_ca_to_pa", "dash_ipv4_acl_group","dash_ipv6_acl_group"
+        )
+
+    dash_acl_group_resources = (
+        "dash_ipv4_acl_rule", "dash_ipv6_acl_rule"
+        )
+
+    dash_thresholds = dash_resources + dash_acl_group_resources
+
+    def __init__(self, *args, **kwargs):
+        self.direction = None
+
+        super().__init__(*args, *kwargs)
+
+    def get_thresholds_list(self):
+        thresholds = super().get_thresholds_list()
+        thresholds.extend(self.dash_thresholds)
+        return list(thresholds)
+
+    def get_resources_list(self):
+        resources = super().get_resources_list()
+        resources.extend(self.dash_resources)
+        return list(resources)
+
+    def show_all_resources(self):
+        super().show_all_resources()
+        self.show_acl_group_resources()
+
+    def get_dash_acl_group_resources(self, resource=None):
+        # Retrieve all ACL table keys from CRM:ACL_TABLE_STATS
+        crm_acl_keys = self.db.keys(self.db.COUNTERS_DB, 'CRM:DASH_ACL_GROUP_STATS*')
+        data = []
+
+        for key in crm_acl_keys:
+            id = key.replace('CRM:DASH_ACL_GROUP_STATS:', '')
+
+            crm_stats = self.db.get_all(self.db.COUNTERS_DB, key)
+
+            query = [resource] if resource else self.dash_acl_group_resources
+            for res in query:
+                used = f'crm_stats_{res}_used'
+                available = f'crm_stats_{res}_available'
+                if used in crm_stats and available in crm_stats:
+                    data.append([id, res, crm_stats[used], crm_stats[available]])
+
+        return data
+
+    @multi_asic_util.run_on_multi_asic
+    def show_acl_group_resources(self, resource=None):
+        if self.multi_asic.is_multi_asic:
+            click.echo('\nError! Could not get CRM configuration.\n')
+            return
+
+        header = ("DASH ACL Group ID", "Resource Name", "Used Count", "Available Count")
+
+        data = []
+        data = self.get_dash_acl_group_resources(resource)
+
+        click.echo()
+        click.echo(tabulate(data, headers=header, tablefmt="simple", missingval=""))
+        click.echo()
+
+
 @click.group()
 @click.pass_context
 def cli(ctx):
@@ -217,8 +321,13 @@ def cli(ctx):
     # Load database config files
     load_db_config()
 
+    if device_info.get_platform_info().get('switch_type') == "dpu":
+        crm = DashCrm(db)
+    else:
+        crm = Crm(db)
+
     context = {
-        "crm": Crm(db)
+        "crm": crm
     }
 
     ctx.obj = context
@@ -290,7 +399,7 @@ def nexthop(ctx):
     """CRM configuration for nexthop resource"""
     ctx.obj["crm"].res_type = 'nexthop'
 
-@route.command()
+@click.command()
 @click.argument('value', type=click.Choice(['percentage', 'used', 'free']))
 @click.pass_context
 def type(ctx, value):
@@ -304,7 +413,7 @@ def type(ctx, value):
 
     ctx.obj["crm"].config(attr, value)
 
-@route.command()
+@click.command()
 @click.argument('value', type=click.INT)
 @click.pass_context
 def low(ctx, value):
@@ -318,7 +427,7 @@ def low(ctx, value):
 
     ctx.obj["crm"].config(attr, value)
 
-@route.command()
+@click.command()
 @click.argument('value', type=click.INT)
 @click.pass_context
 def high(ctx, value):
@@ -332,6 +441,9 @@ def high(ctx, value):
 
     ctx.obj["crm"].config(attr, value)
 
+route.add_command(type)
+route.add_command(low)
+route.add_command(high)
 neighbor.add_command(type)
 neighbor.add_command(low)
 neighbor.add_command(high)
@@ -480,6 +592,9 @@ srv6_my_sid_entry.add_command(type)
 srv6_my_sid_entry.add_command(low)
 srv6_my_sid_entry.add_command(high)
 
+if device_info.get_platform_info().get('switch_type') == "dpu":
+    thresholds.add_command(config_dash)
+
 @cli.group()
 @click.pass_context
 def show(ctx):
@@ -509,11 +624,9 @@ def thresholds(ctx):
 def all(ctx):
     """Show CRM information for all resources"""
     if ctx.obj["crm"].cli_mode == 'thresholds':
-        ctx.obj["crm"].show_thresholds('all')
+        ctx.obj["crm"].show_all_thresholds()
     elif ctx.obj["crm"].cli_mode == 'resources':
-        ctx.obj["crm"].show_resources('all')
-        ctx.obj["crm"].show_acl_resources()
-        ctx.obj["crm"].show_acl_table_resources()
+        ctx.obj["crm"].show_all_resources()
 
 @resources.group()
 @click.pass_context
@@ -695,6 +808,9 @@ thresholds.add_command(dnat)
 thresholds.add_command(srv6_nexthop)
 thresholds.add_command(srv6_my_sid_entry)
 
+if device_info.get_platform_info().get('switch_type') == "dpu":
+    resources.add_command(show_dash)
+    thresholds.add_command(show_dash)
 
 if __name__ == '__main__':
     cli()
