@@ -1,6 +1,7 @@
 #!/usr/sbin/env python
 
 import click
+import datetime
 import ipaddress
 import json
 import jsonpatch
@@ -7102,6 +7103,68 @@ def del_subinterface(ctx, subinterface_name):
         config_db.set_entry('VLAN_SUB_INTERFACE', subinterface_name, None)
     except JsonPatchConflict as e:
         ctx.fail("{} is invalid vlan subinterface. Error: {}".format(subinterface_name, e))
+
+
+#
+# 'clock' group ('config clock ...')
+#
+@config.group()
+def clock():
+    """Configuring system clock"""
+    pass
+
+
+def get_tzs(ctx, args, incomplete):
+    ret = clicommon.run_command('timedatectl list-timezones',
+                                display_cmd=False, ignore_error=False,
+                                return_cmd=True)
+    if len(ret) == 0:
+        return []
+
+    lst = ret[0].split('\n')
+    return [k for k in lst if incomplete in k]
+
+
+@clock.command()
+@click.argument('timezone', metavar='<timezone_name>', required=True,
+                autocompletion=get_tzs)
+def timezone(timezone):
+    """Set system timezone"""
+
+    if timezone not in get_tzs(None, None, ''):
+        click.echo(f'Timezone {timezone} does not conform format')
+        sys.exit(1)
+
+    config_db = ConfigDBConnector()
+    config_db.connect()
+    config_db.mod_entry(swsscommon.CFG_DEVICE_METADATA_TABLE_NAME, 'localhost',
+                        {'timezone': timezone})
+
+
+@clock.command()
+@click.argument('date', metavar='<YYYY-MM-DD>', required=True)
+@click.argument('time', metavar='<HH:MM:SS>', required=True)
+def date(date, time):
+    """Set system date and time"""
+    valid = True
+    try:
+        datetime.datetime.strptime(date, '%Y-%m-%d')
+    except ValueError:
+        click.echo(f'Date {date} does not conform format YYYY-MM-DD')
+        valid = False
+
+    try:
+        datetime.datetime.strptime(time, '%H:%M:%S')
+    except ValueError:
+        click.echo(f'Time {time} does not conform format HH:MM:SS')
+        valid = False
+
+    if not valid:
+        sys.exit(1)
+
+    date_time = f'{date} {time}'
+    clicommon.run_command(['timedatectl', 'set-time', date_time])
+
 
 if __name__ == '__main__':
     config()

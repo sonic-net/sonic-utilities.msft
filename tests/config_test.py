@@ -2363,3 +2363,65 @@ class TestConfigInterface(object):
     def teardown(self):
         print("TEARDOWN")
 
+
+class TestConfigClock(object):
+    timezone_test_val = ['Europe/Kyiv', 'Asia/Israel', 'UTC']
+
+    @classmethod
+    def setup_class(cls):
+        print('SETUP')
+        import config.main
+        importlib.reload(config.main)
+
+    @patch('config.main.get_tzs', mock.Mock(return_value=timezone_test_val))
+    def test_timezone_good(self):
+        runner = CliRunner()
+        obj = {'db': Db().cfgdb}
+
+        result = runner.invoke(
+            config.config.commands['clock'].commands['timezone'],
+            ['UTC'], obj=obj)
+
+        assert result.exit_code == 0
+
+    @patch('config.main.get_tzs', mock.Mock(return_value=timezone_test_val))
+    def test_timezone_bad(self):
+        runner = CliRunner()
+        obj = {'db': Db().cfgdb}
+
+        result = runner.invoke(
+            config.config.commands['clock'].commands['timezone'],
+            ['Atlantis'], obj=obj)
+
+        assert result.exit_code != 0
+        assert 'Timezone Atlantis does not conform format' in result.output
+
+    @patch('utilities_common.cli.run_command',
+           mock.MagicMock(side_effect=mock_run_command_side_effect))
+    def test_date_good(self):
+        runner = CliRunner()
+        obj = {'db': Db().cfgdb}
+
+        result = runner.invoke(
+            config.config.commands['clock'].commands['date'],
+            ['2020-10-10', '10:20:30'], obj=obj)
+
+        assert result.exit_code == 0
+
+    @patch('utilities_common.cli.run_command',
+           mock.MagicMock(side_effect=mock_run_command_side_effect))
+    def test_date_bad(self):
+        runner = CliRunner()
+        obj = {'db': Db().cfgdb}
+
+        result = runner.invoke(
+            config.config.commands['clock'].commands['date'],
+            ['20-10-10', '60:70:80'], obj=obj)
+
+        assert result.exit_code != 0
+        assert 'Date 20-10-10 does not conform format' in result.output
+        assert 'Time 60:70:80 does not conform format' in result.output
+
+    @classmethod
+    def teardown_class(cls):
+        print('TEARDOWN')

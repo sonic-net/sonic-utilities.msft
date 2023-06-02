@@ -927,6 +927,15 @@ class TestShow(object):
         mock_run_command.assert_called_with(['date'], display_cmd=True)
 
     @patch('show.main.run_command')
+    def test_show_timezone(self, mock_run_command):
+        runner = CliRunner()
+        result = runner.invoke(
+            show.cli.commands['clock'].commands['timezones'], ['--verbose'])
+        assert result.exit_code == 0
+        mock_run_command.assert_called_once_with(
+            ['timedatectl', 'list-timezones'], display_cmd=True)
+
+    @patch('show.main.run_command')
     def test_show_system_memory(self, mock_run_command):
         runner = CliRunner()
         result = runner.invoke(show.cli.commands['system-memory'], ['--verbose'])

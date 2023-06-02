@@ -543,6 +543,62 @@ This command displays the current date and time configured on the system
   Mon Mar 25 20:25:16 UTC 2019
   ```
 
+**config clock date**
+	
+This command will set the date-time of the systetm, given strings with date-time format <YYYY-MM-DD> <HH:MM:SS>
+
+- Usage:
+  ```
+  config clock date <YYYY-MM-DD> <HH:MM:SS>
+  ```
+
+- Parameters:
+  - _date_: valid date in format YYYY-MM-DD
+  - _time_: valid time in format HH:MM:SS
+
+- Example:
+  ```
+  admin@sonic:~$ config clock date 2023-04-10 13:54:36
+  ```
+
+**config clock timezone**
+	
+This command will set the timezone of the systetm, given a string of a valid timezone.
+
+- Usage:
+  ```
+  config clock timezone <timezone>
+  ```
+
+- Parameters:
+  - _timezone_: valid timezone to be configured
+	
+	
+- Example:
+  ```
+  admin@sonic:~$ config clock timezone Africa/Accra
+
+	
+**show clock timezones**
+
+This command Will display list of all valid timezones to be configured.
+
+- Usage:
+  ```
+  show clock timezones
+  ```
+
+- Example:
+  ```
+  root@host:~$ show clock timezones
+  Africa/Abidjan
+  Africa/Accra
+  Africa/Addis_Ababa
+  Africa/Algiers
+  Africa/Asmara
+  ...
+  ```
+
 **show boot**
 
 This command displays the current OS image, the image to be loaded on next reboot, and lists all the available images installed on the device
