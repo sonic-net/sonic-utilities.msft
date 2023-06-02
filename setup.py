@@ -165,6 +165,7 @@ setup(
         'scripts/soft-reboot',
         'scripts/storyteller',
         'scripts/syseeprom-to-json',
+        'scripts/teamd_increase_retry_count.py',
         'scripts/tempershow',
         'scripts/tunnelstat',
         'scripts/update_json.py',

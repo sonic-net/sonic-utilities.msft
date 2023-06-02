@@ -31,6 +31,7 @@ TAG_LATEST=yes
 DETACH=no
 LOG_PATH="/var/log/${REBOOT_TYPE}.txt"
 UIMAGE_HDR_SIZE=64
+REQUIRE_TEAMD_RETRY_COUNT=no
 
 # Require 100M available on the hard drive for warm reboot temp files,
 # Size is in 1K blocks:
@@ -48,6 +49,7 @@ EXIT_DB_INTEGRITY_FAILURE=15
 EXIT_NO_CONTROL_PLANE_ASSISTANT=20
 EXIT_SONIC_INSTALLER_VERIFY_REBOOT=21
 EXIT_PLATFORM_FW_AU_FAILURE=22
+EXIT_TEAMD_RETRY_COUNT_FAILURE=23
 
 function error()
 {
@@ -79,13 +81,15 @@ function showHelpAndExit()
     echo "    -t    : Don't tag the current kube images as latest"
     echo "    -D    : detached mode - closing terminal will not cause stopping reboot"
     echo "    -u    : include ssd-upgrader-part in boot options"
+    echo "    -n    : don't require peer devices to be running SONiC with retry count feature [default]"
+    echo "    -N    : require peer devices to be running SONiC with retry count feature"
 
     exit "${EXIT_SUCCESS}"
 }
 
 function parseOptions()
 {
-    while getopts "vfidh?rkxc:sDu" opt; do #TODO "t" is missing
+    while getopts "vfidh?rkxc:sDunN" opt; do #TODO "t" is missing
         case ${opt} in
             h|\? )
                 showHelpAndExit
@@ -125,6 +129,12 @@ function parseOptions()
                 ;;
             u )
                 SSD_FW_UPDATE_BOOT_OPTION=yes
+                ;;
+            n )
+                REQUIRE_TEAMD_RETRY_COUNT=no
+                ;;
+            N )
+                REQUIRE_TEAMD_RETRY_COUNT=yes
                 ;;
         esac
     done
@@ -636,6 +646,22 @@ init_warm_reboot_states
 
 setup_control_plane_assistant
 
+TEAMD_INCREASE_RETRY_COUNT=0
+if [[ "${REBOOT_TYPE}" = "warm-reboot" || "${REBOOT_TYPE}" = "fastfast-reboot" ]]; then
+    TEAMD_RETRY_COUNT_PROBE_RC=0
+    /usr/local/bin/teamd_increase_retry_count.py --probe-only || TEAMD_RETRY_COUNT_PROBE_RC=$?
+    if [[ ${TEAMD_RETRY_COUNT_PROBE_RC} -ne 0 ]]; then
+        if [[ "${REQUIRE_TEAMD_RETRY_COUNT}" = "yes" ]]; then
+            error "Could not confirm that all neighbor devices are running SONiC with the retry count feature"
+            exit "${EXIT_TEAMD_RETRY_COUNT_FAILURE}"
+        else
+            debug "Warning: Retry count feature support unknown for one or more neighbor devices; assuming that it's not available"
+        fi
+    else
+        TEAMD_INCREASE_RETRY_COUNT=1
+    fi
+fi
+
 if [[ "$REBOOT_TYPE" = "warm-reboot" || "$REBOOT_TYPE" = "fastfast-reboot" || "$REBOOT_TYPE" = "fast-reboot" ]]; then
     # Freeze orchagent for warm restart
     # Ask orchagent_restart_check to try freeze 5 times with interval of 2 seconds,
@@ -662,6 +688,10 @@ if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
         unload_kernel
         exit "${EXIT_COUNTERPOLL_DELAY_FAILURE}"
     fi
+fi
+
+if [[ ( "${REBOOT_TYPE}" = "warm-reboot" || "${REBOOT_TYPE}" = "fastfast-reboot" ) && "${TEAMD_INCREASE_RETRY_COUNT}" -eq 1 ]]; then
+    /usr/local/bin/teamd_increase_retry_count.py
 fi
 
 # We are fully committed to reboot from this point on because critical

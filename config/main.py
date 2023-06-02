@@ -2281,6 +2281,93 @@ def del_portchannel_member(ctx, portchannel_name, port_name):
     except JsonPatchConflict:
         ctx.fail("Invalid or nonexistent portchannel or interface. Please ensure existence of portchannel member.")
 
+@portchannel.group(cls=clicommon.AbbreviationGroup, name='retry-count')
+@click.pass_context
+def portchannel_retry_count(ctx):
+    pass
+
+def check_if_retry_count_is_enabled(ctx, portchannel_name):
+    try:
+        proc = subprocess.Popen(["teamdctl", portchannel_name, "state", "item", "get", "runner.enable_retry_count_feature"], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, err = proc.communicate(timeout=10)
+        if proc.returncode != 0:
+            ctx.fail("Unable to determine if the retry count feature is enabled or not: {}".format(err.strip()))
+        return output.strip() == "true"
+    except subprocess.TimeoutExpired as e:
+        proc.kill()
+        proc.communicate()
+        ctx.fail("Unable to determine if the retry count feature is enabled or not: {}".format(e))
+
+@portchannel_retry_count.command('get')
+@click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
+@click.pass_context
+def get_portchannel_retry_count(ctx, portchannel_name):
+    """Get the retry count for a port channel"""
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
+
+    # Don't proceed if the port channel name is not valid
+    if is_portchannel_name_valid(portchannel_name) is False:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
+    # Don't proceed if the port channel does not exist
+    if is_portchannel_present_in_db(db, portchannel_name) is False:
+        ctx.fail("{} is not present.".format(portchannel_name))
+
+    try:
+        is_retry_count_enabled = check_if_retry_count_is_enabled(ctx, portchannel_name)
+        if not is_retry_count_enabled:
+            ctx.fail("Retry count feature is not enabled!")
+
+        proc = subprocess.Popen(["teamdctl", portchannel_name, "state", "item", "get", "runner.retry_count"], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, err = proc.communicate(timeout=10)
+        if proc.returncode != 0:
+            ctx.fail("Unable to get the retry count: {}".format(err.strip()))
+        click.echo(output.strip())
+    except FileNotFoundError:
+        ctx.fail("Unable to get the retry count: teamdctl could not be run")
+    except subprocess.TimeoutExpired as e:
+        proc.kill()
+        proc.communicate()
+        ctx.fail("Unable to get the retry count: {}".format(e))
+    except Exception as e:
+        ctx.fail("Unable to get the retry count: {}".format(e))
+
+@portchannel_retry_count.command('set')
+@click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
+@click.argument('retry_count', metavar='<retry_count>', required=True, type=click.IntRange(3,10))
+@click.pass_context
+def set_portchannel_retry_count(ctx, portchannel_name, retry_count):
+    """Set the retry count for a port channel"""
+    db = ValidatedConfigDBConnector(ctx.obj['db'])
+
+    # Don't proceed if the port channel name is not valid
+    if is_portchannel_name_valid(portchannel_name) is False:
+        ctx.fail("{} is invalid!, name should have prefix '{}' and suffix '{}'"
+                .format(portchannel_name, CFG_PORTCHANNEL_PREFIX, CFG_PORTCHANNEL_NO))
+
+    # Don't proceed if the port channel does not exist
+    if is_portchannel_present_in_db(db, portchannel_name) is False:
+        ctx.fail("{} is not present.".format(portchannel_name))
+
+    try:
+        is_retry_count_enabled = check_if_retry_count_is_enabled(ctx, portchannel_name)
+        if not is_retry_count_enabled:
+            ctx.fail("Retry count feature is not enabled!")
+
+        proc = subprocess.Popen(["teamdctl", portchannel_name, "state", "item", "set", "runner.retry_count", str(retry_count)], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, err = proc.communicate(timeout=10)
+        if proc.returncode != 0:
+            ctx.fail("Unable to set the retry count: {}".format(err.strip()))
+    except FileNotFoundError:
+        ctx.fail("Unable to set the retry count: teamdctl could not be run")
+    except subprocess.TimeoutExpired as e:
+        proc.kill()
+        proc.communicate()
+        ctx.fail("Unable to set the retry count: {}".format(e))
+    except Exception as e:
+        ctx.fail("Unable to set the retry count: {}".format(e))
+
 
 #
 # 'mirror_session' group ('config mirror_session ...')
