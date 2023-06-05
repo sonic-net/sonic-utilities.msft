@@ -556,6 +556,17 @@
         "type": "L3",
         "stage": "ingress"
     },
+  "ACL_TABLE|DATAACLV4V6": {
+    "expireat": 1602451533.237415,
+    "ttl": -0.001,
+    "type": "hash",
+    "value": {
+      "policy_desc": "DATAACLV4V6",
+      "ports@": "PortChannel0002,PortChannel0005,PortChannel0008,PortChannel0011,PortChannel0014,PortChannel0017,PortChannel0020,PortChannel0023,Ethernet64,Ethernet68,Ethernet72,Ethernet76,Ethernet80,Ethernet84,Ethernet88,Ethernet92,Ethernet96,Ethernet100,Ethernet104,Ethernet108,Ethernet112,Ethernet116,Ethernet120,Ethernet124",
+      "stage": "ingress",
+      "type": "L3V4V6"
+    }
+  },
     "ACL_TABLE|EVERFLOW": {
         "policy_desc": "EVERFLOW",
         "ports@": "PortChannel0002,PortChannel0005,PortChannel0008,PortChannel0011,PortChannel0014,PortChannel0017,PortChannel0020,PortChannel0023,Ethernet100,Ethernet104,Ethernet92,Ethernet96,Ethernet84,Ethernet88,Ethernet76,Ethernet80,Ethernet108,Ethernet112,Ethernet64,Ethernet120,Ethernet116,Ethernet124,Ethernet72,Ethernet68",

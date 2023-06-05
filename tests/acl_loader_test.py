@@ -21,7 +21,7 @@ class TestAclLoader(object):
 
     def test_valid(self):
         yang_acl = AclLoader.parse_acl_json(os.path.join(test_path, 'acl_input/acl1.json'))
-        assert len(yang_acl.acl.acl_sets.acl_set) == 8
+        assert len(yang_acl.acl.acl_sets.acl_set) == 9
 
     def test_invalid(self):
         with pytest.raises(AclLoaderException):
@@ -95,6 +95,42 @@ class TestAclLoader(object):
             "PRIORITY": "9997"
         }
 
+    def test_v4_rule_inv4v6_table(self, acl_loader):
+        acl_loader.rules_info = {}
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl1.json'))
+        assert acl_loader.rules_info[("DATAACLV4V6", "RULE_1")]
+        assert acl_loader.rules_info[("DATAACLV4V6", "RULE_1")] == {
+            "VLAN_ID": 369,
+            "ETHER_TYPE": 2048,
+            "IP_PROTOCOL": 6,
+            "SRC_IP": "20.0.0.2/32",
+            "DST_IP": "30.0.0.3/32",
+            "PACKET_ACTION": "FORWARD",
+            "PRIORITY": "9999"
+        }
+
+    def test_v6_rule_inv4v6_table(self, acl_loader):
+        acl_loader.rules_info = {}
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl1.json'))
+        assert acl_loader.rules_info[("DATAACLV4V6", "RULE_2")]
+        assert acl_loader.rules_info[("DATAACLV4V6", "RULE_2")] == {
+            "ETHER_TYPE": 34525,
+            "IP_PROTOCOL": 58,
+            "SRC_IPV6": "::1/128",
+            "DST_IPV6": "::1/128",
+            "PACKET_ACTION": "FORWARD",
+            "PRIORITY": "9998",
+            'ICMPV6_CODE': 0,
+            'ICMPV6_TYPE': 1
+        }
+
+    def test_rule_without_ethertype_inv4v6(self, acl_loader):
+        acl_loader.rules_info = {}
+        acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/illegal_v4v6_rule_no_ethertype.json'))
+        assert not acl_loader.rules_info.get(("DATAACLV4V6", "RULE_1"))
+        assert acl_loader.rules_info[("DATAACLV4V6", "RULE_2")]
+        assert not acl_loader.rules_info.get(("DATAACLV4V6", "RULE_3"))
+
     def test_icmp_translation(self, acl_loader):
         acl_loader.rules_info = {}
         acl_loader.load_rules_from_file(os.path.join(test_path, 'acl_input/acl1.json'))
@@ -151,6 +187,12 @@ class TestAclLoader(object):
             'PACKET_ACTION': 'DROP',
             'IP_TYPE': 'IPV6ANY'
         }
+        assert acl_loader.rules_info[('DATAACLV4V6', 'DEFAULT_RULE')] == {
+            'PRIORITY': '1',
+            'PACKET_ACTION': 'DROP',
+            'IP_TYPE': 'IP'
+        }
+
         # Verify acl-loader doesn't add default deny rule to MIRROR
         assert ('EVERFLOW', 'DEFAULT_RULE') not in acl_loader.rules_info
         # Verify acl-loader doesn't add default deny rule to MIRRORV6

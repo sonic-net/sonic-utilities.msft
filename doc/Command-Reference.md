@@ -1861,7 +1861,7 @@ This command is used to create new ACL tables.
 
 - Parameters:
   - table_name: The name of the ACL table to create.
-  - table_type: The type of ACL table to create (e.g. "L3", "L3V6", "MIRROR")
+  - table_type: The type of ACL table to create (e.g. "L3", "L3V6", "L3V4V6", "MIRROR")
   - description: A description of the table for the user. (default is the table_name)
   - ports: A comma-separated list of ports/interfaces to add to the table. The behavior is as follows:
     - Physical ports will be bound as physical ports
