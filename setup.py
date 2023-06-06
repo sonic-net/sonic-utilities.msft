@@ -48,6 +48,7 @@ setup(
         'pddf_psuutil',
         'pddf_thermalutil',
         'pddf_ledutil',
+        'rcli',
         'show',
         'show.interfaces',
         'show.plugins',
@@ -177,6 +178,8 @@ setup(
             'pddf_psuutil = pddf_psuutil.main:cli',
             'pddf_thermalutil = pddf_thermalutil.main:cli',
             'pddf_ledutil = pddf_ledutil.main:cli',
+            'rexec = rcli.rexec:cli',
+            'rshell = rcli.rshell:cli',
             'show = show.main:cli',
             'sonic-clear = clear.main:cli',
             'sonic-installer = sonic_installer.main:sonic_installer',
@@ -189,7 +192,9 @@ setup(
         ]
     },
     install_requires=[
+        'bcrypt==3.2.2',
         'click==7.0',
+        'cryptography==3.3.2',
         'click-log>=0.3.2',
         'docker>=4.4.4',
         'docker-image-py>=0.1.10',
@@ -204,6 +209,7 @@ setup(
         'natsort>=6.2.1',  # 6.2.1 is the last version which supports Python 2. Can update once we no longer support Python 2
         'netaddr>=0.8.0',
         'netifaces>=0.10.7',
+        'paramiko==2.11.0',
         'pexpect>=4.8.0',
         'semantic-version>=2.8.5',
         'prettyprinter>=0.18.0',
