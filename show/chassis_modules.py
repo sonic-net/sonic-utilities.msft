@@ -12,6 +12,7 @@ CHASSIS_MODULE_INFO_DESC_FIELD = 'desc'
 CHASSIS_MODULE_INFO_SLOT_FIELD = 'slot'
 CHASSIS_MODULE_INFO_OPERSTATUS_FIELD = 'oper_status'
 CHASSIS_MODULE_INFO_ADMINSTATUS_FIELD = 'admin_status'
+CHASSIS_MODULE_INFO_SERIAL_FIELD = 'serial'
 
 CHASSIS_MIDPLANE_INFO_TABLE = 'CHASSIS_MIDPLANE_TABLE'
 CHASSIS_MIDPLANE_INFO_IP_FIELD = 'ip_address'
@@ -33,7 +34,7 @@ def modules():
 def status(db, chassis_module_name):
     """Show chassis-modules status"""
 
-    header = ['Name', 'Description', 'Physical-Slot', 'Oper-Status', 'Admin-Status']
+    header = ['Name', 'Description', 'Physical-Slot', 'Oper-Status', 'Admin-Status', 'Serial']
     chassis_cfg_table = db.cfgdb.get_table('CHASSIS_MODULE')
 
     state_db = SonicV2Connector(host="127.0.0.1")
@@ -59,13 +60,14 @@ def status(db, chassis_module_name):
         desc = data_dict[CHASSIS_MODULE_INFO_DESC_FIELD]
         slot = data_dict[CHASSIS_MODULE_INFO_SLOT_FIELD]
         oper_status = data_dict[CHASSIS_MODULE_INFO_OPERSTATUS_FIELD]
+        serial = data_dict[CHASSIS_MODULE_INFO_SERIAL_FIELD]
 
         admin_status = 'up'
         config_data = chassis_cfg_table.get(key_list[1])
         if config_data is not None:
             admin_status = config_data.get(CHASSIS_MODULE_INFO_ADMINSTATUS_FIELD)
 
-        table.append((key_list[1], desc, slot, oper_status, admin_status))
+        table.append((key_list[1], desc, slot, oper_status, admin_status, serial))
 
     if table:
         click.echo(tabulate(table, header, tablefmt='simple', stralign='right'))

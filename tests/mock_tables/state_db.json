@@ -1114,27 +1114,32 @@
     "CHASSIS_MODULE_TABLE|SUPERVISOR0": {
         "desc": "supervisor-card",
         "oper_status": "Online",
-        "slot": "16"
+        "slot": "16",
+        "serial": "RP1000101"
     },
     "CHASSIS_MODULE_TABLE|LINE-CARD0": {
         "desc": "line-card",
         "oper_status": "Empty",
-        "slot": "1"
+        "slot": "1",
+        "serial": "LC1000101"
     },
     "CHASSIS_MODULE_TABLE|LINE-CARD1": {
         "desc": "line-card",
         "oper_status": "Online",
-        "slot": "2"
+        "slot": "2",
+        "serial": "LC1000102"
     },
     "CHASSIS_MODULE_TABLE|FABRIC-CARD0": {
         "desc": "fabric-card",
         "oper_status": "Online",
-        "slot": "17"
+        "slot": "17",
+        "serial": "FC1000101"
     },
     "CHASSIS_MODULE_TABLE|FABRIC-CARD1": {
         "desc": "fabric-card",
         "oper_status": "Offline",
-        "slot": "18"
+        "slot": "18",
+        "serial": "FC1000102"
     },
     "MUX_CABLE_TABLE|Ethernet32": {
         "state": "active"

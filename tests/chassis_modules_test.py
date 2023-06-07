@@ -13,23 +13,23 @@ from utilities_common.db import Db
 from .utils import get_result_and_return_code
 
 show_linecard0_shutdown_output="""\
-LINE-CARD0 line-card 1 Empty down
+LINE-CARD0 line-card 1 Empty down LC1000101
 """
 
 show_linecard0_startup_output="""\
-LINE-CARD0 line-card 1 Empty up
+LINE-CARD0 line-card 1 Empty up LC1000101
 """
 header_lines = 2
 warning_lines = 0
 
 show_chassis_modules_output="""\
-        Name      Description    Physical-Slot    Oper-Status    Admin-Status
-------------  ---------------  ---------------  -------------  --------------
-FABRIC-CARD0      fabric-card               17         Online              up
-FABRIC-CARD1      fabric-card               18        Offline              up
-  LINE-CARD0        line-card                1          Empty              up
-  LINE-CARD1        line-card                2         Online            down
- SUPERVISOR0  supervisor-card               16         Online              up
+        Name      Description    Physical-Slot    Oper-Status    Admin-Status     Serial
+------------  ---------------  ---------------  -------------  --------------  ---------
+FABRIC-CARD0      fabric-card               17         Online              up  FC1000101
+FABRIC-CARD1      fabric-card               18        Offline              up  FC1000102
+  LINE-CARD0        line-card                1          Empty              up  LC1000101
+  LINE-CARD1        line-card                2         Online            down  LC1000102
+ SUPERVISOR0  supervisor-card               16         Online              up  RP1000101
 """
 
 show_chassis_midplane_output="""\
