@@ -1,11 +1,39 @@
+import sys
 import pytest
+import subprocess
 import sonic_installer.main as sonic_installer
+import sonic_installer.common as sonic_installer_common
 
 from click.testing import CliRunner
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, Mock
 
 SUCCESS = 0
 
+@patch("sonic_installer.main.subprocess.Popen")
+def test_get_container_image_id(mock_popen):
+    image_tag = 'abcde'
+
+    mock_proc = MagicMock()
+    attrs = {"communicate.return_value": ("output", "error")}
+    mock_proc.configure_mock(**attrs)
+    mock_popen.return_value = mock_proc
+
+    expected_call = ["docker", "images", "--format", '{{.ID}}', image_tag]
+    sonic_installer.get_container_image_id(image_tag)
+    mock_popen.assert_called_with(expected_call, stdout=subprocess.PIPE, text=True)
+
+@patch("sonic_installer.main.subprocess.Popen")
+def test_get_container_image_id_all(mock_popen):
+    image_name = 'abcde'
+
+    mock_proc = MagicMock()
+    attrs = {"communicate.return_value": ("output", "error")}
+    mock_proc.configure_mock(**attrs)
+    mock_popen.return_value = mock_proc
+
+    expected_call = ["docker", "images", "--format", '{{.ID}}', image_name]
+    sonic_installer.get_container_image_id_all(image_name)
+    mock_popen.assert_called_with(expected_call, stdout=subprocess.PIPE, text=True)
 
 @patch('sonic_installer.main.get_container_image_name', MagicMock(return_value='docker-fpm-frr'))
 @patch('sonic_installer.main.get_container_image_id_all', MagicMock(return_value=['1', '2']))
@@ -20,7 +48,7 @@ def test_rollback_docker_basic(mock_run_cmd):
         )
 
     assert result.exit_code == SUCCESS
-    expect_docker_tag_command = 'docker tag docker-fpm-frr:some_tag docker-fpm-frr:latest'
+    expect_docker_tag_command = ['docker', 'tag', 'docker-fpm-frr:some_tag', 'docker-fpm-frr:latest']
     mock_run_cmd.assert_called_with(expect_docker_tag_command)
 
     mock_run_cmd.reset()
@@ -29,7 +57,7 @@ def test_rollback_docker_basic(mock_run_cmd):
         )
 
     assert result.exit_code == SUCCESS
-    mock_run_cmd.assert_any_call('systemctl restart snmp')
+    mock_run_cmd.assert_any_call(['systemctl', 'restart', 'snmp'])
 
 
 @patch('sonic_installer.main.get_container_image_name', MagicMock(return_value='docker-fpm-frr'))

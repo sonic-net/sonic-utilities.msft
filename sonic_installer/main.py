@@ -10,7 +10,7 @@ from urllib.request import urlopen, urlretrieve
 import click
 from sonic_py_common import logger
 from swsscommon.swsscommon import SonicV2Connector
-
+from sonic_py_common.general import getstatusoutput_noshell_pipe
 from .bootloader import get_bootloader
 from .common import (
     run_command, run_command_or_raise,
@@ -122,8 +122,8 @@ def reporthook(count, block_size, total_size):
 # and extract tag name from docker image file.
 def get_docker_tag_name(image):
     # Try to get tag name from label metadata
-    cmd = "docker inspect --format '{{.ContainerConfig.Labels.Tag}}' " + image
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
+    cmd = ["docker", "inspect", "--format", '{{.ContainerConfig.Labels.Tag}}', image]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
     (out, _) = proc.communicate()
     if proc.returncode != 0:
         return "unknown"
@@ -171,33 +171,32 @@ def abort_if_false(ctx, param, value):
 
 def get_container_image_name(container_name):
     # example image: docker-lldp-sv2:latest
-    cmd = "docker inspect --format '{{.Config.Image}}' " + container_name
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
+    cmd = ["docker", "inspect", "--format", '{{.Config.Image}}', container_name]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
     (out, _) = proc.communicate()
     if proc.returncode != 0:
         sys.exit(proc.returncode)
     image_latest = out.rstrip()
 
     # example image_name: docker-lldp-sv2
-    cmd = "echo " + image_latest + " | cut -d ':' -f 1"
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
-    image_name = proc.stdout.read().rstrip()
+    _, stdout = getstatusoutput_noshell_pipe(["echo", image_latest], ["cut", "-d", ':', "-f", "1"])
+    image_name = stdout.rstrip()
     return image_name
 
 
 def get_container_image_id(image_tag):
     # TODO: extract commond docker info fetching functions
     # this is image_id for image with tag, like 'docker-teamd:latest'
-    cmd = "docker images --format '{{.ID}}' " + image_tag
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
+    cmd = ["docker", "images", "--format", '{{.ID}}', image_tag]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
     image_id = proc.stdout.read().rstrip()
     return image_id
 
 
 def get_container_image_id_all(image_name):
     # All images id under the image name like 'docker-teamd'
-    cmd = "docker images --format '{{.ID}}' " + image_name
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
+    cmd = ["docker", "images", "--format", '{{.ID}}', image_name]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
     image_id_all = proc.stdout.read()
     image_id_all = image_id_all.splitlines()
     image_id_all = set(image_id_all)
@@ -449,7 +448,8 @@ class SWAPAllocator(object):
         with open(swapfile, 'wb') as fd:
             os.posix_fallocate(fd.fileno(), 0, self.swap_mem_size * SWAPAllocator.MiB_TO_BYTES_FACTOR)
         os.chmod(swapfile, 0o600)
-        run_command(f'mkswap {swapfile}; swapon {swapfile}')
+        run_command(['mkswap', swapfile])
+        run_command(['swapon', swapfile])
 
     def remove_swapmem(self):
         swapfile = SWAPAllocator.SWAP_FILE_PATH
@@ -499,7 +499,7 @@ def validate_positive_int(ctx, param, value):
 def sonic_installer():
     """ SONiC image installation manager """
     if os.geteuid() != 0:
-        exit("Root privileges required for this operation")
+        sys.exit("Root privileges required for this operation")
 
     # Warn the user if they are calling the deprecated version of the command (with an underscore instead of a hyphen)
     if os.path.basename(sys.argv[0]) == "sonic_installer":
@@ -583,7 +583,7 @@ def install(url, force, skip_platform_check=False, skip_migration=False, skip_pa
         if skip_migration:
             echo_and_log("Skipping configuration migration as requested in the command option.")
         else:
-            run_command('config-setup backup')
+            run_command(['config-setup', 'backup'])
 
         update_sonic_environment(bootloader, binary_image_version)
 
@@ -595,8 +595,10 @@ def install(url, force, skip_platform_check=False, skip_migration=False, skip_pa
             migrate_sonic_packages(bootloader, binary_image_version)
 
     # Finally, sync filesystem
-    run_command("sync;sync;sync")
-    run_command("sleep 3")  # wait 3 seconds after sync
+    run_command(["sync"])
+    run_command(["sync"])
+    run_command(["sync"])
+    run_command(["sleep", "3"])  # wait 3 seconds after sync
     echo_and_log('Done')
 
 
@@ -801,12 +803,12 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
 
     if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
         if warm_configured is False and warm:
-            run_command("config warm_restart enable %s" % container_name)
+            run_command(["config", "warm_restart", "enable", "%s" % container_name])
 
     # Fetch tag of current running image
     tag_previous = get_docker_tag_name(image_latest)
     # Load the new image beforehand to shorten disruption time
-    run_command("docker load < %s" % image_path)
+    run_command(["docker", "load", "-i", "%s" % image_path])
     warm_app_names = []
     # warm restart specific procssing for swss, bgp and teamd dockers.
     if warm_configured is True or warm:
@@ -816,21 +818,21 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
             if skip_check:
                 skipPendingTaskCheck = " -s"
 
-            cmd = "docker exec -i swss orchagent_restart_check -w 2000 -r 5 " + skipPendingTaskCheck
+            cmd = ["docker", "exec", "-i", "swss", "orchagent_restart_check", "-w", "2000", "-r", "5", skipPendingTaskCheck]
 
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, text=True)
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
             (out, err) = proc.communicate()
             if proc.returncode != 0:
                 if not skip_check:
                     echo_and_log("Orchagent is not in clean state, RESTARTCHECK failed", LOG_ERR)
                     # Restore orignal config before exit
                     if warm_configured is False and warm:
-                        run_command("config warm_restart disable %s" % container_name)
+                        run_command(["config", "warm_restart", "disable", "%s" % container_name])
                     # Clean the image loaded earlier
                     image_id_latest = get_container_image_id(image_latest)
-                    run_command("docker rmi -f %s" % image_id_latest)
+                    run_command(["docker", "rmi", "-f", "%s" % image_id_latest])
                     # Re-point latest tag to previous tag
-                    run_command("docker tag %s:%s %s" % (image_name, tag_previous, image_latest))
+                    run_command(["docker", "tag", "%s:%s" % (image_name, tag_previous), "%s" % image_latest])
 
                     sys.exit(proc.returncode)
                 else:
@@ -843,8 +845,8 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
         elif container_name == "bgp":
             # Kill bgpd to restart the bgp graceful restart procedure
             echo_and_log("Stopping bgp ...")
-            run_command("docker exec -i bgp pkill -9 zebra")
-            run_command("docker exec -i bgp pkill -9 bgpd")
+            run_command(["docker", "exec", "-i", "bgp", "pkill", "-9", "zebra"])
+            run_command(["docker", "exec", "-i", "bgp", "pkill", "-9", "bgpd"])
             warm_app_names = ["bgp"]
             echo_and_log("Stopped  bgp ...")
 
@@ -852,7 +854,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
             echo_and_log("Stopping teamd ...")
             # Send USR1 signal to all teamd instances to stop them
             # It will prepare teamd for warm-reboot
-            run_command("docker exec -i teamd pkill -USR1 teamd > /dev/null")
+            run_command(["docker", "exec", "-i", "teamd", "pkill", "-USR1", "teamd"], stdout=subprocess.DEVNULL)
             warm_app_names = ["teamsyncd"]
             echo_and_log("Stopped  teamd ...")
 
@@ -860,13 +862,13 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
         for warm_app_name in warm_app_names:
             hdel_warm_restart_table("STATE_DB", "WARM_RESTART_TABLE", warm_app_name, "state")
 
-    run_command("docker kill %s > /dev/null" % container_name)
-    run_command("docker rm %s " % container_name)
+    run_command(["docker", "kill", "%s" % container_name], stdout=subprocess.DEVNULL)
+    run_command(["docker", "rm", "%s" % container_name])
     if tag is None:
         # example image: docker-lldp-sv2:latest
         tag = get_docker_tag_name(image_latest)
-    run_command("docker tag %s:latest %s:%s" % (image_name, image_name, tag))
-    run_command("systemctl restart %s" % container_name)
+    run_command(["docker", "tag", "%s:latest" % image_name, "%s:%s" % (image_name, tag)])
+    run_command(["systemctl", "restart", "%s" % container_name])
 
     if cleanup_image:
         # All images id under the image name
@@ -874,7 +876,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
         # Unless requested, the previoud docker image will be preserved
         for id in image_id_all:
             if id == image_id_previous:
-                run_command("docker rmi -f %s" % id)
+                run_command(["docker", "rmi", "-f", "%s" % id])
                 break
 
     exp_state = "reconciled"
@@ -902,7 +904,7 @@ def upgrade_docker(container_name, url, cleanup_image, skip_check, tag, warm):
     # Restore to previous cold restart setting
     if warm_configured is False and warm:
         if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
-            run_command("config warm_restart disable %s" % container_name)
+            run_command(["config", "warm_restart", "disable", container_name])
 
     if state == exp_state:
         echo_and_log('Done')
@@ -940,11 +942,11 @@ def rollback_docker(container_name):
             break
 
     # make previous image as latest
-    run_command("docker tag %s:%s %s:latest" % (image_name, version_tag, image_name))
+    run_command(["docker", "tag", "%s:%s" % (image_name, version_tag), "%s:latest" % (image_name)])
     if container_name == "swss" or container_name == "bgp" or container_name == "teamd":
         echo_and_log("Cold reboot is required to restore system state after '{}' rollback !!".format(container_name), LOG_ERR)
     else:
-        run_command("systemctl restart %s" % container_name)
+        run_command(["systemctl", "restart", container_name])
 
     echo_and_log('Done')
 

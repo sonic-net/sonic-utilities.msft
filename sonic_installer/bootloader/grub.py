@@ -51,19 +51,19 @@ class GrubBootloader(OnieInstallerBootloader):
 
     def set_default_image(self, image):
         images = self.get_installed_images()
-        command = 'grub-set-default --boot-directory=' + HOST_PATH + ' ' + str(images.index(image))
+        command = ['grub-set-default', '--boot-directory=' + HOST_PATH, str(images.index(image))]
         run_command(command)
         return True
 
     def set_next_image(self, image):
         images = self.get_installed_images()
-        command = 'grub-reboot --boot-directory=' + HOST_PATH + ' ' + str(images.index(image))
+        command = ['grub-reboot', '--boot-directory=' + HOST_PATH, str(images.index(image))]
         run_command(command)
         return True
 
     def install_image(self, image_path):
-        run_command("bash " + image_path)
-        run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
+        run_command(["bash", image_path])
+        run_command(['grub-set-default', '--boot-directory=' + HOST_PATH, '0'])
 
     def remove_image(self, image):
         click.echo('Updating GRUB...')
@@ -82,7 +82,7 @@ class GrubBootloader(OnieInstallerBootloader):
         subprocess.call(['rm','-rf', HOST_PATH + '/' + image_dir])
         click.echo('Done')
 
-        run_command('grub-set-default --boot-directory=' + HOST_PATH + ' 0')
+        run_command(['grub-set-default', '--boot-directory=' + HOST_PATH, '0'])
         click.echo('Image removed')
 
     def get_linux_cmdline(self, image):

@@ -58,7 +58,7 @@ class TestSWAPAllocator(object):
 
             mock_fallocate.assert_called_once_with(pseudo_fd_fileno, 0, expected_swap_mem_size_in_bytes)
             mock_chmod.assert_called_once_with(expected_swapfile_location, expected_swapfile_permission)
-            mock_run.assert_called_once_with(f'mkswap {expected_swapfile_location}; swapon {expected_swapfile_location}')
+            mock_run.assert_has_calls([mock.call(['mkswap', expected_swapfile_location]), mock.call(['swapon', expected_swapfile_location])])
 
     def test_remove_swapmem(self):
         with mock.patch("subprocess.Popen") as mock_popen, \

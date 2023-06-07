@@ -1,4 +1,5 @@
-from unittest.mock import Mock, patch
+import os
+from unittest.mock import Mock, patch, call
 
 # Import test module
 import sonic_installer.bootloader.aboot as aboot
@@ -52,6 +53,24 @@ def test_get_next_image(re_search_patch):
     # Test convertion image dir to image name
     re_search_patch().group = Mock(return_value=image_dir)
     assert bootloader.get_next_image() == exp_image
+
+def test_install_image():
+    image_path = 'sonic'
+    env = os.environ.copy()
+    env.update({
+        'swipath': image_path,
+        'target_path': '/host',
+        'sonic_upgrade': '1'
+    })
+
+    expected_calls = [
+        call(["/usr/bin/unzip", "-od", "/tmp", "%s" % image_path, "boot0"]),
+        call(["/bin/sh", "/tmp/boot0"], env=env)
+    ]
+    with patch('sonic_installer.bootloader.aboot.run_command') as mock_cmd:
+        bootloader = aboot.AbootBootloader()
+        bootloader.install_image(image_path)
+        mock_cmd.assert_has_calls(expected_calls)
 
 def test_set_fips_aboot():
     image = 'test-image'

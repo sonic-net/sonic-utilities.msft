@@ -1,8 +1,17 @@
 import os
+import sys
+import pytest
 from contextlib import contextmanager
 from sonic_installer.main import sonic_installer
 from click.testing import CliRunner
 from unittest.mock import patch, Mock, call
+import sonic_installer.common as sonic_installer_common
+
+
+def test_run_command():
+    with pytest.raises(SystemExit) as e:
+        output = sonic_installer_common.run_command([sys.executable, "-c", "import sys; sys.exit(6)"])
+    assert e.value.code == 6
 
 @patch("sonic_installer.main.SWAPAllocator")
 @patch("sonic_installer.main.get_bootloader")

@@ -8,7 +8,7 @@ import sys
 import signal
 
 import click
-
+from shlex import join
 from .exception import SonicRuntimeException
 
 HOST_PATH = '/host'
@@ -19,11 +19,20 @@ UPPERDIR_NAME = 'rw'
 WORKDIR_NAME = 'work'
 DOCKERDIR_NAME = 'docker'
 
-# Run bash command and print output to stdout
-def run_command(command):
-    click.echo(click.style("Command: ", fg='cyan') + click.style(command, fg='green'))
+def is_list_of_strings(command):
+    return isinstance(command, list) and all(isinstance(item, str) for item in command)
 
-    proc = subprocess.Popen(command, shell=True, text=True, stdout=subprocess.PIPE)
+# Run bash command and print output to stdout
+def run_command(command, stdout=subprocess.PIPE, env=None, shell=False):
+    if not is_list_of_strings(command):
+        sys.exit("Input command should be a list of strings")
+    if not shell:
+        command_str = join(command)
+    else:
+        command_str = command
+    click.echo(click.style("Command: ", fg='cyan') + click.style(command_str, fg='green'))
+
+    proc = subprocess.Popen(command, text=True, stdout=stdout, env=env, shell=shell)
     (out, _) = proc.communicate()
 
     click.echo(out)
