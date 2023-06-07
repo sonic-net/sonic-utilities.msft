@@ -12,6 +12,7 @@ import sys
 
 import click
 from sonic_py_common import device_info
+from sonic_py_common.general import getstatusoutput_noshell_pipe
 
 ERR_DISABLE = 1
 ERR_CMD = 2
@@ -199,7 +200,7 @@ class ConsolePortInfo(object):
         try:
             if not self._session:
                 pid = self.session_pid
-                cmd = "sudo kill -SIGTERM " + pid
+                cmd = ['sudo', 'kill', '-SIGTERM', str(pid)]
                 SysInfoProvider.run_command(cmd)
             else:
                 self._session.close()
@@ -276,7 +277,7 @@ class SysInfoProvider(object):
     @staticmethod
     def list_console_ttys():
         """Lists all console tty devices"""
-        cmd = "ls " + SysInfoProvider.DEVICE_PREFIX + "*"
+        cmd = ["ls", SysInfoProvider.DEVICE_PREFIX + "*"]
         output, _ = SysInfoProvider.run_command(cmd, abort=False)
         ttys = output.split('\n')
         ttys = list([dev for dev in ttys if re.match(SysInfoProvider.DEVICE_PREFIX + r"\d+", dev) != None])
@@ -285,15 +286,17 @@ class SysInfoProvider(object):
     @staticmethod
     def list_active_console_processes():
         """Lists all active console session processes"""
-        cmd = 'ps -eo pid,lstart,cmd | grep -E "(mini|pico)com"'
-        output = SysInfoProvider.run_command(cmd)
+        cmd0 = ['ps', '-eo', 'pid,lstart,cmd']
+        cmd1 = ['grep', '-E', "(mini|pico)com"]
+        output = SysInfoProvider.run_command(cmd0, cmd1)
         return SysInfoProvider._parse_processes_info(output)
 
     @staticmethod
     def get_active_console_process_info(pid):
         """Gets active console process information by PID"""
-        cmd = 'ps -p {} -o pid,lstart,cmd | grep -E "(mini|pico)com"'.format(pid)
-        output = SysInfoProvider.run_command(cmd)
+        cmd0 = ['ps', '-p', str(pid), '-o', 'pid,lstart,cmd']
+        cmd1 = ['grep', '-E', "(mini|pico)com"]
+        output = SysInfoProvider.run_command(cmd0, cmd1)
         processes = SysInfoProvider._parse_processes_info(output)
         if len(list(processes.keys())) == 1:
             return (list(processes.keys())[0],) + list(processes.values())[0]
@@ -325,15 +328,12 @@ class SysInfoProvider(object):
         return console_processes
 
     @staticmethod
-    def run_command(cmd, abort=True):
-        """runs command, exit if stderr is written to and abort argument is ture, returns stdout, stderr otherwise"""
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
-        output = proc.stdout.read()
-        error = proc.stderr.read()
-        if abort and error != "":
-            click.echo("Command resulted in error: {}".format(error))
+    def run_command(*args, abort=True):
+        exitcodes, output = getstatusoutput_noshell_pipe(*args)
+        if abort and any(exitcodes) and output != '':
+            click.echo("Command resulted in error: {}".format(output))
             sys.exit(ERR_CMD)
-        return output if abort else (output, error)
+        return output if abort else (output, output)
 
 class DbUtils(object):
     def __init__(self, db):
