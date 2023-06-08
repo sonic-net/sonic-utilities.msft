@@ -391,10 +391,12 @@ class TestVlan(object):
             print(result.output)
             assert result.exit_code == 0
 
-        result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
-        print(result.exit_code)
-        print(result.output)
-        assert result.exit_code == 0
+        with mock.patch("config.vlan.delete_state_db_entry") as delete_state_db_entry:
+            result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+            delete_state_db_entry.assert_called_once_with("Vlan1000")
 
         # show output
         result = runner.invoke(show.cli.commands["vlan"].commands["brief"], [], obj=db)
