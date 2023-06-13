@@ -192,7 +192,6 @@ Ethernet-BP260        U        0  0.00 B/s      0.00%         0         0       
 Reminder: Please execute 'show interface counters -d all' to include internal links
 """
 
-
 intf_invalid_asic_error = """ValueError: Unknown Namespace asic99"""
 
 intf_counters_detailed = """\
