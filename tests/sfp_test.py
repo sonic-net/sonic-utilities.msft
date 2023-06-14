@@ -133,6 +133,75 @@ Ethernet8: SFP EEPROM detected
                 VccLowWarning  : 3.1304Volts
 """
 
+test_osfp_eeprom_with_dom_output = """\
+Ethernet72: SFP EEPROM detected
+        Active Firmware: 0.0
+        Active application selected code assigned to host lane 1: N/A
+        Active application selected code assigned to host lane 2: N/A
+        Active application selected code assigned to host lane 3: N/A
+        Active application selected code assigned to host lane 4: N/A
+        Active application selected code assigned to host lane 5: N/A
+        Active application selected code assigned to host lane 6: N/A
+        Active application selected code assigned to host lane 7: N/A
+        Active application selected code assigned to host lane 8: N/A
+        Application Advertisement: IB NDR - Host Assign (0x11) - Copper cable - Media Assign (Unknown)
+                                   IB SDR (Arch.Spec.Vol.2) - Host Assign (0x11) - Copper cable - Media Assign (Unknown)
+        CMIS Rev: 5.0
+        Connector: No separable connector
+        Encoding: N/A
+        Extended Identifier: Power Class 1 (0.25W Max)
+        Extended RateSelect Compliance: N/A
+        Host Lane Count: 4
+        Identifier: OSFP 8X Pluggable Transceiver
+        Inactive Firmware: N/A
+        Length Cable Assembly(m): 1.0
+        Media Interface Technology: Copper cable unequalized
+        Media Lane Count: 0
+        Module Hardware Rev: 0.0
+        Nominal Bit Rate(100Mbs): 0
+        Specification compliance: passive_copper_media_interface
+        Supported Max Laser Frequency: N/A
+        Supported Max TX Power: N/A
+        Supported Min Laser Frequency: N/A
+        Supported Min TX Power: N/A
+        Vendor Date Code(YYYY-MM-DD Lot): 2022-05-28   
+        Vendor Name: vendor1          
+        Vendor OUI: some-oui
+        Vendor PN: some-model    
+        Vendor Rev: A3
+        Vendor SN: serial1   
+        ChannelMonitorValues:
+                RX1Power: 0.5dBm
+                RX2Power: 0.3dBm
+                RX3Power: 0.1dBm
+                RX4Power: 0.7dBm
+                RX5Power: 0.8dBm
+                RX6Power: 0.2dBm
+                RX7Power: 0.2dBm
+                RX8Power: 0.3dBm
+                TX1Bias: 6.5mA
+                TX1Power: 0.6dBm
+                TX2Bias: 6.5mA
+                TX2Power: 0.4dBm
+                TX3Bias: 6.6mA
+                TX3Power: 0.2dBm
+                TX4Bias: 6.7mA
+                TX4Power: 0.8dBm
+                TX5Bias: 6.4mA
+                TX5Power: 0.9dBm
+                TX6Bias: 6.3mA
+                TX6Power: 0.1dBm
+                TX7Bias: 6.2mA
+                TX7Power: 0.5dBm
+                TX8Bias: 6.1mA
+                TX8Power: 0.4dBm
+        ChannelThresholdValues:
+        ModuleMonitorValues:
+                Temperature: 40.5C
+                Vcc: 3.331Volts
+        ModuleThresholdValues:
+"""
+
 test_sfp_eeprom_output = """\
 Ethernet0: SFP EEPROM detected
         Application Advertisement: N/A
@@ -826,6 +895,12 @@ Ethernet36  Present
         result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet8", "-d"])
         assert result.exit_code == 0
         assert result.output == test_qsfp_dd_eeprom_with_dom_output
+        
+    def test_osfp_eeprom_with_dom(self):
+        runner = CliRunner()
+        result = runner.invoke(show.cli.commands["interfaces"].commands["transceiver"].commands["eeprom"], ["Ethernet72", "-d"])
+        assert result.exit_code == 0
+        assert result.output == test_osfp_eeprom_with_dom_output
 
     def test_sfp_eeprom(self):
         runner = CliRunner()

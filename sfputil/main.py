@@ -372,9 +372,9 @@ def convert_dom_to_output_string(sfp_type, dom_info_dict):
     channel_threshold_align = 18
     module_threshold_align = 15
 
-    if sfp_type.startswith('QSFP'):
+    if sfp_type.startswith('QSFP') or sfp_type.startswith('OSFP'):
         # Channel Monitor
-        if sfp_type.startswith('QSFP-DD'):
+        if sfp_type.startswith('QSFP-DD') or sfp_type.startswith('OSFP'):
             output_dom += (indent + 'ChannelMonitorValues:\n')
             sorted_key_table = natsorted(QSFP_DD_DOM_CHANNEL_MONITOR_MAP)
             output_channel = format_dict_value_to_string(
@@ -392,7 +392,7 @@ def convert_dom_to_output_string(sfp_type, dom_info_dict):
             output_dom += output_channel
 
         # Channel Threshold
-        if sfp_type.startswith('QSFP-DD'):
+        if sfp_type.startswith('QSFP-DD') or sfp_type.startswith('OSFP'):
             dom_map = SFP_DOM_CHANNEL_THRESHOLD_MAP
         else:
             dom_map = QSFP_DOM_CHANNEL_THRESHOLD_MAP

@@ -221,27 +221,26 @@ class TestSfputil(object):
         output = sfputil.convert_sfp_info_to_output_string(sfp_info_dict)
         assert output == expected_output
 
-    def test_convert_dom_to_output_string(self):
-        sfp_type = 'QSFP28 or later'
-
-        dom_info_dict = {
-            'temperature': '41.7539C',
-            'voltage': '3.2577Volts',
-            'rx1power': '-1.6622dBm',
-            'rx2power': '-1.7901dBm',
-            'rx3power': '-1.6973dBm',
-            'rx4power': '-2.0915dBm',
-            'tx1bias': '35.8400mA',
-            'tx2bias': '37.5780mA',
-            'tx3bias': '35.8400mA',
-            'tx4bias': '35.8400mA',
-            'tx1power': 'N/A',
-            'tx2power': 'N/A',
-            'tx3power': 'N/A',
-            'tx4power': 'N/A'
-        }
-
-        expected_output = '''\
+    @pytest.mark.parametrize("sfp_type, dom_info_dict, expected_output", [
+        (
+            'QSFP28 or later',
+            {
+                'temperature': '41.7539C',
+                'voltage': '3.2577Volts',
+                'rx1power': '-1.6622dBm',
+                'rx2power': '-1.7901dBm',
+                'rx3power': '-1.6973dBm',
+                'rx4power': '-2.0915dBm',
+                'tx1bias': '35.8400mA',
+                'tx2bias': '37.5780mA',
+                'tx3bias': '35.8400mA',
+                'tx4bias': '35.8400mA',
+                'tx1power': 'N/A',
+                'tx2power': 'N/A',
+                'tx3power': 'N/A',
+                'tx4power': 'N/A'
+            },
+            '''\
         ChannelMonitorValues:
                 RX1Power: -1.6622dBm
                 RX2Power: -1.7901dBm
@@ -257,11 +256,120 @@ class TestSfputil(object):
                 Vcc: 3.2577Volts
         ModuleThresholdValues:
 '''
-
+        ), 
+        (
+            'QSFP-DD Double Density 8X Pluggable Transceiver',
+            {
+                'temperature': '41.7539C',
+                'voltage': '3.2577Volts',
+                'rx1power': '-1.6622dBm',
+                'rx2power': '-1.7901dBm',
+                'rx3power': '-1.6973dBm',
+                'rx4power': '-2.0915dBm',
+                'rx5power': '-1.6622dBm',
+                'rx6power': '-1.7901dBm',
+                'rx7power': '-1.6973dBm',
+                'rx8power': '-2.0915dBm',
+                'tx1bias': '35.8400mA',
+                'tx2bias': '37.5780mA',
+                'tx3bias': '35.8400mA',
+                'tx4bias': '35.8400mA',
+                'tx5bias': '35.8400mA',
+                'tx6bias': '37.5780mA',
+                'tx7bias': '35.8400mA',
+                'tx8bias': '35.8400mA',
+                'tx1power': 'N/A',
+                'tx2power': 'N/A',
+                'tx3power': 'N/A',
+                'tx4power': 'N/A',
+                'tx5power': 'N/A',
+                'tx6power': 'N/A',
+                'tx7power': 'N/A',
+                'tx8power': 'N/A'
+            },
+            '''\
+        ChannelMonitorValues:
+                RX1Power: -1.6622dBm
+                RX2Power: -1.7901dBm
+                RX3Power: -1.6973dBm
+                RX4Power: -2.0915dBm
+                RX5Power: -1.6622dBm
+                RX6Power: -1.7901dBm
+                RX7Power: -1.6973dBm
+                RX8Power: -2.0915dBm
+                TX1Bias: 35.8400mA
+                TX2Bias: 37.5780mA
+                TX3Bias: 35.8400mA
+                TX4Bias: 35.8400mA
+                TX5Bias: 35.8400mA
+                TX6Bias: 37.5780mA
+                TX7Bias: 35.8400mA
+                TX8Bias: 35.8400mA
+        ChannelThresholdValues:
+        ModuleMonitorValues:
+                Temperature: 41.7539C
+                Vcc: 3.2577Volts
+        ModuleThresholdValues:
+'''
+        ),
+        (
+            'OSFP 8X Pluggable Transceiver',
+            {
+                'temperature': '41.7539C',
+                'voltage': '3.2577Volts',
+                'rx1power': '-1.6622dBm',
+                'rx2power': '-1.7901dBm',
+                'rx3power': '-1.6973dBm',
+                'rx4power': '-2.0915dBm',
+                'rx5power': '-1.6622dBm',
+                'rx6power': '-1.7901dBm',
+                'rx7power': '-1.6973dBm',
+                'rx8power': '-2.0915dBm',
+                'tx1bias': '35.8400mA',
+                'tx2bias': '37.5780mA',
+                'tx3bias': '35.8400mA',
+                'tx4bias': '35.8400mA',
+                'tx5bias': '35.8400mA',
+                'tx6bias': '37.5780mA',
+                'tx7bias': '35.8400mA',
+                'tx8bias': '35.8400mA',
+                'tx1power': 'N/A',
+                'tx2power': 'N/A',
+                'tx3power': 'N/A',
+                'tx4power': 'N/A',
+                'tx5power': 'N/A',
+                'tx6power': 'N/A',
+                'tx7power': 'N/A',
+                'tx8power': 'N/A'
+            },
+            '''\
+        ChannelMonitorValues:
+                RX1Power: -1.6622dBm
+                RX2Power: -1.7901dBm
+                RX3Power: -1.6973dBm
+                RX4Power: -2.0915dBm
+                RX5Power: -1.6622dBm
+                RX6Power: -1.7901dBm
+                RX7Power: -1.6973dBm
+                RX8Power: -2.0915dBm
+                TX1Bias: 35.8400mA
+                TX2Bias: 37.5780mA
+                TX3Bias: 35.8400mA
+                TX4Bias: 35.8400mA
+                TX5Bias: 35.8400mA
+                TX6Bias: 37.5780mA
+                TX7Bias: 35.8400mA
+                TX8Bias: 35.8400mA
+        ChannelThresholdValues:
+        ModuleMonitorValues:
+                Temperature: 41.7539C
+                Vcc: 3.2577Volts
+        ModuleThresholdValues:
+'''
+        )])
+    def test_convert_dom_to_output_string(self, sfp_type, dom_info_dict, expected_output):
         output = sfputil.convert_dom_to_output_string(sfp_type, dom_info_dict)
         assert output == expected_output
-
-        # TODO: Add tests for other SFP types
 
     def test_get_physical_port_name(self):
         output = sfputil.get_physical_port_name(0, 0, False)
