@@ -551,7 +551,7 @@ class Test_Migrate_Loopback(object):
             diff = DeepDiff(resulting_keys, expected_keys, ignore_order=True)
             assert not diff
 
-class TestWarmUpgrade_without_route_weights(object):
+class TestWarmUpgrade_without_required_attributes(object):
     @classmethod
     def setup_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
@@ -562,7 +562,7 @@ class TestWarmUpgrade_without_route_weights(object):
         dbconnector.dedicated_dbs['CONFIG_DB'] = None
         dbconnector.dedicated_dbs['APPL_DB'] = None
 
-    def test_migrate_weights_for_nexthops(self):
+    def test_migrate_weights_protocol_for_nexthops(self):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'routes_migrate_input')
         dbconnector.dedicated_dbs['APPL_DB'] = os.path.join(mock_db_path, 'appl_db', 'routes_migrate_input')
 
