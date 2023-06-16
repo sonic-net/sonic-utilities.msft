@@ -115,15 +115,14 @@ def del_vlan(db, vid, no_restart_dhcp_relay):
     # set dhcpv4_relay table
     set_dhcp_relay_table('VLAN', db.cfgdb, vlan, None)
 
-    delete_state_db_entry(vlan)
-
     if not no_restart_dhcp_relay and is_dhcpv6_relay_config_exist(db, vlan):
         # set dhcpv6_relay table
         set_dhcp_relay_table(DHCP_RELAY_TABLE, db.cfgdb, vlan, None)
         # We need to restart dhcp_relay service after dhcpv6_relay config change
         if is_dhcp_relay_running():
             dhcp_relay_util.handle_restart_dhcp_relay_service()
-    
+    delete_state_db_entry(vlan)
+
     vlans = db.cfgdb.get_keys('VLAN')
     if not vlans:
         docker_exec_cmd = "docker exec -i swss {}"
