@@ -584,3 +584,38 @@ class TestWarmUpgrade_T0_EdgeZoneAggregator(object):
 
         diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
         assert not diff
+
+
+class TestFastUpgrade_to_3_0_7(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+        cls.config_db_tables_to_verify = ['FLEX_COUNTER_TABLE']
+        dbconnector.dedicated_dbs['STATE_DB'] = os.path.join(mock_db_path, 'state_db', 'fast_reboot_upgrade')
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+        dbconnector.dedicated_dbs['STATE_DB'] = None
+
+    def mock_dedicated_config_db(self, filename):
+        jsonfile = os.path.join(mock_db_path, 'config_db', filename)
+        dbconnector.dedicated_dbs['CONFIG_DB'] = jsonfile
+        db = Db()
+        return db
+
+    def check_config_db(self, result, expected):
+        for table in self.config_db_tables_to_verify:
+            assert result.get_table(table) == expected.get_table(table)
+
+    def test_fast_reboot_upgrade_to_3_0_7(self):
+        db_before_migrate = 'cross_branch_upgrade_to_3_0_7_input'
+        db_after_migrate = 'cross_branch_upgrade_to_3_0_7_expected'
+        device_info.get_sonic_version_info = get_sonic_version_info_mlnx
+        db = self.mock_dedicated_config_db(db_before_migrate)
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        dbmgtr.migrate()
+        expected_db = self.mock_dedicated_config_db(db_after_migrate)
+        assert not self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
