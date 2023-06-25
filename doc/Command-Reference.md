@@ -194,12 +194,15 @@
   * [MACsec config command](#macsec-config-command)
   * [MACsec show command](#macsec-show-command)
   * [MACsec clear command](#macsec-clear-command)
-
+* [Static DNS Commands](#static-dns-commands)
+  * [Static DNS config command](#static-dns-config-command)
+  * [Static DNS show command](#static-dns-show-command)
 
 ## Document History
 
 | Version | Modification Date | Details |
 | --- | --- | --- |
+| v7 | Jun-22-2023 | Add static DNS show and config commands |
 | v6 | May-06-2021 | Add SNMP show and config commands |
 | v5 | Nov-05-2020 | Add document for console commands |
 | v4 | Oct-17-2019 | Unify usage statements and other formatting; Replace tabs with spaces; Modify heading sizes; Fix spelling, grammar and other errors; Fix organization of new commands |
@@ -12442,3 +12445,55 @@ Clear MACsec counters which is to reset all MACsec counters to ZERO.
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#macsec-commands)
+
+# Static DNS Commands
+
+This sub-section explains the list of the configuration options available for static DNS feature.
+
+## Static DNS config command
+
+- Add static DNS nameserver entry
+
+```
+admin@sonic:~$ config dns nameserver add -h
+Usage: config dns nameserver add [OPTIONS] <ip_address>
+
+  Add static DNS nameserver entry
+
+Options:
+  -?, -h, --help  Show this message and exit.
+```
+
+- Delete static DNS nameserver entry
+
+```
+admin@sonic:~$ config dns nameserver del -h
+Usage: config dns nameserver del [OPTIONS] <ip_address>
+
+  Delete static DNS nameserver entry
+
+Options:
+  -h, -?, --help  Show this message and exit.
+```
+
+## Static DNS  show command
+
+- Show static DNS configuration
+
+```
+admin@sonic:~$ show dns nameserver -h
+Usage: show dns nameserver [OPTIONS]
+
+  Show static DNS configuration
+
+Options:
+  -h, -?, --help  Show this message and exit.
+```
+```
+admin@sonic:~$ show dns nameserver
+  Nameserver
+------------
+     1.1.1.1
+     8.8.8.8
+
+```
