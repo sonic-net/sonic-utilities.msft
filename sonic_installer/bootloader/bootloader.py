@@ -75,6 +75,13 @@ class Bootloader(object):
         """tells if the image supports package migration"""
         return True
 
+    def verify_image_sign(self, image_path):
+        """verify image signature is valid"""
+        raise NotImplementedError
+
+    def is_secure_upgrade_image_verification_supported(self):
+        return False
+
     @classmethod
     def detect(cls):
         """returns True if the bootloader is in use"""

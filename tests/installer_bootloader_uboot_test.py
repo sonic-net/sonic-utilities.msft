@@ -141,3 +141,15 @@ def test_set_fips_uboot(run_command_patch, popen_patch):
     # Test fips disabled
     bootloader.set_fips(image, False)
     assert not bootloader.get_fips(image)
+
+def test_verify_image_sign():
+    bootloader = uboot.UbootBootloader()
+    image = 'test-image'
+    return_value = None
+    is_supported = bootloader.is_secure_upgrade_image_verification_supported()
+    try:
+        return_value = bootloader.verify_image_sign(image)
+    except NotImplementedError:
+        assert not is_supported
+    else:
+        assert False, "Wrong return value from verify_image_sign, returned" + str(return_value)
