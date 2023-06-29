@@ -501,11 +501,28 @@ class TestWarmUpgrade_to_2_0_2(object):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'cross_branch_upgrade_to_version_2_0_2_expected')
         expected_db = Db()
 
-        expected_db
         new_tables = ["RESTAPI", "TELEMETRY", "CONSOLE_SWITCH"]
         for table in new_tables:
             resulting_table = dbmgtr.configDB.get_table(table)
             expected_table = expected_db.cfgdb.get_table(table)
+            diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+            assert not diff
+
+    def test_warm_upgrade__without_mg_to_2_0_2(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'cross_branch_upgrade_to_version_2_0_2_input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        # set minigraph_data to None to mimic the missing minigraph.xml scenario
+        dbmgtr.minigraph_data = None
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'cross_branch_upgrade_without_mg_2_0_2_expected.json')
+        expected_db = Db()
+
+        new_tables = ["RESTAPI", "TELEMETRY", "CONSOLE_SWITCH"]
+        for table in new_tables:
+            resulting_table = dbmgtr.configDB.get_table(table)
+            expected_table = expected_db.cfgdb.get_table(table)
+            print(resulting_table)
             diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
             assert not diff
 

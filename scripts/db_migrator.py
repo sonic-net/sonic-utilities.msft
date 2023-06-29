@@ -9,9 +9,10 @@ import re
 
 from sonic_py_common import device_info, logger
 from swsscommon.swsscommon import SonicV2Connector, ConfigDBConnector, SonicDBConfig
-from db_migrator_constants import RESTAPI, TELEMETRY, CONSOLE_SWITCH
+from minigraph import parse_xml
 
 INIT_CFG_FILE = '/etc/sonic/init_cfg.json'
+MINIGRAPH_FILE = '/etc/sonic/minigraph.xml'
 
 # mock the redis for unit test purposes #
 try:
@@ -22,6 +23,7 @@ try:
         sys.path.insert(0, modules_path)
         sys.path.insert(0, tests_path)
         INIT_CFG_FILE = os.path.join(mocked_db_path, "init_cfg.json")
+        MINIGRAPH_FILE = os.path.join(mocked_db_path, "minigraph.xml")
 except KeyError:
     pass
 
@@ -50,6 +52,16 @@ class DBMigrator():
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
         self.TABLE_FIELD     = 'VERSION'
+
+        # load config data from minigraph to get the default/hardcoded values from minigraph.py
+        # this is to avoid duplicating the hardcoded these values in db_migrator
+        self.minigraph_data = None
+        try:
+            if os.path.isfile(MINIGRAPH_FILE):
+                self.minigraph_data = parse_xml(MINIGRAPH_FILE)
+        except Exception as e:
+            log.log_error('Caught exception while trying to parse minigraph: ' + str(e))
+            pass
 
         db_kwargs = {}
         if socket:
@@ -527,38 +539,50 @@ class DBMigrator():
 
     def migrate_restapi(self):
         # RESTAPI - add missing key
+        if not self.minigraph_data or 'RESTAPI' not in self.minigraph_data:
+            return
+        restapi_data = self.minigraph_data['RESTAPI']
         log.log_notice('Migrate RESTAPI configuration')
         config = self.configDB.get_entry('RESTAPI', 'config')
         if not config:
-            self.configDB.set_entry("RESTAPI", "config", RESTAPI.get("config"))
+            self.configDB.set_entry("RESTAPI", "config", restapi_data.get("config"))
         certs = self.configDB.get_entry('RESTAPI', 'certs')
         if not certs:
-            self.configDB.set_entry("RESTAPI", "certs", RESTAPI.get("certs"))
+            self.configDB.set_entry("RESTAPI", "certs", restapi_data.get("certs"))
 
     def migrate_telemetry(self):
         # TELEMETRY - add missing key
+        if not self.minigraph_data or 'TELEMETRY' not in self.minigraph_data:
+            return
+        telemetry_data = self.minigraph_data['TELEMETRY']
         log.log_notice('Migrate TELEMETRY configuration')
         gnmi = self.configDB.get_entry('TELEMETRY', 'gnmi')
         if not gnmi:
-            self.configDB.set_entry("TELEMETRY", "gnmi", TELEMETRY.get("gnmi"))
+            self.configDB.set_entry("TELEMETRY", "gnmi", telemetry_data.get("gnmi"))
         certs = self.configDB.get_entry('TELEMETRY', 'certs')
         if not certs:
-            self.configDB.set_entry("TELEMETRY", "certs", TELEMETRY.get("certs"))
+            self.configDB.set_entry("TELEMETRY", "certs", telemetry_data.get("certs"))
 
     def migrate_console_switch(self):
         # CONSOLE_SWITCH - add missing key
+        if not self.minigraph_data or 'CONSOLE_SWITCH' not in self.minigraph_data:
+            return
+        console_switch_data = self.minigraph_data['CONSOLE_SWITCH']
         log.log_notice('Migrate CONSOLE_SWITCH configuration')
         console_mgmt = self.configDB.get_entry('CONSOLE_SWITCH', 'console_mgmt')
         if not console_mgmt:
             self.configDB.set_entry("CONSOLE_SWITCH", "console_mgmt",
-                CONSOLE_SWITCH.get("console_mgmt"))
+                console_switch_data.get("console_mgmt"))
 
     def migrate_device_metadata(self):
         # DEVICE_METADATA - synchronous_mode entry
-        log.log_notice('Migrate DEVICE_METADATA missing configuration (synchronous_mode=enable)')
+        if not self.minigraph_data or 'DEVICE_METADATA' not in self.minigraph_data:
+            return
+        log.log_notice('Migrate DEVICE_METADATA missing configuration')
         metadata = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
+        device_metadata_data = self.minigraph_data["DEVICE_METADATA"]["localhost"]
         if 'synchronous_mode' not in metadata:
-            metadata['synchronous_mode'] = 'enable'
+            metadata['synchronous_mode'] = device_metadata_data.get("synchronous_mode")
             self.configDB.set_entry('DEVICE_METADATA', 'localhost', metadata)
 
     def migrate_port_qos_map_global(self):
