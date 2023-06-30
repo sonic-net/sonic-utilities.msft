@@ -2049,7 +2049,7 @@ This command displays the state and key parameters of all BFD sessions that matc
 
 - Usage:
   ```
-  show bgp peer <peer-ip>
+  show bfd peer <peer-ip>
   ```
 - Example:
   ```
