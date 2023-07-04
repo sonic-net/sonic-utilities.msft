@@ -194,6 +194,7 @@ def run_bgp_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE, vtysh
 
     return output
 
+
 def run_bgp_show_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE):
     output = run_bgp_command(vtysh_cmd, bgp_namespace, constants.RVTYSH_COMMAND)
     # handle the the alias mode in the following code
@@ -214,6 +215,7 @@ def run_bgp_show_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE):
             output= json.dumps(route_info)
     return output
 
+
 def get_bgp_summary_from_all_bgp_instances(af, namespace, display):
 
     device = multi_asic_util.MultiAsic(display, namespace)
@@ -227,21 +229,29 @@ def get_bgp_summary_from_all_bgp_instances(af, namespace, display):
 
     bgp_summary = {}
     cmd_output_json = {}
+
     for ns in device.get_ns_list_based_on_options():
+        has_bgp_neighbors = True
         cmd_output = run_bgp_show_command(vtysh_cmd, ns)
+        device.current_namespace = ns
         try:
             cmd_output_json = json.loads(cmd_output)
         except ValueError:
             ctx.fail("bgp summary from bgp container not in json format")
 
-        # exit cli command without printing the error message
+        # no bgp neighbors found so print basic device bgp info
         if key not in cmd_output_json:
-            click.echo("No IP{} neighbor is configured".format(af))
-            exit()
+            has_bgp_neighbors = False
+            vtysh_cmd = "show ip bgp json"
+            no_neigh_cmd_output = run_bgp_show_command(vtysh_cmd, ns)
+            try:
+                no_neigh_cmd_output_json = json.loads(no_neigh_cmd_output)
+            except ValueError:
+                ctx.fail("bgp summary from bgp container not in json format")
 
-        device.current_namespace = ns
+        out_cmd = cmd_output_json[key] if has_bgp_neighbors else no_neigh_cmd_output_json
+        process_bgp_summary_json(bgp_summary, out_cmd, device, has_bgp_neighbors=has_bgp_neighbors)
 
-        process_bgp_summary_json(bgp_summary, cmd_output_json[key], device)
     return bgp_summary
 
 
@@ -263,7 +273,7 @@ def display_bgp_summary(bgp_summary, af):
         for router_info in bgp_summary['router_info']:
             for k in router_info:
                 v = router_info[k]
-                instance = "{}: ".format(k) if k is not "" else ""
+                instance = "{}: ".format(k) if k != "" else ""
                 click.echo(
                     "{}BGP router identifier {}, local AS number {} vrf-id {}" .format(
                         instance, v['router_id'], v['as'], v['vrf']))
@@ -287,66 +297,80 @@ def display_bgp_summary(bgp_summary, af):
         ctx.fail("{} missing in the bgp_summary".format(e.args[0]))
 
 
-def process_bgp_summary_json(bgp_summary, cmd_output, device):
+def process_bgp_summary_json(bgp_summary, cmd_output, device, has_bgp_neighbors=True):
     '''
     This function process the frr output in json format from a bgp
     instance and stores the need values in the a bgp_summary
 
     '''
-    static_neighbors, dynamic_neighbors = get_bgp_neighbors_dict(
-        device.current_namespace)
+    if has_bgp_neighbors:
+        static_neighbors, dynamic_neighbors = get_bgp_neighbors_dict(
+            device.current_namespace)
     try:
         # add all the router level fields
-        bgp_summary['peerCount'] = bgp_summary.get(
-            'peerCount', 0) + cmd_output['peerCount']
-        bgp_summary['peerMemory'] = bgp_summary.get(
-            'peerMemory', 0) + cmd_output['peerMemory']
-        bgp_summary['ribCount'] = bgp_summary.get(
-            'ribCount', 0) + cmd_output['ribCount']
-        bgp_summary['ribMemory'] = bgp_summary.get(
-            'ribMemory', 0) + cmd_output['ribMemory']
-        bgp_summary['peerGroupCount'] = bgp_summary.get(
-            'peerGroupCount', 0) + cmd_output['peerGroupCount']
-        bgp_summary['peerGroupMemory'] = bgp_summary.get(
-            'peerGroupMemory', 0) + cmd_output['peerGroupMemory']
+        if has_bgp_neighbors:
+            # when there are bgp neighbors, fill information from the dict
+            bgp_summary['peerCount'] = bgp_summary.get(
+                'peerCount', 0) + cmd_output['peerCount']
+            bgp_summary['peerMemory'] = bgp_summary.get(
+                'peerMemory', 0) + cmd_output['peerMemory']
+            bgp_summary['ribCount'] = bgp_summary.get(
+                'ribCount', 0) + cmd_output['ribCount']
+            bgp_summary['ribMemory'] = bgp_summary.get(
+                'ribMemory', 0) + cmd_output['ribMemory']
+            bgp_summary['peerGroupCount'] = bgp_summary.get(
+                'peerGroupCount', 0) + cmd_output['peerGroupCount']
+            bgp_summary['peerGroupMemory'] = bgp_summary.get(
+                'peerGroupMemory', 0) + cmd_output['peerGroupMemory']
+        else:
+            # when there are no bgp neighbors, all values are zero
+            bgp_summary['peerCount'] = 0
+            bgp_summary['peerMemory'] = 0
+            bgp_summary['ribCount'] = 0
+            bgp_summary['ribMemory'] = 0
+            bgp_summary['peerGroupCount'] = 0
+            bgp_summary['peerGroupMemory'] = 0
 
         # store instance level field is seperate dict
         router_info = {}
         router_info['router_id'] = cmd_output['routerId']
         router_info['vrf'] = cmd_output['vrfId']
-        router_info['as'] = cmd_output['as']
+        router_info['as'] = cmd_output['as'] if has_bgp_neighbors else cmd_output['localAS']
         router_info['tbl_ver'] = cmd_output['tableVersion']
         bgp_summary.setdefault('router_info', []).append(
             {device.current_namespace: router_info})
 
         # store all the peers in the list
-        for peer_ip, value in cmd_output['peers'].items():
-            peers = []
-            # if display option is 'frontend', internal bgp neighbors will not
-            # be displayed
-            if device.skip_display(constants.BGP_NEIGH_OBJ, peer_ip):
-                continue
+        if has_bgp_neighbors:
+            for peer_ip, value in cmd_output['peers'].items():
+                peers = []
+                # if display option is 'frontend', internal bgp neighbors will not
+                # be displayed
+                if device.skip_display(constants.BGP_NEIGH_OBJ, peer_ip):
+                    continue
 
-            peers.append(peer_ip)
-            peers.append(value['version'])
-            peers.append(value['remoteAs'])
-            peers.append(value['msgRcvd'])
-            peers.append(value['msgSent'])
-            peers.append(value['tableVersion'])
-            peers.append(value['inq'])
-            peers.append(value['outq'])
-            peers.append(value['peerUptime'])
-            if value['state'] == 'Established':
-                peers.append(value['pfxRcd'])
-            else:
-                peers.append(value['state'])
+                peers.append(peer_ip)
+                peers.append(value['version'])
+                peers.append(value['remoteAs'])
+                peers.append(value['msgRcvd'])
+                peers.append(value['msgSent'])
+                peers.append(value['tableVersion'])
+                peers.append(value['inq'])
+                peers.append(value['outq'])
+                peers.append(value['peerUptime'])
+                if value['state'] == 'Established':
+                    peers.append(value['pfxRcd'])
+                else:
+                    peers.append(value['state'])
 
-            # Get the bgp neighbour name ans store it
-            neigh_name = get_bgp_neighbor_ip_to_name(
-                peer_ip, static_neighbors, dynamic_neighbors)
-            peers.append(neigh_name)
+                # Get the bgp neighbour name ans store it
+                neigh_name = get_bgp_neighbor_ip_to_name(
+                    peer_ip, static_neighbors, dynamic_neighbors)
+                peers.append(neigh_name)
 
-            bgp_summary.setdefault('peers', []).append(peers)
+                bgp_summary.setdefault('peers', []).append(peers)
+        else:
+            bgp_summary['peers'] = []
     except KeyError as e:
         ctx = click.get_current_context()
         ctx.fail("{} missing in the bgp_summary".format(e.args[0]))
