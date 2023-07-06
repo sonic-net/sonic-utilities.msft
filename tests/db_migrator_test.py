@@ -688,3 +688,4 @@ class TestFastUpgrade_to_4_0_3(object):
         dbmgtr.migrate()
         expected_db = self.mock_dedicated_config_db(db_after_migrate)
         assert not self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
+        assert dbmgtr.CURRENT_VERSION == expected_db.cfgdb.get_entry('VERSIONS', 'DATABASE')['VERSION']
