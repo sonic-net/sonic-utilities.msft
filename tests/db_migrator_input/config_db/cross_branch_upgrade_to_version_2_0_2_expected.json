@@ -6,9 +6,9 @@
         },
     "RESTAPI|certs": {
             "server_key": "/etc/sonic/credentials/restapiserver.key", 
-            "ca_crt": "/etc/sonic/credentials/AME_ROOT_CERTIFICATE.pem", 
-            "server_crt": "/etc/sonic/credentials/restapiserver.crt", 
-            "client_crt_cname": "client.restapi.sonic.gbl"
+            "ca_crt": "/etc/sonic/credentials/restapica.crt",
+            "server_crt": "/etc/sonic/credentials/restapiserver.crt",
+            "client_crt_cname": "client.restapi.sonic"
         },
     "TELEMETRY|gnmi": {
             "client_auth": "true", 
