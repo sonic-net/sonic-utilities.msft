@@ -1,0 +1,7 @@
+{
+    "SWITCH_CAPABILITY|switch": {
+        "ECMP_HASH_CAPABLE": "true",
+        "LAG_HASH_CAPABLE": "true",
+        "HASH|NATIVE_HASH_FIELD_LIST": "N/A"
+    }
+}

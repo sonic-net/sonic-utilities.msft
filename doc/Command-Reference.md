@@ -64,6 +64,9 @@
   * [Flow Counters config commands](#flow-counters-config-commands)
 * [Gearbox](#gearbox)
   * [Gearbox show commands](#gearbox-show-commands)
+* [Hash](#hash)
+  * [Hash show commands](#hash-show-commands)
+  * [Hash config commands](#hash-config-commands)
 * [Interfaces](#interfaces)
   * [Interface Show Commands](#interface-show-commands)
   * [Interface Config Commands](#interface-config-commands)
@@ -4085,6 +4088,101 @@ This command is used to change device hostname without traffic being impacted.
   ```
   admin@sonic:~$ sudo config hostname CSW06
   Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.
+  ```
+
+## Hash
+
+This section explains the various show and configuration commands available for user.
+
+### Hash Show Commands
+
+This subsection explains how to display switch hash configuration.
+
+**show switch-hash global**
+
+This command displays switch hash global configuration.
+
+- Usage:
+  ```bash
+  show switch-hash global
+  ```
+
+- Example:
+  ```bash
+  admin@sonic:~$ show switch-hash global
+  ECMP HASH          LAG HASH
+  -----------------  -----------------
+  DST_MAC            DST_MAC
+  SRC_MAC            SRC_MAC
+  ETHERTYPE          ETHERTYPE
+  IP_PROTOCOL        IP_PROTOCOL
+  DST_IP             DST_IP
+  SRC_IP             SRC_IP
+  L4_DST_PORT        L4_DST_PORT
+  L4_SRC_PORT        L4_SRC_PORT
+  INNER_DST_MAC      INNER_DST_MAC
+  INNER_SRC_MAC      INNER_SRC_MAC
+  INNER_ETHERTYPE    INNER_ETHERTYPE
+  INNER_IP_PROTOCOL  INNER_IP_PROTOCOL
+  INNER_DST_IP       INNER_DST_IP
+  INNER_SRC_IP       INNER_SRC_IP
+  INNER_L4_DST_PORT  INNER_L4_DST_PORT
+  INNER_L4_SRC_PORT  INNER_L4_SRC_PORT
+  ```
+
+### Hash Config Commands
+
+This subsection explains how to configure switch hash.
+
+**config switch-hash global**
+
+This command is used to manage switch hash global configuration.
+
+- Usage:
+  ```bash
+  config switch-hash global ecmp-hash <hash_field_list>
+  config switch-hash global lag-hash <hash_field_list>
+  ```
+
+- Parameters:
+  - _hash_field_list_: hash fields for hashing packets going through ECMP/LAG
+
+- Examples:
+  ```bash
+  admin@sonic:~$ config switch-hash global ecmp-hash \
+  'DST_MAC' \
+  'SRC_MAC' \
+  'ETHERTYPE' \
+  'IP_PROTOCOL' \
+  'DST_IP' \
+  'SRC_IP' \
+  'L4_DST_PORT' \
+  'L4_SRC_PORT' \
+  'INNER_DST_MAC' \
+  'INNER_SRC_MAC' \
+  'INNER_ETHERTYPE' \
+  'INNER_IP_PROTOCOL' \
+  'INNER_DST_IP' \
+  'INNER_SRC_IP' \
+  'INNER_L4_DST_PORT' \
+  'INNER_L4_SRC_PORT'
+  admin@sonic:~$ config switch-hash global lag-hash \
+  'DST_MAC' \
+  'SRC_MAC' \
+  'ETHERTYPE' \
+  'IP_PROTOCOL' \
+  'DST_IP' \
+  'SRC_IP' \
+  'L4_DST_PORT' \
+  'L4_SRC_PORT' \
+  'INNER_DST_MAC' \
+  'INNER_SRC_MAC' \
+  'INNER_ETHERTYPE' \
+  'INNER_IP_PROTOCOL' \
+  'INNER_DST_IP' \
+  'INNER_SRC_IP' \
+  'INNER_L4_DST_PORT' \
+  'INNER_L4_SRC_PORT'
   ```
 
 ## Interfaces
