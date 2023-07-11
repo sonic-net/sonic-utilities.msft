@@ -22,5 +22,8 @@
         },
     "CONSOLE_SWITCH|console_mgmt": {
             "enabled": "no"
-        }
+        },
+    "DEVICE_METADATA|localhost": {
+        "docker_routing_config_mode": "separated"
+    }
 }

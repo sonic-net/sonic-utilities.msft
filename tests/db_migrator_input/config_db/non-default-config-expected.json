@@ -754,7 +754,7 @@
     "DEVICE_METADATA|localhost": {
         "hwsku": "ACS-MSN2700",
         "default_bgp_status": "up",
-        "docker_routing_config_mode": "unified",
+        "docker_routing_config_mode": "separated",
         "hostname": "sonic",
         "platform": "x86_64-mlnx_msn2700-r0",
         "mac": "00:01:02:03:04:00",
