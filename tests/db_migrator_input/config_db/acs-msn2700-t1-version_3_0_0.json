@@ -762,7 +762,7 @@
         "bgp_asn": "65100",
         "buffer_model": "dynamic",
         "deployment_id": "1",
-        "docker_routing_config_mode": "unified"
+        "docker_routing_config_mode": "separated"
     },
     "LOSSLESS_TRAFFIC_PATTERN|AZURE": {
         "small_packet_percentage": "100",
