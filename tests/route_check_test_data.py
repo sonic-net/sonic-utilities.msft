@@ -342,6 +342,7 @@ TEST_DATA = {
                         "server_ipv4": "192.168.0.2/32",
                         "server_ipv6": "fc02:1000::2/128",
                         "soc_ipv4": "192.168.0.3/32",
+                        "soc_ipv6": "fc02:1000::3/128",
                         "state": "auto"
                     },
                 }
@@ -356,7 +357,8 @@ TEST_DATA = {
                 RT_ENTRY_TABLE: {
                     RT_ENTRY_KEY_PREFIX + "192.168.0.2/32" + RT_ENTRY_KEY_SUFFIX: {},
                     RT_ENTRY_KEY_PREFIX + "fc02:1000::2/128" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "192.168.0.3/32" + RT_ENTRY_KEY_SUFFIX: {}
+                    RT_ENTRY_KEY_PREFIX + "192.168.0.3/32" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "fc02:1000::3/128" + RT_ENTRY_KEY_SUFFIX: {}
                 }
             }
         }
