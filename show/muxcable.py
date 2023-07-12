@@ -592,7 +592,7 @@ def get_tunnel_route_per_port(db, port_tunnel_route, per_npu_configdb, per_npu_a
 
     mux_cfg_dict = per_npu_configdb[asic_id].get_all(
     per_npu_configdb[asic_id].CONFIG_DB, 'MUX_CABLE|{}'.format(port))
-    dest_names = ["server_ipv4", "server_ipv6", "soc_ipv4"]
+    dest_names = ["server_ipv4", "server_ipv6", "soc_ipv4", "soc_ipv6"]
 
     for name in dest_names:
         dest_address = mux_cfg_dict.get(name, None)
