@@ -47,7 +47,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_4_0_3'
+        self.CURRENT_VERSION = 'version_4_0_4'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -637,6 +637,18 @@ class DBMigrator():
             if 'protocol' not in route_attr:
                 self.appDB.set(self.appDB.APPL_DB, route_key, 'protocol', '')
 
+    def migrate_dns_nameserver(self):
+        """
+        Handle DNS_NAMESERVER table migration. Migrations handled:
+        If there's no DNS_NAMESERVER in config_DB, load DNS_NAMESERVER from minigraph
+        """
+        if not self.minigraph_data or 'DNS_NAMESERVER' not in self.minigraph_data:
+            return
+        dns_table = self.configDB.get_table('DNS_NAMESERVER')
+        if not dns_table:
+            for addr, config in self.minigraph_data['DNS_NAMESERVER'].items():
+                self.configDB.set_entry('DNS_NAMESERVER', addr, config)
+
     def migrate_routing_config_mode(self):
         # DEVICE_METADATA - synchronous_mode entry
         if not self.minigraph_data or 'DEVICE_METADATA' not in self.minigraph_data:
@@ -1020,9 +1032,19 @@ class DBMigrator():
     def version_4_0_3(self):
         """
         Version 4_0_3.
-        This is the latest version for master branch
         """
         log.log_info('Handling version_4_0_3')
+        self.set_version('version_4_0_4')
+        return 'version_4_0_4'
+
+    def version_4_0_4(self):
+        """
+        Version 4_0_4.
+        This is the latest version for master branch
+        """
+        log.log_info('Handling version_4_0_4')
+        # Updating DNS nameserver
+        self.migrate_dns_nameserver()
         return None
 
     def get_version(self):

@@ -294,6 +294,37 @@ class TestLacpKeyMigrator(object):
         assert dbmgtr.configDB.get_table('PORTCHANNEL') == expected_db.cfgdb.get_table('PORTCHANNEL')
         assert dbmgtr.configDB.get_table('VERSIONS') == expected_db.cfgdb.get_table('VERSIONS')
 
+class TestDnsNameserverMigrator(object):
+    @classmethod
+    def setup_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+
+    @classmethod
+    def teardown_class(cls):
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        dbconnector.dedicated_dbs['CONFIG_DB'] = None
+
+    def test_dns_nameserver_migrator(self):
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'dns-nameserver-input')
+        import db_migrator
+        dbmgtr = db_migrator.DBMigrator(None)
+        # Set minigraph_data to DNS_NAMESERVERS
+        dbmgtr.minigraph_data = {
+            'DNS_NAMESERVER': {
+                '1.1.1.1': {},
+                '2001:1001:110:1001::1': {}
+            }
+        }
+        dbmgtr.migrate()
+        dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'dns-nameserver-expected')
+        expected_db = Db()
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_4_0_4')
+        resulting_keys = dbmgtr.configDB.keys(dbmgtr.configDB.CONFIG_DB, 'DNS_NAMESERVER*')
+        expected_keys = expected_db.cfgdb.keys(expected_db.cfgdb.CONFIG_DB, 'DNS_NAMESERVER*')
+
+        diff = DeepDiff(resulting_keys, expected_keys, ignore_order=True)
+        assert not diff
+
 class TestQosDBFieldValueReferenceRemoveMigrator(object):
     @classmethod
     def setup_class(cls):
@@ -681,5 +712,6 @@ class TestFastUpgrade_to_4_0_3(object):
         dbmgtr = db_migrator.DBMigrator(None)
         dbmgtr.migrate()
         expected_db = self.mock_dedicated_config_db(db_after_migrate)
+        advance_version_for_expected_database(dbmgtr.configDB, expected_db.cfgdb, 'version_4_0_3')
         assert not self.check_config_db(dbmgtr.configDB, expected_db.cfgdb)
         assert dbmgtr.CURRENT_VERSION == expected_db.cfgdb.get_entry('VERSIONS', 'DATABASE')['VERSION']
