@@ -1818,16 +1818,17 @@
     },
     "MUX_CABLE|Ethernet32": {
         "state": "auto",
-	"server_ipv4": "10.1.1.1",
+        "server_ipv4": "10.1.1.1",
         "cable_type": "active-active",
-	"soc_ipv4": "10.1.1.2",
-	"server_ipv6": "fc00::75"
+        "soc_ipv4": "10.1.1.2",
+        "soc_ipv6": "fc00::76",
+        "server_ipv6": "fc00::75"
     },
     "MUX_CABLE|Ethernet16": {
         "state": "standby",
-	"server_ipv4": "10.1.1.1",
+        "server_ipv4": "10.1.1.1",
         "cable_type": "active-standby",
-	"server_ipv6": "fc00::75"
+        "server_ipv6": "fc00::75"
     },
     "MUX_CABLE|Ethernet28": {
         "state": "manual",
@@ -1841,9 +1842,9 @@
     },
     "MUX_CABLE|Ethernet4": {
         "state": "auto",
-	"server_ipv4": "10.3.1.1",
-	"server_ipv6": "e801::46",
-    "soc_ipv6": "e801::47"
+        "server_ipv4": "10.3.1.1",
+        "server_ipv6": "e801::46",
+        "soc_ipv6": "e801::47"
     },
     "MUX_CABLE|Ethernet8": {
         "state": "active",
