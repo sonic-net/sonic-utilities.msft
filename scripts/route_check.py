@@ -617,6 +617,51 @@ def filter_out_soc_ip_routes(routes):
     return updated_routes
 
 
+def get_vlan_neighbors():
+    """Return a list of VLAN neighbors."""
+    db = swsscommon.DBConnector(APPL_DB_NAME, 0)
+    print_message(syslog.LOG_DEBUG, "APPL DB connected for neighbors")
+    tbl = swsscommon.Table(db, 'NEIGH_TABLE')
+    neigh_entries = tbl.getKeys()
+
+    valid_neighs = []
+    for neigh_entry in neigh_entries:
+        if ':' in neigh_entry:
+            device, prefix = neigh_entry.split(':', 1)
+            if device.startswith("Vlan"):
+                valid_neighs.append(add_prefix_ifnot(prefix.lower()))
+
+    print_message(syslog.LOG_DEBUG, "Vlan neighbors:",  json.dumps(valid_neighs, indent=4))
+    return valid_neighs
+
+
+def filter_out_vlan_neigh_route_miss(rt_appl_miss, rt_asic_miss):
+    """Ignore any route miss for vlan neighbor IPs."""
+
+    def _filter_out_neigh_route(routes, neighs):
+        updated_routes = []
+        ignored_routes = []
+        for route in routes:
+            if route in neighs:
+                ignored_routes.append(route)
+            else:
+                updated_routes.append(route)
+        return updated_routes, ignored_routes
+
+    config_db = swsscommon.ConfigDBConnector()
+    config_db.connect()
+
+    print_message(syslog.LOG_DEBUG, "Ignore vlan neighbor route miss")
+    if is_dualtor(config_db):
+        vlan_neighs = set(get_vlan_neighbors())
+        rt_appl_miss, ignored_rt_appl_miss = _filter_out_neigh_route(rt_appl_miss, vlan_neighs)
+        print_message(syslog.LOG_DEBUG, "Ignored appl route miss:",  json.dumps(ignored_rt_appl_miss, indent=4))
+        rt_asic_miss, ignored_rt_asic_miss = _filter_out_neigh_route(rt_asic_miss, vlan_neighs)
+        print_message(syslog.LOG_DEBUG, "Ignored asic route miss:",  json.dumps(ignored_rt_asic_miss, indent=4))
+
+    return rt_appl_miss, rt_asic_miss
+
+
 def check_routes():
     """
     The heart of this script which runs the checks.
@@ -668,6 +713,11 @@ def check_routes():
 
     if rt_appl_miss:
         rt_appl_miss = filter_out_voq_neigh_routes(rt_appl_miss)
+
+    # NOTE: On dualtor environment, ignore any route miss for the
+    # neighbors learned from the vlan subnet.
+    if rt_appl_miss or rt_asic_miss:
+        rt_appl_miss, rt_asic_miss = filter_out_vlan_neigh_route_miss(rt_appl_miss, rt_asic_miss)
 
     if rt_appl_miss or rt_asic_miss:
         # Look for subscribe updates for a second
