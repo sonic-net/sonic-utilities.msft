@@ -122,6 +122,7 @@ setup(
         'scripts/disk_check.py',
         'scripts/dropconfig',
         'scripts/dropstat',
+        'scripts/dualtor_neighbor_check.py',
         'scripts/dump_nat_entries.py',
         'scripts/ecnconfig',
         'scripts/fabricstat',
