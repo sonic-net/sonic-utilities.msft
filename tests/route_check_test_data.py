@@ -314,6 +314,7 @@ TEST_DATA = {
                         "server_ipv4": "192.168.0.2/32",
                         "server_ipv6": "fc02:1000::2/128",
                         "soc_ipv4": "192.168.0.3/32",
+                        "soc_ipv6": "fc02:1000::3/128",
                         "state": "auto"
                     },
                 }
@@ -328,7 +329,8 @@ TEST_DATA = {
                 RT_ENTRY_TABLE: {
                     RT_ENTRY_KEY_PREFIX + "192.168.0.2/32" + RT_ENTRY_KEY_SUFFIX: {},
                     RT_ENTRY_KEY_PREFIX + "fc02:1000::2/128" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "192.168.0.3/32" + RT_ENTRY_KEY_SUFFIX: {}
+                    RT_ENTRY_KEY_PREFIX + "192.168.0.3/32" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "fc02:1000::3/128" + RT_ENTRY_KEY_SUFFIX: {}
                 }
             }
         }
@@ -349,6 +351,60 @@ TEST_DATA = {
                     RT_ENTRY_KEY_PREFIX + "2000:31::1/128" + RT_ENTRY_KEY_SUFFIX: {},
                 }
             }
+        }
+    },
+    "11": {
+        DESCR: "dualtor ignore vlan neighbor route miss case",
+        ARGS: "route_check -i 15",
+        RET: -1,
+        PRE: {
+            CONFIG_DB: {
+                DEVICE_METADATA: {
+                    LOCALHOST: {"subtype": "DualToR"}
+                }
+            },
+            APPL_DB: {
+                ROUTE_TABLE: {
+                    "10.10.196.12/31" : { "ifname": "portchannel0" },
+                    "10.10.196.20/31" : { "ifname": "portchannel0" },
+                    "192.168.0.101/32": { "ifname": "tun0" },
+                    "192.168.0.103/32": { "ifname": "tun0" },
+                },
+                INTF_TABLE: {
+                    "PortChannel1013:90.10.196.24/31": {},
+                    "PortChannel1023:9603:10b0:503:df4::5d/126": {},
+                },
+                NEIGH_TABLE: {
+                    "Vlan1000:192.168.0.100": {},
+                    "Vlan1000:192.168.0.101": {},
+                    "Vlan1000:192.168.0.102": {},
+                    "Vlan1000:192.168.0.103": {},
+                }
+            },
+            ASIC_DB: {
+                RT_ENTRY_TABLE: {
+                    RT_ENTRY_KEY_PREFIX + "20.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "20.10.196.20/31" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "20.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "192.168.0.101/32" + RT_ENTRY_KEY_SUFFIX: {},
+                    RT_ENTRY_KEY_PREFIX + "192.168.0.102/32" + RT_ENTRY_KEY_SUFFIX: {},
+                }
+            }
+        },
+        RESULT: {
+            "missed_ROUTE_TABLE_routes": [
+                "10.10.196.12/31",
+                "10.10.196.20/31"
+            ],
+            "missed_INTF_TABLE_entries": [
+                "90.10.196.24/32",
+                "9603:10b0:503:df4::5d/128"
+            ],
+            "Unaccounted_ROUTE_ENTRY_TABLE_entries": [
+                "20.10.196.12/31",
+                "20.10.196.20/31",
+                "20.10.196.24/32",
+            ]
         }
     },
 }
