@@ -2008,7 +2008,7 @@ else
         rm_lock_and_exit
     else
         # Lock is valid and the other instance is active. Exit Now
-        echo "Accquiring lock failed, PID ${PID_PROG} is active" >&2
+        echo "Another instance of techsupport running with PID: ${PID_PROG}, please retry after some time..." >&2
         exit $EXT_LOCKFAIL
     fi
 fi
