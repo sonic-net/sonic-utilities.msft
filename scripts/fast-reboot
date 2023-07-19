@@ -793,6 +793,11 @@ for service in ${SERVICES_TO_STOP}; do
             sonic-db-cli FLEX_COUNTER_DB FLUSHDB > /dev/null
         fi
 
+        if [[ "$REBOOT_TYPE" = "fast-reboot" ]]; then
+            # Flush RESTAP_DB in fast-reboot to avoid stale status
+            sonic-db-cli RESTAPI_DB FLUSHDB > /dev/null
+        fi
+
         backup_database
 
     fi
