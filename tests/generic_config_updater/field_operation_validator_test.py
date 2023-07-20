@@ -31,10 +31,26 @@ class TestValidateFieldOperation(unittest.TestCase):
     @patch("generic_config_updater.field_operation_validators.get_asic_name", mock.Mock(return_value="spc1"))
     @patch("os.path.exists", mock.Mock(return_value=True))
     @patch("builtins.open", mock_open(read_data='{"tables": {"PFC_WD": {"validator_data": {"rdma_config_update_validator": {"PFCWD enable/disable": {"fields": ["detection_time", "action"], "operations": ["remove", "replace", "add"], "platforms": {"spc1": "20181100"}}}}}}}'))
-    def test_rdma_config_update_validator_spc_asic_valid_version(self):
+    def test_rdma_config_update_validator_spc_asic_valid_version_remove(self):
         patch_element = {"path": "/PFC_WD/Ethernet8/detection_time", "op": "remove"}
         assert generic_config_updater.field_operation_validators.rdma_config_update_validator(patch_element) == True
+
+    @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"build_version": "SONiC.20220530"}))
+    @patch("generic_config_updater.field_operation_validators.get_asic_name", mock.Mock(return_value="spc1"))
+    @patch("os.path.exists", mock.Mock(return_value=True))
+    @patch("builtins.open", mock_open(read_data='{"tables": {"PFC_WD": {"validator_data": {"rdma_config_update_validator": {"PFCWD enable/disable": {"fields": ["detection_time", "restoration_time", "action"], "operations": ["remove", "replace", "add"], "platforms": {"spc1": "20181100"}}}}}}}'))
+    def test_rdma_config_update_validator_spc_asic_valid_version_add_pfcwd(self):
+        patch_element = {"path": "/PFC_WD/Ethernet8", "op": "add", "value": {"action": "drop", "detection_time": "300", "restoration_time": "200"}}
+        assert generic_config_updater.field_operation_validators.rdma_config_update_validator(patch_element) == True
    
+    @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"build_version": "SONiC.20220530"}))
+    @patch("generic_config_updater.field_operation_validators.get_asic_name", mock.Mock(return_value="spc1"))
+    @patch("os.path.exists", mock.Mock(return_value=True))
+    @patch("builtins.open", mock_open(read_data='{"tables": {"PFC_WD": {"validator_data": {"rdma_config_update_validator": {"PFCWD enable/disable": {"fields": ["detection_time", "action", ""], "operations": ["remove", "replace", "add"], "platforms": {"spc1": "20181100"}}}}}}}'))
+    def test_rdma_config_update_validator_spc_asic_valid_version(self):
+        patch_element = {"path": "/PFC_WD/Ethernet8", "op": "remove"}
+        assert generic_config_updater.field_operation_validators.rdma_config_update_validator(patch_element) == True
+    
     @patch("sonic_py_common.device_info.get_sonic_version_info", mock.Mock(return_value={"build_version": "SONiC.20220530"}))
     @patch("generic_config_updater.field_operation_validators.get_asic_name", mock.Mock(return_value="spc1"))
     @patch("os.path.exists", mock.Mock(return_value=True))
@@ -102,6 +118,22 @@ class TestGetAsicName(unittest.TestCase):
         mock_popen.return_value = mock.Mock()
         mock_popen.return_value.communicate.return_value = ["Mellanox-SN2700-D48C8", 0]
         self.assertEqual(fov.get_asic_name(), "spc1")
+    
+    @patch('sonic_py_common.device_info.get_sonic_version_info')
+    @patch('subprocess.Popen')
+    def test_get_asic_spc2(self, mock_popen, mock_get_sonic_version_info):
+        mock_get_sonic_version_info.return_value = {'asic_type': 'mellanox'}
+        mock_popen.return_value = mock.Mock()
+        mock_popen.return_value.communicate.return_value = ["ACS-MSN3800", 0]
+        self.assertEqual(fov.get_asic_name(), "spc2")
+    
+    @patch('sonic_py_common.device_info.get_sonic_version_info')
+    @patch('subprocess.Popen')
+    def test_get_asic_spc3(self, mock_popen, mock_get_sonic_version_info):
+        mock_get_sonic_version_info.return_value = {'asic_type': 'mellanox'}
+        mock_popen.return_value = mock.Mock()
+        mock_popen.return_value.communicate.return_value = ["Mellanox-SN4600C-C64", 0]
+        self.assertEqual(fov.get_asic_name(), "spc3")
     
     @patch('sonic_py_common.device_info.get_sonic_version_info')
     @patch('subprocess.Popen')
