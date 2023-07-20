@@ -5,9 +5,9 @@
             "allow_insecure": "false"
         },
     "RESTAPI|certs": {
-            "server_key": "/etc/sonic/credentials/restapiserver.key", 
-            "ca_crt": "/etc/sonic/credentials/restapica.crt",
-            "server_crt": "/etc/sonic/credentials/restapiserver.crt",
+            "server_key": "/etc/sonic/credentials/restapi.key",
+            "ca_crt": "/etc/sonic/credentials/restapi.crt",
+            "server_crt": "/etc/sonic/credentials/restapi.crt",
             "client_crt_cname": "client.restapi.sonic"
         },
     "TELEMETRY|gnmi": {

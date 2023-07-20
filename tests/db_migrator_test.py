@@ -466,7 +466,13 @@ class TestWarmUpgrade_to_2_0_2(object):
         for table in new_tables:
             resulting_table = dbmgtr.configDB.get_table(table)
             expected_table = expected_db.cfgdb.get_table(table)
-            diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+            if table == "RESTAPI":
+                # for RESTAPI - just make sure if the new fields are added, and ignore values match
+                # values are ignored as minigraph parser is expected to generate different
+                # results for cert names based on the project specific config.
+                diff = set(resulting_table.get("certs").keys()) != set(expected_table.get("certs").keys())
+            else:
+                diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
             assert not diff
 
         target_routing_mode_result = dbmgtr.configDB.get_table("DEVICE_METADATA")['localhost']['docker_routing_config_mode']
