@@ -1013,6 +1013,8 @@ class DBMigrator():
         """
         Version 4_0_1.
         """
+        log.log_info('Handling version_4_0_1')
+
         self.migrate_feature_timer()
         self.set_version('version_4_0_2')
         return 'version_4_0_2'
@@ -1034,6 +1036,9 @@ class DBMigrator():
         Version 4_0_3.
         """
         log.log_info('Handling version_4_0_3')
+
+        # Updating DNS nameserver
+        self.migrate_dns_nameserver()
         self.set_version('version_4_0_4')
         return 'version_4_0_4'
 
@@ -1043,8 +1048,6 @@ class DBMigrator():
         This is the latest version for master branch
         """
         log.log_info('Handling version_4_0_4')
-        # Updating DNS nameserver
-        self.migrate_dns_nameserver()
         return None
 
     def get_version(self):
