@@ -24,6 +24,8 @@ FINAL_CONFIG_YANG_FAILURE = os.path.join(DATA_DIR, "final_config_yang_failure.js
 MULTI_ASIC_MACSEC_OV = os.path.join(DATA_DIR, "multi_asic_macsec_ov.json")
 MULTI_ASIC_DEVICE_METADATA_RM = os.path.join(DATA_DIR, "multi_asic_dm_rm.json")
 MULTI_ASIC_DEVICE_METADATA_GEN_SYSINFO = os.path.join(DATA_DIR, "multi_asic_dm_gen_sysinfo.json")
+MULTI_ASIC_MISSING_LOCALHOST_OV = os.path.join(DATA_DIR, "multi_asic_missing_localhost.json")
+MULTI_ASIC_MISSING_ASIC_OV = os.path.join(DATA_DIR, "multi_asic_missing_asic.json")
 
 # Load sonic-cfggen from source since /usr/local/bin/sonic-cfggen does not have .py extension.
 sonic_cfggen = load_module_from_source('sonic_cfggen', '/usr/local/bin/sonic-cfggen')
@@ -381,6 +383,39 @@ class TestConfigOverrideMultiasic(object):
             assert platform == "multi_asic"
             assert mac == "11:22:33:44:55:66"
 
+    def test_masic_missig_localhost_override(self):
+        def read_json_file_side_effect(filename):
+            with open(MULTI_ASIC_MISSING_LOCALHOST_OV, "r") as f:
+                wrong_format = json.load(f)
+            return wrong_format
+        db = Db()
+        cfgdb_clients = db.cfgdb_clients
+
+        with mock.patch('config.main.read_json_file',
+                        mock.MagicMock(side_effect=read_json_file_side_effect)):
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["override-config-table"],
+                                   ['golden_config_db.json'], obj=db)
+            assert "'localhost' not found in host config" in result.output
+            # make sure program aborted with return code 1
+            assert result.exit_code == 1
+                
+    def test_masic_missig_asic_override(self):
+        def read_json_file_side_effect(filename):
+            with open(MULTI_ASIC_MISSING_ASIC_OV, "r") as f:
+                wrong_format = json.load(f)
+            return wrong_format
+        db = Db()
+        cfgdb_clients = db.cfgdb_clients
+
+        with mock.patch('config.main.read_json_file',
+                        mock.MagicMock(side_effect=read_json_file_side_effect)):
+            runner = CliRunner()
+            result = runner.invoke(config.config.commands["override-config-table"],
+                                   ['golden_config_db.json'], obj=db)
+            assert "not found in asic config" in result.output
+            # make sure program aborted with return code 1
+            assert result.exit_code == 1
 
     @classmethod
     def teardown_class(cls):
