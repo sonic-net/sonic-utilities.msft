@@ -1894,14 +1894,24 @@ def override_config_table(db, input_config_db, dry_run):
         current_config = config_db.get_config()
         # Serialize to the same format as json input
         sonic_cfggen.FormatConverter.to_serialized(current_config)
-
-        if multi_asic.is_multi_asic():
+        ns_config_input = None
+        if multi_asic.is_multi_asic() and len(config_input):
             # Golden Config will use "localhost" to represent host name
             if ns == DEFAULT_NAMESPACE:
-                ns_config_input = config_input["localhost"]
+                if "localhost" in config_input.keys():
+                    ns_config_input = config_input["localhost"]
+                else:
+                    click.secho("Wrong config format! 'localhost' not found in host config! cannot override.. abort")
+                    sys.exit(1)
             else:
-                ns_config_input = config_input[ns]
-        else:
+                if ns in config_input.keys():
+                    ns_config_input = config_input[ns]
+                else:
+                    click.secho("Wrong config format! {} not found in asic config! cannot override.. abort".format(ns))
+                    sys.exit(1)
+        if not ns_config_input:
+            # if ns_config_input is not defined, define it
+            # it could be single-asic dut, or config_input is empty
             ns_config_input = config_input
         # Generate sysinfo if missing in ns_config_input
         generate_sysinfo(current_config, ns_config_input, ns)
