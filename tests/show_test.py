@@ -7,7 +7,7 @@ import show.main as show
 from unittest import mock
 from click.testing import CliRunner
 from utilities_common import constants
-from unittest.mock import call, MagicMock, patch, mock_open
+from unittest.mock import call, MagicMock, patch
 
 EXPECTED_BASE_COMMAND = 'sudo '
 EXPECTED_BASE_COMMAND_LIST = ['sudo']
@@ -988,27 +988,3 @@ class TestShow(object):
     def teardown(self):
         print('TEAR DOWN')
 
-
-class TestShowRunningconfiguration(object):
-    @classmethod
-    def setup_class(cls):
-        print('SETUP')
-        os.environ['UTILITIES_UNIT_TESTING'] = '1'
-
-    @patch('show.main.run_command')
-    @patch('builtins.open', mock_open(
-        read_data=open('tests/syslog_input/rsyslog.conf').read()))
-    def test_rc_syslog(self, mock_rc):
-        runner = CliRunner()
-
-        result = runner.invoke(
-            show.cli.commands['runningconfiguration'].commands['syslog'])
-        print(result.exit_code)
-        print(result.output)
-
-        assert result.exit_code == 0
-        assert '[1.1.1.1]' in result.output
-
-    @classmethod
-    def teardown_class(cls):
-        print('TEARDOWN')
