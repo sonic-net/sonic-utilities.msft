@@ -88,6 +88,9 @@ class TestEcnConfig(object):
     def test_ecn_queue_get_verbose(self):
         self.executor(testData['ecn_q_get_verbose'])
 
+    def test_ecn_queue_get_lossy(self):
+        self.executor(testData['ecn_lossy_q_get'])
+
     def test_ecn_all_queue_get(self):
         self.executor(testData['ecn_q_all_get'])
 
@@ -117,6 +120,21 @@ class TestEcnConfig(object):
 
     def test_ecn_queue_set_all_on_verbose(self):
         self.executor(testData['ecn_cfg_q_all_on_verbose'])
+
+    def test_ecn_queue_set_lossy_q_on(self):
+        self.executor(testData['ecn_cfg_lossy_q_on'])
+
+    def process_cmp_args(self, cmp_args):
+        if cmp_args is None:
+            return (None, None)
+        return cmp_args.split(',')
+
+    def verify_profile(self, queue_db_entry, profile, value):
+        if profile != None:
+            assert queue_db_entry[profile] == value
+        else:
+            assert profile not in queue_db_entry,\
+                   "Profile needs to be fully removed from table to propagate NULL OID to SAI"
 
     def executor(self, input):
         runner = CliRunner()
@@ -150,16 +168,16 @@ class TestEcnConfig(object):
         if 'cmp_args' in input:
             fd = open('/tmp/ecnconfig', 'r')
             cmp_data = json.load(fd)
-
             if 'cmp_q_args' in input:
+                profile, value = self.process_cmp_args(input['cmp_args'][0])
                 if 'other_q' in input:
-                    profile1, value1 = input['cmp_args'][-1].split(',')
-                profile, value = input['cmp_args'][0].split(',')
+                    profile1, value1 = self.process_cmp_args(input['cmp_args'][-1])
                 for key in cmp_data:
-                    if ast.literal_eval(key)[-1] in input['cmp_q_args']:
-                        assert(cmp_data[key][profile] == value)
-                    if 'other_q' in input and ast.literal_eval(key)[-1] in input['other_q']:
-                        assert(cmp_data[key][profile1] == value1)
+                    queue_idx = ast.literal_eval(key)[-1]
+                    if queue_idx in input['cmp_q_args']:
+                        self.verify_profile(cmp_data[key], profile, value)
+                    if 'other_q' in input and queue_idx in input['other_q']:
+                        self.verify_profile(cmp_data[key], profile1, value1)
             else:
                 for args in input['cmp_args']:
                     profile, name, value = args.split(',')
