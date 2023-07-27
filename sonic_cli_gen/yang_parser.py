@@ -259,16 +259,17 @@ def on_uses(y_module: OrderedDict,
     # trim prefixes in order to the next checks
     trim_uses_prefixes(y_uses)
 
-    # TODO: 'refine' support
     for group in y_grouping:
         if isinstance(y_uses, list):
             for use in y_uses:
                 if group.get('@name') == use.get('@name'):
+                    resolve_refine(group, use)
                     ret_attrs.extend(get_leafs(group, group.get('@name')))
                     ret_attrs.extend(get_leaf_lists(group, group.get('@name')))
                     ret_attrs.extend(get_choices(y_module, group, conf_mgmt, group.get('@name')))
         else:
             if group.get('@name') == y_uses.get('@name'):
+                resolve_refine(group, y_uses)
                 ret_attrs.extend(get_leafs(group, group.get('@name')))
                 ret_attrs.extend(get_leaf_lists(group, group.get('@name')))
                 ret_attrs.extend(get_choices(y_module, group, conf_mgmt, group.get('@name')))
@@ -401,10 +402,10 @@ def get_mandatory(y_leaf: OrderedDict) -> bool:
             'leaf' 'mandatory' value
     """
 
-    if y_leaf.get('mandatory') is not None:
-        return True
+    if y_leaf.get('mandatory') is None:
+        return False
 
-    return False
+    return y_leaf.get('mandatory').get('@value') == 'true'
 
 
 def get_description(y_entity: OrderedDict) -> str:
@@ -504,6 +505,58 @@ def get_uses(y_module: OrderedDict,
         return on_uses(y_module, y_entity.get('uses'), conf_mgmt)
 
     return []
+
+
+def refine_cb(refine: OrderedDict, entity: OrderedDict):
+    if refine.get('@target-node') != entity.get('@name'):
+        return
+
+    if refine.get('description') is not None:
+        entity['description'] = OrderedDict([('text', refine.get('description').get('text'))])
+
+    if refine.get('mandatory') is not None:
+        entity['mandatory'] = OrderedDict([('@value', refine.get('mandatory').get('@value'))])
+
+
+def resolve_refine_list(y_uses_refine: OrderedDict, y_entity: OrderedDict):
+    if isinstance(y_uses_refine, list):
+        if isinstance(y_entity, list):
+            for refine in y_uses_refine:
+                for e in y_entity:
+                    refine_cb(refine, e)
+        else:
+            for refine in y_uses_refine:
+                refine_cb(refine, y_entity)
+    else:
+        if isinstance(y_entity, list):
+            for e in y_entity:
+                refine_cb(y_uses_refine, e)
+        else:
+            refine_cb(y_uses_refine, y_entity)
+
+
+def resolve_refine(y_group: OrderedDict, y_uses: OrderedDict):
+    """ Check if the YANG 'uses' entity have the 'refine' entity, if so
+        this function will override values in 'y_group' using 'refine' values
+
+        Args:
+            y_group: reference to 'grouping'
+            y_uses: reference to 'uses'
+    """
+
+    y_uses_refine = y_uses.get('refine')
+
+    if y_uses_refine is None:
+        return
+
+    y_group_leaf = y_group.get('leaf')
+    y_group_leaf_list = y_group.get('leaf-list')
+
+    if y_group_leaf is not None:
+        resolve_refine_list(y_uses_refine, y_group_leaf)
+
+    if y_group_leaf_list is not None:
+        resolve_refine_list(y_uses_refine, y_group_leaf_list)
 
 
 def get_all_grouping(y_module: OrderedDict,
