@@ -535,14 +535,14 @@ grouping_complex = {
                 "attrs":[
                     {
                         "name":"GR_5_LEAF_1",
-                        "description": "",
+                        "description": "GR_5_LEAF_1 refine description",
                         "is-mandatory": False,
                         "is-leaf-list": False,
                         "group": "GR_5",
                     },
                     {
                         "name":"GR_5_LEAF_LIST_1",
-                        "description": "",
+                        "description": "GR_5_LEAF_LIST_1 refine description",
                         "is-mandatory": False,
                         "is-leaf-list": True,
                         "group": "GR_5",
@@ -556,7 +556,7 @@ grouping_complex = {
                     },
                     {
                         "name":"GR_6_LEAF_2",
-                        "description": "",
+                        "description": "GR_6_LEAF_2 refine description",
                         "is-mandatory": False,
                         "is-leaf-list": False,
                         "group": "GR_6",
