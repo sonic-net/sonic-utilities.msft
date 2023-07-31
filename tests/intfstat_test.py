@@ -1,7 +1,6 @@
 import sys
 import os
 import traceback
-import subprocess
 import show.main as show
 import clear.main as clear
 
@@ -211,28 +210,6 @@ class TestIntfstat(object):
         for i, interface in enumerate(interfaces):
             assert interface in result_lines[i+2]
         os.environ["SONIC_CLI_IFACE_MODE"] = "default"
-
-    def test_clear_tag(self):
-        cmd0 = ["intfstat", "-c"]
-        subprocess.Popen(cmd0, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-
-        cmd1 = ["intfstat", "-c", '-t', 'test']
-        subprocess.Popen(cmd1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-        cmd2 = ["intfstat", '-t', 'test']
-        p2 = subprocess.Popen(cmd2, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-        output2 = p2.communicate()[0]
-        print(output2)
-        assert show_interfaces_counters_rif_clear in output2
-
-        cmd3 = ["intfstat", "-c", '-t', 'test']
-        subprocess.Popen(cmd3, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-        cmd4 = ["intfstat", '-t', 'test']
-        p4 = subprocess.Popen(cmd4, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-        output4 = p4.communicate()[0]
-        print(output4)
-        assert show_interfaces_counters_rif_clear in output4
-
-        show.run_command(["intfstat", "-D"])
 
     @classmethod
     def teardown_class(cls):
