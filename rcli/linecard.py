@@ -44,9 +44,8 @@ class Linecard:
         connection.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
             connection.connect(self.ip, username=self.username, password=self.password)
-        except paramiko.ssh_exception.NoValidConnectionsError as e:
+        except:
             connection = None
-            click.echo(e)
         return connection
 
     def _get_password(self):
