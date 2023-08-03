@@ -10,35 +10,42 @@ from sonic_py_common import device_info
 @click.command()
 @click.argument('linecard_names', nargs=-1, type=str, required=True)
 @click.option('-c', '--command', type=str, required=True)
-def cli(linecard_names, command):
+@click.option('-u', '--username', type=str, default=None, help="Username for login")
+def cli(linecard_names, command, username):
     """
     Executes a command on one or many linecards
-    
+
     :param linecard_names: A list of linecard names to execute the command on, 
         use `all` to execute on all linecards.
     :param command: The command to execute on the linecard(s)
+    :param username: The username to use to login to the linecard(s)
     """
     if not device_info.is_chassis():
         click.echo("This commmand is only supported Chassis")
         sys.exit(1)
-    
-    username = os.getlogin()
+
+    if not username:
+        username = os.getlogin()
     password = rcli_utils.get_password(username)
-    
+
     if list(linecard_names) == ["all"]:
         # Get all linecard names using autocompletion helper
         linecard_names = rcli_utils.get_all_linecards(None, None, "")
 
-    # Iterate through each linecard, execute command, and gather output
+    linecards = []
+    # Iterate through each linecard, check if the login was successful
     for linecard_name in linecard_names:
-        try:
-            lc = Linecard(linecard_name, username, password)
-            if lc.connection:
-                # If connection was created, connection exists. Otherwise, user will see an error message.
-                click.echo("======== {} output: ========".format(lc.linecard_name))
-                click.echo(lc.execute_cmd(command))
-        except paramiko.ssh_exception.AuthenticationException:
-            click.echo("Login failed on '{}' with username '{}'".format(linecard_name, lc.username))
+        linecard = Linecard(linecard_name, username, password)
+        if not linecard.connection:
+            click.echo(f"Failed to connect to {linecard_name} with username {username}")
+            sys.exit(1)
+        linecards.append(linecard)
 
-if __name__=="__main__":
+    for linecard in linecards:
+        if linecard.connection:
+            click.echo(f"======== {linecard.linecard_name} output: ========")
+            click.echo(linecard.execute_cmd(command))
+
+
+if __name__ == "__main__":
     cli(prog_name='rexec')

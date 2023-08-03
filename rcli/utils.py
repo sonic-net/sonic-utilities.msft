@@ -31,24 +31,21 @@ def connect_state_db():
     return state_db
 
 
-
 def get_linecard_module_name_from_hostname(linecard_name: str):
-    
-    chassis_state_db = connect_to_chassis_state_db()
 
+    chassis_state_db = connect_to_chassis_state_db()
     keys = chassis_state_db.keys(chassis_state_db.CHASSIS_STATE_DB , '{}|{}'.format(CHASSIS_MODULE_HOSTNAME_TABLE, '*'))
     for key in keys:
         module_name = key.split('|')[1]
         hostname = chassis_state_db.get(chassis_state_db.CHASSIS_STATE_DB, key, CHASSIS_MODULE_HOSTNAME)
         if hostname.replace('-', '').lower() == linecard_name.replace('-', '').lower():
-             return module_name
- 
+            return module_name
+
     return None
-       
+
 def get_linecard_ip(linecard_name: str):
     """
     Given a linecard name, lookup its IP address in the midplane table
-    
     :param linecard_name: The name of the linecard you want to connect to
     :type linecard_name: str
     :return: IP address of the linecard
@@ -62,7 +59,7 @@ def get_linecard_ip(linecard_name: str):
     if module_name is None:
         module_name = linecard_name
     module_ip, module_access = get_module_ip_and_access_from_state_db(module_name)
-    
+
     if not module_ip:
         click.echo('Linecard {} not found'.format(linecard_name))
         return None
@@ -70,8 +67,6 @@ def get_linecard_ip(linecard_name: str):
     if module_access != 'True':
         click.echo('Linecard {} not accessible'.format(linecard_name))
         return None
-  
-    
     return module_ip
 
 def get_module_ip_and_access_from_state_db(module_name):
@@ -80,10 +75,10 @@ def get_module_ip_and_access_from_state_db(module_name):
         state_db.STATE_DB, '{}|{}'.format(CHASSIS_MIDPLANE_INFO_TABLE,module_name ))
     if data_dict is None:
         return None, None
-    
+
     linecard_ip = data_dict.get(CHASSIS_MIDPLANE_INFO_IP_FIELD, None)
     access = data_dict.get(CHASSIS_MIDPLANE_INFO_ACCESS_FIELD, None)
-    
+
     return linecard_ip, access
 
 
@@ -91,7 +86,7 @@ def get_all_linecards(ctx, args, incomplete) -> list:
     """
     Return a list of all accessible linecard names. This function is used to 
     autocomplete linecard names in the CLI.
-    
+
     :param ctx: The Click context object that is passed to the command function
     :param args: The arguments passed to the Click command
     :param incomplete: The string that the user has typed so far
@@ -100,10 +95,9 @@ def get_all_linecards(ctx, args, incomplete) -> list:
     # Adapted from `show chassis modules midplane-status` command logic:
     # https://github.com/sonic-net/sonic-utilities/blob/master/show/chassis_modules.py
 
- 
     chassis_state_db = connect_to_chassis_state_db()
     state_db = connect_state_db()
-    
+
     linecards = []
     keys = state_db.keys(state_db.STATE_DB,'{}|*'.format(CHASSIS_MIDPLANE_INFO_TABLE))
     for key in keys:
@@ -115,17 +109,17 @@ def get_all_linecards(ctx, args, incomplete) -> list:
         linecard_ip, access = get_module_ip_and_access_from_state_db(module_name)
         if linecard_ip is None:
             continue
-        
-        if access != "True" :
+
+        if access != "True":
             continue
-        
+
         # get the hostname for this module
         hostname = chassis_state_db.get(chassis_state_db.CHASSIS_STATE_DB, '{}|{}'.format(CHASSIS_MODULE_HOSTNAME_TABLE, module_name), CHASSIS_MODULE_HOSTNAME)
         if hostname:
             linecards.append(hostname)
         else:
             linecards.append(module_name)
-    
+
     # Return a list of all matched linecards
     return [lc for lc in linecards if incomplete in lc]
 
@@ -133,15 +127,15 @@ def get_all_linecards(ctx, args, incomplete) -> list:
 def get_password(username=None):
     """
     Prompts the user for a password, and returns the password
-    
+
     :param username: The username that we want to get the password for
     :type username: str
     :return: The password for the username.
     """
 
     if username is None:
-        username =os.getlogin()
-        
+        username = os.getlogin()
+
     return getpass(
         "Password for username '{}': ".format(username),
         # Pass in click stdout stream - this is similar to using click.echo
