@@ -469,6 +469,13 @@ class TestWarmUpgrade_to_2_0_2(object):
             diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
             assert not diff
 
+        target_routing_mode_result = dbmgtr.configDB.get_table("DEVICE_METADATA")['localhost']['docker_routing_config_mode']
+        target_routing_mode_expected = expected_db.cfgdb.get_table("DEVICE_METADATA")['localhost']['docker_routing_config_mode']
+        diff = DeepDiff(resulting_table, expected_table, ignore_order=True)
+        assert target_routing_mode_result == target_routing_mode_expected,\
+            "After migration: {}. Expected after migration: {}".format(
+                target_routing_mode_result, target_routing_mode_expected)
+
     def test_warm_upgrade__without_mg_to_2_0_2(self):
         dbconnector.dedicated_dbs['CONFIG_DB'] = os.path.join(mock_db_path, 'config_db', 'cross_branch_upgrade_to_version_2_0_2_input')
         import db_migrator
