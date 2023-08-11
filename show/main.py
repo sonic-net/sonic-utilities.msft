@@ -1686,7 +1686,7 @@ def syslog(verbose):
     header = ["Syslog Servers"]
     body = []
 
-    re_syslog = re.compile(r'^\*\.\* action\(.*target=\"{1}(.+?)\"{1}.*\)')
+    re_syslog = re.compile(r'^action\(type=\"omfwd\" Target=\"{1}(.+?)\"{1}.*\)')
 
     try:
         with open("/etc/rsyslog.conf") as syslog_file:
