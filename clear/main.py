@@ -181,6 +181,9 @@ def queuecounters():
     command = ["queuestat", "-c"]
     run_command(command)
 
+    command = ["queuestat", "-c", "--voq"]
+    run_command(command)
+
 @cli.command()
 def pfccounters():
     """Clear pfc counters"""

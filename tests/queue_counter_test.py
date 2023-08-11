@@ -997,58 +997,94 @@ show_queue_counters_port_json = """\
 }"""
 
 show_queue_voq_counters = """\
-     Port    Voq    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
----------  -----  --------------  ---------------  -----------  ------------
-Ethernet0   VOQ0              68               30           56            74
-Ethernet0   VOQ1              60               43           39             1
-Ethernet0   VOQ2              82                7           39            21
-Ethernet0   VOQ3              11               59           12            94
-Ethernet0   VOQ4              36               62           35            40
-Ethernet0   VOQ5              49               91            2            88
-Ethernet0   VOQ6              33               17           94            74
-Ethernet0   VOQ7              40               71           95            33
+            Port    Voq    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
+----------------  -----  --------------  ---------------  -----------  ------------
+testsw|Ethernet0   VOQ0              68               30           56            74
+testsw|Ethernet0   VOQ1              60               43           39             1
+testsw|Ethernet0   VOQ2              82                7           39            21
+testsw|Ethernet0   VOQ3              11               59           12            94
+testsw|Ethernet0   VOQ4              36               62           35            40
+testsw|Ethernet0   VOQ5              49               91            2            88
+testsw|Ethernet0   VOQ6              33               17           94            74
+testsw|Ethernet0   VOQ7              40               71           95            33
 
-     Port    Voq    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
----------  -----  --------------  ---------------  -----------  ------------
-Ethernet4   VOQ0              54                8           93            78
-Ethernet4   VOQ1              83               96           74             9
-Ethernet4   VOQ2              15               60           61            31
-Ethernet4   VOQ3              45               52           82            94
-Ethernet4   VOQ4              55               88           89            52
-Ethernet4   VOQ5              14               70           95            79
-Ethernet4   VOQ6              68               60           66            81
-Ethernet4   VOQ7              63                4           48            76
+            Port    Voq    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
+----------------  -----  --------------  ---------------  -----------  ------------
+testsw|Ethernet4   VOQ0              54                8           93            78
+testsw|Ethernet4   VOQ1              83               96           74             9
+testsw|Ethernet4   VOQ2              15               60           61            31
+testsw|Ethernet4   VOQ3              45               52           82            94
+testsw|Ethernet4   VOQ4              55               88           89            52
+testsw|Ethernet4   VOQ5              14               70           95            79
+testsw|Ethernet4   VOQ6              68               60           66            81
+testsw|Ethernet4   VOQ7              63                4           48            76
 
-     Port    Voq    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
----------  -----  --------------  ---------------  -----------  ------------
-Ethernet8   VOQ0              41               73           77            74
-Ethernet8   VOQ1              60               21           56            54
-Ethernet8   VOQ2              57               31           12            39
-Ethernet8   VOQ3              41               96           70            98
-Ethernet8   VOQ4              18               49           63            36
-Ethernet8   VOQ5              99               90            3            15
-Ethernet8   VOQ6               8               84           82            94
-Ethernet8   VOQ7              83               15           75            92
+            Port    Voq    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
+----------------  -----  --------------  ---------------  -----------  ------------
+testsw|Ethernet8   VOQ0              41               73           77            74
+testsw|Ethernet8   VOQ1              60               21           56            54
+testsw|Ethernet8   VOQ2              57               31           12            39
+testsw|Ethernet8   VOQ3              41               96           70            98
+testsw|Ethernet8   VOQ4              18               49           63            36
+testsw|Ethernet8   VOQ5              99               90            3            15
+testsw|Ethernet8   VOQ6               8               84           82            94
+testsw|Ethernet8   VOQ7              83               15           75            92
 
 """
 
+show_queue_voq_counters_with_clear = ["""\
+            Port    Voq    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
+----------------  -----  --------------  ---------------  -----------  ------------
+testsw|Ethernet0   VOQ0               0                0            0             0
+testsw|Ethernet0   VOQ1               0                0            0             0
+testsw|Ethernet0   VOQ2               0                0            0             0
+testsw|Ethernet0   VOQ3               0                0            0             0
+testsw|Ethernet0   VOQ4               0                0            0             0
+testsw|Ethernet0   VOQ5               0                0            0             0
+testsw|Ethernet0   VOQ6               0                0            0             0
+testsw|Ethernet0   VOQ7               0                0            0             0
+""", """\
+            Port    Voq    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
+----------------  -----  --------------  ---------------  -----------  ------------
+testsw|Ethernet4   VOQ0               0                0            0             0
+testsw|Ethernet4   VOQ1               0                0            0             0
+testsw|Ethernet4   VOQ2               0                0            0             0
+testsw|Ethernet4   VOQ3               0                0            0             0
+testsw|Ethernet4   VOQ4               0                0            0             0
+testsw|Ethernet4   VOQ5               0                0            0             0
+testsw|Ethernet4   VOQ6               0                0            0             0
+testsw|Ethernet4   VOQ7               0                0            0             0
+""", """\
+            Port    Voq    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
+----------------  -----  --------------  ---------------  -----------  ------------
+testsw|Ethernet8   VOQ0               0                0            0             0
+testsw|Ethernet8   VOQ1               0                0            0             0
+testsw|Ethernet8   VOQ2               0                0            0             0
+testsw|Ethernet8   VOQ3               0                0            0             0
+testsw|Ethernet8   VOQ4               0                0            0             0
+testsw|Ethernet8   VOQ5               0                0            0             0
+testsw|Ethernet8   VOQ6               0                0            0             0
+testsw|Ethernet8   VOQ7               0                0            0             0
+"""
+]
+
 show_queue_port_voq_counters = """\
-     Port    Voq    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
----------  -----  --------------  ---------------  -----------  ------------
-Ethernet0   VOQ0              68               30           56            74
-Ethernet0   VOQ1              60               43           39             1
-Ethernet0   VOQ2              82                7           39            21
-Ethernet0   VOQ3              11               59           12            94
-Ethernet0   VOQ4              36               62           35            40
-Ethernet0   VOQ5              49               91            2            88
-Ethernet0   VOQ6              33               17           94            74
-Ethernet0   VOQ7              40               71           95            33
+            Port    Voq    Counter/pkts    Counter/bytes    Drop/pkts    Drop/bytes
+----------------  -----  --------------  ---------------  -----------  ------------
+testsw|Ethernet0   VOQ0              68               30           56            74
+testsw|Ethernet0   VOQ1              60               43           39             1
+testsw|Ethernet0   VOQ2              82                7           39            21
+testsw|Ethernet0   VOQ3              11               59           12            94
+testsw|Ethernet0   VOQ4              36               62           35            40
+testsw|Ethernet0   VOQ5              49               91            2            88
+testsw|Ethernet0   VOQ6              33               17           94            74
+testsw|Ethernet0   VOQ7              40               71           95            33
 
 """
 
 show_queue_voq_counters_json = """\
 {
-  "Ethernet0": {
+  "testsw|Ethernet0": {
     "VOQ0": {
       "dropbytes": "74",
       "droppacket": "56",
@@ -1098,7 +1134,7 @@ show_queue_voq_counters_json = """\
       "totalpacket": "40"
     }
   },
-  "Ethernet4": {
+  "testsw|Ethernet4": {
     "VOQ0": {
       "dropbytes": "78",
       "droppacket": "93",
@@ -1148,7 +1184,7 @@ show_queue_voq_counters_json = """\
       "totalpacket": "63"
     }
   },
-  "Ethernet8": {
+  "testsw|Ethernet8": {
     "VOQ0": {
       "dropbytes": "74",
       "droppacket": "77",
@@ -1202,7 +1238,7 @@ show_queue_voq_counters_json = """\
 
 show_queue_port_voq_counters_json = """\
 {
-  "Ethernet0": {
+  "testsw|Ethernet0": {
     "VOQ0": {
       "dropbytes": "74",
       "droppacket": "56",
@@ -1339,11 +1375,29 @@ class TestQueue(object):
         assert result.exit_code == 0
         assert result.output == show_queue_voq_counters
 
+    def test_queue_voq_counters_with_clear(self):
+        runner = CliRunner()
+        result = runner.invoke(clear.cli.commands['queuecounters'], [])
+        assert result.exit_code == 0
+        result = runner.invoke(
+            show.cli.commands["queue"].commands["counters"],
+            ["--voq"]
+        )
+        print(result.output)
+        show.run_command(['queuestat', '-d', '--voq'])
+        assert result.exit_code == 0
+        assert "Ethernet0 Last cached time was" in result.output and \
+                "Ethernet4 Last cached time was" in result.output and \
+                "Ethernet8 Last cached time was" in result.output
+        assert show_queue_voq_counters_with_clear[0] in result.output and \
+                show_queue_voq_counters_with_clear[1] in result.output and \
+                show_queue_voq_counters_with_clear[2] in result.output
+
     def test_queue_port_voq_counters(self):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["queue"].commands["counters"],
-            ["Ethernet0", "--voq"]
+            ["testsw|Ethernet0", "--voq"]
         )
         print(result.output)
         assert result.exit_code == 0
@@ -1370,7 +1424,7 @@ class TestQueue(object):
         runner = CliRunner()
         result = runner.invoke(
             show.cli.commands["queue"].commands["counters"],
-            ["Ethernet0", "--voq", "--json"]
+            ["testsw|Ethernet0", "--voq", "--json"]
         )
         assert result.exit_code == 0
         print(result.output)
