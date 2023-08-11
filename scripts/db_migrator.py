@@ -616,6 +616,21 @@ class DBMigrator():
                     route_key = "ROUTE_TABLE:{}".format(route_prefix)
                 self.appDB.set(self.appDB.APPL_DB, route_key, 'weight','')
 
+    def migrate_routing_config_mode(self):
+        # DEVICE_METADATA - synchronous_mode entry
+        if not self.minigraph_data or 'DEVICE_METADATA' not in self.minigraph_data:
+            return
+        device_metadata_old = self.configDB.get_entry('DEVICE_METADATA', 'localhost')
+        device_metadata_new = self.minigraph_data['DEVICE_METADATA']['localhost']
+        # overwrite the routing-config-mode as per minigraph parser
+        # Criteria for update:
+        # if config mode is missing in base OS or if base and target modes are not same
+        #  Eg. in 201811 mode is "unified", and in newer branches mode is "separated" 
+        if ('docker_routing_config_mode' not in device_metadata_old and 'docker_routing_config_mode' in device_metadata_new) or \
+        (device_metadata_old.get('docker_routing_config_mode') != device_metadata_new.get('docker_routing_config_mode')):
+            device_metadata_old['docker_routing_config_mode'] = device_metadata_new.get('docker_routing_config_mode')
+            self.configDB.set_entry('DEVICE_METADATA', 'localhost', device_metadata_old)
+
     def update_edgezone_aggregator_config(self):
         """
         Update cable length configuration in ConfigDB for T0 neighbor interfaces
@@ -985,6 +1000,8 @@ class DBMigrator():
 
         # Updating edgezone aggregator cable length config for T0 devices
         self.update_edgezone_aggregator_config()
+        # update FRR config mode based on minigraph parser on target image
+        self.migrate_routing_config_mode()
 
     def migrate(self):
         version = self.get_version()

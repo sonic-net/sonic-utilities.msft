@@ -3,6 +3,7 @@
         "VERSION": "version_3_0_3"
     },
     "DEVICE_METADATA|localhost": {
-        "synchronous_mode": "enable"
+        "synchronous_mode": "enable",
+        "docker_routing_config_mode": "separated"
     }
 }
