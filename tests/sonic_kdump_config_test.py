@@ -2,9 +2,10 @@ import logging
 import os
 import sys
 import unittest
-from unittest.mock import patch, mock_open
+from unittest.mock import patch, mock_open, Mock
 
 from utilities_common.general import load_module_from_source
+from sonic_installer.common import IMAGE_PREFIX
 
 TESTS_DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 UTILITY_DIR_PATH = os.path.dirname(TESTS_DIR_PATH)
@@ -254,6 +255,32 @@ class TestSonicKdumpConfig(unittest.TestCase):
         with patch("sonic_kdump_config.open", mock_open(read_data=ABOOT_MACHINE_CFG_ARCH)):
             return_result = sonic_kdump_config.cmd_kdump_disable(True)
             assert return_result == False
+
+    @patch("sonic_kdump_config.get_bootloader")
+    def test_get_image(self, mock_get_bootloader):
+        """Tests the function `get_current_image() and get_next_image()` in script `sonic-kdump-config.py`.
+        """
+        # Setup bootloader mock
+        mock_bootloader = Mock()
+        mock_bootloader.get_current_image = Mock(return_value=IMAGE_PREFIX + "-20201230.62")
+        mock_bootloader.get_next_image = Mock(return_value=IMAGE_PREFIX + "-20201230.63")
+        mock_get_bootloader.return_value = mock_bootloader
+
+        return_result = sonic_kdump_config.get_next_image()
+        assert return_result == "-20201230.63"
+
+        return_result = sonic_kdump_config.get_current_image()
+        assert return_result == "-20201230.62"
+
+        mock_bootloader.get_current_image.return_value = "-20201230.62"
+        with self.assertRaises(SystemExit) as sys_exit:
+            return_result = sonic_kdump_config.get_current_image()
+        self.assertEqual(sys_exit.exception.code, 1)
+
+        mock_bootloader.get_next_image.return_value = "-20201230.63"
+        with self.assertRaises(SystemExit) as sys_exit:
+            return_result = sonic_kdump_config.get_next_image()
+        self.assertEqual(sys_exit.exception.code, 1)
 
     @patch("sonic_kdump_config.write_use_kdump")
     @patch("os.path.exists")
