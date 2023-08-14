@@ -26,6 +26,8 @@ import syslog
 import subprocess
 
 from swsscommon.swsscommon import ConfigDBConnector
+from sonic_installer.bootloader import get_bootloader
+from sonic_installer.common import IMAGE_PREFIX
 
 aboot_cfg_template ="/host/image-%s/kernel-cmdline"
 grub_cfg = "/host/grub/grub.cfg"
@@ -78,9 +80,10 @@ def run_command(cmd, use_shell=False):
 
 ## Search which SONiC image is the Current image
 def get_current_image():
-    (rc, img, err_str) = run_command("sonic-installer list | grep 'Current: ' | cut -d '-' -f 3-", use_shell=True);
-    if type(img) == list and len(img) == 1:
-        return img[0]
+    bootloader = get_bootloader()
+    curimage = bootloader.get_current_image()
+    if curimage.startswith(IMAGE_PREFIX):
+        return curimage[len(IMAGE_PREFIX):]
     print_err("Unable to locate current SONiC image")
     sys.exit(1)
 
@@ -94,10 +97,11 @@ def get_crash_kernel_size():
 
 ## Search which SONiC image is the Next image
 def get_next_image():
-    (rc, img, err_str) = run_command("sonic-installer list | grep 'Next: ' | cut -d '-' -f 3-", use_shell=True);
-    if type(img) == list and len(img) == 1:
-        return img[0]
-    print_err("Unable to locate current SONiC image")
+    bootloader = get_bootloader()
+    nextimage = bootloader.get_next_image()
+    if nextimage.startswith(IMAGE_PREFIX):
+        return nextimage[len(IMAGE_PREFIX):]
+    print_err("Unable to locate next SONiC image")
     sys.exit(1)
 
 ## Search for Current/Next SONiC image in grub configuration
