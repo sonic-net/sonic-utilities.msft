@@ -132,6 +132,7 @@
 * [Platform Specific Commands](#platform-specific-commands)
   * [Mellanox Platform Specific Commands](#mellanox-platform-specific-commands)
   * [Barefoot Platform Specific Commands](#barefoot-platform-specific-commands)
+* [PINS](#pins-show commands)
 * [PortChannels](#portchannels)
   * [PortChannel Show commands](#portchannel-show-commands)
   * [PortChannel Config commands](#portchannel-config-commands)
@@ -8380,6 +8381,63 @@ It supports add/update/remove operations.
   config pbh hash-field update 'inner_dst_ipv6' \
   --ip-mask 'ffff:ffff::'
   config pbh hash-field delete 'inner_dst_ipv6'
+  ```
+
+Go Back To [Beginning of the document](#) or [Beginning of this section](#pbh)
+
+## PINS
+
+### PINS Show commands
+
+#### P4RT Table
+
+**show p4-table**
+
+This command displays the P4RT (P4 Runtime) tables in the application database.
+
+These tables are used by PINS (P4 Integrated Network Stack) for orchagent to
+communicate with the P4RT application.
+
+- Usage:
+  ```bash
+  show p4-table
+  show p4-table <table_prefix>
+  ```
+
+- Example:
+
+  ```bash
+  admin@sonic:~$ show p4-table
+  {
+      "P4RT_TABLE:ACL_TABLE_DEFINITION_TABLE:ACL_ACL_PRE_INGRESS_TABLE": {
+          "stage":"PRE_INGRESS",
+          "match/dst_ipv6":"{\"bitwidth\":128,\"format\":\"IPV6\",\"kind\":\"sai_field\",\"sai_field\":\"SAI_ACL_TABLE_ATTR_FIELD_DST_IPV6\"}",
+          "match/in_port":"{\"format\":\"STRING\",\"kind\":\"sai_field\",\"sai_field\":\"SAI_ACL_TABLE_ATTR_FIELD_IN_PORT\"}",
+          "match/is_ipv4":"{\"bitwidth\":1,\"format\":\"HEX_STRING\",\"kind\":\"sai_field\",\"sai_field\":\"SAI_ACL_TABLE_ATTR_FIELD_ACL_IP_TYPE/IPV4ANY\"}",
+          "action/set_vrf": "[{\"action\":\"SAI_PACKET_ACTION_FORWARD\"},{\"action\":\"SAI_ACL_ENTRY_ATTR_ACTION_SET_VRF\",\"param\":\"vrf_id\"}]"
+      },
+      "P4RT_TABLE:ACL_ACL_PRE_INGRESS_TABLE:{\"match/dst_ip\":\"10.53.192.0&255.255.240.0\",\"match/is_ipv4\":\"0x1\",\"priority\":1132}": {
+          "action": "set_vrf",
+          "param/vrf_id": "p4rt-vrf-80",
+          "controller_metadata": "my metadata"
+      },
+      ...
+  }
+  ```
+
+  The command supports filtering entries by table name. If a prefix is
+  specified, only p4 table entries matching that prefix will be displayed.
+
+  ```bash
+  admin@sonic:~$ show p4-table ACL_ACL_PRE_INGRESS_TABLE
+  {
+      "P4RT_TABLE:ACL_ACL_PRE_INGRESS_TABLE:{\"match/dst_ip\":\"10.53.192.0&255.255.240.0\",\"match/is_ipv4\":\"0x1\",\"priority\":1132}": {
+          "action": "set_vrf",
+          "param/vrf_id": "p4rt-vrf-80",
+          "controller_metadata": "my metadata"
+      },
+      ...
+  }
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#pbh)
