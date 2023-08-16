@@ -30,6 +30,8 @@ import sys
 import decimal
 import argparse
 
+from utilities_common.constants import DEFAULT_SUPPORTED_FECS_LIST
+
 # mock the redis for unit test purposes #
 try:
     if os.environ["UTILITIES_UNIT_TESTING"] == "1" or os.environ["UTILITIES_UNIT_TESTING"] == "2":
@@ -276,7 +278,7 @@ class portconfig(object):
             else:
                 supported_fecs_list = []
         else:
-            supported_fecs_list = ["rs", "fc", "none"]
+            supported_fecs_list = DEFAULT_SUPPORTED_FECS_LIST
 
         return supported_fecs_list
 

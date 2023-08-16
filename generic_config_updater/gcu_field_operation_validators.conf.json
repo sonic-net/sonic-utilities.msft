@@ -145,6 +145,9 @@
                     }
                 }
             }
+        },
+        "PORT": {
+            "field_operation_validators": [ "generic_config_updater.field_operation_validators.port_config_update_validator" ]
         }
     }
 }
