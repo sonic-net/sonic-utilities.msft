@@ -2,10 +2,13 @@
 
 import argparse
 from collections import OrderedDict, namedtuple
+import json
 import os
 import sys
 
 from utilities_common import constants
+from utilities_common.cli import json_serial, UserCache
+from utilities_common.netstat import format_number_with_comma, table_as_json, ns_diff, format_prate
 from natsort import natsorted
 from tabulate import tabulate
 from sonic_py_common import multi_asic
@@ -31,6 +34,10 @@ COUNTER_TABLE_PREFIX = COUNTERS_TABLE+":"
 FABRIC_PORT_STATUS_TABLE_PREFIX = APP_FABRIC_PORT_TABLE_NAME+"|"
 FABRIC_PORT_STATUS_FIELD = "STATUS"
 STATUS_NA = 'N/A'
+
+cnstat_dir = 'N/A'
+cnstat_fqn_file_port = 'N/A'
+cnstat_fqn_file_queue = 'N/A'
 
 class FabricStat(object):
     def __init__(self, namespace):
@@ -78,6 +85,12 @@ class FabricStat(object):
         """
         assert False, 'Need to override this method'
 
+    def save_fresh_stats(self):
+        """
+        Get stat for each port and save.
+        """
+        assert False, 'Need to override this method'
+
     def cnstat_print(self, cnstat_dict, errors_only=False):
         """
         Print the counter stat.
@@ -115,6 +128,25 @@ class FabricPortStat(FabricStat):
             cnstat_dict[port_name] = PortStat._make(cntr)
         return cnstat_dict
 
+    def save_fresh_stats(self):
+        # Get stat for each port and save
+        counter_port_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_FABRIC_PORT_NAME_MAP)
+        if counter_port_name_map is None:
+            print("No counters require cleaning")
+            return
+        cnstat_dict = self.get_cnstat()
+        asic_name = '0'
+        if self.namespace:
+            asic_name = multi_asic.get_asic_id_from_name(self.namespace)
+        try:
+            cnstat_fqn_file_port_name = cnstat_fqn_file_port + asic_name
+            json.dump(cnstat_dict, open(cnstat_fqn_file_port_name, 'w'), default=json_serial)
+        except IOError as e:
+            print(e.errno, e)
+            sys.exit(e.errno)
+        else:
+            print("Clear and update saved counters port")
+
     def cnstat_print(self, cnstat_dict, errors_only=False):
         if len(cnstat_dict) == 0:
             print("Counters %s empty" % self.namespace)
@@ -127,19 +159,44 @@ class FabricPortStat(FabricStat):
         asic_name = '0'
         if self.namespace:
             asic_name = multi_asic.get_asic_id_from_name(self.namespace)
+
+        cnstat_fqn_file_port_name = cnstat_fqn_file_port + asic_name
+        cnstat_cached_dict = {}
+        if os.path.isfile(cnstat_fqn_file_port_name):
+            try:
+                cnstat_cached_dict = json.load(open(cnstat_fqn_file_port_name, 'r'))
+            except IOError as e:
+                print(e.errno, e)
+
         for key, data in cnstat_dict.items():
             port_id = key[len(PORT_NAME_PREFIX):]
+            port_name = "PORT" + port_id
+            # The content in the for each port:
+            # "IN_CELL, IN_OCTET, OUT_CELL, OUT_OCTET, CRC, FEC_CORRECTABLE, FEC_UNCORRECTABL, SYMBOL_ERR"
+            # e.g. PORT76 ['0', '0', '36', '6669', '0', '13', '302626', '3']
+            # Now, set default saved values to 0
+            diff_cached = ['0', '0', '0', '0', '0', '0', '0', '0']
+            if port_name in cnstat_cached_dict:
+                diff_cached = cnstat_cached_dict.get(port_name)
+
             if errors_only:
                 header = portstat_header_errors_only
                 table.append((asic_name, port_id, self.get_port_state(key),
-                              data.crc, data.fec_correctable, data.fec_uncorrectable,
-                              data.symbol_err))
+                              ns_diff(data.crc, diff_cached[4]),
+                              ns_diff(data.fec_correctable, diff_cached[5]),
+                              ns_diff(data.fec_uncorrectable, diff_cached[6]),
+                              ns_diff(data.symbol_err, diff_cached[7])))
             else:
                 header = portstat_header_all
                 table.append((asic_name, port_id, self.get_port_state(key),
-                              data.in_cell, data.in_octet, data.out_cell, data.out_octet,
-                              data.crc, data.fec_correctable, data.fec_uncorrectable,
-                              data.symbol_err))
+                              ns_diff(data.in_cell, diff_cached[0]),
+                              ns_diff(data.in_octet, diff_cached[1]),
+                              ns_diff(data.out_cell, diff_cached[2]),
+                              ns_diff(data.out_octet, diff_cached[3]),
+                              ns_diff(data.crc, diff_cached[4]),
+                              ns_diff(data.fec_correctable, diff_cached[5]),
+                              ns_diff(data.fec_uncorrectable, diff_cached[6]),
+                              ns_diff(data.symbol_err, diff_cached[7])))
 
         print(tabulate(table, header, tablefmt='simple', stralign='right'))
         print()
@@ -166,6 +223,25 @@ class FabricQueueStat(FabricStat):
             cnstat_dict[port_queue_name] = QueueStat._make(cntr)
         return cnstat_dict
 
+    def save_fresh_stats(self):
+        # Get stat for each port and save
+        counter_port_name_map = self.db.get_all(self.db.COUNTERS_DB, COUNTERS_FABRIC_PORT_NAME_MAP)
+        if counter_port_name_map is None:
+            print("No counters require cleaning")
+            return
+        cnstat_dict = self.get_cnstat()
+        asic_name = '0'
+        if self.namespace:
+            asic_name = multi_asic.get_asic_id_from_name(self.namespace)
+        try:
+            cnstat_fqn_file_queue_name = cnstat_fqn_file_queue + asic_name
+            json.dump(cnstat_dict, open(cnstat_fqn_file_queue_name, 'w'), default=json_serial)
+        except IOError as e:
+            print(e.errno, e)
+            sys.exit(e.errno)
+        else:
+            print("Clear and update saved counters queue")
+
     def cnstat_print(self, cnstat_dict, errors_only=False):
         if len(cnstat_dict) == 0:
             print("Counters %s empty" % self.namespace)
@@ -177,11 +253,29 @@ class FabricQueueStat(FabricStat):
         asic_name = '0'
         if self.namespace:
             asic_name = multi_asic.get_asic_id_from_name(self.namespace)
+
+        cnstat_fqn_file_queue_name = cnstat_fqn_file_queue + asic_name
+        cnstat_cached_dict={}
+        if os.path.isfile(cnstat_fqn_file_queue_name):
+            try:
+                cnstat_cached_dict = json.load(open(cnstat_fqn_file_queue_name, 'r'))
+            except IOError as e:
+                print(e.errno, e)
+
         for key, data in cnstat_dict.items():
             port_name, queue_id = key.split(':')
+            # The content of saved counters queue for each port:
+            # portName:queueId CURRENT_LEVEL, WATERMARK_LEVEL, CURRENT_BYTE
+            # e.g. PORT90:0 ['N/A', 'N/A', 'N/A']
+            # Now, set default saved values to 0
+            diff_cached = ['0', '0', '0']
+            if key in cnstat_cached_dict:
+                diff_cached = cnstat_cached_dict.get(key)
             port_id = port_name[len(PORT_NAME_PREFIX):]
             table.append((asic_name, port_id, self.get_port_state(port_name), queue_id,
-                          data.curbyte, data.curlevel, data.watermarklevel))
+                          ns_diff(data.curbyte, diff_cached[2]),
+                          ns_diff(data.curlevel, diff_cached[0]),
+                          ns_diff(data.watermarklevel, diff_cached[1])))
 
         print(tabulate(table, queuestat_header, tablefmt='simple', stralign='right'))
         print()
@@ -214,6 +308,10 @@ class FabricReachability(FabricStat):
         return
 
 def main():
+    global cnstat_dir
+    global cnstat_fqn_file_port
+    global cnstat_fqn_file_queue
+
     parser  = argparse.ArgumentParser(description='Display the fabric port state and counters',
                                       formatter_class=argparse.RawTextHelpFormatter,
                                       epilog="""
@@ -223,18 +321,39 @@ Examples:
     fabricstat -p -n asic0 -e
     fabricstat -q
     fabricstat -q -n asic0
+    fabricstat -C
+    fabricstat -D
 """)
 
     parser.add_argument('-q','--queue', action='store_true', help='Display fabric queue stat, otherwise port stat')
     parser.add_argument('-r','--reachability', action='store_true', help='Display reachability, otherwise port stat')
     parser.add_argument('-n','--namespace', default=None, help='Display fabric ports counters for specific namespace')
     parser.add_argument('-e', '--errors', action='store_true', help='Display errors')
+    parser.add_argument('-C','--clear', action='store_true', help='Copy & clear fabric counters')
+    parser.add_argument('-D','--delete', action='store_true', help='Delete saved stats')
 
     args = parser.parse_args()
     queue = args.queue
     reachability = args.reachability
     namespace = args.namespace
     errors_only = args.errors
+
+    save_fresh_stats = args.clear
+    delete_stats = args.delete
+
+    cache = UserCache()
+
+    cnstat_dir = cache.get_directory()
+
+    cnstat_file = "fabricstatport"
+    cnstat_fqn_file_port = os.path.join(cnstat_dir, cnstat_file)
+
+    cnstat_file = "fabricstatqueue"
+    cnstat_fqn_file_queue = os.path.join(cnstat_dir, cnstat_file)
+
+    if delete_stats:
+        cache.remove()
+        sys.exit(0)
 
     def nsStat(ns, errors_only):
         if queue:
@@ -246,7 +365,10 @@ Examples:
         else:
            stat = FabricPortStat(ns)
         cnstat_dict = stat.get_cnstat_dict()
-        stat.cnstat_print(cnstat_dict, errors_only)
+        if save_fresh_stats:
+            stat.save_fresh_stats()
+        else:
+            stat.cnstat_print(cnstat_dict, errors_only)
 
     if namespace is None:
         # All asics or all fabric asics
