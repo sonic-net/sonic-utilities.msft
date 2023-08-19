@@ -413,9 +413,9 @@ class TestConfigOverrideMultiasic(object):
             runner = CliRunner()
             result = runner.invoke(config.config.commands["override-config-table"],
                                    ['golden_config_db.json'], obj=db)
-            assert "not found in asic config" in result.output
-            # make sure program aborted with return code 1
-            assert result.exit_code == 1
+            assert "Override config not present for asic1" in result.output
+            # make sure program did not abort
+            assert result.exit_code == 0
 
     @classmethod
     def teardown_class(cls):

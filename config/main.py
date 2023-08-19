@@ -1907,8 +1907,8 @@ def override_config_table(db, input_config_db, dry_run):
                 if ns in config_input.keys():
                     ns_config_input = config_input[ns]
                 else:
-                    click.secho("Wrong config format! {} not found in asic config! cannot override.. abort".format(ns))
-                    sys.exit(1)
+                    click.echo("Override config not present for {}".format(ns))
+                    continue
         if not ns_config_input:
             # if ns_config_input is not defined, define it
             # it could be single-asic dut, or config_input is empty
