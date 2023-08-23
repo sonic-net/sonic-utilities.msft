@@ -1412,6 +1412,20 @@ collect_cisco_8000() {
     fi
 }
 
+##############################################################################
+# collect_innovium
+# Globals:
+#   None
+# Arguments:
+#   None
+# Retuens:
+#   None
+##############################################################################
+collect_innovium() {
+    save_cmd "ivmcmd 'show techsupport -i /innovium/show_techsupport_infile'" "show_techsupport_op_ifcs.log"
+    save_cmd "ivmcmd 'show techsupport -i /innovium/show_techsupport_infile_iSAI'" "show_techsupport_op_iSAI.log"
+}
+
 ###############################################################################
 # Save log file
 # Globals:
@@ -1793,6 +1807,10 @@ main() {
 
     if [ "$asic" = "cisco-8000" ]; then
         collect_cisco_8000
+    fi
+
+    if [ "$asic" = "innovium" ]; then
+        collect_innovium
     fi
 
     if [ "$asic" = "marvell" ]; then
