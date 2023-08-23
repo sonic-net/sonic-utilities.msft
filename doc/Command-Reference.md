@@ -933,7 +933,7 @@ This command displays information for all the interfaces for the transceiver req
 
 - Usage:
   ```
-  show interfaces transceiver (eeprom [-d|--dom] | info | lpmode | presence | error-status [-hw|--fetch-from-hardware] | pm) [<interface_name>]
+  show interfaces transceiver (eeprom [-d|--dom] | info | lpmode | presence | error-status [-hw|--fetch-from-hardware] | pm | status) [<interface_name>]
   ```
 
 - Example (Decode and display information stored on the EEPROM of SFP transceiver connected to Ethernet0):
@@ -1064,6 +1064,289 @@ This command displays information for all the interfaces for the transceiver req
   
   ``` 
  
+ - Example (Display status info of SFP transceiver connected to Ethernet100):
+  ```
+  admin@sonic:~$ show interfaces transceiver status Ethernet100
+  Ethernet100:
+          Tx fault flag on media lane 1: False
+          Tx fault flag on media lane 2: False
+          Tx fault flag on media lane 3: False
+          Tx fault flag on media lane 4: False
+          Tx fault flag on media lane 5: False
+          Tx fault flag on media lane 6: False
+          Tx fault flag on media lane 7: False
+          Tx fault flag on media lane 8: False
+          Rx loss of signal flag on media lane 1: False
+          Rx loss of signal flag on media lane 2: False
+          Rx loss of signal flag on media lane 3: False
+          Rx loss of signal flag on media lane 4: False
+          Rx loss of signal flag on media lane 5: False
+          Rx loss of signal flag on media lane 6: False
+          Rx loss of signal flag on media lane 7: False
+          Rx loss of signal flag on media lane 8: False
+          TX disable status on lane 1: False
+          TX disable status on lane 2: False
+          TX disable status on lane 3: False
+          TX disable status on lane 4: False
+          TX disable status on lane 5: False
+          TX disable status on lane 6: False
+          TX disable status on lane 7: False
+          TX disable status on lane 8: False
+          Disabled TX channels: 0
+          Current module state: ModuleReady
+          Reason of entering the module fault state: No Fault detected
+          Datapath firmware fault: False
+          Module firmware fault: False
+          Module state changed: False
+          Data path state indicator on host lane 1: DataPathActivated
+          Data path state indicator on host lane 2: DataPathActivated
+          Data path state indicator on host lane 3: DataPathActivated
+          Data path state indicator on host lane 4: DataPathActivated
+          Data path state indicator on host lane 5: DataPathActivated
+          Data path state indicator on host lane 6: DataPathActivated
+          Data path state indicator on host lane 7: DataPathActivated
+          Data path state indicator on host lane 8: DataPathActivated
+          Tx output status on media lane 1: False
+          Tx output status on media lane 2: False
+          Tx output status on media lane 3: False
+          Tx output status on media lane 4: False
+          Tx output status on media lane 5: False
+          Tx output status on media lane 6: False
+          Tx output status on media lane 7: False
+          Tx output status on media lane 8: False
+          Rx output status on host lane 1: True
+          Rx output status on host lane 2: True
+          Rx output status on host lane 3: True
+          Rx output status on host lane 4: True
+          Rx output status on host lane 5: True
+          Rx output status on host lane 6: True
+          Rx output status on host lane 7: True
+          Rx output status on host lane 8: True
+          Tx loss of signal flag on host lane 1: False
+          Tx loss of signal flag on host lane 2: False
+          Tx loss of signal flag on host lane 3: False
+          Tx loss of signal flag on host lane 4: False
+          Tx loss of signal flag on host lane 5: False
+          Tx loss of signal flag on host lane 6: False
+          Tx loss of signal flag on host lane 7: False
+          Tx loss of signal flag on host lane 8: False
+          Tx clock and data recovery loss of lock on host lane 1: False
+          Tx clock and data recovery loss of lock on host lane 2: False
+          Tx clock and data recovery loss of lock on host lane 3: False
+          Tx clock and data recovery loss of lock on host lane 4: False
+          Tx clock and data recovery loss of lock on host lane 5: False
+          Tx clock and data recovery loss of lock on host lane 6: False
+          Tx clock and data recovery loss of lock on host lane 7: False
+          Tx clock and data recovery loss of lock on host lane 8: False
+          Rx clock and data recovery loss of lock on media lane 1: False
+          Rx clock and data recovery loss of lock on media lane 2: False
+          Rx clock and data recovery loss of lock on media lane 3: False
+          Rx clock and data recovery loss of lock on media lane 4: False
+          Rx clock and data recovery loss of lock on media lane 5: False
+          Rx clock and data recovery loss of lock on media lane 6: False
+          Rx clock and data recovery loss of lock on media lane 7: False
+          Rx clock and data recovery loss of lock on media lane 8: False
+          Configuration status for the data path of host line 1: ConfigSuccess
+          Configuration status for the data path of host line 2: ConfigSuccess
+          Configuration status for the data path of host line 3: ConfigSuccess
+          Configuration status for the data path of host line 4: ConfigSuccess
+          Configuration status for the data path of host line 5: ConfigSuccess
+          Configuration status for the data path of host line 6: ConfigSuccess
+          Configuration status for the data path of host line 7: ConfigSuccess
+          Configuration status for the data path of host line 8: ConfigSuccess
+          Data path configuration updated on host lane 1: False
+          Data path configuration updated on host lane 2: False
+          Data path configuration updated on host lane 3: False
+          Data path configuration updated on host lane 4: False
+          Data path configuration updated on host lane 5: False
+          Data path configuration updated on host lane 6: False
+          Data path configuration updated on host lane 7: False
+          Data path configuration updated on host lane 8: False
+          Temperature high alarm flag: False
+          Temperature high warning flag: False
+          Temperature low warning flag: False
+          Temperature low alarm flag: False
+          Vcc high alarm flag: False
+          Vcc high warning flag: False
+          Vcc low warning flag: False
+          Vcc low alarm flag: False
+          Tx power high alarm flag on lane 1: False
+          Tx power high alarm flag on lane 2: False
+          Tx power high alarm flag on lane 3: False
+          Tx power high alarm flag on lane 4: False
+          Tx power high alarm flag on lane 5: False
+          Tx power high alarm flag on lane 6: False
+          Tx power high alarm flag on lane 7: False
+          Tx power high alarm flag on lane 8: False
+          Tx power high warning flag on lane 1: False
+          Tx power high warning flag on lane 2: False
+          Tx power high warning flag on lane 3: False
+          Tx power high warning flag on lane 4: False
+          Tx power high warning flag on lane 5: False
+          Tx power high warning flag on lane 6: False
+          Tx power high warning flag on lane 7: False
+          Tx power high warning flag on lane 8: False
+          Tx power low warning flag on lane 1: False
+          Tx power low warning flag on lane 2: False
+          Tx power low warning flag on lane 3: False
+          Tx power low warning flag on lane 4: False
+          Tx power low warning flag on lane 5: False
+          Tx power low warning flag on lane 6: False
+          Tx power low warning flag on lane 7: False
+          Tx power low warning flag on lane 8: False
+          Tx power low alarm flag on lane 1: False
+          Tx power low alarm flag on lane 2: False
+          Tx power low alarm flag on lane 3: False
+          Tx power low alarm flag on lane 4: False
+          Tx power low alarm flag on lane 5: False
+          Tx power low alarm flag on lane 6: False
+          Tx power low alarm flag on lane 7: False
+          Tx power low alarm flag on lane 8: False
+          Rx power high alarm flag on lane 1: False
+          Rx power high alarm flag on lane 2: False
+          Rx power high alarm flag on lane 3: False
+          Rx power high alarm flag on lane 4: False
+          Rx power high alarm flag on lane 5: False
+          Rx power high alarm flag on lane 6: False
+          Rx power high alarm flag on lane 7: False
+          Rx power high alarm flag on lane 8: False
+          Rx power high warning flag on lane 1: False
+          Rx power high warning flag on lane 2: False
+          Rx power high warning flag on lane 3: False
+          Rx power high warning flag on lane 4: False
+          Rx power high warning flag on lane 5: False
+          Rx power high warning flag on lane 6: False
+          Rx power high warning flag on lane 7: False
+          Rx power high warning flag on lane 8: False
+          Rx power low warning flag on lane 1: False
+          Rx power low warning flag on lane 2: False
+          Rx power low warning flag on lane 3: False
+          Rx power low warning flag on lane 4: False
+          Rx power low warning flag on lane 5: False
+          Rx power low warning flag on lane 6: False
+          Rx power low warning flag on lane 7: False
+          Rx power low warning flag on lane 8: False
+          Rx power low alarm flag on lane 1: False
+          Rx power low alarm flag on lane 2: False
+          Rx power low alarm flag on lane 3: False
+          Rx power low alarm flag on lane 4: False
+          Rx power low alarm flag on lane 5: False
+          Rx power low alarm flag on lane 6: False
+          Rx power low alarm flag on lane 7: False
+          Rx power low alarm flag on lane 8: False
+          Tx bias high alarm flag on lane 1: False
+          Tx bias high alarm flag on lane 2: False
+          Tx bias high alarm flag on lane 3: False
+          Tx bias high alarm flag on lane 4: False
+          Tx bias high alarm flag on lane 5: False
+          Tx bias high alarm flag on lane 6: False
+          Tx bias high alarm flag on lane 7: False
+          Tx bias high alarm flag on lane 8: False
+          Tx bias high warning flag on lane 1: False
+          Tx bias high warning flag on lane 2: False
+          Tx bias high warning flag on lane 3: False
+          Tx bias high warning flag on lane 4: False
+          Tx bias high warning flag on lane 5: False
+          Tx bias high warning flag on lane 6: False
+          Tx bias high warning flag on lane 7: False
+          Tx bias high warning flag on lane 8: False
+          Tx bias low warning flag on lane 1: False
+          Tx bias low warning flag on lane 2: False
+          Tx bias low warning flag on lane 3: False
+          Tx bias low warning flag on lane 4: False
+          Tx bias low warning flag on lane 5: False
+          Tx bias low warning flag on lane 6: False
+          Tx bias low warning flag on lane 7: False
+          Tx bias low warning flag on lane 8: False
+          Tx bias low alarm flag on lane 1: False
+          Tx bias low alarm flag on lane 2: False
+          Tx bias low alarm flag on lane 3: False
+          Tx bias low alarm flag on lane 4: False
+          Tx bias low alarm flag on lane 5: False
+          Tx bias low alarm flag on lane 6: False
+          Tx bias low alarm flag on lane 7: False
+          Tx bias low alarm flag on lane 8: False
+          Laser temperature high alarm flag: False
+          Laser temperature high warning flag: False
+          Laser temperature low warning flag: False
+          Laser temperature low alarm flag: False
+          Prefec ber high alarm flag: False
+          Prefec ber high warning flag: False
+          Prefec ber low warning flag: False
+          Prefec ber low alarm flag: False
+          Postfec ber high alarm flag: False
+          Postfec ber high warning flag: False
+          Postfec ber low warning flag: False
+          Postfec ber low alarm flag: False
+          Tuning in progress status: False
+          Laser unlocked status: False
+          Target output power out of range flag: False
+          Fine tuning out of range flag: False
+          Tuning not accepted flag: False
+          Invalid channel number flag: False
+          Tuning complete flag: False
+          Bias xi high alarm flag: False
+          Bias xi high warning flag: False
+          Bias xi low warning flag: False
+          Bias xi low alarm flag: False
+          Bias xq high alarm flag: False
+          Bias xq high warning flag: False
+          Bias xq low warning flag: False
+          Bias xq low alarm flag: False
+          Bias xp high alarm flag: False
+          Bias xp high warning flag: False
+          Bias xp low warning flag: False
+          Bias xp low alarm flag: False
+          Bias yi high alarm flag: False
+          Bias yi high warning flag: False
+          Bias yi low warning flag: False
+          Bias yi low alarm flag: False
+          Bias yq high alarm flag: False
+          Bias yq high warning flag: False
+          Bias yq low warning flag: False
+          Bias yq low alarm flag: False
+          Bias yp high alarm flag: False
+          Bias yp high warning flag: False
+          Bias yp low warning flag: False
+          Bias yp low alarm flag: False
+          CD short high alarm flag: False
+          CD short high warning flag: False
+          CD short low warning flag: False
+          CD short low alarm flag: False
+          CD long high alarm flag: False
+          CD long high warning flag: False
+          CD long low warning flag: False
+          CD long low alarm flag: False
+          DGD high alarm flag: False
+          DGD high warning flag: False
+          DGD low warning flag: False
+          DGD low alarm flag: False
+          PDL high alarm flag: False
+          PDL high warning flag: False
+          PDL low warning flag: False
+          PDL low alarm flag: False
+          OSNR high alarm flag: False
+          OSNR high warning flag: False
+          OSNR low warning flag: False
+          OSNR low alarm flag: False
+          ESNR high alarm flag: False
+          ESNR high warning flag: False
+          ESNR low warning flag: False
+          ESNR low alarm flag: False
+          CFO high alarm flag: False
+          CFO high warning flag: False
+          CFO low warning flag: False
+          CFO low alarm flag: False
+          Txcurrpower high alarm flag: False
+          Txcurrpower high warning flag: False
+          Txcurrpower low warning flag: False
+          Txcurrpower low alarm flag: False
+          Rxtotpower high alarm flag: False
+          Rxtotpower high warning flag: False
+          Rxtotpower low warning flag: False
+          Rxtotpower low alarm flag: False
+  ```
+
 Go Back To [Beginning of the document](#) or [Beginning of this section](#basic-show-commands)
 
 ## AAA & TACACS+
