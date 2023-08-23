@@ -10,28 +10,32 @@ from rcli import utils as rcli_utils
 
 @click.command()
 @click.argument('linecard_name', type=str, autocompletion=rcli_utils.get_all_linecards)
-def cli(linecard_name):
+@click.option('-u', '--username', type=str, default=None, help="Username for login")
+def cli(linecard_name, username):
     """
     Open interactive shell for one linecard
-    
+
     :param linecard_name: The name of the linecard to connect to
     """
     if not device_info.is_chassis():
         click.echo("This commmand is only supported Chassis")
         sys.exit(1)
 
-    username = os.getlogin()
+    if not username:
+        username = os.getlogin()
     password = rcli_utils.get_password(username)
-    
+
     try:
-        lc =Linecard(linecard_name, username, password)
-        if lc.connection:
-            click.echo("Connecting to {}".format(lc.linecard_name))
-            # If connection was created, connection exists. Otherwise, user will see an error message.
-            lc.start_shell()
+        linecard = Linecard(linecard_name, username, password)
+        if linecard.connection:
+            click.echo(f"Connecting to {linecard.linecard_name}")
+            # If connection was created, connection exists.
+            # Otherwise, user will see an error message.
+            linecard.start_shell()
             click.echo("Connection Closed")
     except paramiko.ssh_exception.AuthenticationException:
-        click.echo("Login failed on '{}' with username '{}'".format(linecard_name, lc.username))
+        click.echo(
+            f"Login failed on '{linecard.linecard_name}' with username '{linecard.username}'")
 
 
 if __name__=="__main__":
