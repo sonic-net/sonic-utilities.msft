@@ -56,6 +56,7 @@ from . import plugins
 from .config_mgmt import ConfigMgmtDPB, ConfigMgmt
 from . import mclag
 from . import syslog
+from . import switchport
 from . import dns
 
 # mock masic APIs for unit test
@@ -101,6 +102,8 @@ CFG_PORTCHANNEL_MAX_VAL = 9999
 CFG_PORTCHANNEL_NO="<0-9999>"
 
 PORT_MTU = "mtu"
+PORT_MODE= "switchport_mode"
+
 PORT_SPEED = "speed"
 PORT_TPID = "tpid"
 DEFAULT_TPID = "0x8100"
@@ -1190,6 +1193,7 @@ config.add_command(muxcable.muxcable)
 config.add_command(nat.nat)
 config.add_command(vlan.vlan)
 config.add_command(vxlan.vxlan)
+config.add_command(switchport.switchport)
 
 #add mclag commands
 config.add_command(mclag.mclag)
@@ -4499,19 +4503,39 @@ def add(ctx, interface_name, ip_addr, gw):
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
 
-    # Add a validation to check this interface is not a member in vlan before
-    # changing it to a router port
-    vlan_member_table = config_db.get_table('VLAN_MEMBER')
-    if (interface_is_in_vlan(vlan_member_table, interface_name)):
-        click.echo("Interface {} is a member of vlan\nAborting!".format(interface_name))
-        return
-
     portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
 
     if interface_is_in_portchannel(portchannel_member_table, interface_name):
         ctx.fail("{} is configured as a member of portchannel."
                 .format(interface_name))
+        
+        
+    # Add a validation to check this interface is in routed mode before
+    # assigning an IP address to it
 
+    sub_intf = False
+
+    if clicommon.is_valid_port(config_db, interface_name):
+        is_port = True
+    elif clicommon.is_valid_portchannel(config_db, interface_name):
+        is_port = False
+    else:
+        sub_intf = True
+
+    if not sub_intf:
+        interface_mode = "routed"
+        if is_port:
+            interface_data = config_db.get_entry('PORT',interface_name)
+        elif not is_port:
+            interface_data = config_db.get_entry('PORTCHANNEL',interface_name)
+
+        if "mode" in interface_data:
+            interface_mode = interface_data["mode"]
+
+        if interface_mode != "routed":
+            ctx.fail("Interface {} is not in routed mode!".format(interface_name))
+            return
+    
     try:
         ip_address = ipaddress.ip_interface(ip_addr)
     except ValueError as err:
