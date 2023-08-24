@@ -17,7 +17,13 @@ from natsort import natsorted
 from sonic_py_common.interface import front_panel_prefix, backplane_prefix, inband_prefix, recirc_prefix
 from sonic_py_common import multi_asic
 from utilities_common.sfp_helper import covert_application_advertisement_to_output_string
-from utilities_common.sfp_helper import QSFP_DATA_MAP, CMIS_DATA_MAP
+from utilities_common.sfp_helper import (
+        QSFP_DATA_MAP,
+        CMIS_DATA_MAP,
+        QSFP_STATUS_MAP,
+        CMIS_STATUS_MAP,
+        CCMIS_STATUS_MAP,
+)
 from tabulate import tabulate
 
 # Mock the redis DB for unit test purposes
@@ -233,6 +239,8 @@ ZR_PM_INFO_MAP = {
 
 ZR_PM_NOT_APPLICABLE_STR = 'Transceiver performance monitoring not applicable'
 
+QSFP_STATUS_NOT_APPLICABLE_STR = 'Transceiver status info not applicable'
+
 def display_invalid_intf_eeprom(intf_name):
     output = intf_name + ': SFP EEPROM Not detected\n'
     click.echo(output)
@@ -249,6 +257,10 @@ def display_invalid_intf_pm(intf_name):
     output = intf_name + ': %s\n' % ZR_PM_NOT_APPLICABLE_STR
     click.echo(output)
 
+def display_invalid_intf_status(intf_name):
+    output = intf_name + ': %s\n' % QSFP_STATUS_NOT_APPLICABLE_STR
+    click.echo(output)
+
 class SFPShow(object):
     def __init__(self, intf_name, namespace_option, dump_dom=False):
         super(SFPShow, self).__init__()
@@ -258,6 +270,7 @@ class SFPShow(object):
         self.table = []
         self.intf_eeprom: Dict[str, str] = {}
         self.intf_pm: Dict[str, str] = {}
+        self.intf_status: Dict[str, str] = {}
         self.multi_asic = multi_asic_util.MultiAsic(namespace_option=namespace_option)
 
     # Convert dict values to cli output string
@@ -278,6 +291,17 @@ class SFPShow(object):
                                                 separator.rjust(len(separator) + alignment - len(dom_value_map[key])),
                                                 value,
                                                 units)
+        return output
+
+    # Convert sfp status in DB to cli output string
+    def convert_sfp_status_to_output_string(self, sfp_status_dict, status_map):
+        indent = ' ' * 8
+        output = ''
+        for key in status_map.keys():
+            if key not in sfp_status_dict:
+                continue
+            output += '{}{}: {}\n'.format(indent, status_map[key], sfp_status_dict[key])
+
         return output
 
     # Convert sfp info in DB to cli output string
@@ -439,6 +463,22 @@ class SFPShow(object):
 
         return output
 
+    # Convert sfp status info in DB to cli output string
+    def convert_interface_sfp_status_to_cli_output_string(self, state_db, interface_name):
+        sfp_status_dict = state_db.get_all(state_db.STATE_DB, 'TRANSCEIVER_STATUS|{}'.format(interface_name))
+        if sfp_status_dict and len(sfp_status_dict) > 2:
+            # common section
+            output = '\n' + self.convert_sfp_status_to_output_string(sfp_status_dict, QSFP_STATUS_MAP)
+            # CMIS specific section
+            if 'module_state' in sfp_status_dict:
+                output += self.convert_sfp_status_to_output_string(sfp_status_dict, CMIS_STATUS_MAP)
+            # C-CMIS specific section
+            if 'tuning_in_progress' in sfp_status_dict:
+                output += self.convert_sfp_status_to_output_string(sfp_status_dict, CCMIS_STATUS_MAP)
+        else:
+            output = QSFP_STATUS_NOT_APPLICABLE_STR + '\n'
+        return output
+
     def convert_pm_prefix_to_threshold_prefix(self, pm_prefix):
         if pm_prefix == 'uncorr_frames':
             return 'postfecber'
@@ -551,6 +591,19 @@ class SFPShow(object):
                     self.intf_pm[interface] = self.convert_interface_sfp_pm_to_cli_output_string(
                         self.db, interface)
 
+    @multi_asic_util.run_on_multi_asic
+    def get_status(self):
+        if self.intf_name is not None:
+            self.intf_status[self.intf_name] = self.convert_interface_sfp_status_to_cli_output_string(
+                self.db, self.intf_name)
+        else:
+            port_table_keys = self.db.keys(self.db.APPL_DB, "PORT_TABLE:*")
+            for i in port_table_keys:
+                interface = re.split(':', i, maxsplit=1)[-1].strip()
+                if interface and interface.startswith(front_panel_prefix()) and not interface.startswith((backplane_prefix(), inband_prefix(), recirc_prefix())):
+                    self.intf_status[interface] = self.convert_interface_sfp_status_to_cli_output_string(
+                        self.db, interface)
+
     def display_eeprom(self):
         click.echo("\n".join([f"{k}: {v}" for k, v in natsorted(self.intf_eeprom.items())]))
 
@@ -562,6 +615,10 @@ class SFPShow(object):
     def display_pm(self):
         click.echo(
             "\n".join([f"{k}: {v}" for k, v in natsorted(self.intf_pm.items())]))
+
+    def display_status(self):
+        click.echo(
+            "\n".join([f"{k}: {v}" for k, v in natsorted(self.intf_status.items())]))
 # This is our main entrypoint - the main 'sfpshow' command
 
 
@@ -641,6 +698,24 @@ def pm(port, namespace):
     sfp = SFPShow(port, namespace)
     sfp.get_pm()
     sfp.display_pm()
+
+# 'pm' subcommand
+
+
+@cli.command()
+@click.option('-p', '--port', metavar='<port_name>', help="Display SFP status for port <port_name> only")
+@click.option('-n', '--namespace', default=None, help="Display interfaces for specific namespace")
+def status(port, namespace):
+    if port and multi_asic.is_multi_asic() and namespace is None:
+        try:
+            namespace = multi_asic.get_namespace_for_port(port)
+        except Exception:
+            display_invalid_intf_status(port)
+            sys.exit(1)
+
+    sfp = SFPShow(port, namespace)
+    sfp.get_status()
+    sfp.display_status()
 
 
 if __name__ == "__main__":

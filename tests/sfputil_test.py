@@ -288,7 +288,8 @@ class TestSfputil(object):
                            ['Ethernet16', 'Unplugged'],
                            ['Ethernet28', 'Unplugged'],
                            ['Ethernet36', 'Unknown'],
-                           ['Ethernet40', 'Unplugged']]
+                           ['Ethernet40', 'Unplugged'],
+                           ['Ethernet44', 'OK']]
         output = sfputil.fetch_error_status_from_state_db(None, db.db)
         assert output == expected_output
 
@@ -306,7 +307,8 @@ class TestSfputil(object):
                            ['Ethernet16', 'N/A'],
                            ['Ethernet28', 'N/A'],
                            ['Ethernet36', 'N/A'],
-                           ['Ethernet40', 'N/A']]
+                           ['Ethernet40', 'N/A'],
+                           ['Ethernet44', 'N/A']]
         output = sfputil.fetch_error_status_from_state_db(None, db.db)
         assert output == expected_output
 
@@ -393,6 +395,7 @@ Ethernet16  Unplugged
 Ethernet28  Unplugged
 Ethernet36  Unknown
 Ethernet40  Unplugged
+Ethernet44  OK
 """
         assert result.output == expected_output
 
