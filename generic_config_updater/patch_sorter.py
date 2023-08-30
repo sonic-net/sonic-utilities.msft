@@ -562,6 +562,7 @@ class CreateOnlyFilter:
             ["BGP_NEIGHBOR", "*", "nhopself"],
             ["BGP_NEIGHBOR", "*", "rrclient"],
             ["BGP_PEER_RANGE", "*", "*"],
+            ["BGP_SENTINELS", "*", "*"],
             ["BGP_MONITORS", "*", "holdtime"],
             ["BGP_MONITORS", "*", "keepalive"],
             ["BGP_MONITORS", "*", "name"],

@@ -1097,6 +1097,23 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
                     "src_address": "10.1.0.32"
                 }
             },
+            "BGP_SENTINELS": {
+                "BGPSentinelV6": {
+                    "ip_range": [
+                        "2603:10a0:321:82f9::/64",
+                        "2603:10a1:30a:8000::/59"
+                    ],
+                    "name": "BGPSentinelV6",
+                    "src_address": "fc00:1::32"
+                },
+                "BGPSentinel": {
+                    "ip_range": [
+                        "10.1.0.0/24"
+                    ],
+                    "name": "BGPSentinel",
+                    "src_address": "10.1.0.32"
+                }
+            },
             "BGP_MONITORS": {
                 "5.6.7.8": {
                     "admin_status": "up",
@@ -1135,6 +1152,12 @@ class TestCreateOnlyMoveValidator(unittest.TestCase):
             "/BGP_PEER_RANGE/BGPSLBPassive/name",
             "/BGP_PEER_RANGE/BGPSLBPassive/peer_asn",
             "/BGP_PEER_RANGE/BGPSLBPassive/src_address",
+            "/BGP_SENTINELS/BGPSentinelV6/ip_range",
+            "/BGP_SENTINELS/BGPSentinelV6/name",
+            "/BGP_SENTINELS/BGPSentinelV6/src_address",
+            "/BGP_SENTINELS/BGPSentinel/ip_range",
+            "/BGP_SENTINELS/BGPSentinel/name",
+            "/BGP_SENTINELS/BGPSentinel/src_address",
             "/BGP_MONITORS/5.6.7.8/asn",
             "/BGP_MONITORS/5.6.7.8/holdtime",
             "/BGP_MONITORS/5.6.7.8/keepalive",

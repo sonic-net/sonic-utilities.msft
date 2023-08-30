@@ -73,6 +73,23 @@
                 "src_address": "10.1.0.32"
             }
         },
+        "BGP_SENTINELS": {
+            "BGPSentinelV6": {
+                "ip_range": [
+                    "2603:10a0:321:82f9::/64",
+                    "2603:10a1:30a:8000::/59"
+                ],
+                "name": "BGPSentinelV6",
+                "src_address": "fc00:1::32"
+            },
+            "BGPSentinel": {
+                "ip_range": [
+                    "10.1.0.0/24"
+                ],
+                "name": "BGPSentinel",
+                "src_address": "10.1.0.32"
+            }
+        },
         "BUFFER_PG": {
             "Ethernet0|3-4": {
                 "profile": "[BUFFER_PROFILE|pg_lossless_40000_300m_profile]"
@@ -253,7 +270,8 @@
             },
             "remove": {
                 "BGP_NEIGHBOR": { "10.0.0.57": {} },
-                "BGP_PEER_RANGE": { "BGPSLBPassive": {} }
+                "BGP_PEER_RANGE": { "BGPSLBPassive": {} },
+                "BGP_SENTINELS": { "BGPSentinelV6": {} }
             },
             "services_validated": [ "vlan_validate", "acl_validate" ]
         },
@@ -296,6 +314,16 @@
                         "ip_range": ["10.255.0.0/25"], 
                         "name": "BGPSLBPassive",
                         "src_address": "10.1.0.32"
+                    }
+                },
+                "BGP_SENTINELS": {
+                    "BGPSentinelV6": {
+                        "ip_range": [
+                            "2603:10a0:321:82f9::/64",
+                            "2603:10a1:30a:8000::/59"
+                        ],
+                        "name": "BGPSentinelV6",
+                        "src_address": "fc00:1::32"
                     }
                 }
             },
