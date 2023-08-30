@@ -882,62 +882,22 @@ def fetch_error_status_from_platform_api(port):
     """
     if port is None:
         logical_port_list = natsort.natsorted(platform_sfputil.logical)
-        # Create a list containing the logical port names of all ports we're interested in
-        generate_sfp_list_code = \
-            "sfp_list = chassis.get_all_sfps()\n"
     else:
-        physical_port_list = logical_port_name_to_physical_port_list(port)
         logical_port_list = [port]
-        # Create a list containing the logical port names of all ports we're interested in
-        generate_sfp_list_code = \
-            "sfp_list = [chassis.get_sfp(x) for x in {}]\n".format(physical_port_list)
-
-    # Code to initialize chassis object
-    init_chassis_code = \
-        "import sonic_platform.platform\n" \
-        "platform = sonic_platform.platform.Platform()\n" \
-        "chassis = platform.get_chassis()\n"
-
-    # Code to fetch the error status
-    get_error_status_code = \
-        "try:\n"\
-        "    errors=['{}:{}'.format(sfp.index, sfp.get_error_description()) for sfp in sfp_list]\n" \
-        "except NotImplementedError as e:\n"\
-        "    errors=['{}:{}'.format(sfp.index, 'OK (Not implemented)') for sfp in sfp_list]\n" \
-        "print(errors)\n"
-
-    get_error_status_command = ["docker", "exec", "pmon", "python3", "-c", "{}{}{}".format(
-        init_chassis_code, generate_sfp_list_code, get_error_status_code)]
-    # Fetch error status from pmon docker
-    try:
-        output = subprocess.check_output(get_error_status_command, universal_newlines=True)
-    except subprocess.CalledProcessError as e:
-        click.Abort("Error! Unable to fetch error status for SPF modules. Error code = {}, error messages: {}".format(e.returncode, e.output))
-        return None
-
-    output_list = output.split('\n')
-    for output_str in output_list:
-        # The output of all SFP error status are a list consisting of element with convention of '<sfp no>:<error status>'
-        # Besides, there can be some logs captured during the platform API executing
-        # So, first of all, we need to skip all the logs until find the output list of SFP error status
-        if output_str[0] == '[' and output_str[-1] == ']':
-            output_list = ast.literal_eval(output_str)
-            break
-
-    output_dict = {}
-    for output in output_list:
-        sfp_index, error_status = output.split(':')
-        output_dict[int(sfp_index)] = error_status
 
     output = []
     for logical_port_name in logical_port_list:
-        physical_port_list = logical_port_name_to_physical_port_list(logical_port_name)
-        port_name = get_physical_port_name(logical_port_name, 1, False)
+        physical_port = logical_port_to_physical_port_index(logical_port_name)
 
         if is_port_type_rj45(logical_port_name):
-            output.append([port_name, "N/A"])
+            output.append([logical_port_name, "N/A"])
         else:
-            output.append([port_name, output_dict.get(physical_port_list[0])])
+            try:
+                error_description = platform_chassis.get_sfp(physical_port).get_error_description()
+                output.append([logical_port_name, error_description])
+            except NotImplementedError:
+                click.echo("get_error_description NOT implemented for port {}".format(logical_port_name))
+                sys.exit(ERROR_NOT_IMPLEMENTED)
 
     return output
 
