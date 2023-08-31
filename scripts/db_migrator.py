@@ -691,7 +691,7 @@ class DBMigrator():
         # overwrite the routing-config-mode as per minigraph parser
         # Criteria for update:
         # if config mode is missing in base OS or if base and target modes are not same
-        #  Eg. in 201811 mode is "unified", and in newer branches mode is "separated" 
+        #  Eg. in 201811 mode is "unified", and in newer branches mode is "separated"
         if ('docker_routing_config_mode' not in device_metadata_old and 'docker_routing_config_mode' in device_metadata_new) or \
         (device_metadata_old.get('docker_routing_config_mode') != device_metadata_new.get('docker_routing_config_mode')):
             device_metadata_old['docker_routing_config_mode'] = device_metadata_new.get('docker_routing_config_mode')
@@ -1033,12 +1033,14 @@ class DBMigrator():
         # reading FAST_REBOOT table can't be done with stateDB.get as it uses hget behind the scenes and the table structure is
         # not using hash and won't work.
         # FAST_REBOOT table exists only if fast-reboot was triggered.
-        keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system")
-        if keys:
-            enable_state = 'true'
-        else:
-            enable_state = 'false'
-        self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable', enable_state)
+        keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_RESTART_ENABLE_TABLE|system")
+        if not keys:
+            keys = self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system")
+            if keys:
+                enable_state = 'true'
+            else:
+                enable_state = 'false'
+            self.stateDB.set(self.stateDB.STATE_DB, 'FAST_RESTART_ENABLE_TABLE|system', 'enable', enable_state)
         self.set_version('version_4_0_1')
         return 'version_4_0_1'
 
@@ -1057,7 +1059,6 @@ class DBMigrator():
         Version 4_0_2.
         """
         log.log_info('Handling version_4_0_2')
-
         if self.stateDB.keys(self.stateDB.STATE_DB, "FAST_REBOOT|system"):
             self.migrate_config_db_flex_counter_delay_status()
 
