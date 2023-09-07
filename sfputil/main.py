@@ -901,9 +901,9 @@ def fetch_error_status_from_platform_api(port):
     # Code to fetch the error status
     get_error_status_code = \
         "try:\n"\
-        "    errors=['{}:{}'.format(sfp.index, sfp.get_error_description()) for sfp in sfp_list]\n" \
+        "    errors=['{}'.format(sfp.get_error_description()) for sfp in sfp_list]\n" \
         "except NotImplementedError as e:\n"\
-        "    errors=['{}:{}'.format(sfp.index, 'OK (Not implemented)') for sfp in sfp_list]\n" \
+        "    errors=['{}'.format('OK (Not implemented)') for sfp in sfp_list]\n" \
         "print(errors)\n"
 
     get_error_status_command = "docker exec pmon python3 -c \"{}{}{}\"".format(
@@ -917,28 +917,25 @@ def fetch_error_status_from_platform_api(port):
 
     output_list = output.split('\n')
     for output_str in output_list:
-        # The output of all SFP error status are a list consisting of element with convention of '<sfp no>:<error status>'
+        # The output of all SFP error status are a list consisting of <error status> sorted physical port indices
         # Besides, there can be some logs captured during the platform API executing
         # So, first of all, we need to skip all the logs until find the output list of SFP error status
         if output_str[0] == '[' and output_str[-1] == ']':
             output_list = ast.literal_eval(output_str)
             break
 
-    output_dict = {}
-    for output in output_list:
-        sfp_index, error_status = output.split(':')
-        output_dict[int(sfp_index)] = error_status
+    physical_port_set = set()
+    for port in logical_port_list: 
+        physical_port_set.add(logical_port_to_physical_port_index(port))
+
+    physical_port_list = list(physical_port_set)
+    # Map of <physical port# : error status> 
+    error_map = {physical_port_list[i] : output_list[i] for i in range(len(physical_port_list))}
 
     output = []
-    for logical_port_name in logical_port_list:
-        physical_port_list = logical_port_name_to_physical_port_list(logical_port_name)
-        port_name = get_physical_port_name(logical_port_name, 1, False)
-
-        if is_port_type_rj45(logical_port_name):
-            output.append([port_name, "N/A"])
-        else:
-            output.append([port_name, output_dict.get(physical_port_list[0])])
-
+    for i in range(len(logical_port_list)):
+        physical_port = logical_port_to_physical_port_index(logical_port_list[i])
+        output.append([logical_port_list[i], error_map[physical_port] if not is_port_type_rj45(logical_port_list[i]) else 'N/A'])
     return output
 
 def fetch_error_status_from_state_db(port, state_db):

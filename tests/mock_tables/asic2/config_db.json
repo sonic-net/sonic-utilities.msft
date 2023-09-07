@@ -132,7 +132,7 @@
     },
     "ACL_TABLE|DATAACL_5": {
         "policy_desc": "DATAACL_5",
-        "ports@": "Ethernet124",
+        "ports@": "Ethernet20",
         "type": "L3",
         "stage": "ingress"
     }
