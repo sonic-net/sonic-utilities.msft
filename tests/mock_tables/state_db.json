@@ -1620,5 +1620,57 @@
     },
     "ACL_RULE_TABLE|DATAACL_5|RULE_1" : {
         "status": "Active"
+    },
+    "VOLTAGE_INFO|VSENSOR0": {
+        "critical_high_threshold": "872",
+        "critical_low_threshold": "664",
+        "high_threshold": "852",
+        "is_replaceable": "False",
+        "low_threshold": "684",
+        "maximum_voltage": "760",
+        "minimum_voltage": "759",
+        "timestamp": "20230704 17:38:04",
+        "voltage": "760",
+        "unit": "mV",
+        "warning_status": "False"
+    },
+    "VOLTAGE_INFO|VSENSOR1": {
+        "critical_high_threshold": "872",
+        "critical_low_threshold": "664",
+        "high_threshold": "852",
+        "is_replaceable": "False",
+        "low_threshold": "684",
+        "maximum_voltage": "760",
+        "minimum_voltage": "759",
+        "timestamp": "20230704 17:38:04",
+        "voltage": "759",
+        "unit": "mV",
+        "warning_status": "False"
+    },
+    "CURRENT_INFO|ISENSOR0": {
+        "critical_high_threshold": "460",
+        "critical_low_threshold": "300",
+        "current": "410",
+         "unit": "mA",
+        "high_threshold": "440",
+        "is_replaceable": "False",
+        "low_threshold": "320",
+        "maximum_current": "431",
+        "minimum_current": "402",
+        "timestamp": "20230704 17:38:04",
+        "warning_status": "False"
+    },
+    "CURRENT_INFO|ISENSOR1": {
+        "critical_high_threshold": "460",
+        "critical_low_threshold": "300",
+        "current": "360",
+         "unit": "mA",
+        "high_threshold": "440",
+        "is_replaceable": "False",
+        "low_threshold": "320",
+        "maximum_current": "367",
+        "minimum_current": "339",
+        "timestamp": "20230704 17:38:04",
+        "warning_status": "False"
     }
 }
