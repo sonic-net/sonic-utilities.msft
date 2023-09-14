@@ -1441,8 +1441,26 @@ save_log_files() {
     trap enable_logrotate HUP INT QUIT TERM KILL ABRT ALRM
 
     start_t=$(date +%s%3N)
+    log_dir_1="/var/log/"
+    log_dir_2="/var/log.tmpfs/"
+    file_list=""
+
+    if [ -d "$log_dir_1" ]; then
+        file_list_1=$(find_files ${log_dir_1})
+        file_list="${file_list} ${file_list_1}"
+    fi
+
+    if [ -d "$log_dir_2" ]; then
+        file_list_2=$(find_files ${log_dir_2})
+        file_list="${file_list} ${file_list_2}"
+    fi
+
     # gzip up all log files individually before placing them in the incremental tarball
-    for file in $(find_files "/var/log/"); do
+    for file in $file_list; do
+        dest_dir="log"
+        if [[ $file == *"tmpfs"* ]]; then
+            dest_dir="log.tmpfs"
+        fi
         # ignore the sparse file lastlog
         if [ "$file" = "/var/log/lastlog" ]; then
             continue
@@ -1450,9 +1468,9 @@ save_log_files() {
         # don't gzip already-gzipped log files :)
         # do not append the individual files to the main tarball
         if [ -z "${file##*.gz}" ]; then
-            save_file $file log false
+            save_file $file $dest_dir false
         else
-            save_file $file log true
+            save_file $file $dest_dir true
         fi
     done
 
