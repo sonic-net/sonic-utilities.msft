@@ -718,7 +718,8 @@ def queue():
 @click.option('--verbose', is_flag=True, help="Enable verbose output")
 @click.option('--json', is_flag=True, help="JSON output")
 @click.option('--voq', is_flag=True, help="VOQ counters")
-def counters(interfacename, namespace, display, verbose, json, voq):
+@click.option('--nonzero', is_flag=True, help="Non Zero Counters")
+def counters(interfacename, namespace, display, verbose, json, voq, nonzero):
     """Show queue counters"""
 
     cmd = ["queuestat"]
@@ -738,6 +739,9 @@ def counters(interfacename, namespace, display, verbose, json, voq):
 
     if voq:
         cmd += ["-V"]
+
+    if nonzero:
+        cmd += ["-nz"]
 
     run_command(cmd, display_cmd=verbose)
 

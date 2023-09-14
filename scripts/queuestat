@@ -198,7 +198,7 @@ class Queuestat(object):
             cnstat_dict[queue] = get_counters(queue_map[queue])
         return cnstat_dict
 
-    def cnstat_print(self, port, cnstat_dict, json_opt):
+    def cnstat_print(self, port, cnstat_dict, json_opt, non_zero):
         """
         Print the cnstat. If JSON option is True, return data in
         JSON format.
@@ -211,19 +211,22 @@ class Queuestat(object):
                 if json_opt:
                     json_output[port][key] = data
                 continue
-            table.append((port, data['queuetype'] + str(data['queueindex']),
-                        data['totalpacket'], data['totalbytes'],
-                        data['droppacket'], data['dropbytes']))
+            if not non_zero or data['totalpacket'] != '0' or  data['totalbytes'] != '0' or \
+               data['droppacket'] != '0' or data['dropbytes'] != '0':
+                table.append((port, data['queuetype'] + str(data['queueindex']),
+                            data['totalpacket'], data['totalbytes'],
+                            data['droppacket'], data['dropbytes']))
 
         if json_opt:
             json_output[port].update(build_json(port, table))
             return json_output
         else:
             hdr = voq_header if self.voq else header
-            print(tabulate(table, hdr, tablefmt='simple', stralign='right'))
-            print()
+            if table:
+                print(tabulate(table, hdr, tablefmt='simple', stralign='right'))
+                print()
 
-    def cnstat_diff_print(self, port, cnstat_new_dict, cnstat_old_dict, json_opt):
+    def cnstat_diff_print(self, port, cnstat_new_dict, cnstat_old_dict, json_opt, non_zero):
         """
         Print the difference between two cnstat results. If JSON
         option is True, return data in JSON format.
@@ -241,25 +244,32 @@ class Queuestat(object):
                 old_cntr = cnstat_old_dict.get(key)
 
             if old_cntr is not None:
-                table.append((port, cntr['queuetype'] + str(cntr['queueindex']),
-                            ns_diff(cntr['totalpacket'], old_cntr['totalpacket']),
-                            ns_diff(cntr['totalbytes'], old_cntr['totalbytes']),
-                            ns_diff(cntr['droppacket'], old_cntr['droppacket']),
-                            ns_diff(cntr['dropbytes'], old_cntr['dropbytes'])))
-            else:
-                table.append((port, cntr['queuetype'] + str(cntr['queueindex']),
-                        cntr['totalpacket'], cntr['totalbytes'],
-                        cntr['droppacket'], cntr['dropbytes']))
+                if not non_zero or ns_diff(cntr['totalpacket'], old_cntr['totalpacket']) != '0' or \
+                                   ns_diff(cntr['totalbytes'], old_cntr['totalbytes']) != '0' or \
+                                   ns_diff(cntr['droppacket'], old_cntr['droppacket']) != '0' or \
+                                   ns_diff(cntr['dropbytes'], old_cntr['dropbytes']) != '0':
+                    table.append((port, cntr['queuetype'] + str(cntr['queueindex']),
+                                ns_diff(cntr['totalpacket'], old_cntr['totalpacket']),
+                                ns_diff(cntr['totalbytes'], old_cntr['totalbytes']),
+                                ns_diff(cntr['droppacket'], old_cntr['droppacket']),
+                                ns_diff(cntr['dropbytes'], old_cntr['dropbytes'])))
+                elif not non_zero or cntr['totalpacket'] != '0' or cntr['totalbytes'] != '0' or \
+                                     cntr['droppacket'] != '0' or cntr['dropbytes'] != '0':
+                    table.append((port, cntr['queuetype'] + str(cntr['queueindex']),
+                            cntr['totalpacket'], cntr['totalbytes'],
+                            cntr['droppacket'], cntr['dropbytes']))
 
         if json_opt:
             json_output[port].update(build_json(port, table))
             return json_output
         else:
             hdr = voq_header if self.voq else header
-            print(tabulate(table, hdr, tablefmt='simple', stralign='right'))
-            print()
+            if table:
+                print(port + " Last cached time was " + str(cnstat_old_dict.get('time')))
+                print(tabulate(table, hdr, tablefmt='simple', stralign='right'))
+                print()
 
-    def get_print_all_stat(self, json_opt):
+    def get_print_all_stat(self, json_opt, non_zero):
         """
         Get stat for each port
         If JSON option is True, collect data for each port and
@@ -276,22 +286,21 @@ class Queuestat(object):
                     cnstat_cached_dict = json.load(open(cnstat_fqn_file_name, 'r'))
                     if json_opt:
                         json_output[port].update({"cached_time":cnstat_cached_dict.get('time')})
-                        json_output.update(self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict, json_opt))
+                        json_output.update(self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict, json_opt, non_zero))
                     else:
-                        print(port + " Last cached time was " + str(cnstat_cached_dict.get('time')))
-                        self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict, json_opt)
+                        self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict, json_opt, non_zero)
                 except IOError as e:
                     print(e.errno, e)
             else:
                 if json_opt:
-                    json_output.update(self.cnstat_print(port, cnstat_dict, json_opt))
+                    json_output.update(self.cnstat_print(port, cnstat_dict, json_opt, non_zero))
                 else:
-                    self.cnstat_print(port, cnstat_dict, json_opt)
+                    self.cnstat_print(port, cnstat_dict, json_opt, non_zero)
 
         if json_opt:
             print(json_dump(json_output))
 
-    def get_print_port_stat(self, port, json_opt):
+    def get_print_port_stat(self, port, json_opt, non_zero):
         """
         Get stat for the port
         If JSON option is True  print data in JSON format
@@ -310,17 +319,17 @@ class Queuestat(object):
                 cnstat_cached_dict = json.load(open(cnstat_fqn_file_name, 'r'))
                 if json_opt:
                     json_output[port].update({"cached_time":cnstat_cached_dict.get('time')})
-                    json_output.update(self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict, json_opt))
+                    json_output.update(self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict, json_opt, non_zero))
                 else:
                     print("Last cached time was " + str(cnstat_cached_dict.get('time')))
-                    self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict, json_opt)
+                    self.cnstat_diff_print(port, cnstat_dict, cnstat_cached_dict, json_opt, non_zero)
             except IOError as e:
                 print(e.errno, e)
         else:
             if json_opt:
-                json_output.update(self.cnstat_print(port, cnstat_dict, json_opt))
+                json_output.update(self.cnstat_print(port, cnstat_dict, json_opt, non_zero))
             else:
-                self.cnstat_print(port, cnstat_dict, json_opt)
+                self.cnstat_print(port, cnstat_dict, json_opt, non_zero)
 
         if json_opt:
             print(json_dump(json_output))
@@ -358,6 +367,7 @@ Examples:
     parser.add_argument('-j', '--json_opt', action='store_true', help='Print in JSON format')
     parser.add_argument('-V', '--voq', action='store_true', help='display voq stats')
     parser.add_argument('-n','--namespace', default=None, help='Display queue counters for specific namespace')
+    parser.add_argument('-nz','--non_zero', action='store_true', help='Display non-zero queue counters')
     args = parser.parse_args()
 
     save_fresh_stats = args.clear
@@ -365,6 +375,7 @@ Examples:
     voq = args.voq
     json_opt = args.json_opt
     namespace = args.namespace
+    non_zero = args.non_zero
 
     port_to_show_stats = args.port
 
@@ -383,9 +394,9 @@ Examples:
         sys.exit(0)
 
     if port_to_show_stats!=None:
-        queuestat.get_print_port_stat(port_to_show_stats, json_opt)
+        queuestat.get_print_port_stat(port_to_show_stats, json_opt, non_zero)
     else:
-        queuestat.get_print_all_stat(json_opt)
+        queuestat.get_print_all_stat(json_opt, non_zero)
 
     sys.exit(0)
 
