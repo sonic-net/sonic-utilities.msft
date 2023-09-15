@@ -630,10 +630,10 @@ class TestVlan(object):
             print(result.exit_code)
             print(result.output)
             mock_run_command.assert_has_calls([
-                mock.call("docker exec -i swss supervisorctl status ndppd", ignore_error=True, return_cmd=True),
-                mock.call("docker exec -i swss supervisorctl stop ndppd", ignore_error=True, return_cmd=True),
-                mock.call("docker exec -i swss rm -f /etc/supervisor/conf.d/ndppd.conf", ignore_error=True, return_cmd=True),
-                mock.call("docker exec -i swss supervisorctl update", return_cmd=True)
+                mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'status', 'ndppd'], ignore_error=True, return_cmd=True),
+                mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'stop', 'ndppd'], ignore_error=True, return_cmd=True),
+                mock.call(['docker', 'exec', '-i', 'swss', 'rm', '-f', '/etc/supervisor/conf.d/ndppd.conf'], ignore_error=True, return_cmd=True),
+                mock.call(['docker', 'exec', '-i', 'swss', 'supervisorctl', 'update'], return_cmd=True)
             ])
             assert result.exit_code == 0
 
