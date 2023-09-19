@@ -825,6 +825,23 @@ Ethernet0  N/A
         assert result.output == 'Show firmware version is not applicable for RJ45 port Ethernet0.\n'
         assert result.exit_code == EXIT_FAIL
 
+    @patch('builtins.open')
+    @patch('sfputil.main.platform_chassis')
+    @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
+    @patch('sfputil.main.update_firmware_info_to_state_db', MagicMock())
+    def test_download_firmware(self, mock_chassis, mock_file):
+        mock_file.return_value.tell.return_value = 0
+        mock_sfp = MagicMock()
+        mock_api = MagicMock()
+        mock_sfp.get_xcvr_api = MagicMock(return_value=mock_api)
+        mock_chassis.get_sfp = MagicMock(return_value=mock_sfp)
+        mock_api.get_module_fw_mgmt_feature.return_value = {'status': True, 'feature': (0, 0, False, False, 0)}
+        mock_api.cdb_start_firmware_download.return_value = 1
+        mock_api.cdb_firmware_download_complete.return_value = 1
+        mock_sfp.set_optoe_write_max = MagicMock(side_effect=NotImplementedError)
+        status = sfputil.download_firmware("Ethernet0", "test.bin")
+        assert status == 1
+
     @patch('sfputil.main.platform_chassis')
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
     def test_run_firmwre(self, mock_chassis):
