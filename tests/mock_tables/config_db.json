@@ -2723,5 +2723,10 @@
         "alias": "Fabric2",
         "isolateStatus": "False",
         "lanes": "2"
+    },
+    "DHCP_RELAY|Vlan1000": {
+        "dhcpv6_servers": [
+            "fc02:2000::1"
+        ]
     }
 }

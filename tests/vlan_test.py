@@ -1377,3 +1377,37 @@ class TestVlan(object):
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
         bgp_util.run_bgp_command = cls._old_run_bgp_command
         print("TEARDOWN")
+
+    def test_config_vlan_del_dhcp_relay_restart(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {"config_db": db.cfgdb}
+
+        # remove vlan IP`s
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"],
+                               ["Vlan1000", "192.168.0.1/21"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+
+        result = runner.invoke(config.config.commands["interface"].commands["ip"].commands["remove"],
+                               ["Vlan1000", "fc02:1000::1/64"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+
+        # remove vlan members
+        vlan_member = db.cfgdb.get_table("VLAN_MEMBER")
+        keys = [(k, v) for k, v in vlan_member if k == "Vlan{}".format(1000)]
+        for _, v in keys:
+            result = runner.invoke(config.config.commands["vlan"].commands["member"].commands["del"], ["1000", v], obj=db)
+            print(result.exit_code)
+            print(result.output)
+            assert result.exit_code == 0
+
+        origin_run_command_func = config.vlan.clicommon.run_command
+        config.vlan.clicommon.run_command = mock.MagicMock(return_value=("active", 0))
+        result = runner.invoke(config.config.commands["vlan"].commands["del"], ["1000"], obj=db)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code == 0
+
+        config.vlan.clicommon.run_command = origin_run_command_func

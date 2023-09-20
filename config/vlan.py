@@ -30,7 +30,8 @@ def set_dhcp_relay_table(table, config_db, vlan_name, value):
 
 
 def is_dhcp_relay_running():
-    out, _ = clicommon.run_command("systemctl show dhcp_relay.service --property ActiveState --value", return_cmd=True)
+    out, _ = clicommon.run_command(["systemctl", "show", "dhcp_relay.service", "--property", "ActiveState", "--value"],
+                                   return_cmd=True)
     return out.strip() == "active"
 
 def is_dhcpv6_relay_config_exist(db, vlan_name):
