@@ -6,7 +6,7 @@ import unittest
 from collections import defaultdict
 from unittest.mock import patch
 
-from generic_config_updater.services_validator import vlan_validator, rsyslog_validator, caclmgrd_validator, vlanintf_validator
+from generic_config_updater.services_validator import vlan_validator, caclmgrd_validator, vlanintf_validator
 import generic_config_updater.gu_common
 
 
@@ -142,16 +142,6 @@ test_caclrule = [
         },
     ]
 
-test_rsyslog_fail = [
-        # Fail the calls, to get the entire fail path calls invoked
-        #
-        { "cmd": "/usr/bin/rsyslog-config.sh", "rc": 1 },        # config update; fails
-        { "cmd": "systemctl restart rsyslog", "rc": 1 },         # rsyslog restart; fails
-        { "cmd": "systemctl reset-failed rsyslog", "rc": 1 },    # reset; failure here just logs
-        { "cmd": "systemctl restart rsyslog", "rc": 1 },         # restart again; fails
-        { "cmd": "systemctl restart rsyslog", "rc": 1 },         # restart again; fails
-    ]
-
 test_vlanintf_data = [
         { "old": {}, "upd": {}, "cmd": "" },
         {
@@ -211,12 +201,6 @@ class TestServiceValidator(unittest.TestCase):
 
         # Test failure case
         #
-        os_system_calls = test_rsyslog_fail
-        os_system_call_index = 0
-
-        rc = rsyslog_validator("", "", "")
-        assert not rc, "rsyslog_validator expected to fail"
-
         os_system_calls = []
         os_system_call_index = 0
         for entry in test_vlanintf_data:
