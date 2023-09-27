@@ -1362,7 +1362,10 @@ def download_firmware(port_name, filepath):
         sys.exit(EXIT_FAIL)
 
     # Increase the optoe driver's write max to speed up firmware download
-    sfp.set_optoe_write_max(SMBUS_BLOCK_WRITE_SIZE)
+    try:
+        sfp.set_optoe_write_max(SMBUS_BLOCK_WRITE_SIZE)
+    except NotImplementedError:
+        click.echo("Platform doesn't implement optoe write max change. Skipping value increase.")
 
     with click.progressbar(length=file_size, label="Downloading ...") as bar:
         address = 0
@@ -1388,7 +1391,10 @@ def download_firmware(port_name, filepath):
             remaining -= count
 
     # Restore the optoe driver's write max to '1' (default value)
-    sfp.set_optoe_write_max(1)
+    try:
+        sfp.set_optoe_write_max(1)
+    except NotImplementedError:
+        click.echo("Platform doesn't implement optoe write max change. Skipping value restore!")
 
     status = api.cdb_firmware_download_complete()
     update_firmware_info_to_state_db(port_name)
