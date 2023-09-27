@@ -654,6 +654,10 @@ class PackageManager:
                                  skip_host_plugins=skip_host_plugins)
 
     @under_lock
+    def get_docker_client(self, dockerd_sock:str):
+        return docker.DockerClient(base_url=f'unix://{dockerd_sock}', timeout=120)
+
+    @under_lock
     def migrate_packages(self,
                          old_package_database: PackageDatabase,
                          dockerd_sock: Optional[str] = None):
@@ -695,7 +699,8 @@ class PackageManager:
                 # dockerd_sock is defined, so use docked_sock to connect to
                 # dockerd and fetch package image from it.
                 log.info(f'installing {name} from old docker library')
-                docker_api = DockerApi(docker.DockerClient(base_url=f'unix://{dockerd_sock}'))
+                docker_client = self.get_docker_client(dockerd_sock)
+                docker_api = DockerApi(docker_client)
 
                 image = docker_api.get_image(old_package_entry.image_id)
 
