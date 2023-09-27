@@ -5678,6 +5678,22 @@ def ecn(profile, rmax, rmin, ymax, ymin, gmax, gmin, rdrop, ydrop, gdrop, verbos
 
 
 #
+# 'mmu' command ('config mmu...')
+#
+@config.command()
+@click.option('-p', metavar='<profile_name>', type=str, required=True, help="Profile name")
+@click.option('-a', metavar='<alpha>', type=click.IntRange(-8,8), help="Set alpha for profile type dynamic")
+@click.option('-s', metavar='<staticth>', type=int, help="Set staticth for profile type static")
+def mmu(p, a, s):
+    """mmuconfig configuration tasks"""
+    log.log_info("'mmuconfig -p {}' executing...".format(p))
+    command = "mmuconfig -p %s" % p
+    if a is not None: command += " -a %d" % a
+    if s is not None: command += " -s %d" % s
+    clicommon.run_command(command)
+
+
+#
 # 'pfc' group ('config interface pfc ...')
 #
 
