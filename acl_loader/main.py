@@ -370,6 +370,14 @@ class AclLoader(object):
         """
         return self.tables_db_info[tname]["type"].upper() == "L3V6"
 
+    def is_table_l3v4v6(self, tname):
+        """
+        Check if ACL table type is L3V4V6
+        :param tname: ACL table name
+        :return: True if table type is L3V4V6 else False
+        """
+        return self.tables_db_info[tname]["type"].upper() == "L3V4V6"
+
     def is_table_l3(self, tname):
         """
         Check if ACL table type is L3
@@ -568,9 +576,28 @@ class AclLoader(object):
     def convert_icmp(self, table_name, rule_idx, rule):
         rule_props = {}
 
-        is_table_v6 = self.is_table_ipv6(table_name)
-        type_key = "ICMPV6_TYPE" if is_table_v6 else "ICMP_TYPE"
-        code_key = "ICMPV6_CODE" if is_table_v6 else "ICMP_CODE"
+        is_rule_v6 = False
+        if self.is_table_ipv6(table_name):
+            is_rule_v6 = True
+        elif self.is_table_l3v4v6(table_name):
+            # get the IP version type using Ether-Type.
+            try:
+                ether_type = rule.l2.config.ethertype
+                if ether_type == "ETHERTYPE_IPV6":
+                    is_rule_v6 = True
+            except Exception as e:
+                pass
+        else:
+            # get the IP version type using IP_PROTOCOL.
+            try:
+                ip_protocol = rule.ip.config.protocol
+                if ip_protocol == "IP_ICMPV6" or int(ip_protocol) == self.ip_protocol_map["IP_ICMPV6"]:
+                    is_rule_v6 = True
+            except Exception as e:
+                pass
+
+        type_key = "ICMPV6_TYPE" if is_rule_v6 else "ICMP_TYPE"
+        code_key = "ICMPV6_CODE" if is_rule_v6 else "ICMP_CODE"
 
         if rule.icmp.config.type != "" and rule.icmp.config.type != "null":
             icmp_type = rule.icmp.config.type
