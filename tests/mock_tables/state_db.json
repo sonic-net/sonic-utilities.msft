@@ -1356,7 +1356,8 @@
         "speed" : "100000",
         "supported_speeds": "10000,25000,40000,100000",
         "supported_fecs": "rs,none,test",
-        "link_training_status": "not_trained"
+        "link_training_status": "not_trained",
+	"fec": "rs"
     },
     "PORT_TABLE|Ethernet32": {
         "link_training_status": "trained"
@@ -1365,6 +1366,11 @@
         "speed": "40000",
         "supported_fecs": "N/A",
         "link_training_status": "off"
+    },
+    "PORT_TABLE|Ethernet124": {
+        "speed": "40000",
+        "supported_fecs": "rs,none,fc,auto",
+        "fec": "rs"
     },
     "PCIE_DEVICE|00:01.0": {
         "correctable|BadDLLP": "0",

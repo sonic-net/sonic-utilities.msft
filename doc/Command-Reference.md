@@ -456,6 +456,7 @@ The same syntax applies to all subgroups of `show` which themselves contain subc
   Commands:
     counters       Show interface counters
     description    Show interface status, protocol and...
+    fec            Show interface fec information
     link-training  Show interface link-training information
     naming_mode    Show interface naming_mode status
     neighbor       Show neighbor related information
@@ -4449,6 +4450,29 @@ This command displays the key fields of the interfaces such as Operational Statu
   -----------  ------  -------  --------------  --------------------
   Ethernet4    down       up  hundredGigE1/2  T0-2:hundredGigE1/30
   ```
+
+**show interfaces fec status (Versions >= 202311)**
+
+This command is to display the FEC status of the selected interfaces. If **interface_name** is not specicied, this command shows the FEC status of all interfaces.
+
+- Usage:
+  ```
+  show interfaces fec status [<interface_name>]
+  ```
+
+- Example:  
+```
+  admin@sonic:~$ show interfaces fec status
+  Interface    FEC Oper    FEC Admin
+  -----------  ----------  -----------
+  Ethernet0         N/A           rs
+ Ethernet32         N/A           rs
+ Ethernet36         N/A          N/A
+Ethernet112         N/A           rs
+Ethernet116         N/A           rs
+Ethernet120         N/A           rs
+Ethernet124          rs         auto
+```
 
 **show interfaces link-training (Versions >= 202211)**
 

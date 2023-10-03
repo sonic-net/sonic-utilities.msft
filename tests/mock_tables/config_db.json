@@ -399,7 +399,8 @@
         "tpid": "0x8100",
         "mode": "routed",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "40000",
+        "fec" : "auto"
     },
     "VLAN_SUB_INTERFACE|Ethernet0.10": {
         "admin_status": "up"
