@@ -2314,6 +2314,14 @@ class TestConfigClock(object):
         import config.main
         importlib.reload(config.main)
 
+    @patch('utilities_common.cli.run_command')
+    def test_get_tzs(self, mock_run_command):
+        runner = CliRunner()
+        obj = {'db': Db().cfgdb}
+
+        runner.invoke(config.config.commands['clock'].commands['timezone'], ['Atlantis'], obj=obj)
+        mock_run_command.assert_called_with(['timedatectl', 'list-timezones'], display_cmd=False, ignore_error=False, return_cmd=True)
+
     @patch('config.main.get_tzs', mock.Mock(return_value=timezone_test_val))
     def test_timezone_good(self):
         runner = CliRunner()

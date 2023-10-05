@@ -12,7 +12,7 @@ from swsscommon.swsscommon import ConfigDBConnector
 ROUTE_IDX = 1
 
 def get_connected_routes():
-    cmd = 'sudo vtysh -c "show ip route connected json"'
+    cmd = ['sudo', 'vtysh', '-c', "show ip route connected json"]
     connected_routes = []
     try:
         output, ret = clicommon.run_command(cmd, return_cmd=True)
