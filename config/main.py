@@ -7199,7 +7199,7 @@ def clock():
 
 
 def get_tzs(ctx, args, incomplete):
-    ret = clicommon.run_command('timedatectl list-timezones',
+    ret = clicommon.run_command(['timedatectl', 'list-timezones'],
                                 display_cmd=False, ignore_error=False,
                                 return_cmd=True)
     if len(ret) == 0:
