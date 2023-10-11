@@ -1,6 +1,7 @@
 {
     "SFLOW|global": {
         "admin_state": "up",
+        "sample_direction": "both",
         "polling_interval": "0"
     },
     "SFLOW_COLLECTOR|prod": {

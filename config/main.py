@@ -6662,6 +6662,41 @@ def polling_int(ctx, interval):
     except ValueError as e:
         ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
+def is_port_egress_sflow_supported():
+    state_db = SonicV2Connector(use_unix_socket_path=True)
+    state_db.connect(state_db.STATE_DB, False)
+    entry_name="SWITCH_CAPABILITY|switch"
+    supported = state_db.get(state_db.STATE_DB, entry_name,"PORT_EGRESS_SAMPLE_CAPABLE")
+    return supported
+
+#
+# 'sflow' command ('config sflow sample-direction ...')
+#
+@sflow.command('sample-direction')
+@click.argument('direction',  metavar='<sample_direction>', required=True, type=str)
+@click.pass_context
+def global_sample_direction(ctx, direction):
+    """Set sampling direction """
+    if ADHOC_VALIDATION:
+        if direction:
+            if direction not in ['rx', 'tx', 'both']:
+                ctx.fail("Error: Direction {} is invalid".format(direction))
+
+            if ((direction == 'tx' or direction == 'both') and (is_port_egress_sflow_supported() == 'false')):
+                ctx.fail("Sample direction {} is not supported on this platform".format(direction))
+
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
+    sflow_tbl = config_db.get_table('SFLOW')
+
+    if not sflow_tbl:
+        sflow_tbl = {'global': {'admin_state': 'down'}}
+
+    sflow_tbl['global']['sample_direction'] = direction
+    try:
+        config_db.mod_entry('SFLOW', 'global', sflow_tbl['global'])
+    except ValueError as e:
+        ctx.fail("Invalid ConfigDB. Error: {}".format(e))
+
 def is_valid_sample_rate(rate):
     return rate.isdigit() and int(rate) in range(256, 8388608 + 1)
 
@@ -6770,6 +6805,40 @@ def sample_rate(ctx, ifname, rate):
                 config_db.mod_entry('SFLOW_SESSION', ifname, {'sample_rate': rate})
             except ValueError as e:
                 ctx.fail("Invalid ConfigDB. Error: {}".format(e))
+
+#
+# 'sflow' command ('config sflow interface sample-direction  ...')
+#
+@interface.command('sample-direction')
+@click.argument('ifname', metavar='<interface_name>', required=True, type=str)
+@click.argument('direction', metavar='<sample_direction>', required=True, type=str)
+@click.pass_context
+def interface_sample_direction(ctx, ifname, direction):
+    config_db = ValidatedConfigDBConnector(ctx.obj['db'])
+    if ADHOC_VALIDATION:
+        if not interface_name_is_valid(config_db, ifname) and ifname != 'all':
+            click.echo('Invalid interface name')
+            return
+        if direction:
+            if direction not in ['rx', 'tx', 'both']:
+                ctx.fail("Error: Direction {} is invalid".format(direction))
+
+            if (direction == 'tx' or direction == 'both') and (is_port_egress_sflow_supported() == 'false'):
+                ctx.fail("Sample direction {} is not supported on this platform".format(direction))
+
+    sess_dict = config_db.get_table('SFLOW_SESSION')
+
+    if sess_dict and ifname in sess_dict.keys():
+        sess_dict[ifname]['sample_direction'] = direction
+        try:
+            config_db.mod_entry('SFLOW_SESSION', ifname, sess_dict[ifname])
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
+    else:
+        try:
+            config_db.mod_entry('SFLOW_SESSION', ifname, {'sample_direction': direction})
+        except ValueError as e:
+            ctx.fail("Invalid ConfigDB. Error: {}".format(e))
 
 
 #

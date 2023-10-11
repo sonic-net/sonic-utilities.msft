@@ -8988,6 +8988,7 @@ This command displays the global sFlow configuration that includes the admin sta
   admin@sonic:~# show sflow
   sFlow Global Information:
   sFlow Admin State:          up
+  sFlow Sample Direction:     both
   sFlow Polling Interval:     default
   sFlow AgentID:              lo
 
@@ -9011,24 +9012,23 @@ This command displays the per-interface sflow admin status and the sampling rate
   admin@sonic:~# show sflow interface
 
   sFlow interface configurations
-  +-------------+---------------+-----------------+
-  | Interface   | Admin State   |   Sampling Rate |
-  +=============+===============+=================+
-  | Ethernet0   | up            |            4000 |
-  +-------------+---------------+-----------------+
-  | Ethernet1   | up            |            4000 |
-  +-------------+---------------+-----------------+
+  +-------------+---------------+-----------------+----------------------+
+  | Interface   | Admin State   |   Sampling Rate | Sampling Direction   |
+  +=============+===============+=================+======================+
+  | Ethernet0   | up            |            4000 | both                 |
+  +-------------+---------------+-----------------+----------------------|
+  | Ethernet1   | up            |            4000 | tx                   |
+  +-------------+---------------+-----------------+----------------------+
   ...
-  +-------------+---------------+-----------------+
-  | Ethernet61  | up            |            4000 |
-  +-------------+---------------+-----------------+
-  | Ethernet62  | up            |            4000 |
-  +-------------+---------------+-----------------+
-  | Ethernet63  | up            |            4000 |
-  +-------------+---------------+-----------------+
+  +-------------+---------------+-----------------+----------------------+
+  | Ethernet61  | up            |            4000 | rx                   |
+  +-------------+---------------+-----------------+----------------------+
+  | Ethernet62  | up            |            4000 | tx                   |
+  +-------------+---------------+-----------------+----------------------+
+  | Ethernet63  | up            |            4000 | both                 |
+  +-------------+---------------+-----------------+----------------------+
 
   ```
-
 ### sFlow Config commands
 
 **config sflow collector add**
@@ -9097,6 +9097,18 @@ Globally, sFlow is disabled by default. When sFlow is enabled globally, the sflo
   ```
   admin@sonic:~# sudo config sflow enable
   ```
+**config sflow sample-direction**
+
+This command takes global sflow sample direction. If not configured, default is "rx" for backward compatibility. Based on the direction, the sFlow is enabled at all the interface level at rx or tx or both.
+
+- Usage:
+  ```
+  config sflow sample-direction <rx|tx|both>
+  ```
+- Example:
+  ```
+  admin@sonic:~# sudo config sflow sample-direction tx
+  ```
 **config sflow interface**
 
 Enable/disable sflow at an interface level. By default, sflow is enabled on all interfaces at the interface level. Use this command to explicitly disable sFlow for a specific interface. An interface is sampled if sflow is enabled globally as well as at the interface level. Note that this configuration deals only with sFlow flow samples and not counter samples.
@@ -9113,6 +9125,24 @@ Enable/disable sflow at an interface level. By default, sflow is enabled on all 
   ```
   admin@sonic:~# sudo config sflow interface disable Ethernet40
   ```
+
+**config sflow interface sample-direction**
+
+Set sample direction to determine ingress sampling or egress sampling or both. If not configured, default is "rx".
+
+- Usage:
+  ```
+  config sflow sample-direction <interface-name|all> <rx|tx|both>
+  ```
+
+  - Parameters:
+    - interface-name: specify the interface for which sFlow flow sample-direction has to be set. The “all” keyword is used as a convenience to set sflow sample-direction at the interface level for all the interfaces.
+
+- Example:
+  ```
+  admin@sonic:~# sudo config sflow interface sample-direction Ethernet40 tx
+  ```
+Note: The local configuration applied to an interface has higher precedence over the global configuration provided through the "all" keyword.
 
 **config sflow interface sample-rate**
 
