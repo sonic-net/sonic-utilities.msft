@@ -984,10 +984,19 @@ class DBMigrator():
     def version_3_0_6(self):
         """
         Version 3_0_6
-        This is the latest version for 202211 branch
         """
 
         log.log_info('Handling version_3_0_6')
+        self.set_version('version_3_0_7')
+        return 'version_3_0_7'
+
+    def version_3_0_7(self):
+        """
+        Version 3_0_7
+        This is the latest version for 202205 branch
+        """
+
+        log.log_info('Handling version_3_0_7')
         self.set_version('version_4_0_0')
         return 'version_4_0_0'
 
