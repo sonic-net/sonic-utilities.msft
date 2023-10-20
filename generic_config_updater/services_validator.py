@@ -48,6 +48,14 @@ def _service_restart(svc_name):
     return rc == 0
 
 
+def rsyslog_validator(old_config, upd_config, keys):
+    rc = os.system("/usr/bin/rsyslog-config.sh")
+    if rc != 0:
+        return _service_restart("rsyslog")
+    else:
+        return True
+
+
 def dhcp_validator(old_config, upd_config, keys):
     return _service_restart("dhcp_relay")
 
