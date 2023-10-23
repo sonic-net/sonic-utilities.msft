@@ -841,6 +841,9 @@ Ethernet0  N/A
         mock_sfp.set_optoe_write_max = MagicMock(side_effect=NotImplementedError)
         status = sfputil.download_firmware("Ethernet0", "test.bin")
         assert status == 1
+        mock_api.get_module_fw_mgmt_feature.return_value = {'status': True, 'feature': (0, 64, True, False, 0)}
+        status = sfputil.download_firmware("Ethernet0", "test.bin")
+        assert status == 1
 
     @patch('sfputil.main.platform_chassis')
     @patch('sfputil.main.logical_port_to_physical_port_index', MagicMock(return_value=1))
