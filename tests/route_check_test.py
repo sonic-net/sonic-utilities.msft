@@ -8,7 +8,7 @@ import syslog
 import time
 from sonic_py_common import device_info
 from unittest.mock import MagicMock, patch
-from tests.route_check_test_data import APPL_DB, ARGS, ASIC_DB, CONFIG_DB, DEFAULT_CONFIG_DB, APPL_STATE_DB, DESCR, OP_DEL, OP_SET, PRE, RESULT, RET, TEST_DATA, UPD, FRR_ROUTES
+from tests.route_check_test_data import APPL_DB, ARGS, ASIC_DB, CONFIG_DB, DEFAULT_CONFIG_DB, APPL_STATE_DB, DESCR, OP_DEL, OP_SET, PRE, RESULT, RET, TEST_DATA, UPD
 
 import pytest
 
@@ -182,7 +182,7 @@ class mock_subscriber:
 
         print("state={} k={} op={} v={}".format(self.state, k, op, str(v)))
         return (k, op, v)
-   
+
 
     def getDbConnector(self):
         return self.dbconn
@@ -240,7 +240,6 @@ class TestRouteCheck(object):
 
     def init(self):
         route_check.UNIT_TESTING = 1
-        route_check.FRR_WAIT_TIME = 0
 
     @pytest.fixture
     def force_hang(self):
@@ -260,8 +259,7 @@ class TestRouteCheck(object):
              patch("route_check.swsscommon.Table") as mock_table, \
              patch("route_check.swsscommon.Select") as mock_sel, \
              patch("route_check.swsscommon.SubscriberStateTable") as mock_subs, \
-             patch("route_check.swsscommon.ConfigDBConnector", return_value=mock_config_db), \
-             patch("route_check.swsscommon.NotificationProducer"):
+             patch("route_check.swsscommon.ConfigDBConnector", return_value=mock_config_db):
             device_info.get_platform = MagicMock(return_value='unittest')
             set_mock(mock_table, mock_conn, mock_sel, mock_subs, mock_config_db)
             yield
@@ -275,16 +273,7 @@ class TestRouteCheck(object):
         set_test_case_data(ct_data)
         logger.info("Running test case {}: {}".format(test_num, ct_data[DESCR]))
 
-        with patch('sys.argv', ct_data[ARGS].split()), \
-            patch('route_check.subprocess.check_output') as mock_check_output:
-
-            routes = ct_data.get(FRR_ROUTES, {})
-
-            def side_effect(*args, **kwargs):
-                return json.dumps(routes)
-
-            mock_check_output.side_effect = side_effect
-
+        with patch('sys.argv', ct_data[ARGS].split()):
             ret, res = route_check.main()
             expect_ret = ct_data[RET] if RET in ct_data else 0
             expect_res = ct_data[RESULT] if RESULT in ct_data else None
@@ -322,11 +311,3 @@ class TestRouteCheck(object):
         assert len(msg) == 5
         msg = route_check.print_message(syslog.LOG_ERR, "a", "b", "c", "d", "e", "f")
         assert len(msg) == 5
-
-    def test_mitigate_routes(self, mock_dbs):
-        missed_frr_rt = [ { 'prefix': '192.168.0.1', 'protocol': 'bgp' } ]
-        rt_appl = [ '192.168.0.1' ]
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
-           route_check.mitigate_installed_not_offloaded_frr_routes(missed_frr_rt, rt_appl)
-        # Verify that the stdout are suppressed in this function
-        assert not mock_stdout.getvalue()

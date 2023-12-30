@@ -7,7 +7,6 @@ CONFIG_DB = 4
 APPL_STATE_DB = 14
 PRE = "pre-value"
 UPD = "update"
-FRR_ROUTES = "frr-routes"
 RESULT = "res"
 
 OP_SET = "SET"
@@ -360,125 +359,6 @@ TEST_DATA = {
                     RT_ENTRY_KEY_PREFIX + "fc02:1000::2/128" + RT_ENTRY_KEY_SUFFIX: {},
                     RT_ENTRY_KEY_PREFIX + "192.168.0.3/32" + RT_ENTRY_KEY_SUFFIX: {},
                     RT_ENTRY_KEY_PREFIX + "fc02:1000::3/128" + RT_ENTRY_KEY_SUFFIX: {}
-                }
-            }
-        }
-    },
-    "10": {
-        DESCR: "basic good one, check FRR routes",
-        ARGS: "route_check -m INFO -i 1000",
-        PRE: {
-            APPL_DB: {
-                ROUTE_TABLE: {
-                    "0.0.0.0/0" : { "ifname": "portchannel0" },
-                    "10.10.196.12/31" : { "ifname": "portchannel0" },
-                },
-                INTF_TABLE: {
-                    "PortChannel1013:10.10.196.24/31": {},
-                    "PortChannel1023:2603:10b0:503:df4::5d/126": {},
-                    "PortChannel1024": {}
-                }
-            },
-            ASIC_DB: {
-                RT_ENTRY_TABLE: {
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
-                }
-            },
-        },
-        FRR_ROUTES: {
-            "0.0.0.0/0": [
-                {
-                    "prefix": "0.0.0.0/0",
-                    "vrfName": "default",
-                    "protocol": "bgp",
-                    "offloaded": "true",
-                },
-            ],
-            "10.10.196.12/31": [
-                {
-                    "prefix": "10.10.196.12/31",
-                    "vrfName": "default",
-                    "protocol": "bgp",
-                    "offloaded": "true",
-                },
-            ],
-            "10.10.196.24/31": [
-                {
-                    "protocol": "connected",
-                },
-            ],
-        },
-    },
-    "11": {
-        DESCR: "failure test case, missing FRR routes",
-        ARGS: "route_check -m INFO -i 1000",
-        PRE: {
-            APPL_DB: {
-                ROUTE_TABLE: {
-                    "0.0.0.0/0" : { "ifname": "portchannel0" },
-                    "10.10.196.12/31" : { "ifname": "portchannel0" },
-                },
-                INTF_TABLE: {
-                    "PortChannel1013:10.10.196.24/31": {},
-                    "PortChannel1023:2603:10b0:503:df4::5d/126": {},
-                    "PortChannel1024": {}
-                }
-            },
-            ASIC_DB: {
-                RT_ENTRY_TABLE: {
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.12/31" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "10.10.196.24/32" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "2603:10b0:503:df4::5d/128" + RT_ENTRY_KEY_SUFFIX: {},
-                    RT_ENTRY_KEY_PREFIX + "0.0.0.0/0" + RT_ENTRY_KEY_SUFFIX: {}
-                }
-            },
-        },
-        FRR_ROUTES: {
-            "0.0.0.0/0": [
-                {
-                    "prefix": "0.0.0.0/0",
-                    "vrfName": "default",
-                    "protocol": "bgp",
-                    "offloaded": "true",
-                },
-            ],
-            "10.10.196.12/31": [
-                {
-                    "prefix": "10.10.196.12/31",
-                    "vrfName": "default",
-                    "protocol": "bgp",
-                },
-            ],
-            "10.10.196.24/31": [
-                {
-                    "protocol": "connected",
-                },
-            ],
-        },
-        RESULT: {
-            "missed_FRR_routes": [
-                {"prefix": "10.10.196.12/31", "vrfName": "default", "protocol": "bgp"}
-            ],
-        },
-        RET: -1,
-    },
-    "10": {
-        DESCR: "basic good one with IPv6 address",
-        ARGS: "route_check -m INFO -i 1000",
-        PRE: {
-            APPL_DB: {
-                ROUTE_TABLE: {
-                },
-                INTF_TABLE: {
-                    "PortChannel1013:2000:31:0:0::1/64": {},
-                }
-            },
-            ASIC_DB: {
-                RT_ENTRY_TABLE: {
-                    RT_ENTRY_KEY_PREFIX + "2000:31::1/128" + RT_ENTRY_KEY_SUFFIX: {},
                 }
             }
         }
