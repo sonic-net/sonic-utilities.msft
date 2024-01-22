@@ -6343,7 +6343,7 @@ def disable(ctx):
 def polling_int(ctx, interval):
     """Set polling-interval for counter-sampling (0 to disable)"""
     if interval not in range(5, 301) and interval != 0:
-        click.echo("Polling interval must be between 5-300 (0 to disable)")
+        ctx.fail("Polling interval must be between 5-300 (0 to disable)")
 
     config_db = ctx.obj['db']
     sflow_tbl = config_db.get_table('SFLOW')
