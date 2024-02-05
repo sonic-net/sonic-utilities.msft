@@ -3619,8 +3619,12 @@ def neighbor(ipaddr_or_hostname, verbose):
         if _change_bgp_session_status(config_db, ipaddr_or_hostname, 'down', verbose):
             found_neighbor = True
 
+    device_metadata = config_db.get_entry('DEVICE_METADATA', 'localhost')
     if not found_neighbor:
-        click.get_current_context().fail("Could not locate neighbor '{}'".format(ipaddr_or_hostname))
+        if device_metadata['type'] == 'SpineRouter':
+            click.echo("Could not locate neighbor '{}'".format(ipaddr_or_hostname))
+        else:
+            click.get_current_context().fail("Could not locate neighbor '{}'".format(ipaddr_or_hostname))
 
 @bgp.group(cls=clicommon.AbbreviationGroup)
 def startup():
@@ -3674,8 +3678,12 @@ def neighbor(ipaddr_or_hostname, verbose):
         if _change_bgp_session_status(config_db, ipaddr_or_hostname, 'up', verbose):
             found_neighbor = True
 
+    device_metadata = config_db.get_entry('DEVICE_METADATA', 'localhost')
     if not found_neighbor:
-        click.get_current_context().fail("Could not locate neighbor '{}'".format(ipaddr_or_hostname))
+        if device_metadata['type'] == 'SpineRouter':
+            click.echo("Could not locate neighbor '{}'".format(ipaddr_or_hostname))
+        else:
+            click.get_current_context().fail("Could not locate neighbor '{}'".format(ipaddr_or_hostname))
 
 #
 # 'remove' subgroup ('config bgp remove ...')
