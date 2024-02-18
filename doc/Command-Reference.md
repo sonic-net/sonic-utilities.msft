@@ -2434,26 +2434,6 @@ This command displays the routing policy that takes precedence over the other ro
       Exit routemap
   ```
 
-**show suppress-fib-pending**
-
-This command is used to show the status of suppress pending FIB feature.
-When enabled, BGP will not advertise routes which aren't yet offloaded.
-
-- Usage:
-  ```
-  show suppress-fib-pending
-  ```
-
-- Examples:
-  ```
-  admin@sonic:~$ show suppress-fib-pending
-  Enabled
-  ```
-  ```
-  admin@sonic:~$ show suppress-fib-pending
-  Disabled
-  ```
-
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
 
 ### BGP config commands
@@ -2544,24 +2524,6 @@ This command is used to remove particular IPv4 or IPv6 BGP neighbor configuratio
   ```
   ```
   admin@sonic:~$ sudo config bgp remove neighbor SONIC02SPINE
-  ```
-
-**config suppress-fib-pending**
-
-This command is used to enable or disable announcements of routes not yet installed in the HW.
-Once enabled, BGP will not advertise routes which aren't yet offloaded.
-
-- Usage:
-  ```
-  config suppress-fib-pending <enabled|disabled>
-  ```
-
-- Examples:
-  ```
-  admin@sonic:~$ sudo config suppress-fib-pending enabled
-  ```
-  ```
-  admin@sonic:~$ sudo config suppress-fib-pending disabled 
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#bgp)
@@ -9893,6 +9855,33 @@ This command is used to configure syslog rate limit for containers.
   admin@sonic:~$ sudo config syslog rate-limit-container bgp --interval 300 --burst 20000
   ```
 
+**config syslog rate-limit-feature enable**
+
+This command is used to enable syslog rate limit feature.
+
+- Usage:
+  ```
+  config syslog rate-limit-feature enable
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config syslog rate-limit-feature enable
+  ```
+
+**config syslog rate-limit-feature disable**
+
+This command is used to disable syslog rate limit feature.
+
+- Usage:
+  ```
+  config syslog rate-limit-feature disable
+  ```
+
+- Example:
+  ```
+  admin@sonic:~$ sudo config syslog rate-limit-feature disable
+  ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#syslog)
 
