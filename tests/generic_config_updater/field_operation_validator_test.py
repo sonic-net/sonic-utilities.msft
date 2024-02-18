@@ -14,6 +14,85 @@ from sonic_py_common.device_info import get_hwsku, get_sonic_version_info
 
 class TestValidateFieldOperation(unittest.TestCase):
 
+    @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value=""))
+    def test_port_config_update_validator_valid_speed_no_state_db(self):
+        patch_element = {"path": "/PORT/Ethernet3", "op": "add", "value": {"speed": "234"}}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == True
+    
+    @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value="40000,30000"))
+    def test_port_config_update_validator_invalid_speed_existing_state_db(self):
+        patch_element = {"path": "/PORT/Ethernet3", "op": "add", "value": {"speed": "xyz"}}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == False
+    
+    @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value="123,234"))
+    def test_port_config_update_validator_valid_speed_existing_state_db(self):
+        patch_element = {"path": "/PORT/Ethernet3", "op": "add", "value": {"speed": "234"}}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == True
+
+    @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value="123,234"))
+    def test_port_config_update_validator_valid_speed_existing_state_db(self):
+        patch_element = {"path": "/PORT/Ethernet3/speed", "op": "add", "value": "234"}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == True
+    
+    @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value="123,234"))
+    def test_port_config_update_validator_invalid_speed_existing_state_db(self):
+        patch_element = {"path": "/PORT/Ethernet3/speed", "op": "add", "value": "235"}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == False
+    
+    @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value="123,234"))
+    def test_port_config_update_validator_invalid_speed_existing_state_db_nested(self):
+        patch_element = {"path": "/PORT", "op": "add", "value": {"Ethernet3": {"alias": "Eth0", "speed": "235"}}}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == False
+    
+    @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value="123,234"))
+    def test_port_config_update_validator_valid_speed_existing_state_db_nested(self):
+        patch_element = {"path": "/PORT", "op": "add", "value": {"Ethernet3": {"alias": "Eth0", "speed": "234"}, "Ethernet4": {"alias": "Eth4", "speed": "234"}}}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == True
+    
+    @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value="123,234"))
+    def test_port_config_update_validator_invalid_speed_existing_state_db_nested_2(self):
+        patch_element = {"path": "/PORT", "op": "add", "value": {"Ethernet3": {"alias": "Eth0", "speed": "234"}, "Ethernet4": {"alias": "Eth4", "speed": "236"}}}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == False
+    
+    def test_port_config_update_validator_remove(self):
+        patch_element = {"path": "/PORT/Ethernet3", "op": "remove"}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == True
+
+    @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value="rs, fc"))
+    def test_port_config_update_validator_invalid_fec_existing_state_db(self):
+        patch_element = {"path": "/PORT/Ethernet3/fec", "op": "add", "value": "asf"}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == False
+    
+    @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value="rs, fc"))
+    def test_port_config_update_validator_invalid_fec_existing_state_db_nested(self):
+        patch_element = {"path": "/PORT", "op": "add", "value": {"Ethernet3": {"alias": "Eth0", "fec": "none"}, "Ethernet4": {"alias": "Eth4", "fec": "fs"}}}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == False
+    
+    @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value="rs, fc"))
+    def test_port_config_update_validator_valid_fec_existing_state_db_nested(self):
+        patch_element = {"path": "/PORT", "op": "add", "value": {"Ethernet3": {"alias": "Eth0", "fec": "fc"}}}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == True
+    
+    @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value="rs, fc"))
+    def test_port_config_update_validator_valid_fec_existing_state_db_nested_2(self):
+        patch_element = {"path": "/PORT", "op": "add", "value": {"Ethernet3": {"alias": "Eth0", "fec": "rs"}, "Ethernet4": {"alias": "Eth4", "fec": "fc"}}}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == True
+    
+    @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value="rs, fc"))
+    def test_port_config_update_validator_valid_fec_existing_state_db(self):
+        patch_element = {"path": "/PORT/Ethernet3/fec", "op": "add", "value": "rs"}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == True
+
+    @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value=""))
+    def test_port_config_update_validator_valid_fec_no_state_db(self):
+        patch_element = {"path": "/PORT/Ethernet3", "op": "add", "value": {"fec": "rs"}}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == True
+    
+    @patch("generic_config_updater.field_operation_validators.read_statedb_entry", mock.Mock(return_value=""))
+    def test_port_config_update_validator_invalid_fec_no_state_db(self):
+        patch_element = {"path": "/PORT/Ethernet3/fec", "op": "add", "value": "rsf"}
+        assert generic_config_updater.field_operation_validators.port_config_update_validator(patch_element) == False
+    
     @patch("generic_config_updater.field_operation_validators.get_asic_name", mock.Mock(return_value="unknown"))
     def test_rdma_config_update_validator_unknown_asic(self):
         patch_element = {"path": "/PFC_WD/Ethernet4/restoration_time", "op": "replace", "value": "234234"}

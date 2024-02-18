@@ -1679,17 +1679,15 @@ def load_mgmt_config(filename):
         clicommon.run_command(command, display_cmd=True, ignore_error=True)
     if len(config_data['MGMT_INTERFACE'].keys()) > 0:
         filepath = '/var/run/dhclient.eth0.pid'
-        if not os.path.isfile(filepath):
-            sys.exit('File {} does not exist'.format(filepath))
+        if os.path.isfile(filepath):
+            out0, rc0 = clicommon.run_command(['cat', filepath], display_cmd=True, return_cmd=True)
+            if rc0 != 0:
+                sys.exit('Exit: {}. Command: cat {} failed.'.format(rc0, filepath))
 
-        out0, rc0 = clicommon.run_command(['cat', filepath], display_cmd=True, return_cmd=True)
-        if rc0 != 0:
-            sys.exit('Exit: {}. Command: cat {} failed.'.format(rc0, filepath))
-
-        out1, rc1 = clicommon.run_command(['kill', str(out0).strip('\n')], return_cmd=True)
-        if rc1 != 0:
-            sys.exit('Exit: {}. Command: kill {} failed.'.format(rc1, out0))
-        clicommon.run_command(['rm', '-f', filepath], display_cmd=True, return_cmd=True)
+            out1, rc1 = clicommon.run_command(['kill', str(out0).strip('\n')], display_cmd=True, return_cmd=True)
+            if rc1 != 0:
+                sys.exit('Exit: {}. Command: kill {} failed.'.format(rc1, out0))
+            clicommon.run_command(['rm', '-f', filepath], display_cmd=True, return_cmd=True)
     click.echo("Please note loaded setting will be lost after system reboot. To preserve setting, run `config save`.")
 
 @config.command("load_minigraph")
@@ -1767,7 +1765,7 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, 
                 cfggen_namespace_option = ['-n', str(namespace)]
             clicommon.run_command([db_migrator, '-o', 'set_version'] + cfggen_namespace_option)
 
-    # Keep device isolated with TSA
+    # Keep device isolated with TSA 
     if traffic_shift_away:
         clicommon.run_command(["TSA"], display_cmd=True)
         if override_config:
@@ -2053,20 +2051,8 @@ def synchronous_mode(sync_mode):
     Option 2. systemctl restart swss""" % sync_mode)
 
 #
-# 'suppress-fib-pending' command ('config suppress-fib-pending ...')
-#
-@config.command('suppress-fib-pending')
-@click.argument('state', metavar='<enabled|disabled>', required=True, type=click.Choice(['enabled', 'disabled']))
-@clicommon.pass_db
-def suppress_pending_fib(db, state):
-    ''' Enable or disable pending FIB suppression. Once enabled, BGP will not advertise routes that are not yet installed in the hardware '''
-
-    config_db = db.cfgdb
-    config_db.mod_entry('DEVICE_METADATA' , 'localhost', {"suppress-fib-pending" : state})
-
-#
 # 'yang_config_validation' command ('config yang_config_validation ...')
-#
+# 
 @config.command('yang_config_validation')
 @click.argument('yang_config_validation', metavar='<enable|disable>', required=True)
 def yang_config_validation(yang_config_validation):

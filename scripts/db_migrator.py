@@ -37,7 +37,14 @@ log = logger.Logger(SYSLOG_IDENTIFIER)
 class DBMigrator():
     def __init__(self, namespace, socket=None):
         """
-        Version string format:
+        Version string format (202305 and above):
+            version_<branch>_<build>
+              branch: master, 202311, 202305, etc.
+              build:  sequentially increase with leading 0 to make it 2 digits.
+                      because the minor number has been removed to make it different
+                      from the old format, adding a leading 0 to make sure that we
+                      have double digit version number spaces.
+        Version string format (before 202305):
            version_<major>_<minor>_<build>
               major: starting from 1, sequentially incrementing in master
                      branch.
@@ -47,7 +54,7 @@ class DBMigrator():
                      none-zero values.
               build: sequentially increase within a minor version domain.
         """
-        self.CURRENT_VERSION = 'version_4_0_3'
+        self.CURRENT_VERSION = 'version_202305_01'
 
         self.TABLE_NAME      = 'VERSIONS'
         self.TABLE_KEY       = 'DATABASE'
@@ -614,28 +621,6 @@ class DBMigrator():
                 config.pop('has_timer')
                 self.configDB.set_entry('FEATURE', feature, config)
 
-    def migrate_route_table(self):
-        """
-        Handle route table migration. Migrations handled:
-        1. 'weight' attr in ROUTE object was introduced 202205 onwards.
-            Upgrade from older branch to 202205 will require this 'weight' attr to be added explicitly
-        2. 'protocol' attr in ROUTE introduced in 202305 onwards.
-            WarmRestartHelper reconcile logic requires to have "protocol" field in the old dumped ROUTE_TABLE.
-        """
-        route_table = self.appDB.get_table("ROUTE_TABLE")
-        for route_prefix, route_attr in route_table.items():
-            if type(route_prefix) == tuple:
-                # IPv6 route_prefix is returned from db as tuple
-                route_key = "ROUTE_TABLE:" + ":".join(route_prefix)
-            else:
-                # IPv4 route_prefix is returned from db as str
-                route_key = "ROUTE_TABLE:{}".format(route_prefix)
-
-            if 'weight' not in route_attr:
-                self.appDB.set(self.appDB.APPL_DB, route_key, 'weight','')
-
-            if 'protocol' not in route_attr:
-                self.appDB.set(self.appDB.APPL_DB, route_key, 'protocol', '')
 
     def migrate_routing_config_mode(self):
         # DEVICE_METADATA - synchronous_mode entry
@@ -1030,9 +1015,19 @@ class DBMigrator():
     def version_4_0_3(self):
         """
         Version 4_0_3.
-        This is the latest version for master branch
+        This is the latest version for 202211 branch
         """
         log.log_info('Handling version_4_0_3')
+
+        self.set_version('version_202305_01')
+        return 'version_202305_01'
+
+    def version_202305_01(self):
+        """
+        Version 202305_01.
+        This is current last erversion for 202305 branch
+        """
+        log.log_info('Handling version_202305_01')
         return None
 
     def get_version(self):
@@ -1078,8 +1073,6 @@ class DBMigrator():
             self.migrate_mgmt_ports_on_s6100()
         else:
             log.log_notice("Asic Type: {}, Hwsku: {}".format(self.asic_type, self.hwsku))
-
-        self.migrate_route_table()
 
         # Updating edgezone aggregator cable length config for T0 devices
         self.update_edgezone_aggregator_config()
