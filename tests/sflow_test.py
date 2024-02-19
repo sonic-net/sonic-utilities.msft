@@ -182,6 +182,13 @@ class TestShowSflow(object):
         runner = CliRunner()
         obj = {'db':db.cfgdb}
 
+        # set to 500 out of range
+        result = runner.invoke(config.config.commands["sflow"].
+            commands["polling-interval"], ["500"], obj=obj)
+        print(result.exit_code, result.output)
+        assert result.exit_code != 0
+        assert "Polling interval must be between 5-300" in result.output
+
         # set to 20
         result = runner.invoke(config.config.commands["sflow"].
             commands["polling-interval"], ["20"], obj=obj)
