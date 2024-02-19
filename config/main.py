@@ -13,6 +13,7 @@ import sys
 import time
 import itertools
 import copy
+import tempfile
 
 from collections import OrderedDict
 from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
@@ -130,6 +131,14 @@ def read_json_file(fileName):
     except Exception as e:
         raise Exception(str(e))
     return result
+
+# write given JSON file
+def write_json_file(json_input, fileName):
+    try:
+        with open(fileName, 'w') as f:
+            json.dump(json_input, f, indent=4)
+    except Exception as e:
+        raise Exception(str(e))
 
 def _get_breakout_options(ctx, args, incomplete):
     """ Provides dynamic mode option as per user argument i.e. interface name """
@@ -1452,6 +1461,12 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
         # Get the file from user input, else take the default file /etc/sonic/config_db{NS_id}.json
         if cfg_files:
             file = cfg_files[inst+1]
+            # Save to tmpfile in case of stdin input which can only be read once
+            if file == "/dev/stdin":
+                file_input = read_json_file(file)
+                (_, tmpfname) = tempfile.mkstemp(dir="/tmp", suffix="_configReloadStdin")
+                write_json_file(file_input, tmpfname)
+                file = tmpfname
         else:
             if file_format == 'config_db':
                 if namespace is None:
@@ -1466,6 +1481,19 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
         if not os.path.exists(file):
             click.echo("The config file {} doesn't exist".format(file))
             continue
+
+        if file_format == 'config_db':
+            file_input = read_json_file(file)
+
+            platform = file_input.get("DEVICE_METADATA", {}).\
+                get("localhost", {}).get("platform")
+            mac = file_input.get("DEVICE_METADATA", {}).\
+                get("localhost", {}).get("mac")
+
+            if not platform or not mac:
+                log.log_warning("Input file does't have platform or mac. platform: {}, mac: {}"
+                    .format(None if platform is None else platform, None if mac is None else mac))
+                load_sysinfo = True
 
         if load_sysinfo:
             try:
@@ -1527,6 +1555,13 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
 
         clicommon.run_command(command, display_cmd=True)
         client.set(config_db.INIT_INDICATOR, 1)
+
+        if os.path.exists(file) and file.endswith("_configReloadStdin"):
+            # Remove tmpfile
+            try:
+                os.remove(file)
+            except OSError as e:
+                click.echo("An error occurred while removing the temporary file: {}".format(str(e)), err=True)
 
         # Migrate DB contents to latest version
         db_migrator='/usr/local/bin/db_migrator.py'
@@ -4058,27 +4093,11 @@ def breakout(ctx, interface_name, mode, verbose, force_remove_dependencies, load
         click.secho("[ERROR] port_dict is None!", fg='red')
         raise click.Abort()
 
-    """ Special Case: Dont delete those ports  where the current mode and speed of the parent port
-                      remains unchanged to limit the traffic impact """
-
-    click.secho("\nAfter running Logic to limit the impact", fg="cyan", underline=True)
-    matched_items = [intf for intf in del_intf_dict if intf in add_intf_dict and del_intf_dict[intf] == add_intf_dict[intf]]
-
-    # Remove the interface which remains unchanged from both del_intf_dict and add_intf_dict
-    for item in matched_items:
-        del_intf_dict.pop(item)
-        add_intf_dict.pop(item)
-
     # validate all del_ports before calling breakOutPort
     for intf in del_intf_dict.keys():
         if not interface_name_is_valid(config_db, intf):
             click.secho("[ERROR] Interface name {} is invalid".format(intf))
             raise click.Abort()
-
-    click.secho("\nFinal list of ports to be deleted : \n {} \nFinal list of ports to be added :  \n {}".format(json.dumps(del_intf_dict, indent=4), json.dumps(add_intf_dict, indent=4), fg='green', blink=True))
-    if not add_intf_dict:
-        click.secho("[ERROR] add_intf_dict is None or empty! No interfaces are there to be added", fg='red')
-        raise click.Abort()
 
     port_dict = {}
     for intf in add_intf_dict:
@@ -6350,7 +6369,7 @@ def disable(ctx):
 def polling_int(ctx, interval):
     """Set polling-interval for counter-sampling (0 to disable)"""
     if interval not in range(5, 301) and interval != 0:
-        click.echo("Polling interval must be between 5-300 (0 to disable)")
+        ctx.fail("Polling interval must be between 5-300 (0 to disable)")
 
     config_db = ctx.obj['db']
     sflow_tbl = config_db.get_table('SFLOW')
