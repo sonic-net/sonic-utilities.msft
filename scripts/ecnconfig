@@ -86,10 +86,7 @@ PORT_TABLE_NAME            = "PORT"
 QUEUE_TABLE_NAME           = "QUEUE"
 DEVICE_NEIGHBOR_TABLE_NAME = "DEVICE_NEIGHBOR"
 FIELD                      = "wred_profile"
-ON                         = "[WRED_PROFILE|AZURE_LOSSLESS]"
-OFF                        = "[]"
-
-lossless_queues         = ['3', '4']
+ON                         = "AZURE_LOSSLESS"
 
 def chk_exec_privilege():
     if os.geteuid() != 0 and os.environ.get("UTILITIES_UNIT_TESTING", "0") != "2":
@@ -202,7 +199,6 @@ class EcnQ(object):
     def __init__(self, queues, filename, verbose):
         self.ports_key = []
         self.queues = queues.split(',')
-        self.validate_queues()
         self.filename = filename
         self.verbose = verbose
 
@@ -215,15 +211,14 @@ class EcnQ(object):
 
         self.gen_ports_key()
 
-    def validate_queues(self):
-        for q in self.queues:
-            if q not in lossless_queues:
-                sys.exit('Invalid queue index: %s' % q)
-
     def gen_ports_key(self):
         if self.ports_key is not None:
             port_table = self.config_db.get_table(DEVICE_NEIGHBOR_TABLE_NAME)
             self.ports_key = list(port_table.keys())
+
+            # Verify at least one port is available
+            if len(self.ports_key) == 0:
+                raise Exception("No active ports detected in table '{}'".format(DEVICE_NEIGHBOR_TABLE_NAME))
 
             # In multi-ASIC platforms backend ethernet ports are identified as
             # 'Ethernet-BPxy'. Add 1024 to sort backend ports to the end.
@@ -245,7 +240,18 @@ class EcnQ(object):
                 print("%s ECN on %s queue %s" % ("Enable" if enable else "Disable", ','.join(self.ports_key), queue))
             for port_key in self.ports_key:
                 key = '|'.join([port_key, queue])
-                self.config_db.mod_entry(QUEUE_TABLE_NAME, key, {FIELD: ON if enable else OFF})
+                entry = self.config_db.get_entry(QUEUE_TABLE_NAME, key)
+                if enable:
+                    entry[FIELD] = ON
+                else:
+                    # Remove entry to propagate SAI change
+                    if FIELD in entry:
+                        del entry[FIELD]
+                # If entry is now empty, remove the key
+                if entry == {}:
+                    self.config_db.mod_entry(QUEUE_TABLE_NAME, key, None)
+                else:
+                    self.config_db.set_entry(QUEUE_TABLE_NAME, key, entry)
         self.dump_table_info()
 
     def get(self):
