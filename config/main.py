@@ -105,6 +105,8 @@ PORT_SPEED = "speed"
 PORT_TPID = "tpid"
 DEFAULT_TPID = "0x8100"
 
+DOM_CONFIG_SUPPORTED_SUBPORTS = ['0', '1']
+
 asic_type = None
 
 DSCP_RANGE = click.IntRange(min=0, max=63)
@@ -1961,6 +1963,18 @@ def override_config_table(db, input_config_db, dry_run):
             validate_config_by_cm(cm, ns_config_input, "config_input")
             # Validate updated whole config
             validate_config_by_cm(cm, updated_config, "updated_config")
+        else:
+            cm = None
+            try:
+                # YANG validate of config minigraph generated
+                cm = ConfigMgmt(configdb=config_db)
+                cm.validateConfigData()
+            except Exception as ex:
+                log.log_warning("Failed to validate running config. Alerting: {}".format(ex))
+
+            # YANG validate config of minigraph generated overriden by golden config
+            if cm:
+                validate_config_by_cm_alerting(cm, updated_config, "updated_config")
 
         if dry_run:
             print(json.dumps(updated_config, sort_keys=True,
@@ -1977,6 +1991,15 @@ def validate_config_by_cm(cm, config_json, jname):
     except Exception as ex:
         click.secho("Failed to validate {}. Error: {}".format(jname, ex), fg="magenta")
         sys.exit(1)
+
+
+def validate_config_by_cm_alerting(cm, config_json, jname):
+    tmp_config_json = copy.deepcopy(config_json)
+    try:
+        cm.loadData(tmp_config_json)
+        cm.validateConfigData()
+    except Exception as ex:
+        log.log_warning("Failed to validate {}. Alerting: {}".format(jname, ex))
 
 
 def update_config(current_config, config_input):
@@ -5124,6 +5147,43 @@ def reset(ctx, interface_name):
 
     cmd = ['sudo', 'sfputil', 'reset', str(interface_name)]
     clicommon.run_command(cmd)
+
+#
+# 'dom' subcommand ('config interface transceiver dom ...')
+# This command is supported only for
+#   1. non-breakout ports (subport = 0 or subport field is absent in CONFIG_DB)
+#   2. first subport of breakout ports (subport = 1)
+
+@transceiver.command()
+@click.argument('interface_name', metavar='<interface_name>', required=True)
+@click.argument('desired_config', metavar='(enable|disable)', type=click.Choice(['enable', 'disable']))
+@click.pass_context
+def dom(ctx, interface_name, desired_config):
+    """Enable/disable DOM monitoring for SFP transceiver module"""
+    log.log_info("interface transceiver dom {} {} executing...".format(interface_name, desired_config))
+    # Get the config_db connector
+    config_db = ctx.obj['config_db']
+
+    if clicommon.get_interface_naming_mode() == "alias":
+        interface_name = interface_alias_to_name(config_db, interface_name)
+        if interface_name is None:
+            ctx.fail("'interface_name' is None!")
+
+    if interface_name_is_valid(config_db, interface_name) is False:
+        ctx.fail("Interface name is invalid. Please enter a valid interface name!!")
+
+    port_table_entry = config_db.get_entry("PORT", interface_name)
+    if not port_table_entry:
+        ctx.fail("Interface {} does not exist".format(interface_name))
+
+    # We are handling port configuration only for the below mentioned scenarios
+    # Port is a non-breakout port (subport = 0 or subport field is absent in CONFIG_DB)
+    # Port is first subport of breakout ports (subport = 1)
+    # If the port is not in the above mentioned scenarios, then fail the command
+    if port_table_entry.get("subport", '0') not in DOM_CONFIG_SUPPORTED_SUBPORTS:
+        ctx.fail("DOM monitoring config only supported for subports {}".format(DOM_CONFIG_SUPPORTED_SUBPORTS))
+    else:
+        config_db.mod_entry("PORT", interface_name, {"dom_polling": "disabled" if desired_config == "disable" else "enabled"})
 
 #
 # 'mpls' subgroup ('config interface mpls ...')
