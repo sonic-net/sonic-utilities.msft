@@ -13,7 +13,7 @@ from unittest import mock
 import click
 from click.testing import CliRunner
 
-from sonic_py_common import device_info
+from sonic_py_common import device_info, multi_asic
 from utilities_common.db import Db
 from utilities_common.general import load_module_from_source
 
@@ -1669,3 +1669,110 @@ class TestConfigLoadMgmtConfig(object):
         from .mock_tables import mock_single_asic
         importlib.reload(mock_single_asic)
         dbconnector.load_namespace_config()
+
+
+class TestApplyPatchMultiAsic(unittest.TestCase):
+    def setUp(self):
+        os.environ['UTILITIES_UNIT_TESTING'] = "2"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = "multi_asic"
+        import config.main
+        importlib.reload(config.main)
+        # change to multi asic config
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_multi_asic
+        importlib.reload(mock_multi_asic)
+        dbconnector.load_namespace_config()
+
+        self.runner = CliRunner()
+        self.patch_file_path = 'path/to/patch.json'
+        self.patch_content = [
+            {
+                "op": "add",
+                "path": "/localhost/ACL_TABLE/NEW_ACL_TABLE",
+                "value": {
+                    "policy_desc": "New ACL Table",
+                    "ports": ["Ethernet1", "Ethernet2"],
+                    "stage": "ingress",
+                    "type": "L3"
+                }
+            },
+            {
+                "op": "add",
+                "path": "/asic0/ACL_TABLE/NEW_ACL_TABLE",
+                "value": {
+                    "policy_desc": "New ACL Table",
+                    "ports": ["Ethernet3", "Ethernet4"],
+                    "stage": "ingress",
+                    "type": "L3"
+                }
+            },
+            {
+                "op": "replace",
+                "path": "/asic1/PORT/Ethernet1/mtu",
+                "value": "9200"
+            }
+        ]
+
+    def test_apply_patch_multiasic(self):
+        # Mock open to simulate file reading
+        with patch('builtins.open', mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
+            # Mock GenericUpdater to avoid actual patch application
+            with patch('config.main.GenericUpdater') as mock_generic_updater:
+                mock_generic_updater.return_value.apply_patch = MagicMock()
+
+                print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+                # Invocation of the command with the CliRunner
+                result = self.runner.invoke(config.config.commands["apply-patch"], [self.patch_file_path], catch_exceptions=True)
+
+                print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+                # Assertions and verifications
+                self.assertEqual(result.exit_code, 0, "Command should succeed")
+                self.assertIn("Patch applied successfully.", result.output)
+
+                # Verify mocked_open was called as expected
+                mocked_open.assert_called_with(self.patch_file_path, 'r')
+
+    def test_apply_patch_dryrun_multiasic(self):
+        # Mock open to simulate file reading
+        with patch('builtins.open', mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
+            # Mock GenericUpdater to avoid actual patch application
+            with patch('config.main.GenericUpdater') as mock_generic_updater:
+                mock_generic_updater.return_value.apply_patch = MagicMock()
+
+                # Mock ConfigDBConnector to ensure it's not called during dry-run
+                with patch('config.main.ConfigDBConnector') as mock_config_db_connector:
+
+                    print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
+                    # Invocation of the command with the CliRunner
+                    result = self.runner.invoke(config.config.commands["apply-patch"],
+                                                [self.patch_file_path,
+                                                "--format", ConfigFormat.SONICYANG.name,
+                                                "--dry-run",
+                                                "--ignore-non-yang-tables",
+                                                "--ignore-path", "/ANY_TABLE",
+                                                "--ignore-path", "/ANY_OTHER_TABLE/ANY_FIELD",
+                                                "--ignore-path", "",
+                                                "--verbose"],
+                                                catch_exceptions=False)
+
+                    print("Exit Code: {}, output: {}".format(result.exit_code, result.output))
+                    # Assertions and verifications
+                    self.assertEqual(result.exit_code, 0, "Command should succeed")
+                    self.assertIn("Patch applied successfully.", result.output)
+
+                    # Verify mocked_open was called as expected
+                    mocked_open.assert_called_with(self.patch_file_path, 'r')
+
+                    # Ensure ConfigDBConnector was never instantiated or called
+                    mock_config_db_connector.assert_not_called()
+
+    @classmethod
+    def teardown_class(cls):
+        print("TEARDOWN")
+        os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] = ""
+        # change back to single asic config
+        from .mock_tables import dbconnector
+        from .mock_tables import mock_single_asic
+        importlib.reload(mock_single_asic)
+        dbconnector.load_database_config()
