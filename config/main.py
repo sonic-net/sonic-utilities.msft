@@ -16,7 +16,7 @@ import copy
 import tempfile
 
 from collections import OrderedDict
-from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat
+from generic_config_updater.generic_updater import GenericUpdater, ConfigFormat, extract_scope
 from minigraph import parse_device_desc_xml, minigraph_encoder
 from natsort import natsorted
 from portconfig import get_child_ports
@@ -1081,6 +1081,23 @@ def validate_gre_type(ctx, _, value):
     except ValueError:
         raise click.UsageError("{} is not a valid GRE type".format(value))
 
+# Function to apply patch for a single ASIC.
+def apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path):
+    scope, changes = scope_changes
+    # Replace localhost to DEFAULT_NAMESPACE which is db definition of Host
+    if scope.lower() == "localhost" or scope == "":
+        scope = multi_asic.DEFAULT_NAMESPACE
+        
+    scope_for_log = scope if scope else "localhost"
+    try:
+        # Call apply_patch with the ASIC-specific changes and predefined parameters
+        GenericUpdater(namespace=scope).apply_patch(jsonpatch.JsonPatch(changes), config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
+        results[scope_for_log] = {"success": True, "message": "Success"}
+        log.log_notice(f"'apply-patch' executed successfully for {scope_for_log} by {changes}")
+    except Exception as e:
+        results[scope_for_log] = {"success": False, "message": str(e)}
+        log.log_error(f"'apply-patch' executed failed for {scope_for_log} by {changes} due to {str(e)}")
+
 # This is our main entrypoint - the main 'config' command
 @click.group(cls=clicommon.AbbreviationGroup, context_settings=CONTEXT_SETTINGS)
 @click.pass_context
@@ -1279,12 +1296,47 @@ def apply_patch(ctx, patch_file_path, format, dry_run, ignore_non_yang_tables, i
             patch_as_json = json.loads(text)
             patch = jsonpatch.JsonPatch(patch_as_json)
 
+        results = {}
         config_format = ConfigFormat[format.upper()]
-        GenericUpdater().apply_patch(patch, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
+        # Initialize a dictionary to hold changes categorized by scope
+        changes_by_scope = {}
 
+        # Iterate over each change in the JSON Patch
+        for change in patch:
+            scope, modified_path = extract_scope(change["path"])
+
+            # Modify the 'path' in the change to remove the scope
+            change["path"] = modified_path
+
+            # Check if the scope is already in our dictionary, if not, initialize it
+            if scope not in changes_by_scope:
+                changes_by_scope[scope] = []
+
+            # Add the modified change to the appropriate list based on scope
+            changes_by_scope[scope].append(change)
+
+        # Empty case to force validate YANG model.
+        if not changes_by_scope:
+            asic_list = [multi_asic.DEFAULT_NAMESPACE]
+            asic_list.extend(multi_asic.get_namespace_list())
+            for asic in asic_list:
+                changes_by_scope[asic] = []
+
+        # Apply changes for each scope
+        for scope_changes in changes_by_scope.items():
+            apply_patch_for_scope(scope_changes, results, config_format, verbose, dry_run, ignore_non_yang_tables, ignore_path)
+
+        # Check if any updates failed
+        failures = [scope for scope, result in results.items() if not result['success']]
+
+        if failures:
+            failure_messages = '\n'.join([f"- {failed_scope}: {results[failed_scope]['message']}" for failed_scope in failures])
+            raise Exception(f"Failed to apply patch on the following scopes:\n{failure_messages}")
+
+        log.log_notice(f"Patch applied successfully for {patch}.")
         click.secho("Patch applied successfully.", fg="cyan", underline=True)
     except Exception as ex:
-        click.secho("Failed to apply patch", fg="red", underline=True, err=True)
+        click.secho("Failed to apply patch due to: {}".format(ex), fg="red", underline=True, err=True)
         ctx.fail(ex)
 
 @config.command()
