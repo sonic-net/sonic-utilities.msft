@@ -7,7 +7,6 @@ import jsonpatch
 import sys
 import unittest
 import ipaddress
-import shutil
 from unittest import mock
 
 import click
@@ -1734,9 +1733,9 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
 
     def test_apply_patch_dryrun_multiasic(self):
         # Mock open to simulate file reading
-        with patch('builtins.open', mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
+        with mock.patch('builtins.open', mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
             # Mock GenericUpdater to avoid actual patch application
-            with patch('config.main.GenericUpdater') as mock_generic_updater:
+            with mock.patch('config.main.GenericUpdater') as mock_generic_updater:
                 mock_generic_updater.return_value.apply_patch = MagicMock()
 
                 # Mock ConfigDBConnector to ensure it's not called during dry-run
