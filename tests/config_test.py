@@ -7,7 +7,6 @@ import jsonpatch
 import sys
 import unittest
 import ipaddress
-import shutil
 from unittest import mock
 
 import click
@@ -1715,10 +1714,10 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
 
     def test_apply_patch_multiasic(self):
         # Mock open to simulate file reading
-        with patch('builtins.open', mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
+        with mock.patch('builtins.open', mock.mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
             # Mock GenericUpdater to avoid actual patch application
-            with patch('config.main.GenericUpdater') as mock_generic_updater:
-                mock_generic_updater.return_value.apply_patch = MagicMock()
+            with mock.patch('config.main.GenericUpdater') as mock_generic_updater:
+                mock_generic_updater.return_value.apply_patch = mock.MagicMock()
 
                 print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
                 # Invocation of the command with the CliRunner
@@ -1734,13 +1733,13 @@ class TestApplyPatchMultiAsic(unittest.TestCase):
 
     def test_apply_patch_dryrun_multiasic(self):
         # Mock open to simulate file reading
-        with patch('builtins.open', mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
+        with mock.patch('builtins.open', mock.mock_open(read_data=json.dumps(self.patch_content)), create=True) as mocked_open:
             # Mock GenericUpdater to avoid actual patch application
-            with patch('config.main.GenericUpdater') as mock_generic_updater:
-                mock_generic_updater.return_value.apply_patch = MagicMock()
+            with mock.patch('config.main.GenericUpdater') as mock_generic_updater:
+                mock_generic_updater.return_value.apply_patch = mock.MagicMock()
 
                 # Mock ConfigDBConnector to ensure it's not called during dry-run
-                with patch('config.main.ConfigDBConnector') as mock_config_db_connector:
+                with mock.patch('config.main.ConfigDBConnector') as mock_config_db_connector:
 
                     print("Multi ASIC: {}".format(multi_asic.is_multi_asic()))
                     # Invocation of the command with the CliRunner
