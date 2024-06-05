@@ -209,7 +209,7 @@ setup(
         'semantic-version>=2.8.5',
         'prettyprinter>=0.18.0',
         'pyroute2>=0.5.14, <0.6.1',
-        'requests>=2.25.0',
+        'requests>=2.25.0, <=2.31.0',
         'sonic-config-engine',
         'sonic-platform-common',
         'sonic-py-common',
