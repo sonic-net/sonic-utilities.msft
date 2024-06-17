@@ -17,6 +17,7 @@ from click.testing import CliRunner
 from sonic_py_common import device_info, multi_asic
 from utilities_common.db import Db
 from utilities_common.general import load_module_from_source
+from unittest.mock import MagicMock, patch, mock_open
 
 from generic_config_updater.generic_updater import ConfigFormat
 
