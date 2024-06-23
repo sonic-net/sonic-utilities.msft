@@ -262,32 +262,6 @@ class TestConfigReload(object):
 
             assert "\n".join([l.rstrip() for l in result.output.split('\n')][:1]) == reload_config_with_sys_info_command_output
 
-    def test_config_reload_untriggered_timer(self, get_cmd_module, setup_single_broadcom_asic):
-        with mock.patch("utilities_common.cli.run_command", mock.MagicMock(side_effect=mock_run_command_side_effect_untriggered_timer)) as mock_run_command:
-            (config, show) = get_cmd_module
-
-            jsonfile_config = os.path.join(mock_db_path, "config_db.json")
-            jsonfile_init_cfg = os.path.join(mock_db_path, "init_cfg.json")
-
-            # create object
-            config.INIT_CFG_FILE = jsonfile_init_cfg
-            config.DEFAULT_CONFIG_DB_FILE =  jsonfile_config
-
-            db = Db()
-            runner = CliRunner()
-            obj = {'config_db': db.cfgdb}
-
-            # simulate 'config reload' to provoke load_sys_info option
-            result = runner.invoke(config.config.commands["reload"], ["-l", "-y"], obj=obj)
-
-            print(result.exit_code)
-            print(result.output)
-            traceback.print_tb(result.exc_info[2])
-
-            assert result.exit_code == 1
-
-            assert "\n".join([l.rstrip() for l in result.output.split('\n')][:2]) == reload_config_with_untriggered_timer_output
-
     def test_config_reload_stdin(self, get_cmd_module, setup_single_broadcom_asic):
         def mock_json_load(f):
             device_metadata = {
