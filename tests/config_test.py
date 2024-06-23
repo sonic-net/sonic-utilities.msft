@@ -130,6 +130,10 @@ Restarting SONiC target ...
 Reloading Monit configuration ...
 """
 
+reload_config_with_untriggered_timer_output="""\
+Relevant services are not up. Retry later or use -f to avoid system checks
+"""
+
 config_temp = {
         "scope": {
             "ACL_TABLE": {
