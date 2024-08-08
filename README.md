@@ -57,7 +57,6 @@ A convenient alternative is to let the SONiC build system configure a build envi
 ```
 python3 setup.py bdist_wheel
 ```
-Note: This command by default will not update the wheel package in target/. To specify the destination location of wheel package, use "-d" option.
 
 #### To run unit tests
 
@@ -65,12 +64,6 @@ Note: This command by default will not update the wheel package in target/. To s
 python3 setup.py test
 ```
 
-#### To install the package on a SONiC machine
-```
-sudo pip uninstall sonic-utilities
-sudo pip install YOUR_WHEEL_PACKAGE
-```
-Note: Don't use "--force-reinstall".
 
 ### sonic-utilities-data
 
