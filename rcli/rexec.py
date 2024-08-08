@@ -30,22 +30,20 @@ def cli(linecard_names, command, username):
 
     if list(linecard_names) == ["all"]:
         # Get all linecard names using autocompletion helper
-        module_names = sorted(rcli_utils.get_all_linecards(None, None, ""))
-    else:
-        module_names = linecard_names
+        linecard_names = rcli_utils.get_all_linecards(None, None, "")
 
     linecards = []
     # Iterate through each linecard, check if the login was successful
-    for module_name in module_names:
-        linecard = Linecard(module_name, username, password)
+    for linecard_name in linecard_names:
+        linecard = Linecard(linecard_name, username, password)
         if not linecard.connection:
-            click.echo(f"Failed to connect to {module_name} with username {username}")
+            click.echo(f"Failed to connect to {linecard_name} with username {username}")
             sys.exit(1)
         linecards.append(linecard)
 
     for linecard in linecards:
         if linecard.connection:
-            click.echo(f"======== {linecard.module_name}|{linecard.hostname} output: ========")
+            click.echo(f"======== {linecard.linecard_name} output: ========")
             click.echo(linecard.execute_cmd(command))
 
 
