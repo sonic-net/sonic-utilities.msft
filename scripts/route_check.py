@@ -840,8 +840,8 @@ def check_routes(namespace):
     if results:
         print_message(syslog.LOG_WARNING, "Failure results: {",  json.dumps(results, indent=4), "}")
         print_message(syslog.LOG_WARNING, "Failed. Look at reported mismatches above")
-        print_message(syslog.LOG_WARNING, "add: ", json.dumps(all_adds, indent=4))
-        print_message(syslog.LOG_WARNING, "del: ", json.dumps(all_deletes, indent=4))
+        print_message(syslog.LOG_WARNING, "add: ", json.dumps(adds, indent=4))
+        print_message(syslog.LOG_WARNING, "del: ", json.dumps(deletes, indent=4))
         return -1, results
     else:
         print_message(syslog.LOG_INFO, "All good!")
