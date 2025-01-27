@@ -799,6 +799,7 @@ def _wait_until_clear(tables, interval=0.5, timeout=30, verbose=False):
 
 
 def _clear_qos(delay=False, verbose=False):
+    status = True
     QOS_TABLE_NAMES = [
             'PORT_QOS_MAP',
             'QUEUE',
@@ -838,7 +839,8 @@ def _clear_qos(delay=False, verbose=False):
         device_metadata = config_db.get_entry('DEVICE_METADATA', 'localhost')
         # Traditional buffer manager do not remove buffer tables in any case, no need to wait.
         timeout = 120 if device_metadata and device_metadata.get('buffer_model') == 'dynamic' else 0
-        _wait_until_clear(["BUFFER_*_TABLE:*", "BUFFER_*_SET"], interval=0.5, timeout=timeout, verbose=verbose)
+        status = _wait_until_clear(["BUFFER_*_TABLE:*", "BUFFER_*_SET"], interval=0.5, timeout=timeout, verbose=verbose)
+    return status
 
 def _get_sonic_generated_services(num_asic):
     if not os.path.isfile(SONIC_GENERATED_SERVICE_PATH):
@@ -1319,6 +1321,18 @@ def flush_configdb(namespace=DEFAULT_NAMESPACE):
     client = config_db.get_redis_client(config_db.CONFIG_DB)
     client.flushdb()
     return client, config_db
+
+
+def delete_transceiver_tables():
+    tables = ["TRANSCEIVER_INFO", "TRANSCEIVER_STATUS", "TRANSCEIVER_PM",
+              "TRANSCEIVER_FIRMWARE_INFO", "TRANSCEIVER_DOM_SENSOR", "TRANSCEIVER_DOM_THRESHOLD"]
+    state_db_del_pattern = "|*"
+
+    # delete TRANSCEIVER tables from State DB
+    state_db = SonicV2Connector(use_unix_socket_path=True)
+    state_db.connect(state_db.STATE_DB, False)
+    for table in tables:
+        state_db.delete_all_by_pattern(state_db.STATE_DB, table + state_db_del_pattern)
 
 
 def migrate_db_to_lastest(namespace=DEFAULT_NAMESPACE):
@@ -1900,6 +1914,7 @@ def reload(db, filename, yes, load_sysinfo, no_service_restart, force, file_form
                 cfg_hwsku = output.strip()
 
             client, config_db = flush_configdb(namespace)
+            delete_transceiver_tables()
 
             if load_sysinfo:
                 if namespace is DEFAULT_NAMESPACE:
@@ -2035,6 +2050,7 @@ def load_minigraph(db, no_service_restart, traffic_shift_away, override_config, 
     #Stop services before config push
     if not no_service_restart:
         log.log_notice("'load_minigraph' stopping services...")
+        delete_transceiver_tables()
         _stop_services()
 
     # For Single Asic platform the namespace list has the empty string
@@ -3160,6 +3176,7 @@ def _update_buffer_calculation_model(config_db, model):
     help="Dry run, writes config to the given file"
 )
 def reload(ctx, no_dynamic_buffer, no_delay, dry_run, json_data, ports, verbose):
+    status = True
     """Reload QoS configuration"""
     if ports:
         log.log_info("'qos reload --ports {}' executing...".format(ports))
@@ -3168,7 +3185,7 @@ def reload(ctx, no_dynamic_buffer, no_delay, dry_run, json_data, ports, verbose)
 
     log.log_info("'qos reload' executing...")
     if not dry_run:
-        _clear_qos(delay = not no_delay, verbose=verbose)
+        status = _clear_qos(delay=not no_delay, verbose=verbose)
 
     _, hwsku_path = device_info.get_paths_to_platform_and_hwsku_dirs()
     sonic_version_file = device_info.get_sonic_version_file()
@@ -3250,6 +3267,9 @@ def reload(ctx, no_dynamic_buffer, no_delay, dry_run, json_data, ports, verbose)
 
     if buffer_model_updated:
         print("Buffer calculation model updated, restarting swss is required to take effect")
+
+    if not status:
+        sys.exit(1)
 
 def _qos_update_ports(ctx, ports, dry_run, json_data):
     """Reload QoS configuration"""
